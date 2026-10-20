@@ -14,9 +14,10 @@ namespace Omniwand;
 /// </summary>
 internal sealed class OverlayZGuard
 {
-    private const double RaiseEverySec = 0.25;
-    private const double CheckEverySec = 0.06;
-    private const int SettleChecks = 2; // consecutive agreeing checks before switching, so edges do not flicker
+    private const double RaiseEverySec = 0.15;
+    private const double CheckEverySec = 0.02;
+    private const int SettleChecks = 1; // immediate switch so notification/taskbar edges never clip the wand
+    private const int CursorRadiusPad = 32; // pad by the rendered wand radius so wings never clip under higher z-band edges
 
     private double _lastRaise = double.NegativeInfinity;
     private double _lastCheck = double.NegativeInfinity;
@@ -67,7 +68,8 @@ internal sealed class OverlayZGuard
             int ex = GetWindowLong(h, GWL_EXSTYLE);
             if ((ex & (WS_EX_LAYERED | WS_EX_TRANSPARENT)) == (WS_EX_LAYERED | WS_EX_TRANSPARENT)) return true;
             if (!GetWindowRect(h, out RECT r)) return true;
-            if (x >= r.Left && x < r.Right && y >= r.Top && y < r.Bottom)
+            if (x >= r.Left - CursorRadiusPad && x < r.Right + CursorRadiusPad &&
+                y >= r.Top - CursorRadiusPad && y < r.Bottom + CursorRadiusPad)
             {
                 covered = true;
                 return false;

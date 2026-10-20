@@ -2257,14 +2257,74 @@ internal static class NativeCursorManager
     /// </summary>
     public static bool Suspended { get; private set; }
 
-    /// <summary>Brings the stock cursors back without changing the user's hide setting.</summary>
+    /// <summary>
+    /// Installs the on-brand 32-bit ARGB Ark Aperture directly into the Windows DWM hardware cursor slots
+    /// when a higher z-band shell surface (Notifications, Start, Taskbar, Flyouts) covers the overlay HWND,
+    /// so the Ark Aperture always renders 100% IN FRONT OF Windows Notifications and shell elements.
+    /// </summary>
     public static void SuspendForCoveredUi()
     {
         if (!IsHidden || Suspended) return;
-        const uint SPI_SETCURSORS = 0x0057;
-        Win32.SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
+        foreach (uint id in CursorIds.Concat(ExtraHiddenCursorIds))
+        {
+            IntPtr hCur = CreateApertureHardwareCursor(id);
+            if (hCur == IntPtr.Zero) continue;
+            if (!Win32.SetSystemCursor(hCur, id))
+                Win32.DestroyCursor(hCur);
+        }
         CaptureStockCursorHandles();
         Suspended = true;
+    }
+
+    private static IntPtr CreateApertureHardwareCursor(uint cursorId)
+    {
+        const int size = 40;
+        using var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.HighQuality;
+            g.Clear(Color.FromArgb(0, 0, 0, 0));
+            if (cursorId == 32513) // OCR_IBEAM: Solid Patina vertical beam bar
+            {
+                float cx = size * 0.5f;
+                using var glowPen = new Pen(Color.FromArgb(88, PhosphorTheme.Patina), 5.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                using var shadowPen = new Pen(Color.FromArgb(180, PhosphorTheme.Ground), 3.8f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                using var beamPen = new Pen(PhosphorTheme.Patina, 2.4f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                g.DrawLine(glowPen, cx, 9f, cx, size - 9f);
+                g.DrawLine(shadowPen, cx, 9f, cx, size - 9f);
+                g.DrawLine(beamPen, cx, 9f, cx, size - 9f);
+            }
+            else
+            {
+                Color globeCol = cursorId switch
+                {
+                    32649 or 32650 or 32514 => PhosphorTheme.Coral, // Hand / AppStarting / Wait
+                    32648 => PhosphorTheme.Rust,                    // No
+                    32651 => PhosphorTheme.Seal,                    // Help
+                    _ => PhosphorTheme.Patina                       // Arrow & default
+                };
+                var state = g.Save();
+                g.TranslateTransform(size * 0.5f, size * 0.5f);
+                g.RotateTransform(-22.5f);
+                g.TranslateTransform(-size * 0.5f, -size * 0.5f);
+                ArkEmblem.DrawAperture(
+                    g,
+                    new RectangleF(5f, 5f, size - 10f, size - 10f),
+                    solidGlobe: true,
+                    globeColorOverride: globeCol,
+                    asCursor: true);
+                g.Restore(state);
+            }
+        }
+        IntPtr hIcon = bmp.GetHicon();
+        try
+        {
+            return Win32.CopyIcon(hIcon);
+        }
+        finally
+        {
+            if (hIcon != IntPtr.Zero) Win32.DestroyIcon(hIcon);
+        }
     }
 
     /// <summary>Hides the cursors again once the covering surface is gone.</summary>

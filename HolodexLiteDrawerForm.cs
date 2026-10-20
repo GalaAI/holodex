@@ -532,7 +532,7 @@ public sealed class HolodexLiteDrawerForm : Form
                 "• [SPELL] Hold Ctrl or Right-Click + Shake U-D  ->  COPYCAT (Free-Form Lasso)\n" +
                 "• [SPELL] Hold Ctrl or Right-Click + Circle     ->  MUTATION (GrimX Spell Cast)\n" +
                 "• [SPELL] Hold Ctrl or Right-Click + Sweep R    ->  SYNTHESIZE (Holodex Session)\n" +
-                "• [MOD] Ark Aperture 240Hz Morph Engine (Solid Patina IBeam, Coral Hover/Wiz Bloom)\n" +
+                "• [MOD] Ark Aperture 240Hz Morph Engine (Solid Patina IBeam, Coral Hover/Wiz Globe)\n" +
                 "• [MOD] Mouse Hardware Intelligence (USB/HID VID/PID Brand & 100-4000 DPI Slider)\n" +
                 "• [MOD] KeyMaster Local Vault Sync (Windows Credential Manager wincred:// <-> ArkHive)\n" +
                 "• [MOD] Hivemind Lite Session Bridge (Nemotron 3 Nano/Super + Syndicate Group Chat)"

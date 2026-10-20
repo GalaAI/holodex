@@ -27,10 +27,10 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 ## Key Features (v0.3)
 
 - **240Hz Ark Aperture Morph Engine & 4 On-Brand VSync Cursor Styles (`Alt+C`)**:
-  - Default cursor is the **Ark Aperture** (`CursorIconStyle.ArkAperture`) with subtle banking tilt (`RotationMode.SubtleBank`) during normal operator use and automatic **True Path** rotation + **Coral Bloom Globe (`#E08B73`)** when **Wiz** is actively using the mouse or reasoning.
+  - Default cursor is the **Ark Aperture** (`CursorIconStyle.ArkAperture`) with subtle banking tilt (`RotationMode.SubtleBank`) during normal operator use and automatic **True Path** rotation + **Coral Globe (`#E08B73`)** when **Wiz** is actively using the mouse or reasoning.
   - **Subtle, Non-Pulsing Contextual State Morphs**:
     - `Arrow`: Pure 3-Wing Cream Aperture + steady Patina Globe (`#69A389`).
-    - `Hand` / `AppStarting` (Wiz Active): Subtle Aperture opening + steady Coral Globe (`#E08B73`) with soft radial bloom.
+    - `Hand` / `AppStarting` (Wiz Active): Subtle Aperture opening + steady Coral Globe (`#E08B73`).
     - `IBeam` (Text Cursor): Smoothly folds the 3 wings inward into a **solid, basic vertical beam bar glowing Patina (`#69A389`)** (steady, non-pulsing).
     - `Crosshair`, `SizeWE/NS/NWSE/NESW`, `SizeAll`, `Wait` (3-Wing Orbital Turbine), `No` (Rust `#D96857` prohibition slash), and `Help` / `UpArrow` (Seal Amber `#D4A359`).
   - Also includes 4 creative morph formations (**Holoscope Iris**, **Syndicate Compass Rose**, **Wiz Wand Star**, **Aegis Shield**) and 3 additional cursor styles (**Relic Wand**, **Phosphor Arrow**, **Viewfinder Reticle**).
