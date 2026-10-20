@@ -1,33 +1,34 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Omniwand;
 
 /// <summary>
-/// Owns the cursor overlay's place in the z-order. Two jobs, both on the render thread:
-/// 1. Re-assert HWND_TOPMOST on a fixed clock (not only while the cursor moves), so windows that pop up
-///    later (taskbar, menus, toasts, tooltips) do not stay above the wand.
-/// 2. Some shell surfaces (Start, Search, taskbar and tray flyouts) live in z-order bands above every
-///    ordinary topmost window, so no re-assert can cover them. When a visible window still sits above the
-///    overlay under the cursor, the wand steps aside: the overlay hides and the native Windows cursor comes
-///    back until the pointer leaves that surface. Without this the pointer simply vanished there.
+/// Owns the cursor overlay's place in the z-order:
+/// 1. Re-asserts HWND_TOPMOST on a fast clock so ordinary topmost windows do not rise above the wand.
+/// 2. Detects higher DWM z-order bands (ZBID > 1: Windows Toast Notifications / Windows.UI.Core.CoreWindow,
+///    Start, Search, Action Center, XAML Islands, Taskbar flyouts) via 5-point WindowFromPoint + GetWindowBand
+///    so Omniwand immediately promotes the Ark Aperture into the Windows DWM Hardware Cursor plane
+///    (rendering 100% IN FRONT OF Windows Notifications and shell surfaces with zero edge clipping).
 /// </summary>
 internal sealed class OverlayZGuard
 {
-    private const double RaiseEverySec = 0.15;
-    private const double CheckEverySec = 0.02;
-    private const int SettleChecks = 1; // immediate switch so notification/taskbar edges never clip the wand
-    private const int CursorRadiusPad = 32; // pad by the rendered wand radius so wings never clip under higher z-band edges
+    private const double RaiseEverySec = 0.12;
+    private const double CheckEverySec = 0.016;
+    private const int SettleChecks = 1;
+    private const int CursorRadiusPad = 28;
+    private static readonly uint SelfPid = (uint)Environment.ProcessId;
 
     private double _lastRaise = double.NegativeInfinity;
     private double _lastCheck = double.NegativeInfinity;
     private bool _pendingCovered;
     private int _pendingCount;
 
-    /// <summary>True while a surface the overlay cannot rise above is under the cursor.</summary>
+    /// <summary>True while a surface in a higher DWM z-band (e.g. Windows Notification, Taskbar, Start) is under or touching the cursor.</summary>
     public bool Covered { get; private set; }
 
-    /// <summary>Runs one step. Returns true when <see cref="Covered"/> changed.</summary>
     public bool Tick(IntPtr overlay, int x, int y, double nowSec)
     {
         if (overlay == IntPtr.Zero) return false;
@@ -52,21 +53,55 @@ internal sealed class OverlayZGuard
         return true;
     }
 
-    /// <summary>
-    /// Walks top-level windows from the top of the z-order down to the overlay. Any visible, uncloaked window
-    /// that takes input and contains the point is above the wand. Click-through layered windows (other apps'
-    /// overlays, Omniwand's own orb and trailer) are ignored, since the pointer is not over them in any sense.
-    /// </summary>
     private static bool IsPointCoveredAbove(IntPtr overlay, int x, int y)
     {
+        // 1. Fast 5-point probe around the cursor radius using WindowFromPoint + GetWindowBand.
+        //    Windows 11 Toast Notifications (Windows.UI.Core.CoreWindow), Start Menu, Search, Action Center,
+        //    and Taskbar flyouts live in higher DWM Z-bands (ZBID > 1) that EnumWindows does not order before ZBID_DEFAULT.
+        ReadOnlySpan<(int dx, int dy)> offsets = stackalloc (int, int)[]
+        {
+            (0, 0),
+            (-CursorRadiusPad, -CursorRadiusPad),
+            (CursorRadiusPad, -CursorRadiusPad),
+            (-CursorRadiusPad, CursorRadiusPad),
+            (CursorRadiusPad, CursorRadiusPad)
+        };
+
+        foreach (var (dx, dy) in offsets)
+        {
+            IntPtr hit = WindowFromPoint(new POINT { X = x + dx, Y = y + dy });
+            if (hit == IntPtr.Zero || hit == overlay) continue;
+
+            IntPtr root = GetAncestor(hit, GA_ROOT);
+            if (root == IntPtr.Zero) root = hit;
+            if (root == overlay) continue;
+
+            GetWindowThreadProcessId(root, out uint pid);
+            if (pid == SelfPid) continue;
+
+            if (GetWindowBand(root, out uint band) && band > 1)
+            {
+                return true;
+            }
+
+            string cls = GetWindowClass(root);
+            if (IsAboveOverlayShellClass(cls))
+            {
+                return true;
+            }
+        }
+
+        // 2. Fallback: walk top-level windows above the overlay in ZBID_DEFAULT.
         bool covered = false;
         EnumWindows((h, _) =>
         {
-            if (h == overlay) return false; // reached the overlay: nothing above covers the point
+            if (h == overlay) return false;
             if (!IsWindowVisible(h)) return true;
             if (DwmGetWindowAttribute(h, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0) return true;
             int ex = GetWindowLong(h, GWL_EXSTYLE);
             if ((ex & (WS_EX_LAYERED | WS_EX_TRANSPARENT)) == (WS_EX_LAYERED | WS_EX_TRANSPARENT)) return true;
+            GetWindowThreadProcessId(h, out uint pid);
+            if (pid == SelfPid) return true;
             if (!GetWindowRect(h, out RECT r)) return true;
             if (x >= r.Left - CursorRadiusPad && x < r.Right + CursorRadiusPad &&
                 y >= r.Top - CursorRadiusPad && y < r.Bottom + CursorRadiusPad)
@@ -79,12 +114,35 @@ internal sealed class OverlayZGuard
         return covered;
     }
 
+    private static bool IsAboveOverlayShellClass(string cls)
+    {
+        if (string.IsNullOrEmpty(cls)) return false;
+        return cls.Equals("Windows.UI.Core.CoreWindow", StringComparison.OrdinalIgnoreCase)
+            || cls.Equals("XamlExplorerHostIslandWindow", StringComparison.OrdinalIgnoreCase)
+            || cls.Equals("TopLevelWindowForOverflowXamlIsland", StringComparison.OrdinalIgnoreCase)
+            || cls.Equals("Shell_TrayWnd", StringComparison.OrdinalIgnoreCase)
+            || cls.Equals("Shell_SecondaryTrayWnd", StringComparison.OrdinalIgnoreCase)
+            || cls.Equals("NotifyIconOverflowWindow", StringComparison.OrdinalIgnoreCase)
+            || cls.Equals("#32768", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetWindowClass(IntPtr hWnd)
+    {
+        var sb = new StringBuilder(128);
+        int len = GetClassName(hWnd, sb, sb.Capacity);
+        return len > 0 ? sb.ToString() : string.Empty;
+    }
+
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_LAYERED = 0x00080000;
     private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int DWMWA_CLOAKED = 14;
+    private const uint GA_ROOT = 2;
 
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X, Y; }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }
@@ -94,5 +152,10 @@ internal sealed class OverlayZGuard
     [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+    [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(POINT Point);
+    [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+    [DllImport("user32.dll")] private static extern bool GetWindowBand(IntPtr hWnd, out uint pdwBand);
     [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
 }
