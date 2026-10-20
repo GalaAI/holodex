@@ -127,7 +127,7 @@ internal sealed class PhosphorMenuRenderer : ToolStripProfessionalRenderer
     /// </summary>
     private static string ReserveShortcutColumn(ToolStripMenuItem item)
     {
-        string text = item.ShortcutKeyDisplayString.TrimEnd(ColumnPad).ToUpperInvariant();
+        string text = (item.ShortcutKeyDisplayString ?? string.Empty).TrimEnd(ColumnPad).ToUpperInvariant();
         var owner = item.Owner as ToolStripDropDown;
         using var rowFont = PhosphorFonts.Ui(owner?.OwnerItem != null ? PhosphorTheme.TextData : PhosphorTheme.TextBody);
         using var mono = PhosphorFonts.Mono(PhosphorTheme.TextData);
@@ -217,7 +217,7 @@ internal sealed class PhosphorMenuRenderer : ToolStripProfessionalRenderer
             // column; ghost at rest, dim on the lit row. Drawn here because WinForms has no letter spacing.
             float s = ScaleOf(e.Item.Owner);
             using var mono = PhosphorFonts.Mono(PhosphorTheme.TextData);
-            string text = e.Text.TrimEnd(ColumnPad).ToUpperInvariant();
+            string text = (e.Text ?? string.Empty).TrimEnd(ColumnPad).ToUpperInvariant();
             float tracking = mono.Size * 0.12f * e.Graphics.DpiX / 72f;
             float width = PhosphorPaint.MeasureTracked(e.Graphics, text, mono, tracking) - tracking;
             // Flush with the submenu arrows' right edge, not short of the arrow column.

@@ -746,12 +746,78 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
             using var swatchBrush = new SolidBrush(_hoveredPixelColor);
             var swatchRect = new Rectangle(cardRect.Right - 30, cardRect.Top + 62, 18, 18);
+            using var swatchOutline = new Pen(PhosphorTheme.Bone, 1f);
             g.FillRectangle(swatchBrush, swatchRect);
-            g.DrawRectangle(Pens.White, swatchRect);
+            g.DrawRectangle(swatchOutline, swatchRect);
         }
 
         DrawAnnotations(g);
         WidgetChrome.PaintFrame(this, g, PhosphorTheme.Patina);
+    }
+
+    public Bitmap OverlayCanvasPreview(Bitmap baseRender)
+    {
+        var outBmp = new Bitmap(baseRender.Width, baseRender.Height, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(outBmp))
+        {
+            g.DrawImageUnscaled(baseRender, 0, 0);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+            // Paint the middle canvas viewport (between top toolbar y=68 and bottom action drawer y=300)
+            var prevClip = g.Clip;
+            g.SetClip(new Rectangle(4, 70, Width - 8, 230), CombineMode.Replace);
+
+            // Technical grid lines in the canvas region
+            using (var gridPen = new Pen(Color.FromArgb(24, PhosphorTheme.Line2), 1f))
+            {
+                for (int x = 16; x < Width - 16; x += 32) g.DrawLine(gridPen, x, 70, x, 300);
+                for (int y = 76; y < 300; y += 32) g.DrawLine(gridPen, 4, y, Width - 4, y);
+            }
+
+            if (_lassoPoints.Count > 2)
+            {
+                using var fillLasso = new SolidBrush(Color.FromArgb(24, PhosphorTheme.Patina));
+                using var glowPen = new Pen(Color.FromArgb(90, PhosphorTheme.Patina), 5f) { LineJoin = LineJoin.Round };
+                using var dashPen = new Pen(PhosphorTheme.Patina, 2f) { DashStyle = DashStyle.Dash, LineJoin = LineJoin.Round };
+                g.FillPolygon(fillLasso, _lassoPoints.ToArray());
+                g.DrawPolygon(glowPen, _lassoPoints.ToArray());
+                g.DrawPolygon(dashPen, _lassoPoints.ToArray());
+
+                using var tagFont = PhosphorFonts.Mono(9.5f);
+                using var tagBrush = new SolidBrush(PhosphorTheme.Patina);
+                g.DrawString($"FREE-FORM LASSO // {_lassoPoints.Count} VERTICES · {_selectionRect.Width}x{_selectionRect.Height}PX",
+                    tagFont, tagBrush, _selectionRect.Left, Math.Max(74, _selectionRect.Top - 16));
+            }
+
+            if (_hoveredElementRect.Width > 8)
+            {
+                using var elemPen = new Pen(PhosphorTheme.Coral, 2f);
+                g.DrawRectangle(elemPen, _hoveredElementRect);
+
+                var cardRect = new Rectangle(_hoveredElementRect.Left + 10, _hoveredElementRect.Top + 12, 250, 96);
+                PhosphorTheme.DrawPhosphorPanel(g, cardRect, PhosphorTheme.RadiusTile, PhosphorTheme.Surface, PhosphorTheme.Coral);
+                using var monoFont = PhosphorFonts.Mono(9.0f);
+                using var titleFont = PhosphorFonts.Ui(10.0f, heavy: true);
+                using var boneBrush = new SolidBrush(PhosphorTheme.Bone);
+                using var dimBrush = new SolidBrush(PhosphorTheme.Dim);
+                using var coralBrush = new SolidBrush(PhosphorTheme.Coral);
+
+                g.DrawString("WAND.POINT // ELEMENT INSPECTOR", monoFont, coralBrush, cardRect.Left + 10, cardRect.Top + 8);
+                g.DrawString(_hoveredTitle, titleFont, boneBrush, cardRect.Left + 10, cardRect.Top + 26);
+                g.DrawString($"CLASS: {_hoveredClass}", monoFont, dimBrush, cardRect.Left + 10, cardRect.Top + 46);
+                g.DrawString($"ARCH:  {_hoveredElementRect.Width}x{_hoveredElementRect.Height}px  PALETTE: {_hoveredHex}", monoFont, boneBrush, cardRect.Left + 10, cardRect.Top + 66);
+
+                using var swatchBrush = new SolidBrush(_hoveredPixelColor);
+                var swatchRect = new Rectangle(cardRect.Right - 28, cardRect.Top + 62, 16, 16);
+                using var swatchOutline = new Pen(PhosphorTheme.Bone, 1f);
+                g.FillRectangle(swatchBrush, swatchRect);
+                g.DrawRectangle(swatchOutline, swatchRect);
+            }
+
+            g.Clip = prevClip;
+        }
+        return outBmp;
     }
 
     private void DrawAnnotations(Graphics g)

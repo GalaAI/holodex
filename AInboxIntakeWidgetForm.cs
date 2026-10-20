@@ -78,7 +78,8 @@ public sealed class AInboxIntakeWidgetForm : Form
         {
             _capturedDataUrl = ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y, 640, 420);
             _selectedFilePath = "cursor-capture.png";
-            _fileStatusLabel.Text = "ATTACHED // cursor-capture.png // 640x420";
+            if (_fileStatusLabel != null)
+                _fileStatusLabel.Text = "ATTACHED // cursor-capture.png // 640x420";
             RefreshAutoDetectionAndScroll();
         };
         _fileStatusLabel = new DataLabel("DROP // any file, script, dataset or capture") { Dock = DockStyle.Fill, Height = 44, Name = "AInbox.FileStatus" };

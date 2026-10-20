@@ -540,7 +540,6 @@ internal static class ArkApertureMorphEngine
         float spinAngleDeg)
     {
         var s = CreateDefaultArrowState(isAiThinking);
-        float pulse = (float)Math.Sin(spinAngleDeg * Math.PI / 90.0);
 
         // If user selected a dedicated custom morph formation, apply it when in normal Arrow state
         if (customMode != ApertureMorphMode.AutoContextual && role == WindowsCursorRole.Arrow)
@@ -549,61 +548,59 @@ internal static class ArkApertureMorphEngine
             {
                 case ApertureMorphMode.HoloscopeIris:
                 {
-                    float r = 10.8f + 1.1f * pulse;
-                    s.Top = WingPose.Create(0f, -r, 180f, 0.85f, 0.85f, 1f);
-                    s.Fourth = WingPose.Create(0f, r, 0f, 0.85f, 0.85f, 1f);
-                    s.Left = WingPose.Create(-r, 0f, 90f - LeftNaturalDirDeg, 0.85f, 0.85f, 1f);
-                    s.Right = WingPose.Create(r, 0f, -90f - RightNaturalDirDeg, 0.85f, 0.85f, 1f);
+                    float r = 10.4f;
+                    s.Top = WingPose.Create(0f, -r, 180f, 0.82f, 0.82f, 1f);
+                    s.Fourth = WingPose.Create(0f, r, 0f, 0.82f, 0.82f, 1f);
+                    s.Left = WingPose.Create(-r, 0f, 90f - LeftNaturalDirDeg, 0.82f, 0.82f, 1f);
+                    s.Right = WingPose.Create(r, 0f, -90f - RightNaturalDirDeg, 0.82f, 0.82f, 1f);
                     s.GlobeX = 0f;
                     s.GlobeY = 0f;
-                    s.GlobeRx = 4.6f;
-                    s.GlobeRy = 4.6f;
-                    SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 0.9f);
-                    s.ReticleRingAlpha = 0.85f;
+                    s.GlobeRx = 4.2f;
+                    s.GlobeRy = 4.2f;
+                    SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 0.55f);
+                    s.ReticleRingAlpha = 0.65f;
                     return s;
                 }
                 case ApertureMorphMode.SyndicateCompass:
                 {
-                    float r = 12.6f;
-                    s.Top = WingPose.Create(0f, -r, 0f, 0.86f, 0.86f, 1f);
-                    s.Fourth = WingPose.Create(0f, r, 180f, 0.86f, 0.86f, 1f);
-                    s.Left = WingPose.Create(-r, 0f, -90f - LeftNaturalDirDeg, 0.86f, 0.86f, 1f);
-                    s.Right = WingPose.Create(r, 0f, 90f - RightNaturalDirDeg, 0.86f, 0.86f, 1f);
+                    float r = 11.8f;
+                    s.Top = WingPose.Create(0f, -r, 0f, 0.82f, 0.82f, 1f);
+                    s.Fourth = WingPose.Create(0f, r, 180f, 0.82f, 0.82f, 1f);
+                    s.Left = WingPose.Create(-r, 0f, -90f - LeftNaturalDirDeg, 0.82f, 0.82f, 1f);
+                    s.Right = WingPose.Create(r, 0f, 90f - RightNaturalDirDeg, 0.82f, 0.82f, 1f);
                     s.GlobeX = 0f;
                     s.GlobeY = 0f;
-                    s.GlobeRx = 4.8f;
-                    s.GlobeRy = 4.8f;
-                    SetGlobeColor(ref s, PhosphorTheme.Coral, 1.0f);
-                    s.FourWayShaftAlpha = 0.75f;
+                    s.GlobeRx = 4.2f;
+                    s.GlobeRy = 4.2f;
+                    SetGlobeColor(ref s, PhosphorTheme.Coral, 0.65f);
+                    s.FourWayShaftAlpha = 0.65f;
                     return s;
                 }
                 case ApertureMorphMode.WizWandStar:
                 {
-                    s.Top = WingPose.Create(0f, 2.8f, 0f, 1.08f, 1.08f, 1f);
-                    s.Left = WingPose.Create(-10.2f, 13.5f, -95f - LeftNaturalDirDeg + 6f * pulse, 0.92f, 0.92f, 1f);
-                    s.Right = WingPose.Create(10.2f, 13.5f, 95f - RightNaturalDirDeg - 6f * pulse, 0.92f, 0.92f, 1f);
-                    s.Fourth = WingPose.Create(0f, 22.8f, 180f, 0.82f, 0.82f, 0.95f);
+                    s.Top = WingPose.Create(0f, 3.1f, 0f, 1.04f, 1.04f, 1f);
+                    s.Left = WingPose.Create(-9.4f, 14.5f, -95f - LeftNaturalDirDeg, 0.88f, 0.88f, 1f);
+                    s.Right = WingPose.Create(9.4f, 14.5f, 95f - RightNaturalDirDeg, 0.88f, 0.88f, 1f);
+                    s.Fourth = WingPose.Create(0f, 21.6f, 180f, 0.76f, 0.76f, 0.85f);
                     s.GlobeX = 0f;
                     s.GlobeY = 13.0f;
-                    s.GlobeRx = 6.2f;
-                    s.GlobeRy = 6.2f;
-                    SetGlobeColor(ref s, PhosphorTheme.Coral, 1.0f);
-                    s.ReticleRingAlpha = 0.55f;
+                    s.GlobeRx = 5.8f;
+                    s.GlobeRy = 5.8f;
+                    SetGlobeColor(ref s, PhosphorTheme.Coral, 0.72f);
                     return s;
                 }
                 case ApertureMorphMode.AegisShield:
                 {
-                    float r = 9.6f;
-                    s.Top = WingPose.Create(0f, 3.2f, 0f, 1.02f, 1.02f, 1f);
-                    s.Left = WingPose.Create(-r * 0.86f, 14.5f, 60f - LeftNaturalDirDeg, 0.92f, 0.92f, 1f);
-                    s.Right = WingPose.Create(r * 0.86f, 14.5f, -60f - RightNaturalDirDeg, 0.92f, 0.92f, 1f);
-                    s.Fourth = WingPose.Create(0f, 21.2f, 0f, 0.78f, 0.78f, 0.9f);
+                    float r = 9.2f;
+                    s.Top = WingPose.Create(0f, 3.4f, 0f, 1.0f, 1.0f, 1f);
+                    s.Left = WingPose.Create(-r * 0.86f, 14.8f, 60f - LeftNaturalDirDeg, 0.88f, 0.88f, 1f);
+                    s.Right = WingPose.Create(r * 0.86f, 14.8f, -60f - RightNaturalDirDeg, 0.88f, 0.88f, 1f);
+                    s.Fourth = WingPose.Create(0f, 20.5f, 0f, 0.4f, 0.4f, 0f);
                     s.GlobeX = 0f;
                     s.GlobeY = 13.2f;
-                    s.GlobeRx = 5.8f;
-                    s.GlobeRy = 5.8f;
-                    SetGlobeColor(ref s, PhosphorTheme.Seal, 0.95f);
-                    s.ReticleRingAlpha = 0.65f;
+                    s.GlobeRx = 5.6f;
+                    s.GlobeRy = 5.6f;
+                    SetGlobeColor(ref s, PhosphorTheme.Seal, 0.65f);
                     return s;
                 }
             }
@@ -616,85 +613,82 @@ internal static class ArkApertureMorphEngine
 
             case WindowsCursorRole.Hand:
             {
-                // Iris expansion: wings flare outward around a Coral blooming globe
-                s.Top = WingPose.Create(0f, 2.75f, 0f, 1.08f, 1.08f, 1f);
-                s.Left = WingPose.Create(-9.85f, 17.6f, -12f, 1.04f, 1.04f, 1f);
-                s.Right = WingPose.Create(9.85f, 17.6f, 12f, 1.04f, 1.04f, 1f);
-                s.Fourth = WingPose.Create(0f, 22.4f, 180f, 0.62f, 0.55f, 0.55f);
+                // Subtle, noticeable Aperture opening + steady Coral globe glow (no extra 4th wing or ring)
+                s.Top = WingPose.Create(0f, 3.25f, 0f, 1.04f, 1.04f, 1f);
+                s.Left = WingPose.Create(-9.05f, 17.2f, -6f, 1.02f, 1.02f, 1f);
+                s.Right = WingPose.Create(9.05f, 17.2f, 6f, 1.02f, 1.02f, 1f);
+                s.Fourth = WingPose.Create(0f, 13.0f, 180f, 0.2f, 0.2f, 0f);
                 s.GlobeX = 0f;
-                s.GlobeY = 13.0f;
-                s.GlobeRx = 6.35f;
-                s.GlobeRy = 6.35f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 1.0f);
-                s.ReticleRingAlpha = 0.38f;
+                s.GlobeY = 13.1f;
+                s.GlobeRx = 5.95f;
+                s.GlobeRy = 5.95f;
+                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.68f);
                 return s;
             }
 
             case WindowsCursorRole.IBeam:
             {
-                // Aperture Caret Caliper: Top & Fourth wings form top/bottom serifs; Globe becomes vertical lens at (0,0)
-                s.Top = WingPose.Create(0f, -13.2f, 180f, 0.76f, 0.56f, 1f);
-                s.Fourth = WingPose.Create(0f, 13.2f, 0f, 0.76f, 0.56f, 1f);
-                s.Left = WingPose.Create(-3.2f, 0f, 90f - LeftNaturalDirDeg, 0.42f, 0.42f, 0.72f);
-                s.Right = WingPose.Create(3.2f, 0f, -90f - RightNaturalDirDeg, 0.42f, 0.42f, 0.72f);
+                // Solid, basic vertical beam bar glowing Patina (steady, non-pulsing).
+                // The 3 Aperture wings collapse smoothly into the vertical centerline and fade out.
+                s.Top = WingPose.Create(0f, -6.5f, 0f, 0.16f, 0.55f, 0f);
+                s.Left = WingPose.Create(0f, 6.5f, -LeftNaturalDirDeg, 0.16f, 0.55f, 0f);
+                s.Right = WingPose.Create(0f, 6.5f, -RightNaturalDirDeg, 0.16f, 0.55f, 0f);
+                s.Fourth = WingPose.Create(0f, 0f, 180f, 0.16f, 0.45f, 0f);
                 s.GlobeX = 0f;
                 s.GlobeY = 0f;
-                s.GlobeRx = 2.65f;
-                s.GlobeRy = 4.5f;
-                SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 0.85f);
+                s.GlobeRx = 1.35f;
+                s.GlobeRy = 9.8f;
+                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.62f);
                 s.CaretStemAlpha = 1.0f;
                 return s;
             }
 
             case WindowsCursorRole.Crosshair:
             {
-                // 4-Wing Holoscope Reticle: all 4 wings point inward at the central pinpoint globe
-                float dist = 11.8f;
-                s.Top = WingPose.Create(0f, -dist, 180f, 0.82f, 0.82f, 1f);
-                s.Fourth = WingPose.Create(0f, dist, 0f, 0.82f, 0.82f, 1f);
-                s.Left = WingPose.Create(-dist, 0f, 90f - LeftNaturalDirDeg, 0.82f, 0.82f, 1f);
-                s.Right = WingPose.Create(dist, 0f, -90f - RightNaturalDirDeg, 0.82f, 0.82f, 1f);
+                // Clean, subtle Patina crosshair with small steady center dot
+                float dist = 9.8f;
+                s.Top = WingPose.Create(0f, -dist, 180f, 0.58f, 0.58f, 0.9f);
+                s.Fourth = WingPose.Create(0f, dist, 0f, 0.58f, 0.58f, 0.9f);
+                s.Left = WingPose.Create(-dist, 0f, 90f - LeftNaturalDirDeg, 0.58f, 0.58f, 0.9f);
+                s.Right = WingPose.Create(dist, 0f, -90f - RightNaturalDirDeg, 0.58f, 0.58f, 0.9f);
                 s.GlobeX = 0f;
                 s.GlobeY = 0f;
-                s.GlobeRx = 2.7f;
-                s.GlobeRy = 2.7f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.95f);
-                s.ReticleRingAlpha = 1.0f;
+                s.GlobeRx = 2.1f;
+                s.GlobeRy = 2.1f;
+                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.55f);
+                s.FourWayShaftAlpha = 0.75f;
                 return s;
             }
 
             case WindowsCursorRole.Wait:
             {
-                // Spinning 3-Wing Coral Turbine around the central Coral Bloom Globe
-                float r = 10.6f + 0.9f * pulse;
-                s.Top = WingPose.Create(0f, -r, 0f, 0.88f, 0.88f, 1f);
-                s.Left = WingPose.Create(-r * 0.866f, r * 0.5f, 0f, 0.88f, 0.88f, 1f);
-                s.Right = WingPose.Create(r * 0.866f, r * 0.5f, 0f, 0.88f, 0.88f, 1f);
+                // Compact 3-Wing Triad orbiting smoothly around a steady Coral Globe
+                float r = 9.6f;
+                s.Top = WingPose.Create(0f, -r, 0f, 0.80f, 0.80f, 1f);
+                s.Left = WingPose.Create(-r * 0.866f, r * 0.5f, 0f, 0.80f, 0.80f, 1f);
+                s.Right = WingPose.Create(r * 0.866f, r * 0.5f, 0f, 0.80f, 0.80f, 1f);
                 s.Fourth = WingPose.Create(0f, 0f, 180f, 0.2f, 0.2f, 0f);
                 s.GlobeX = 0f;
                 s.GlobeY = 0f;
-                s.GlobeRx = 5.4f;
-                s.GlobeRy = 5.4f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 1.0f);
-                s.ReticleRingAlpha = 0.72f;
+                s.GlobeRx = 4.8f;
+                s.GlobeRy = 4.8f;
+                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.68f);
                 s.OrbitalSpinWeight = 1.0f;
                 return s;
             }
 
             case WindowsCursorRole.AppStarting:
             {
-                // Active Pointer + Wiz Coral Bloom + pulsing lower wings
-                float wingWave = 8f * pulse;
-                s.Top = WingPose.Create(0f, 3.5f, 0f, 1.04f, 1.04f, 1f);
-                s.Left = WingPose.Create(-9.2f - 0.8f * pulse, 16.4f, wingWave, 0.96f, 0.96f, 1f);
-                s.Right = WingPose.Create(9.2f + 0.8f * pulse, 16.4f, -wingWave, 0.96f, 0.96f, 1f);
-                s.Fourth = WingPose.Create(0f, 22.0f, 180f, 0.58f, 0.58f, 0.65f);
+                // Pure Ark Aperture with steady Coral Bloom Globe while Wiz / background work runs
+                s.Top = WingPose.Create(0f, 3.65f, 0f, 1.0f, 1.0f, 1f);
+                s.Left = WingPose.Create(-8.55f, 16.95f, -2f, 1.0f, 1.0f, 1f);
+                s.Right = WingPose.Create(8.55f, 16.95f, 2f, 1.0f, 1.0f, 1f);
+                s.Fourth = WingPose.Create(0f, 13.16f, 180f, 0.2f, 0.2f, 0f);
                 s.GlobeX = 0f;
-                s.GlobeY = 13.0f;
-                s.GlobeRx = 6.1f;
-                s.GlobeRy = 6.1f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 1.0f);
-                s.ReticleRingAlpha = 0.48f;
+                s.GlobeY = 13.16f;
+                s.GlobeRx = 5.75f;
+                s.GlobeRy = 5.75f;
+                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.72f);
                 return s;
             }
 
@@ -703,7 +697,7 @@ internal static class ArkApertureMorphEngine
             case WindowsCursorRole.SizeNWSE:
             case WindowsCursorRole.SizeNESW:
             {
-                // Bi-Directional Aperture Caliper along the resize axis
+                // Clean, subtle 2-way resize caliper along the resize axis (side wings tuck away cleanly)
                 float axisDeg = role switch
                 {
                     WindowsCursorRole.SizeWE => 90f,     // East-West
@@ -714,19 +708,17 @@ internal static class ArkApertureMorphEngine
                 double rad = (axisDeg - 90.0) * Math.PI / 180.0;
                 float ux = (float)Math.Cos(rad);
                 float uy = (float)Math.Sin(rad);
-                float perpX = -uy;
-                float perpY = ux;
-                float dist = 12.6f;
+                float dist = 10.6f;
 
-                s.Top = WingPose.Create(ux * dist, uy * dist, axisDeg, 0.86f, 0.86f, 1f);
-                s.Fourth = WingPose.Create(-ux * dist, -uy * dist, axisDeg + 180f, 0.86f, 0.86f, 1f);
-                s.Left = WingPose.Create(perpX * 4.2f, perpY * 4.2f, axisDeg - 90f - LeftNaturalDirDeg, 0.45f, 0.45f, 0.68f);
-                s.Right = WingPose.Create(-perpX * 4.2f, -perpY * 4.2f, axisDeg + 90f - RightNaturalDirDeg, 0.45f, 0.45f, 0.68f);
+                s.Top = WingPose.Create(ux * dist, uy * dist, axisDeg, 0.72f, 0.72f, 1f);
+                s.Fourth = WingPose.Create(-ux * dist, -uy * dist, axisDeg + 180f, 0.72f, 0.72f, 1f);
+                s.Left = WingPose.Create(0f, 0f, axisDeg - LeftNaturalDirDeg, 0.2f, 0.2f, 0f);
+                s.Right = WingPose.Create(0f, 0f, axisDeg - RightNaturalDirDeg, 0.2f, 0.2f, 0f);
                 s.GlobeX = 0f;
                 s.GlobeY = 0f;
-                s.GlobeRx = 4.2f;
-                s.GlobeRy = 4.2f;
-                SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 0.78f);
+                s.GlobeRx = 2.8f;
+                s.GlobeRy = 2.8f;
+                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.52f);
                 s.ResizeShaftAlpha = 1.0f;
                 s.ResizeShaftAngleDeg = axisDeg;
                 return s;
@@ -734,65 +726,65 @@ internal static class ArkApertureMorphEngine
 
             case WindowsCursorRole.SizeAll:
             {
-                // 4-Way Outward Aperture Compass Rose
-                float dist = 13.0f;
-                s.Top = WingPose.Create(0f, -dist, 0f, 0.82f, 0.82f, 1f);
-                s.Fourth = WingPose.Create(0f, dist, 180f, 0.82f, 0.82f, 1f);
-                s.Left = WingPose.Create(-dist, 0f, -90f - LeftNaturalDirDeg, 0.82f, 0.82f, 1f);
-                s.Right = WingPose.Create(dist, 0f, 90f - RightNaturalDirDeg, 0.82f, 0.82f, 1f);
+                // Clean 4-Way Move Cross with steady Patina center dot
+                float dist = 10.8f;
+                s.Top = WingPose.Create(0f, -dist, 0f, 0.68f, 0.68f, 1f);
+                s.Fourth = WingPose.Create(0f, dist, 180f, 0.68f, 0.68f, 1f);
+                s.Left = WingPose.Create(-dist, 0f, -90f - LeftNaturalDirDeg, 0.68f, 0.68f, 1f);
+                s.Right = WingPose.Create(dist, 0f, 90f - RightNaturalDirDeg, 0.68f, 0.68f, 1f);
                 s.GlobeX = 0f;
                 s.GlobeY = 0f;
-                s.GlobeRx = 4.5f;
-                s.GlobeRy = 4.5f;
-                SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 0.88f);
-                s.FourWayShaftAlpha = 0.9f;
+                s.GlobeRx = 3.0f;
+                s.GlobeRy = 3.0f;
+                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.55f);
+                s.FourWayShaftAlpha = 0.85f;
                 return s;
             }
 
             case WindowsCursorRole.No:
             {
-                // Aegis Rust Shield & Lock
-                float r = 9.8f;
-                s.Top = WingPose.Create(0f, -r, 180f, 0.82f, 0.82f, 1f);
-                s.Left = WingPose.Create(-r * 0.866f, r * 0.5f, 60f - LeftNaturalDirDeg, 0.82f, 0.82f, 1f);
-                s.Right = WingPose.Create(r * 0.866f, r * 0.5f, -60f - RightNaturalDirDeg, 0.82f, 0.82f, 1f);
+                // Subtle Rust prohibition ring & slash with wings folded cleanly inward
+                float r = 8.4f;
+                s.Top = WingPose.Create(0f, -r, 180f, 0.65f, 0.65f, 0.85f);
+                s.Left = WingPose.Create(-r * 0.866f, r * 0.5f, 60f - LeftNaturalDirDeg, 0.65f, 0.65f, 0.85f);
+                s.Right = WingPose.Create(r * 0.866f, r * 0.5f, -60f - RightNaturalDirDeg, 0.65f, 0.65f, 0.85f);
                 s.Fourth = WingPose.Create(0f, 0f, 0f, 0.2f, 0.2f, 0f);
                 s.GlobeX = 0f;
                 s.GlobeY = 0f;
-                s.GlobeRx = 5.0f;
-                s.GlobeRy = 5.0f;
-                SetGlobeColor(ref s, PhosphorTheme.Rust, 0.95f);
-                s.ReticleRingAlpha = 1.0f;
+                s.GlobeRx = 4.2f;
+                s.GlobeRy = 4.2f;
+                SetGlobeColor(ref s, PhosphorTheme.Rust, 0.58f);
+                s.ReticleRingAlpha = 0.9f;
                 s.SlashAlpha = 1.0f;
                 return s;
             }
 
             case WindowsCursorRole.Help:
             {
-                // Oracle Seal Amber Globe + Question Glyph inside Globe
-                s.Top = WingPose.Create(0f, 3.4f, 0f, 1.04f, 1.04f, 1f);
-                s.Left = WingPose.Create(-8.8f, 17.0f, -5f, 1.0f, 1.0f, 1f);
-                s.Right = WingPose.Create(8.8f, 17.0f, 5f, 1.0f, 1.0f, 1f);
+                // Pure Ark Aperture with steady Seal Amber Globe + subtle '?'
+                s.Top = WingPose.Create(0f, 3.6f, 0f, 1.0f, 1.0f, 1f);
+                s.Left = WingPose.Create(-8.4f, 16.9f, -2f, 1.0f, 1.0f, 1f);
+                s.Right = WingPose.Create(8.4f, 16.9f, 2f, 1.0f, 1.0f, 1f);
                 s.GlobeX = 0f;
                 s.GlobeY = 13.16f;
-                s.GlobeRx = 6.2f;
-                s.GlobeRy = 6.2f;
-                SetGlobeColor(ref s, PhosphorTheme.Seal, 0.92f);
+                s.GlobeRx = 5.8f;
+                s.GlobeRy = 5.8f;
+                SetGlobeColor(ref s, PhosphorTheme.Seal, 0.58f);
                 s.QuestionAlpha = 1.0f;
                 return s;
             }
 
             case WindowsCursorRole.UpArrow:
             {
-                // Vertical Spearhead Aperture with Seal Amber Globe
-                s.Top = WingPose.Create(0f, 2.9f, 0f, 1.08f, 1.08f, 1f);
-                s.Left = WingPose.Create(-5.8f, 15.2f, 18f, 0.92f, 0.92f, 1f);
-                s.Right = WingPose.Create(5.8f, 15.2f, -18f, 0.92f, 0.92f, 1f);
+                // Sleek vertical Aperture with steady Seal Amber Globe
+                s.Top = WingPose.Create(0f, 3.2f, 0f, 1.02f, 1.02f, 1f);
+                s.Left = WingPose.Create(-6.4f, 15.6f, 12f, 0.92f, 0.92f, 1f);
+                s.Right = WingPose.Create(6.4f, 15.6f, -12f, 0.92f, 0.92f, 1f);
                 s.GlobeX = 0f;
-                s.GlobeY = 10.8f;
+                s.GlobeY = 11.4f;
                 s.GlobeRx = 4.6f;
                 s.GlobeRy = 4.6f;
-                SetGlobeColor(ref s, PhosphorTheme.Seal, 0.85f);
+                SetGlobeColor(ref s, PhosphorTheme.Seal, 0.55f);
                 return s;
             }
 
@@ -846,35 +838,54 @@ internal static class ArkApertureMorphEngine
             Math.Clamp((int)Math.Round(_current.GlobeG), 0, 255),
             Math.Clamp((int)Math.Round(_current.GlobeB), 0, 255));
 
-        float pulse = 1.0f + 0.16f * (float)Math.Sin(spinAngleDeg * Math.PI / 60.0);
         float gx = _current.GlobeX;
         float gy = _current.GlobeY;
-        float grx = Math.Max(1.2f, _current.GlobeRx);
-        float gry = Math.Max(1.2f, _current.GlobeRy);
+        float grx = Math.Max(1.1f, _current.GlobeRx);
+        float gry = Math.Max(1.1f, _current.GlobeRy);
 
-        // 1. Multi-ring radial Bloom behind the Globe when active
+        // 1. Steady, non-pulsing radial Bloom behind the Globe / Beam when active
         if (_current.BloomStrength > 0.02f)
         {
             float bAlpha = Math.Clamp(_current.BloomStrength, 0f, 1f);
-            float brx = grx * pulse;
-            float bry = gry * pulse;
-            using var outerBloom = new SolidBrush(Color.FromArgb((int)(48 * bAlpha), globeColor));
-            using var midBloom = new SolidBrush(Color.FromArgb((int)(96 * bAlpha), globeColor));
-            using var innerBloom = new SolidBrush(Color.FromArgb((int)(152 * bAlpha), globeColor));
+            using var outerBloom = new SolidBrush(Color.FromArgb((int)(34 * bAlpha), globeColor));
+            using var midBloom = new SolidBrush(Color.FromArgb((int)(68 * bAlpha), globeColor));
+            using var innerBloom = new SolidBrush(Color.FromArgb((int)(112 * bAlpha), globeColor));
 
-            g.FillEllipse(outerBloom, gx - brx * 2.5f, gy - bry * 2.5f, brx * 5.0f, bry * 5.0f);
-            g.FillEllipse(midBloom, gx - brx * 1.85f, gy - bry * 1.85f, brx * 3.7f, bry * 3.7f);
-            g.FillEllipse(innerBloom, gx - brx * 1.35f, gy - bry * 1.35f, brx * 2.7f, bry * 2.7f);
+            g.FillEllipse(outerBloom, gx - (grx + 4.8f), gy - (gry + 4.8f), (grx + 4.8f) * 2f, (gry + 4.8f) * 2f);
+            g.FillEllipse(midBloom, gx - (grx + 2.8f), gy - (gry + 2.8f), (grx + 2.8f) * 2f, (gry + 2.8f) * 2f);
+            g.FillEllipse(innerBloom, gx - (grx + 1.3f), gy - (gry + 1.3f), (grx + 1.3f) * 2f, (gry + 1.3f) * 2f);
         }
 
-        // 2. Auxiliary morph connectors (IBeam Caret Stem, Holoscope Ring, Resize Shafts, 4-Way Compass Shafts)
+        // 2. Solid basic glowing Patina Beam Bar for IBeam (plus subtle morph connectors for Resize/Crosshair)
         if (_current.CaretStemAlpha > 0.02f)
         {
-            int a = (int)(235 * Math.Clamp(_current.CaretStemAlpha, 0f, 1f));
-            using var shadowPen = new Pen(Color.FromArgb((int)(150 * _current.CaretStemAlpha), PhosphorTheme.Ground), 3.6f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            using var stemPen = new Pen(Color.FromArgb(a, PhosphorTheme.EmblemCream), 1.85f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            g.DrawLine(shadowPen, gx, -11.5f, gx, 11.5f);
-            g.DrawLine(stemPen, gx, -11.5f, gx, 11.5f);
+            float stemA = Math.Clamp(_current.CaretStemAlpha, 0f, 1f);
+            int a = (int)(255 * stemA);
+            float halfH = 10.2f * stemA;
+            using var glowPen = new Pen(Color.FromArgb((int)(82 * stemA), PhosphorTheme.Patina), 5.6f)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            using var shadowPen = new Pen(Color.FromArgb((int)(175 * stemA), PhosphorTheme.Ground), 4.0f)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            using var beamPen = new Pen(Color.FromArgb(a, PhosphorTheme.Patina), 2.4f)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            using var corePen = new Pen(Color.FromArgb((int)(150 * stemA), PhosphorTheme.EmblemCream), 1.0f)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            g.DrawLine(glowPen, gx, -halfH, gx, halfH);
+            g.DrawLine(shadowPen, gx, -halfH, gx, halfH);
+            g.DrawLine(beamPen, gx, -halfH, gx, halfH);
+            g.DrawLine(corePen, gx, -halfH + 1.2f, gx, halfH - 1.2f);
         }
 
         if (_current.ResizeShaftAlpha > 0.02f)
@@ -883,52 +894,57 @@ internal static class ArkApertureMorphEngine
             g.TranslateTransform(gx, gy);
             g.RotateTransform(_current.ResizeShaftAngleDeg - 90f);
             int a = (int)(220 * Math.Clamp(_current.ResizeShaftAlpha, 0f, 1f));
-            using var shadowPen = new Pen(Color.FromArgb((int)(145 * _current.ResizeShaftAlpha), PhosphorTheme.Ground), 3.4f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            using var shaftPen = new Pen(Color.FromArgb(a, PhosphorTheme.EmblemCream), 1.75f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            g.DrawLine(shadowPen, -9.2f, 0f, 9.2f, 0f);
-            g.DrawLine(shaftPen, -9.2f, 0f, 9.2f, 0f);
+            using var shadowPen = new Pen(Color.FromArgb((int)(145 * _current.ResizeShaftAlpha), PhosphorTheme.Ground), 3.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            using var shaftPen = new Pen(Color.FromArgb(a, PhosphorTheme.EmblemCream), 1.65f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawLine(shadowPen, -8.2f, 0f, 8.2f, 0f);
+            g.DrawLine(shaftPen, -8.2f, 0f, 8.2f, 0f);
             g.Restore(st);
         }
 
         if (_current.FourWayShaftAlpha > 0.02f)
         {
             int a = (int)(210 * Math.Clamp(_current.FourWayShaftAlpha, 0f, 1f));
-            using var shadowPen = new Pen(Color.FromArgb((int)(140 * _current.FourWayShaftAlpha), PhosphorTheme.Ground), 3.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            using var shaftPen = new Pen(Color.FromArgb(a, PhosphorTheme.EmblemCream), 1.65f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            g.DrawLine(shadowPen, gx - 9.5f, gy, gx + 9.5f, gy);
-            g.DrawLine(shadowPen, gx, gy - 9.5f, gx, gy + 9.5f);
-            g.DrawLine(shaftPen, gx - 9.5f, gy, gx + 9.5f, gy);
-            g.DrawLine(shaftPen, gx, gy - 9.5f, gx, gy + 9.5f);
+            using var shadowPen = new Pen(Color.FromArgb((int)(140 * _current.FourWayShaftAlpha), PhosphorTheme.Ground), 3.0f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            using var shaftPen = new Pen(Color.FromArgb(a, PhosphorTheme.EmblemCream), 1.55f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawLine(shadowPen, gx - 8.4f, gy, gx + 8.4f, gy);
+            g.DrawLine(shadowPen, gx, gy - 8.4f, gx, gy + 8.4f);
+            g.DrawLine(shaftPen, gx - 8.4f, gy, gx + 8.4f, gy);
+            g.DrawLine(shaftPen, gx, gy - 8.4f, gx, gy + 8.4f);
         }
 
         if (_current.ReticleRingAlpha > 0.02f)
         {
-            float ringR = Math.Max(grx, gry) + 4.4f;
+            float ringR = Math.Max(grx, gry) + 4.0f;
             int a = (int)(195 * Math.Clamp(_current.ReticleRingAlpha, 0f, 1f));
-            using var ringShadow = new Pen(Color.FromArgb((int)(130 * _current.ReticleRingAlpha), PhosphorTheme.Ground), 3.0f);
-            using var ringPen = new Pen(Color.FromArgb(a, globeColor), 1.55f);
+            using var ringShadow = new Pen(Color.FromArgb((int)(130 * _current.ReticleRingAlpha), PhosphorTheme.Ground), 2.8f);
+            using var ringPen = new Pen(Color.FromArgb(a, globeColor), 1.5f);
             g.DrawEllipse(ringShadow, gx - ringR, gy - ringR, ringR * 2f, ringR * 2f);
             g.DrawEllipse(ringPen, gx - ringR, gy - ringR, ringR * 2f, ringR * 2f);
         }
 
-        // 3. Center Globe with Ground outline + Specular Bloom Core
-        using (var shadowBrush = new SolidBrush(Color.FromArgb(115, 0, 0, 0)))
+        // 3. Center Globe (fades gracefully into the solid Patina beam bar when CaretStemAlpha -> 1)
+        float globeVisAlpha = 1.0f - Math.Clamp(_current.CaretStemAlpha * 0.92f, 0f, 0.92f);
+        if (globeVisAlpha > 0.05f)
         {
-            g.FillEllipse(shadowBrush, gx - grx - 0.5f, gy - gry + 0.8f, (grx + 0.5f) * 2f, (gry + 0.5f) * 2f);
-        }
-        using (var outlinePen = new Pen(PhosphorTheme.Ground, 1.7f) { LineJoin = LineJoin.Round })
-        {
-            g.DrawEllipse(outlinePen, gx - grx, gy - gry, grx * 2f, gry * 2f);
-        }
-        using (var globeBrush = new SolidBrush(globeColor))
-        {
-            g.FillEllipse(globeBrush, gx - grx, gy - gry, grx * 2f, gry * 2f);
-        }
-        if (_current.BloomStrength > 0.05f)
-        {
-            int coreAlpha = (int)(175 * Math.Clamp(_current.BloomStrength, 0f, 1f));
-            using var coreBrush = new SolidBrush(Color.FromArgb(coreAlpha, 255, 232, 218));
-            g.FillEllipse(coreBrush, gx - grx * 0.5f, gy - gry * 0.5f, grx, gry);
+            int ga = (int)(255 * globeVisAlpha);
+            using (var shadowBrush = new SolidBrush(Color.FromArgb((int)(115 * globeVisAlpha), 0, 0, 0)))
+            {
+                g.FillEllipse(shadowBrush, gx - grx - 0.5f, gy - gry + 0.8f, (grx + 0.5f) * 2f, (gry + 0.5f) * 2f);
+            }
+            using (var outlinePen = new Pen(Color.FromArgb(ga, PhosphorTheme.Ground), 1.7f) { LineJoin = LineJoin.Round })
+            {
+                g.DrawEllipse(outlinePen, gx - grx, gy - gry, grx * 2f, gry * 2f);
+            }
+            using (var globeBrush = new SolidBrush(Color.FromArgb(ga, globeColor)))
+            {
+                g.FillEllipse(globeBrush, gx - grx, gy - gry, grx * 2f, gry * 2f);
+            }
+            if (_current.BloomStrength > 0.08f)
+            {
+                int coreAlpha = (int)(135 * Math.Clamp(_current.BloomStrength, 0f, 1f) * globeVisAlpha);
+                using var coreBrush = new SolidBrush(Color.FromArgb(coreAlpha, 255, 232, 218));
+                g.FillEllipse(coreBrush, gx - grx * 0.46f, gy - gry * 0.46f, grx * 0.92f, gry * 0.92f);
+            }
         }
 
         // Prohibition Slash for 'No' state
@@ -1004,5 +1020,467 @@ internal static class ArkApertureMorphEngine
         }
 
         g.Restore(st);
+    }
+}
+
+public enum WandSpellGestureKind
+{
+    ShakeHorizontal = 0, // TIME SPLITTER -> Prompt Wiz / Contextual HUD
+    ShakeVertical = 1,   // COPYCAT       -> Free-Form Lasso / Snip Capture
+    CircleLoop = 2,      // MUTATION      -> Cast GrimX Flow / Syndicate Order
+    SweepRight = 3       // SYNTHESIZE    -> Open Holodex Drawer / Bridge
+}
+
+/// <summary>
+/// Ported directly from the original Omniwand concept in MagiXLab Video Bench (ark/magixlab/video.html):
+/// Holding Ctrl (or Right-Click Hold) arms the Omniwand gesture recognizer, rendering a 0.9s tapering
+/// Bone/White ghost ribbon + stochastic 4-point twinkling star dust keyed to pointer acceleration,
+/// and recognizing 4 loose-wristed spell gestures:
+/// - Horizontal Shake (TIME SPLITTER)
+/// - Vertical Shake (COPYCAT)
+/// - Circle Loop (MUTATION)
+/// - Unbroken Rightward Sweep (SYNTHESIZE)
+/// On cast, fires a 48-spark omnidirectional starburst that chroma-shifts to the spell's Relic Phosphor color.
+/// </summary>
+internal static class OmniwandSpellGestureEngine
+{
+    private const float SpellSwingPx = 44f;
+    private const int SpellSwingsRequired = 4;
+    private const double SpellWindowSec = 0.90;
+    private const double SpellCooldownSec = 0.75;
+    private const double SpellCircleWindowSec = 1.40;
+    private const double SpellTurnRadRequired = 5.2; // ~300 deg forgiving loop
+    private const double SpellCirclePxRequired = 210.0;
+    private const float SpellSwipePxRequired = 280f;
+
+    public static bool Enabled { get; set; } = true;
+    public static bool HoldCtrlToArm { get; set; } = true;
+    public static bool HoldRightMouseToArm { get; set; } = true;
+
+    private struct TrailNode
+    {
+        public float ScreenX;
+        public float ScreenY;
+        public double TimeSec;
+    }
+
+    private struct StarSpark
+    {
+        public float ScreenX;
+        public float ScreenY;
+        public float Vx;
+        public float Vy;
+        public float Radius;
+        public float Ttl;
+        public float Life;
+        public float Rot;
+        public float Spin;
+        public float TwinkleFreq;
+        public float TwinklePhase;
+        public Color BaseColor;
+        public Color? TargetChroma;
+    }
+
+    private struct SwingSample
+    {
+        public int Dir;
+        public double TimeSec;
+    }
+
+    private struct TurnSample
+    {
+        public double TimeSec;
+        public double DeltaAngleRad;
+        public double SegmentPx;
+    }
+
+    private static readonly List<TrailNode> _trail = new(128);
+    private static readonly List<StarSpark> _sparks = new(256);
+    private static readonly List<SwingSample> _hSwings = new(16);
+    private static readonly List<SwingSample> _vSwings = new(16);
+    private static readonly List<TurnSample> _turns = new(96);
+    private static readonly Random _rng = new();
+
+    private static bool _isArmed;
+    private static float _fade;
+    private static float _lastX = float.NaN;
+    private static float _lastY = float.NaN;
+    private static float _vx;
+    private static float _vy;
+    private static float _speed;
+    private static float _prevSpeed;
+    private static double _cooldownUntilSec;
+    private static double _quietSparksUntilSec;
+
+    private static int _hDir;
+    private static float _hRun;
+    private static int _vDir;
+    private static float _vRun;
+    private static float _swipeRightAccum;
+    private static double? _lastHeadingRad;
+
+    public static bool HasVisuals => _fade > 0.02f || _trail.Count > 1 || _sparks.Count > 0;
+    public static bool IsArmed => _isArmed;
+
+    public static bool Step(
+        Point cursorScreenPt,
+        double nowSec,
+        double dtSec,
+        bool ctrlDown,
+        bool rightMouseDown,
+        out WandSpellGestureKind triggeredSpell)
+    {
+        triggeredSpell = default;
+        dtSec = Math.Clamp(dtSec, 0.001, 0.05);
+
+        bool armedNow = Enabled && ((HoldCtrlToArm && ctrlDown) || (HoldRightMouseToArm && rightMouseDown));
+        if (armedNow && !_isArmed)
+        {
+            ResetGestureAccumulators();
+        }
+        else if (!armedNow && _isArmed)
+        {
+            ResetGestureAccumulators();
+        }
+        _isArmed = armedNow;
+
+        float fadeRate = _isArmed ? 14f : 8f;
+        _fade += ((_isArmed ? 1f : 0f) - _fade) * Math.Min(1f, (float)dtSec * fadeRate);
+
+        float cx = cursorScreenPt.X;
+        float cy = cursorScreenPt.Y;
+        if (float.IsNaN(_lastX))
+        {
+            _lastX = cx;
+            _lastY = cy;
+        }
+
+        float dx = cx - _lastX;
+        float dy = cy - _lastY;
+        _lastX = cx;
+        _lastY = cy;
+
+        float instVx = (float)(dx / dtSec);
+        float instVy = (float)(dy / dtSec);
+        _vx = _vx * 0.6f + instVx * 0.4f;
+        _vy = _vy * 0.6f + instVy * 0.4f;
+        _speed = (float)Math.Sqrt(_vx * _vx + _vy * _vy);
+        float acc = (float)((_speed - _prevSpeed) / dtSec);
+        _prevSpeed = _speed;
+
+        // 1. Update 0.9s tapering Ghost Ribbon
+        double cutoff = nowSec - 0.85;
+        while (_trail.Count > 0 && _trail[0].TimeSec < cutoff)
+        {
+            _trail.RemoveAt(0);
+        }
+
+        if (_isArmed)
+        {
+            if (_trail.Count == 0 ||
+                Math.Sqrt(Math.Pow(cx - _trail[^1].ScreenX, 2) + Math.Pow(cy - _trail[^1].ScreenY, 2)) > 1.8)
+            {
+                _trail.Add(new TrailNode { ScreenX = cx, ScreenY = cy, TimeSec = nowSec });
+                if (_trail.Count > 96) _trail.RemoveAt(0);
+            }
+
+            // Stochastic star dust emission keyed to speed + acceleration
+            if (nowSec > _quietSparksUntilSec && _speed > 160f && acc > -450f)
+            {
+                double odds = Math.Min(0.75, _speed / 1600.0) + (acc > 250f ? Math.Min(0.45, acc / 5500.0) : 0.0);
+                if (_rng.NextDouble() < odds * dtSec * 55.0)
+                {
+                    SpawnTrailSparks(cx, cy, _rng.NextDouble() < 0.25 ? 2 : 1);
+                }
+            }
+        }
+
+        // 2. Step existing star dust & cast starburst sparks
+        for (int i = _sparks.Count - 1; i >= 0; i--)
+        {
+            var p = _sparks[i];
+            bool isBurst = p.TargetChroma.HasValue;
+            p.Vy += (isBurst ? 320f : 95f) * (float)dtSec;
+            float dragX = (float)Math.Pow(isBurst ? 0.14 : 0.05, dtSec);
+            float dragY = (float)Math.Pow(isBurst ? 0.28 : 0.09, dtSec);
+            p.Vx *= dragX;
+            p.Vy *= dragY;
+            p.ScreenX += p.Vx * (float)dtSec;
+            p.ScreenY += p.Vy * (float)dtSec;
+            p.Life -= (float)dtSec / p.Ttl;
+            p.Rot += p.Spin * (float)dtSec;
+            if (p.Life <= 0f)
+            {
+                _sparks.RemoveAt(i);
+            }
+            else
+            {
+                _sparks[i] = p;
+            }
+        }
+
+        // 3. Evaluate spell gesture recognizers while armed
+        if (!_isArmed || nowSec < _cooldownUntilSec || (Math.Abs(dx) < 0.5f && Math.Abs(dy) < 0.5f))
+        {
+            return false;
+        }
+
+        // A. Shake recognizer (dominant axis per move so diagonal moves don't double-count)
+        bool horizDominant = Math.Abs(dx) >= Math.Abs(dy);
+        if (horizDominant)
+        {
+            int dir = dx > 0 ? 1 : -1;
+            if (dir == _hDir || _hDir == 0) { _hRun += Math.Abs(dx); _hDir = dir; }
+            else { _hRun = Math.Abs(dx); _hDir = dir; }
+
+            if (_hRun >= SpellSwingPx && (_hSwings.Count == 0 || _hSwings[^1].Dir != dir))
+            {
+                _hSwings.Add(new SwingSample { Dir = dir, TimeSec = nowSec });
+                _hRun = 0f;
+                _hSwings.RemoveAll(s => nowSec - s.TimeSec > SpellWindowSec);
+                if (_hSwings.Count >= SpellSwingsRequired)
+                {
+                    TriggerSpellCast(cx, cy, nowSec, WandSpellGestureKind.ShakeHorizontal, PhosphorTheme.Coral, out triggeredSpell);
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            int dir = dy > 0 ? 1 : -1;
+            if (dir == _vDir || _vDir == 0) { _vRun += Math.Abs(dy); _vDir = dir; }
+            else { _vRun = Math.Abs(dy); _vDir = dir; }
+
+            if (_vRun >= SpellSwingPx && (_vSwings.Count == 0 || _vSwings[^1].Dir != dir))
+            {
+                _vSwings.Add(new SwingSample { Dir = dir, TimeSec = nowSec });
+                _vRun = 0f;
+                _vSwings.RemoveAll(s => nowSec - s.TimeSec > SpellWindowSec);
+                if (_vSwings.Count >= SpellSwingsRequired)
+                {
+                    TriggerSpellCast(cx, cy, nowSec, WandSpellGestureKind.ShakeVertical, PhosphorTheme.Seal, out triggeredSpell);
+                    return true;
+                }
+            }
+        }
+
+        // B. Circle loop recognizer (sum signed heading change over 1.4s window)
+        double seg = Math.Sqrt(dx * dx + dy * dy);
+        if (seg >= 3.5)
+        {
+            double hd = Math.Atan2(dy, dx);
+            if (_lastHeadingRad.HasValue)
+            {
+                double dh = hd - _lastHeadingRad.Value;
+                while (dh > Math.PI) dh -= Math.PI * 2.0;
+                while (dh < -Math.PI) dh += Math.PI * 2.0;
+                _turns.Add(new TurnSample { TimeSec = nowSec, DeltaAngleRad = dh, SegmentPx = seg });
+            }
+            _lastHeadingRad = hd;
+            _turns.RemoveAll(t => nowSec - t.TimeSec > SpellCircleWindowSec);
+
+            double sumRad = 0.0;
+            double sumTravel = 0.0;
+            for (int i = 0; i < _turns.Count; i++)
+            {
+                sumRad += _turns[i].DeltaAngleRad;
+                sumTravel += _turns[i].SegmentPx;
+            }
+
+            if (Math.Abs(sumRad) >= SpellTurnRadRequired && sumTravel >= SpellCirclePxRequired)
+            {
+                TriggerSpellCast(cx, cy, nowSec, WandSpellGestureKind.CircleLoop, PhosphorTheme.Patina, out triggeredSpell);
+                return true;
+            }
+        }
+
+        // C. Unbroken Rightward Sweep (when Shift is also held or fast pure horizontal sweep)
+        if (dx < -4f || Math.Abs(dy) > Math.Abs(dx) * 0.85f)
+        {
+            _swipeRightAccum = 0f;
+        }
+        else if (dx > 0f)
+        {
+            _swipeRightAccum += dx;
+            if (_swipeRightAccum >= SpellSwipePxRequired && _hSwings.Count <= 1)
+            {
+                TriggerSpellCast(cx, cy, nowSec, WandSpellGestureKind.SweepRight, PhosphorTheme.Coral, out triggeredSpell);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void TriggerSpellCast(
+        float cx,
+        float cy,
+        double nowSec,
+        WandSpellGestureKind kind,
+        Color chroma,
+        out WandSpellGestureKind triggeredSpell)
+    {
+        triggeredSpell = kind;
+        _cooldownUntilSec = nowSec + SpellCooldownSec;
+        _quietSparksUntilSec = nowSec + 1.8;
+        ResetGestureAccumulators();
+        CastBurst(cx, cy, chroma);
+    }
+
+    private static void ResetGestureAccumulators()
+    {
+        _hSwings.Clear();
+        _vSwings.Clear();
+        _turns.Clear();
+        _hDir = 0;
+        _hRun = 0f;
+        _vDir = 0;
+        _vRun = 0f;
+        _swipeRightAccum = 0f;
+        _lastHeadingRad = null;
+    }
+
+    private static void SpawnTrailSparks(float sx, float sy, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            double ke = Math.Min(_speed, 1800f) * (0.04 + _rng.NextDouble() * 0.05);
+            double ang = Math.Atan2(_vy, _vx) + (_rng.NextDouble() - 0.5) * 0.9;
+            Color hue = _rng.NextDouble() < 0.65
+                ? Color.White
+                : (_rng.NextDouble() < 0.5 ? PhosphorTheme.EmblemCream : PhosphorTheme.Patina);
+
+            _sparks.Add(new StarSpark
+            {
+                ScreenX = sx + (float)(_rng.NextDouble() - 0.5) * 5f,
+                ScreenY = sy + (float)(_rng.NextDouble() - 0.5) * 5f,
+                Vx = (float)(-Math.Cos(ang) * ke + (_rng.NextDouble() - 0.5) * 32.0),
+                Vy = (float)(-Math.Sin(ang) * ke + (_rng.NextDouble() - 0.5) * 32.0 - 14.0),
+                Radius = _rng.NextDouble() < 0.8 ? (float)(0.7 + _rng.NextDouble() * 0.8) : (float)(1.3 + _rng.NextDouble() * 1.0),
+                Ttl = (float)(0.65 + _rng.NextDouble() * 0.75),
+                Life = 1f,
+                Rot = (float)(_rng.NextDouble() * Math.PI * 2.0),
+                Spin = (float)((_rng.NextDouble() - 0.5) * 3.0),
+                TwinkleFreq = (float)(4.0 + _rng.NextDouble() * 8.0),
+                TwinklePhase = (float)_rng.NextDouble(),
+                BaseColor = hue,
+                TargetChroma = null
+            });
+        }
+        if (_sparks.Count > 180)
+        {
+            _sparks.RemoveRange(0, _sparks.Count - 180);
+        }
+    }
+
+    public static void CastBurst(float sx, float sy, Color chroma)
+    {
+        _sparks.Clear();
+        for (int i = 0; i < 42; i++)
+        {
+            double a = _rng.NextDouble() * Math.PI * 2.0;
+            double v = 95.0 + _rng.NextDouble() * 240.0;
+            _sparks.Add(new StarSpark
+            {
+                ScreenX = sx,
+                ScreenY = sy,
+                Vx = (float)(Math.Cos(a) * v),
+                Vy = (float)(Math.Sin(a) * v - 48.0),
+                Radius = (float)(1.2 + _rng.NextDouble() * 2.0),
+                Ttl = (float)(0.65 + _rng.NextDouble() * 0.9),
+                Life = 1f,
+                Rot = (float)(_rng.NextDouble() * Math.PI * 2.0),
+                Spin = (float)((_rng.NextDouble() - 0.5) * 4.5),
+                TwinkleFreq = (float)(5.0 + _rng.NextDouble() * 7.0),
+                TwinklePhase = (float)_rng.NextDouble(),
+                BaseColor = _rng.NextDouble() < 0.7 ? Color.White : PhosphorTheme.EmblemCream,
+                TargetChroma = chroma
+            });
+        }
+    }
+
+    public static void DrawInOverlay(
+        Graphics g,
+        PointF cursorScreenPt,
+        float overlayCenterX,
+        float overlayCenterY,
+        double nowSec,
+        float dpiScale)
+    {
+        if (!HasVisuals) return;
+
+        float ox = overlayCenterX - cursorScreenPt.X;
+        float oy = overlayCenterY - cursorScreenPt.Y;
+
+        // 1. Tapering 0.85s Ghost Ribbon
+        if (_trail.Count > 1)
+        {
+            for (int i = 1; i < _trail.Count; i++)
+            {
+                var p0 = _trail[i - 1];
+                var p1 = _trail[i];
+                float age = (float)(1.0 - (nowSec - p1.TimeSec) / 0.85);
+                if (age <= 0.02f) continue;
+
+                int alpha = Math.Clamp((int)Math.Round(age * age * 120f), 0, 255);
+                Color col = age > 0.6f ? Color.FromArgb(alpha, 255, 255, 255) : Color.FromArgb(alpha, PhosphorTheme.EmblemCream);
+                float width = (0.6f + age * 2.6f) * dpiScale;
+                using var pen = new Pen(col, width) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                g.DrawLine(pen, p0.ScreenX + ox, p0.ScreenY + oy, p1.ScreenX + ox, p1.ScreenY + oy);
+            }
+        }
+
+        // 2. 4-Point Twinkling Star Dust & Cast Starbursts
+        for (int i = 0; i < _sparks.Count; i++)
+        {
+            var p = _sparks[i];
+            float sx = p.ScreenX + ox;
+            float sy = p.ScreenY + oy;
+            if (sx < 4f || sy < 4f || sx > overlayCenterX * 2f - 4f || sy > overlayCenterY * 2f - 4f)
+                continue;
+
+            float tw = 0.55f + 0.45f * (float)Math.Sin(nowSec * p.TwinkleFreq + p.TwinklePhase * 6.2832f);
+            float a = Math.Clamp(p.Life * p.Life * tw, 0f, 1f);
+            if (a <= 0.02f) continue;
+
+            Color col = p.BaseColor;
+            if (p.TargetChroma.HasValue)
+            {
+                var tc = p.TargetChroma.Value;
+                float t = 1f - Math.Clamp(p.Life, 0f, 1f);
+                col = Color.FromArgb(
+                    255,
+                    (int)Math.Round(p.BaseColor.R + (tc.R - p.BaseColor.R) * t),
+                    (int)Math.Round(p.BaseColor.G + (tc.G - p.BaseColor.G) * t),
+                    (int)Math.Round(p.BaseColor.B + (tc.B - p.BaseColor.B) * t));
+            }
+
+            float r = p.Radius * (0.35f + 0.65f * p.Life) * dpiScale;
+            var st = g.Save();
+            g.TranslateTransform(sx, sy);
+            g.RotateTransform(p.Rot * (180f / (float)Math.PI));
+
+            int mainA = Math.Clamp((int)(a * 215f), 0, 255);
+            int diagA = Math.Clamp((int)(a * 105f), 0, 255);
+            int coreA = Math.Clamp((int)(a * 245f), 0, 255);
+
+            using (var mainPen = new Pen(Color.FromArgb(mainA, col), Math.Max(0.6f, r * 0.42f)) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                g.DrawLine(mainPen, -r * 2.3f, 0f, r * 2.3f, 0f);
+                g.DrawLine(mainPen, 0f, -r * 2.3f, 0f, r * 2.3f);
+            }
+            using (var diagPen = new Pen(Color.FromArgb(diagA, col), Math.Max(0.5f, r * 0.26f)) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                g.DrawLine(diagPen, -r * 0.9f, -r * 0.9f, r * 0.9f, r * 0.9f);
+                g.DrawLine(diagPen, -r * 0.9f, r * 0.9f, r * 0.9f, -r * 0.9f);
+            }
+            using (var coreBrush = new SolidBrush(Color.FromArgb(coreA, Color.White)))
+            {
+                float cr = Math.Max(0.55f, r * 0.48f);
+                g.FillEllipse(coreBrush, -cr, -cr, cr * 2f, cr * 2f);
+            }
+
+            g.Restore(st);
+        }
     }
 }

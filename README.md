@@ -18,22 +18,35 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 | --- | --- | --- |
 | ![Snip](docs/shots/as-built/snip.png) | ![Tutorial](docs/shots/as-built/tutorial.png) | ![AInbox](docs/shots/as-built/ainbox.png) |
 
-| Tray Menu (`Omniwand // v0.3`) | GrimX Flow Submenu | Phosphor Toasts |
+| Tray Menu (`Omniwand // v0.3`) | Settings & Spellbook Submenus | 240Hz Aperture Morph States |
 | --- | --- | --- |
-| ![Menu](docs/shots/as-built/menu.png) | ![Submenu](docs/shots/as-built/menu-orb-submenu.png) | ![Toast](docs/shots/as-built/toast-info.png) |
+| ![Menu](docs/shots/as-built/menu.png) | ![Settings](docs/shots/as-built/menu-settings-submenu.png) | ![Morph Sheet](docs/shots/as-built/cursor-morph-sheet.png) |
 
 ---
 
 ## Key Features (v0.3)
 
-- **4 On-Brand VSync Cursor Styles & Right-Hold Gesture Flicks (`Alt+C`)**:
-  - Switch live between **Relic Wand** (magical glowing tip with phosphor sparks), **Ark Aperture** (precision reticle), **Phosphor Arrow**, and **Viewfinder Reticle** (`wand.point`), with critically-damped spring physics (`CriticallyDampedSpring`) and contextual morphing across all 14 Windows cursor roles.
-  - **Directional Gesture Movement**: Hold **Right Mouse Button** and flick **North** (`Holodex Lite Drawer`), **East** (`Wiz Crafting`), **South** (`Free-Form Lasso`), or **West** (`Element & Palette Picker`).
+- **240Hz Ark Aperture Morph Engine & 4 On-Brand VSync Cursor Styles (`Alt+C`)**:
+  - Default cursor is the **Ark Aperture** (`CursorIconStyle.ArkAperture`) with subtle banking tilt (`RotationMode.SubtleBank`) during normal operator use and automatic **True Path** rotation + **Coral Bloom Globe (`#E08B73`)** when **Wiz** is actively using the mouse or reasoning.
+  - **Subtle, Non-Pulsing Contextual State Morphs**:
+    - `Arrow`: Pure 3-Wing Cream Aperture + steady Patina Globe (`#69A389`).
+    - `Hand` / `AppStarting` (Wiz Active): Subtle Aperture opening + steady Coral Globe (`#E08B73`) with soft radial bloom.
+    - `IBeam` (Text Cursor): Smoothly folds the 3 wings inward into a **solid, basic vertical beam bar glowing Patina (`#69A389`)** (steady, non-pulsing).
+    - `Crosshair`, `SizeWE/NS/NWSE/NESW`, `SizeAll`, `Wait` (3-Wing Orbital Turbine), `No` (Rust `#D96857` prohibition slash), and `Help` / `UpArrow` (Seal Amber `#D4A359`).
+  - Also includes 4 creative morph formations (**Holoscope Iris**, **Syndicate Compass Rose**, **Wiz Wand Star**, **Aegis Shield**) and 3 additional cursor styles (**Relic Wand**, **Phosphor Arrow**, **Viewfinder Reticle**).
+- **MagiXLab Video Bench `Omniwand` Spell Gesture Engine (`Ctrl` or `Right-Click` Hold + Gesture)**:
+  - Ported from the original `Ark Shell S4` MagiXLab Video Bench concept (`ad2b6a14-756e-440d-b3fa-65db8e365c20`): hold `Ctrl` or `Right-Click` to arm the spell recognizer, rendering a **0.85s tapering Bone/White Ghost Ribbon** + **stochastic 4-point twinkling star dust (`sparks`)** keyed to pointer speed & acceleration + **42-spark omnidirectional starburst** on spell cast:
+    1. **Shake Left-Right (`4 swings ≥ 44px in 900ms`)**: Casts `TIME SPLITTER · WIZ INSPECT` (summons Wiz Crafting).
+    2. **Shake Up-Down (`4 swings ≥ 44px in 900ms`)**: Casts `COPYCAT · LASSO CAPTURE` (arms Free-Form Lasso & Vision Annotator).
+    3. **Draw a Circle (`≥ 300° signed turn + ≥ 210px travel in 1400ms`)**: Casts `MUTATION · GRIMX SPELL CAST` (casts GrimX Slot 1 Spell).
+    4. **Unbroken Sweep Right (`≥ 280px`)**: Casts `SYNTHESIZE · HOLODEX BRIDGE` (opens Holodex Lite Syndicate Session).
+- **Streamlined Root Tray Menu & Consolidated `Settings` Menu**:
+  - Top-level tray menu keeps the 6 primary workflow surfaces (`Phosphor HUD`, `Holodex Lite drawer`, `Wiz crafting`, `Capture & intake >`, `GrimX Flow orb >`, `Settings >`) while housing all hardware, cursor, morph, DPI slider (`100–4000 DPI`), spellbook, onboarding, and VR controls cleanly inside **`Settings`**.
 - **Zero-Manual Wiz Environment Onboarding & Animated Phosphor Tooltips (`Alt+T`)**:
   - On first launch, **Wiz** automatically scans your hardware (connected mouse brand & model via VID/PID, Windows pointer speed, display DPI, installed CLIs, and Windows Credential Manager `wincred://` vault), auto-provisions `~/.ark/agents/omniwand` (`omniwand.agent.bamf.json` + `SKILL.md` + `mouse-macros.json`), and launches a 5-step **60fps Animated Phosphor Tooltip Tutorial** with zero manual configuration.
-- **Intelligent Mouse Brand Detection, Live DPI Speed Control & Macro Binder**:
+- **Intelligent Mouse Brand Detection, Live 100–4000 DPI Slider & Macro Binder**:
   - Detects connected mice across **Logitech** (MX Master 4 / 3S, G Pro X Superlight, G502), **Razer**, **Corsair**, **SteelSeries**, **Glorious**, **Finalmouse**, **Pulsar**, **ASUS ROG**, and **Microsoft**.
-  - Live Windows pointer speed / sensitivity control (`SystemParametersInfo` `SPI_GETMOUSESPEED` / `SPI_SETMOUSESPEED` 1–20) and live `Mouse4` (`XButton1`) / `Mouse5` (`XButton2`) macro binding directly from the Tray Menu or Holodex **Mods** tab.
+  - Custom-drawn **Relic Phosphor DPI Slider (`100 DPI` sniper precision up to `4000 DPI`)** embedded directly in both `Settings -> Mouse DPI` and the `Holodex -> Mods` tab, synchronized in real time with `SystemParametersInfo` (`SPI_GETMOUSESPEED` / `SPI_SETMOUSESPEED` 1–20).
 - **Free-Form Lasso, Phosphor Annotation Studio & Desktop Element Picker (`Alt+S` / `Alt+E`)**:
   - Full-desktop capture overlay implementing the original Ark Wand toolset (`wand.point`, `wand.annotate`, `wand.capture`, `wand.palette`, `wand.architect`).
   - Draw a **Free-Form Lasso** or **Rectangle Snip**, annotate with Coral/Patina/Amber pens, arrows, or boxes, or inspect any desktop window (`WindowFromPoint` HWND class, title, bounding rect, and live 6x pixel magnifier with click-to-copy HEX).

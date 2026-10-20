@@ -595,7 +595,11 @@ public sealed class PhosphorDpiSlider : Control
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        var g = e.Graphics;
+        PaintSlider(e.Graphics);
+    }
+
+    public void PaintSlider(Graphics g)
+    {
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(BackColor);
 

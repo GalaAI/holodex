@@ -314,7 +314,7 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         _ainboxPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.AInboxPanel" };
 
-        var openFullBtn = new PhosphorButton("Open Full AInbox Intake + Handoff Scroll (Alt+I)", PhosphorButtonVariant.Primary)
+        var openFullBtn = new PhosphorButton("Open Full AInbox Intake + Scroll (Alt+I)", PhosphorButtonVariant.Primary)
         {
             Dock = DockStyle.Top,
             Height = 42
@@ -510,7 +510,7 @@ public sealed class HolodexLiteDrawerForm : Form
         var styleLabeled = WidgetChrome.Labeled("On-Brand Cursor Icon // VSync Vector Morph", styleRow, 40);
 
         // Wiz Automated Onboarding & Animated Tooltip Tutorial button
-        var onboardBtn = new PhosphorButton("Run Wiz Zero-Manual Onboarding & Animated Tooltips", PhosphorButtonVariant.Primary)
+        var onboardBtn = new PhosphorButton("Run Wiz Onboarding & Animated Tooltips", PhosphorButtonVariant.Primary)
         {
             Dock = DockStyle.Top,
             Height = 42,
@@ -527,12 +527,15 @@ public sealed class HolodexLiteDrawerForm : Form
             BorderStyle = BorderStyle.None,
             Font = PhosphorFonts.Mono(10.5f),
             Text =
-                "EQUIPPED OMNIWAND AUGMENTS & MODS\n" +
-                "• [MOD] Mouse Hardware Intelligence (USB/HID VID/PID Brand & DPI Engine)\n" +
-                "• [MOD] Relic Wand VSync Cursor Engine (Critically-Damped Springs + 14 Roles)\n" +
-                "• [MOD] WandVision Suite (Free-Form Lasso + Phosphor Annotator + UI Element Picker)\n" +
+                "EQUIPPED OMNIWAND AUGMENTS, SPELLBOOK & MODS\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Shake L-R  ->  TIME SPLITTER (Wiz Inspect)\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Shake U-D  ->  COPYCAT (Free-Form Lasso)\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Circle     ->  MUTATION (GrimX Spell Cast)\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Sweep R    ->  SYNTHESIZE (Holodex Session)\n" +
+                "• [MOD] Ark Aperture 240Hz Morph Engine (Solid Patina IBeam, Coral Hover/Wiz Bloom)\n" +
+                "• [MOD] Mouse Hardware Intelligence (USB/HID VID/PID Brand & 100-4000 DPI Slider)\n" +
                 "• [MOD] KeyMaster Local Vault Sync (Windows Credential Manager wincred:// <-> ArkHive)\n" +
-                "• [MOD] Hivemind Lite Session Bridge (Syndicate Multi-Agent Group Chat & Work Orders)"
+                "• [MOD] Hivemind Lite Session Bridge (Nemotron 3 Nano/Super + Syndicate Group Chat)"
         };
         PhosphorPaint.UseDarkScrollbars(modsInfoBox);
 

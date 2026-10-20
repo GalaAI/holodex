@@ -260,7 +260,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
             $"{_onboardingReport.MouseHardware.Brand} {_onboardingReport.MouseHardware.Model} · Holodex Lite");
         menu.Items.Add(titleItem);
 
-        menu.Items.Add(new PhosphorMenuEyebrow("Summon"));
         var summonItem = new ToolStripMenuItem("Phosphor HUD") { ShortcutKeyDisplayString = "Alt+Space" };
         summonItem.Click += (_, _) => SummonHud();
         menu.Items.Add(summonItem);
@@ -269,31 +268,28 @@ internal sealed class OmniwandAppContext : ApplicationContext
         holodexItem.Click += (_, _) => ToggleHolodexDrawer();
         menu.Items.Add(holodexItem);
 
-        var lassoItem = new ToolStripMenuItem("Lasso + Vision annotator") { ShortcutKeyDisplayString = "Alt+S" };
-        lassoItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.FreeformLasso);
-        menu.Items.Add(lassoItem);
-
-        var elemItem = new ToolStripMenuItem("Element + Palette picker") { ShortcutKeyDisplayString = "Alt+E" };
-        elemItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.ElementPicker);
-        menu.Items.Add(elemItem);
-
         var wizItem = new ToolStripMenuItem("Wiz crafting") { ShortcutKeyDisplayString = "Alt+W" };
         wizItem.Click += (_, _) => SummonWizCrafting();
         menu.Items.Add(wizItem);
 
+        var captureMenu = new ToolStripMenuItem("Capture && intake");
+        var lassoItem = new ToolStripMenuItem("Lasso + Vision annotator") { ShortcutKeyDisplayString = "Alt+S" };
+        lassoItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.FreeformLasso);
+        captureMenu.DropDownItems.Add(lassoItem);
+
+        var elemItem = new ToolStripMenuItem("Element + Palette picker") { ShortcutKeyDisplayString = "Alt+E" };
+        elemItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.ElementPicker);
+        captureMenu.DropDownItems.Add(elemItem);
+
         var ainboxItem = new ToolStripMenuItem("AInbox intake") { ShortcutKeyDisplayString = "Alt+I" };
         ainboxItem.Click += (_, _) => SummonAInboxIntake();
-        menu.Items.Add(ainboxItem);
-
-        var tutorialItem = new ToolStripMenuItem("Wiz onboarding + tooltips") { ShortcutKeyDisplayString = "Alt+T" };
-        tutorialItem.Click += (_, _) => SummonTutorialTooltips();
-        menu.Items.Add(tutorialItem);
+        captureMenu.DropDownItems.Add(ainboxItem);
+        menu.Items.Add(captureMenu);
 
         var orbMenu = new ToolStripMenuItem("GrimX Flow orb");
         foreach (var slot in GrimXFlowOrb.Slots)
         {
             var s = slot;
-            // Short label, slot and verb in the dim right column, the long subtitle in the tooltip.
             string label = s.Id == "ainbox" ? "AInbox" : s.Title[..1] + s.Title[1..].ToLowerInvariant();
             var slotItem = new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle };
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
@@ -301,6 +297,125 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
         menu.Items.Add(orbMenu);
 
+        // ── Consolidated Settings Submenu ────────────────────────────────────
+        menu.Items.Add(new ToolStripSeparator());
+        var settingsMenu = new ToolStripMenuItem("Settings");
+
+        var openSettingsPanelItem = new ToolStripMenuItem("Open Settings && Mods drawer...") { ShortcutKeyDisplayString = "Alt+H" };
+        openSettingsPanelItem.Click += (_, _) => _holodexDrawer.SummonDrawer(GetCursorPoint(), "mods");
+        settingsMenu.DropDownItems.Add(openSettingsPanelItem);
+        settingsMenu.DropDownItems.Add(new ToolStripSeparator());
+
+        // 1. Mouse DPI (100 - 4000 slider + presets)
+        var dpiMenu = new ToolStripMenuItem($"Mouse DPI ({_onboardingReport.MouseHardware.Brand})");
+        var trayDpiSlider = new PhosphorDpiSlider { Size = new Size(220, 44), BackColor = PhosphorTheme.Surface };
+        var sliderHost = new ToolStripControlHost(trayDpiSlider)
+        {
+            AutoSize = false,
+            Size = new Size(224, 46),
+            Margin = new Padding(6, 4, 6, 4)
+        };
+        dpiMenu.DropDownItems.Add(sliderHost);
+        dpiMenu.DropDownItems.Add(new ToolStripSeparator());
+        AddDpiPresetOption(dpiMenu, "Ultra-Low Sniper (100 DPI)", 1);
+        AddDpiPresetOption(dpiMenu, "Low Precision (400 DPI)", 3);
+        AddDpiPresetOption(dpiMenu, "Precision (800 DPI)", 6);
+        AddDpiPresetOption(dpiMenu, "Balanced (1600 DPI)", 10);
+        AddDpiPresetOption(dpiMenu, "High Speed (3200 DPI)", 15);
+        AddDpiPresetOption(dpiMenu, "Max (4000 DPI)", 20);
+        settingsMenu.DropDownItems.Add(dpiMenu);
+
+        // 2. Wand Gestures & Spells (ported from MagiXLab Video Bench)
+        var gestureMenu = new ToolStripMenuItem("Wand gestures && spells");
+        var ctrlGestureToggle = new ToolStripMenuItem("Hold Ctrl + gesture casts spell")
+        {
+            Checked = OmniwandSpellGestureEngine.HoldCtrlToArm,
+            CheckOnClick = true,
+            ShortcutKeyDisplayString = "CTRL"
+        };
+        ctrlGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldCtrlToArm = ctrlGestureToggle.Checked;
+        gestureMenu.DropDownItems.Add(ctrlGestureToggle);
+
+        var rmbGestureToggle = new ToolStripMenuItem("Hold Right-Click + gesture casts spell")
+        {
+            Checked = OmniwandSpellGestureEngine.HoldRightMouseToArm,
+            CheckOnClick = true,
+            ShortcutKeyDisplayString = "RMB"
+        };
+        rmbGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldRightMouseToArm = rmbGestureToggle.Checked;
+        gestureMenu.DropDownItems.Add(rmbGestureToggle);
+        gestureMenu.DropDownItems.Add(new ToolStripSeparator());
+
+        var spell1Item = new ToolStripMenuItem("Shake L-R  ->  Time Splitter (Wiz Inspect)") { ShortcutKeyDisplayString = "SHAKE X" };
+        spell1Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.ShakeHorizontal, GetCursorPoint());
+        gestureMenu.DropDownItems.Add(spell1Item);
+
+        var spell2Item = new ToolStripMenuItem("Shake U-D  ->  Copycat (Lasso Snip)") { ShortcutKeyDisplayString = "SHAKE Y" };
+        spell2Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.ShakeVertical, GetCursorPoint());
+        gestureMenu.DropDownItems.Add(spell2Item);
+
+        var spell3Item = new ToolStripMenuItem("Draw Circle  ->  Mutation (GrimX Spell)") { ShortcutKeyDisplayString = "CIRCLE" };
+        spell3Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.CircleLoop, GetCursorPoint());
+        gestureMenu.DropDownItems.Add(spell3Item);
+
+        var spell4Item = new ToolStripMenuItem("Sweep Right  ->  Synthesize (Holodex)") { ShortcutKeyDisplayString = "SWEEP R" };
+        spell4Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.SweepRight, GetCursorPoint());
+        gestureMenu.DropDownItems.Add(spell4Item);
+        settingsMenu.DropDownItems.Add(gestureMenu);
+
+        // 3. Cursor Icon Style & Aperture Morph Engine
+        var iconStyleMenu = new ToolStripMenuItem("Cursor icon style");
+        AddCursorStyleOption(iconStyleMenu, "Ark Aperture", "ARK", CursorIconStyle.ArkAperture, true);
+        AddCursorStyleOption(iconStyleMenu, "Relic Wand", "WAND", CursorIconStyle.RelicWand, false);
+        AddCursorStyleOption(iconStyleMenu, "Phosphor Arrow", "ARR", CursorIconStyle.PhosphorArrow, false);
+        AddCursorStyleOption(iconStyleMenu, "Viewfinder Reticle", "CAD", CursorIconStyle.ViewfinderReticle, false);
+        settingsMenu.DropDownItems.Add(iconStyleMenu);
+
+        var morphMenu = new ToolStripMenuItem("Aperture morph mode");
+        AddMorphModeOption(morphMenu, "Auto-morph all 14 states", "AUTO", ApertureMorphMode.AutoContextual, true);
+        AddMorphModeOption(morphMenu, "Holoscope Iris", "IRIS", ApertureMorphMode.HoloscopeIris, false);
+        AddMorphModeOption(morphMenu, "Syndicate Compass Rose", "COMP", ApertureMorphMode.SyndicateCompass, false);
+        AddMorphModeOption(morphMenu, "Wiz Wand Star", "STAR", ApertureMorphMode.WizWandStar, false);
+        AddMorphModeOption(morphMenu, "Aegis Shield", "SHLD", ApertureMorphMode.AegisShield, false);
+        morphMenu.DropDownItems.Add(new ToolStripSeparator());
+        var morphShowcaseItem = new ToolStripMenuItem("Run live morph showcase") { ShortcutKeyDisplayString = "DEMO" };
+        morphShowcaseItem.Click += (_, _) =>
+        {
+            ArkApertureMorphEngine.StartMorphShowcase();
+            PhosphorToast.Show(
+                "Aperture Morph Showcase",
+                "Watch the cursor morph through Hand (Coral Bloom), solid Patina IBeam, Crosshair, Resize, Compass, Turbine & Aegis Lock.",
+                "ARK APERTURE // 240HZ MORPH ENGINE",
+                6000);
+        };
+        morphMenu.DropDownItems.Add(morphShowcaseItem);
+        settingsMenu.DropDownItems.Add(morphMenu);
+
+        // 4. Rotation & Size
+        var modeMenu = new ToolStripMenuItem("Rotation mode");
+        AddModeOption(modeMenu, "Subtle banking", "Default operator tilt, switches to True Path when Wiz is active", RotationMode.SubtleBank, true);
+        AddModeOption(modeMenu, "True path trailer", "Smooth directional, no spinout", RotationMode.TruePathTrailer, false);
+        AddModeOption(modeMenu, "Locked angle", "Smooth position only", RotationMode.LockedAngle, false);
+        RotationPreviewItem.Animate(modeMenu);
+        settingsMenu.DropDownItems.Add(modeMenu);
+
+        var sizeMenu = new ToolStripMenuItem("Cursor size");
+        AddScaleOption(sizeMenu, "Compact", "1.0x", 1.0f, false);
+        AddScaleOption(sizeMenu, "Default", "1.25x", 1.25f, true);
+        AddScaleOption(sizeMenu, "Large", "1.5x", 1.5f, false);
+        settingsMenu.DropDownItems.Add(sizeMenu);
+
+        _hideNativeMenuItem = new ToolStripMenuItem("Hide Windows cursor")
+        {
+            ShortcutKeyDisplayString = "Ctrl+Alt+C",
+            Checked = NativeCursorManager.IsHidden,
+            CheckOnClick = false
+        };
+        _hideNativeMenuItem.Click += (_, _) => ToggleNativeCursor();
+        settingsMenu.DropDownItems.Add(_hideNativeMenuItem);
+
+        // 5. Device, Onboarding & VR
+        settingsMenu.DropDownItems.Add(new ToolStripSeparator());
         var pkgMenu = new ToolStripMenuItem("Mouse package");
         _mx4PkgItem = new ToolStripMenuItem("MX Master 4")
         {
@@ -328,76 +443,12 @@ internal sealed class OmniwandAppContext : ApplicationContext
         };
         pkgMenu.DropDownItems.Add(_mx4PkgItem);
         pkgMenu.DropDownItems.Add(_univPkgItem);
+        settingsMenu.DropDownItems.Add(pkgMenu);
 
-        menu.Items.Add(new PhosphorMenuEyebrow("Cursor"));
-        var iconStyleMenu = new ToolStripMenuItem("Cursor icon style");
-        AddCursorStyleOption(iconStyleMenu, "Ark Aperture", "ARK", CursorIconStyle.ArkAperture, true);
-        AddCursorStyleOption(iconStyleMenu, "Relic Wand", "WAND", CursorIconStyle.RelicWand, false);
-        AddCursorStyleOption(iconStyleMenu, "Phosphor Arrow", "ARR", CursorIconStyle.PhosphorArrow, false);
-        AddCursorStyleOption(iconStyleMenu, "Viewfinder Reticle", "CAD", CursorIconStyle.ViewfinderReticle, false);
-        menu.Items.Add(iconStyleMenu);
+        var tutorialItem = new ToolStripMenuItem("Wiz onboarding + tooltips") { ShortcutKeyDisplayString = "Alt+T" };
+        tutorialItem.Click += (_, _) => SummonTutorialTooltips();
+        settingsMenu.DropDownItems.Add(tutorialItem);
 
-        var morphMenu = new ToolStripMenuItem("Aperture morph engine");
-        AddMorphModeOption(morphMenu, "Auto-morph all 14 states", "AUTO", ApertureMorphMode.AutoContextual, true);
-        AddMorphModeOption(morphMenu, "Holoscope Iris", "IRIS", ApertureMorphMode.HoloscopeIris, false);
-        AddMorphModeOption(morphMenu, "Syndicate Compass Rose", "COMP", ApertureMorphMode.SyndicateCompass, false);
-        AddMorphModeOption(morphMenu, "Wiz Wand Star", "STAR", ApertureMorphMode.WizWandStar, false);
-        AddMorphModeOption(morphMenu, "Aegis Shield", "SHLD", ApertureMorphMode.AegisShield, false);
-        morphMenu.DropDownItems.Add(new ToolStripSeparator());
-        var morphShowcaseItem = new ToolStripMenuItem("Run live morph showcase") { ShortcutKeyDisplayString = "DEMO" };
-        morphShowcaseItem.Click += (_, _) =>
-        {
-            ArkApertureMorphEngine.StartMorphShowcase();
-            PhosphorToast.Show(
-                "Aperture Morph Showcase",
-                "Watch the cursor morph through Hand (Coral Bloom), IBeam Caliper, Crosshair Reticle, Resize Caliper, Compass Rose, Turbine, Wiz Star & Aegis Lock.",
-                "ARK APERTURE // 240HZ MORPH ENGINE",
-                6500);
-        };
-        morphMenu.DropDownItems.Add(morphShowcaseItem);
-        menu.Items.Add(morphMenu);
-
-        var modeMenu = new ToolStripMenuItem("Rotation");
-        AddModeOption(modeMenu, "Subtle banking", "Default operator tilt, switches to True Path when Wiz is active", RotationMode.SubtleBank, true);
-        AddModeOption(modeMenu, "True path trailer", "Smooth directional, no spinout", RotationMode.TruePathTrailer, false);
-        AddModeOption(modeMenu, "Locked angle", "Smooth position only", RotationMode.LockedAngle, false);
-        RotationPreviewItem.Animate(modeMenu);
-        _hideNativeMenuItem = new ToolStripMenuItem("Hide Windows cursor")
-        {
-            ShortcutKeyDisplayString = "Ctrl+Alt+C",
-            Checked = NativeCursorManager.IsHidden,
-            CheckOnClick = false
-        };
-        _hideNativeMenuItem.Click += (_, _) => ToggleNativeCursor();
-        menu.Items.Add(_hideNativeMenuItem);
-        menu.Items.Add(modeMenu);
-
-        var sizeMenu = new ToolStripMenuItem("Cursor size");
-        AddScaleOption(sizeMenu, "Compact", "1.0x", 1.0f, false);
-        AddScaleOption(sizeMenu, "Default", "1.25x", 1.25f, true);
-        AddScaleOption(sizeMenu, "Large", "1.5x", 1.5f, false);
-        menu.Items.Add(sizeMenu);
-
-        var dpiMenu = new ToolStripMenuItem($"Mouse DPI ({_onboardingReport.MouseHardware.Brand})");
-        var trayDpiSlider = new PhosphorDpiSlider { Size = new Size(220, 44), BackColor = PhosphorTheme.Surface };
-        var sliderHost = new ToolStripControlHost(trayDpiSlider)
-        {
-            AutoSize = false,
-            Size = new Size(224, 46),
-            Margin = new Padding(6, 4, 6, 4)
-        };
-        dpiMenu.DropDownItems.Add(sliderHost);
-        dpiMenu.DropDownItems.Add(new ToolStripSeparator());
-        AddDpiPresetOption(dpiMenu, "Ultra-Low Sniper (100 DPI)", 1);
-        AddDpiPresetOption(dpiMenu, "Low Precision (400 DPI)", 3);
-        AddDpiPresetOption(dpiMenu, "Precision (800 DPI)", 6);
-        AddDpiPresetOption(dpiMenu, "Balanced (1600 DPI)", 10);
-        AddDpiPresetOption(dpiMenu, "High Speed (3200 DPI)", 15);
-        AddDpiPresetOption(dpiMenu, "Max (4000 DPI)", 20);
-
-        menu.Items.Add(new PhosphorMenuEyebrow("Device"));
-        menu.Items.Add(pkgMenu);
-        menu.Items.Add(dpiMenu);
         var vrMenu = new ToolStripMenuItem("VR streaming");
         _vrStatusItem = new ToolStripMenuItem("Not streaming") { Enabled = false };
         vrMenu.DropDownItems.Add(_vrStatusItem);
@@ -426,7 +477,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
         var diagItem = new ToolStripMenuItem("Log pointer state") { CheckOnClick = true, ToolTipText = "Writes %TEMP%\\omniwand-pointer.log" };
         diagItem.CheckedChanged += (_, _) => SetPointerDiagnostics(diagItem.Checked);
         vrMenu.DropDownItems.Add(diagItem);
-        menu.Items.Add(vrMenu);
+        settingsMenu.DropDownItems.Add(vrMenu);
+
+        menu.Items.Add(settingsMenu);
 
         menu.Name = "Tray.Menu";
         titleItem.Name = "Tray.Title";
@@ -442,7 +495,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
         menu.Items.Add(exitItem);
         menu.Items.Add(new PhosphorMenuSpacer());
 
+        PhosphorMenuFrame.Apply(captureMenu, "Capture & intake");
         PhosphorMenuFrame.Apply(orbMenu, "GrimX Flow // ring slots");
+        PhosphorMenuFrame.Apply(settingsMenu, "Omniwand settings");
+        PhosphorMenuFrame.Apply(gestureMenu, "Spells // Ctrl + gesture");
         PhosphorMenuFrame.Apply(iconStyleMenu, "Cursor icon // on-brand");
         PhosphorMenuFrame.Apply(morphMenu, "Aperture morph // 240Hz");
         PhosphorMenuFrame.Apply(modeMenu, "Wand rotation");
@@ -783,6 +839,55 @@ internal sealed class OmniwandAppContext : ApplicationContext
             $"Active on-brand cursor style: {MouseHardwareAndWandEngine.ActiveCursorStyle}",
             "OMNIWAND // CURSOR ENGINE",
             2200);
+    }
+
+    private void ExecuteWandSpellGesture(WandSpellGestureKind spell, Point cursorPt)
+    {
+        _uiSync.Post(_ =>
+        {
+            switch (spell)
+            {
+                case WandSpellGestureKind.ShakeHorizontal:
+                    PhosphorToast.Show(
+                        "TIME SPLITTER · WIZ INSPECT",
+                        "Horizontal shake spell cast — summoning Wiz Crafting on active target.",
+                        "OMNIWAND SPELL // SHAKE L-R",
+                        2800,
+                        ToastTone.Success);
+                    SummonWizCrafting("flow");
+                    break;
+
+                case WandSpellGestureKind.ShakeVertical:
+                    PhosphorToast.Show(
+                        "COPYCAT · LASSO CAPTURE",
+                        "Vertical shake spell cast — arming Free-Form Lasso & Vision Annotator.",
+                        "OMNIWAND SPELL // SHAKE U-D",
+                        2800,
+                        ToastTone.Success);
+                    _snipWidget.SummonAt(cursorPt, WandCaptureTool.FreeformLasso);
+                    break;
+
+                case WandSpellGestureKind.CircleLoop:
+                    PhosphorToast.Show(
+                        "MUTATION · GRIMX SPELL CAST",
+                        "Circle gesture recognized — casting GrimX Spell on target under cursor.",
+                        "OMNIWAND SPELL // CIRCLE LOOP",
+                        2800,
+                        ToastTone.Success);
+                    ExecuteOrbSlotOnUiThread(GrimXFlowOrb.Slots[0], cursorPt);
+                    break;
+
+                case WandSpellGestureKind.SweepRight:
+                    PhosphorToast.Show(
+                        "SYNTHESIZE · HOLODEX BRIDGE",
+                        "Rightward sweep recognized — opening Holodex Syndicate Session.",
+                        "OMNIWAND SPELL // SWEEP RIGHT",
+                        2800,
+                        ToastTone.Success);
+                    _holodexDrawer.SummonDrawer(cursorPt, "session");
+                    break;
+            }
+        }, null);
     }
 
     private void ExecuteMouseMacroTrigger(string triggerId, Point cursorPt)
@@ -1256,6 +1361,12 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _wasMouse5Down = mouse5Down;
 
             bool rmbDown = (Win32.GetAsyncKeyState(0x02) & 0x8000) != 0;
+            bool ctrlDown = (Win32.GetAsyncKeyState(0x11) & 0x8000) != 0;
+            if (OmniwandSpellGestureEngine.Step(cursorPt, nowSec, dtSec, ctrlDown, rmbDown, out var spellGesture))
+            {
+                _rightDownStartSec = -1;
+                ExecuteWandSpellGesture(spellGesture, cursorPt);
+            }
             if (rmbDown && !_wasRightMouseDown)
             {
                 _rightGestureAnchor = cursorPt;
@@ -1532,15 +1643,33 @@ internal static class MagicUiCursorPaths
         {
             case WindowsCursorRole.IBeam:
             {
-                float h = 11.5f * scale;
-                float serif = 4.4f * scale;
-                foreach (var pen in new[] { shadowPen, bonePen })
+                // Solid, basic vertical beam bar glowing Patina (steady, non-pulsing).
+                float h = 11.2f * scale;
+                using var outerGlow = new Pen(Color.FromArgb(46, PhosphorTheme.Patina), 8.2f * scale)
                 {
-                    g.DrawLine(pen, 0, -h, 0, h);
-                    g.DrawLine(pen, -serif, -h, serif, -h);
-                    g.DrawLine(pen, -serif, h, serif, h);
-                }
-                DrawCenterGlobe(2.4f * scale, 4.0f * scale);
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round
+                };
+                using var midGlow = new Pen(Color.FromArgb(118, PhosphorTheme.Patina), 4.6f * scale)
+                {
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round
+                };
+                using var coreBar = new Pen(PhosphorTheme.Patina, 2.5f * scale)
+                {
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round
+                };
+                using var centerHighlight = new Pen(Color.FromArgb(185, PhosphorTheme.EmblemCream), 1.0f * scale)
+                {
+                    StartCap = LineCap.Round,
+                    EndCap = LineCap.Round
+                };
+                g.DrawLine(outerGlow, 0, -h, 0, h);
+                g.DrawLine(midGlow, 0, -h, 0, h);
+                g.DrawLine(shadowPen, 0, -h, 0, h);
+                g.DrawLine(coreBar, 0, -h, 0, h);
+                g.DrawLine(centerHighlight, 0, -h * 0.82f, 0, h * 0.82f);
                 break;
             }
             case WindowsCursorRole.Crosshair:
@@ -1814,12 +1943,14 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 
         bool orbVis = _orb.IsVisible;
         bool ghostVis = _ghostTrailer.IsStreaming;
+        bool spellVis = OmniwandSpellGestureEngine.HasVisuals;
         bool animatedRole = role is WindowsCursorRole.Wait or WindowsCursorRole.AppStarting;
 
         bool posChanged = targetLeft != _lastPixelX || targetTop != _lastPixelY;
         bool shapeChanged =
             orbVis ||
             ghostVis ||
+            spellVis ||
             _lastOrbVisible != orbVis ||
             _lastGhostStreaming != ghostVis ||
             _orb.ActiveSlotIndex != _lastOrbSlot ||
@@ -1868,6 +1999,19 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                 if (ghostVis)
                 {
                     _ghostTrailer.DrawInOverlay(g, new PointF((float)x, (float)y), cx, cy, _cachedDpiScale);
+                }
+
+                // 1b. Draw MagiXLab Omniwand Spell Ribbon & 4-Point Twinkling Star Dust when Ctrl / RMB is held
+                if (spellVis)
+                {
+                    double nowSecOverlay = Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
+                    OmniwandSpellGestureEngine.DrawInOverlay(
+                        g,
+                        new PointF((float)x, (float)y),
+                        cx,
+                        cy,
+                        nowSecOverlay,
+                        _cachedDpiScale);
                 }
 
                 // 2. Draw 8-Slot GrimX Flow Orb if open/closing
