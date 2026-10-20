@@ -1,0 +1,29 @@
+Omniwand — ArkStation Phosphor Shell & GrimX Flow Wand
+Copyright 2026 ArkOmnitek (Justin)
+
+This product includes software and design tokens developed by ArkOmnitek
+(https://arkomnitek.com).
+
+=========================================================================
+Bundled Open Font License (SIL OFL 1.1) Fonts
+=========================================================================
+
+Omniwand bundles the following open-source font files in `assets/fonts/`
+under the SIL Open Font License, Version 1.1. Their full license texts are
+distributed alongside the font files in `assets/fonts/`:
+
+1. Inter (`Inter-Regular.ttf`, `Inter-SemiBold.ttf`, `Inter-ExtraBold.ttf`)
+   Copyright (c) 2016-2024 The Inter Project Authors (https://github.com/rsms/inter)
+   Licensed under the SIL Open Font License 1.1 (`assets/fonts/OFL-Inter.txt`).
+
+2. Space Grotesk (`SpaceGrotesk-Regular.ttf`, `SpaceGrotesk-Medium.ttf`)
+   Copyright (c) 2018 Florian Karsten (https://github.com/floriankarsten/space-grotesk)
+   Licensed under the SIL Open Font License 1.1 (`assets/fonts/OFL-SpaceGrotesk.txt`).
+
+3. JetBrains Mono (`JetBrainsMono-Regular.ttf`)
+   Copyright (c) 2020 JetBrains s.r.o. (https://github.com/JetBrains/JetBrainsMono)
+   Licensed under the SIL Open Font License 1.1 (`assets/fonts/JetBrainsMono-OFL.txt`).
+
+4. Archivo Black (`ArchivoBlack-Regular.ttf`)
+   Copyright (c) 2012-2021 Omnibus-Type (https://github.com/Omnibus-Type/Archivo)
+   Licensed under the SIL Open Font License 1.1 (`assets/fonts/OFL-ArchivoBlack.txt`).

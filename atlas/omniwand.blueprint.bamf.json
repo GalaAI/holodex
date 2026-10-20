@@ -1,0 +1,302 @@
+{
+  "version": "0.1",
+  "id": "atlas.omnitek.omniwand.blueprint",
+  "intent": "execute",
+  "targetLayer": "backend-core",
+  "target": "blueprint:desktop-augment-component",
+  "action": "atlas.blueprint.instantiate.augment.component",
+  "risk": "low",
+  "operatorGate": {
+    "required": false
+  },
+  "metadata": {
+    "source": "E:/ArkStation/augments/omniwand/atlas/omniwand.md",
+    "correlationId": "ARK-BP-OMNITEK-COMP-001",
+    "createdAt": "2026-10-18T00:00:00.000Z"
+  },
+  "args": {
+    "productId": "omniwand",
+    "blueprintId": "blueprint:desktop-augment-component",
+    "omnitekType": "augment",
+    "omnitekSubtypes": ["component"],
+    "composition": "atomic",
+    "referenceBlueprintId": "blueprint:desktop-augment-component",
+    "referenceRelation": "self-anchor",
+    "parameterValues": {
+      "slug": "omniwand",
+      "componentName": "Omniwand",
+      "capabilityId": "wand",
+      "augmentsRoot": "E:/ArkStation/augments",
+      "pipeName": "ArkStation.Omniwand.Control",
+      "bridgedGearId": "mx-master-4"
+    },
+    "bamfArchitecture": {
+      "instantiateAction": "atlas.blueprint.instantiate.augment.component",
+      "runtimeTargetLayer": "desktop-node",
+      "runtimeIntent": "execute",
+      "permissionSource": "item_use",
+      "itemActionMethod": "equip",
+      "runtimeActions": [
+        "omnitek.augment.component.equip",
+        "grimx.flow.cast",
+        "omniwand.wiz.craft",
+        "ainbox.pod.intake",
+        "omniwand.surface.capture"
+      ],
+      "effects": {
+        "state": "mutating",
+        "externality": "internal",
+        "reversibility": "reversible",
+        "dataSensitivity": "internal",
+        "financialImpact": "none",
+        "environment": "local",
+        "autonomy": "single_action",
+        "infrastructure": "none",
+        "credentialAccess": "use",
+        "destructive": false
+      },
+      "risk": "low",
+      "operatorGateRequired": false
+    },
+    "phosphorShell": {
+      "shellId": "phosphor",
+      "tokenGeneratorRef": "E:/ArkStation/augments/omniwand/tools/gen_phosphor_tokens.py",
+      "emblemGeometryRef": "E:/ArkStation/augments/omniwand/tools/gen_emblem_geometry.py",
+      "localsIsolation": {
+        "omniwand-eyebrow-size": "10px",
+        "omniwand-eyebrow-tracking": "0.16em"
+      },
+      "kitPrimitives": [
+        "WidgetChrome (60px header, 32x32 ArkMark, tracked mono eyebrow, Inter ExtraBold title, PhosphorBadge, 36x36 × CloseButton, Esc-to-hide, DarkMode_Explorer, RadiusWidget Form.Region)",
+        "PhosphorPaint.DrawPanel (cat-panel Surface fill, Line 1px border, 3px left state-edge bar in Line2 at rest / Patina while working, top 1px specular hairline)",
+        "PhosphorButton (44px TouchMin height, tracked 0.16em uppercase Inter ExtraBold, single-Primary Bone fill / Ground ink rule; Ember reserved for warnings/gates; Rust for Danger)",
+        "PhosphorBadge (Unstated, Validated, Proven, Blocked, Accent)",
+        "PhosphorField (Surface2 rounded input with Line2/Ghost/Patina border states)",
+        "PhosphorComboBox (owner-drawn WM_PAINT closed box + DropListFrame WM_NCPAINT + coral 2px selected bar; shared ModelPicker)",
+        "PhosphorCheckBox (opaque Surface host, S4 Bone box with Ground checkmark and Patina focus ring)",
+        "SpecCardPanel (CP-20 Ticket: 15px clipped top-right ear, 3px left edge bar + 18px glow, Archivo Black 32px code, Board // Scribe, dashed tear notches, 4-column spec grid, procedural barcode, RCPT // line)",
+        "PhosphorMenuRenderer (PhosphorMenuHeader, PhosphorMenuEyebrow, figure-space shortcut column, DrawHighlightAura 2px coral leading bar + right-fading bloom)",
+        "PhosphorToast (non-activating WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW rounded notification with Info/Success/Warning/Error left edge)",
+        "SurfaceCapture (pipe command render:<folder> drawing live menus, submenus, toasts, and SW_SHOWNOACTIVATE offscreen widgets to region-clipped PNGs)"
+      ],
+      "surfaceCaptureCommand": "render:<folder>",
+      "synChecks": [
+        "syn-law:ui:functional-control",
+        "syn-law:ui:highlight-aura",
+        "syn-law:ui:scroll-indicator"
+      ]
+    },
+    "companionOmnitekBlueprints": [
+      {
+        "blueprintId": "blueprint:desktop-host-extension",
+        "omnitekType": "augment",
+        "omnitekSubtypes": ["extension"],
+        "subKind": "desktop-extension",
+        "composition": "atomic",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "host-bridge-for-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.augment.extension",
+          "runtimeTargetLayer": "desktop-node",
+          "runtimeIntent": "execute",
+          "permissionSource": "item_use",
+          "itemActionMethod": "equip",
+          "runtimeActions": [
+            "omnitek.augment.extension.equip",
+            "omniwand.pipe.forward-slot",
+            "omniwand.pipe.adjust-scale",
+            "omniwand.haptics.trigger"
+          ],
+          "risk": "low",
+          "operatorGateRequired": false
+        },
+        "exemplar": "omniwand-logi-mx4 (ArkStationOmniwand.lplug4 in Logi Options+ with HasNoApplication => true, 13 universal Actions Ring commands, haptics, and pipe dispatch to ArkStation.Omniwand.Control)"
+      },
+      {
+        "blueprintId": "blueprint:phosphor-augment-element",
+        "omnitekType": "augment",
+        "omnitekSubtypes": ["element"],
+        "composition": "atomic",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "atomic-primitive-in-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.augment.element",
+          "runtimeTargetLayer": "web-console",
+          "runtimeIntent": "validate",
+          "permissionSource": "configuration",
+          "itemActionMethod": "apply",
+          "runtimeActions": [
+            "omnitek.augment.element.apply",
+            "phosphor.tokens.compile",
+            "phosphor.emblem.compile"
+          ],
+          "risk": "low",
+          "operatorGateRequired": false
+        },
+        "exemplar": "PhosphorTokens, ArkEmblemGeometry, DrawHighlightAura, and CP-20 SpecCardPanel mounted inside Omniwand's PhosphorKit"
+      },
+      {
+        "blueprintId": "blueprint:standalone-augment-artifact",
+        "omnitekType": "augment",
+        "omnitekSubtypes": ["artifact"],
+        "composition": "atomic",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "standalone-sibling-wearing-shell",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.augment.artifact",
+          "runtimeTargetLayer": "desktop-node",
+          "runtimeIntent": "execute",
+          "permissionSource": "item_use",
+          "itemActionMethod": "use",
+          "runtimeActions": [
+            "omnitek.augment.artifact.launch",
+            "omnitek.augment.artifact.export",
+            "omniwand.surface.capture"
+          ],
+          "risk": "low",
+          "operatorGateRequired": false
+        },
+        "exemplar": "Paladex (augments/artifacts/paladex) tagged to Phosphor Shell, reusing WidgetChrome and SurfaceCapture without being a Shell member"
+      },
+      {
+        "blueprintId": "blueprint:provider-augment-adapter",
+        "omnitekType": "augment",
+        "omnitekSubtypes": ["adapter"],
+        "composition": "atomic",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "provider-transport-for-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.augment.adapter",
+          "runtimeTargetLayer": "runtime-gateway",
+          "runtimeIntent": "sync",
+          "permissionSource": "configuration",
+          "itemActionMethod": "bind",
+          "runtimeActions": [
+            "omnitek.augment.adapter.bind",
+            "omnitek.augment.adapter.probe",
+            "keymaster.credential.resolve-ref"
+          ],
+          "risk": "medium",
+          "operatorGateRequired": false
+        },
+        "exemplar": "ArkStationClient KeyMaster-backed transport (:8788 Model Gateway, :8842 Input Spine, :8830 PC Modz) holding zero policy"
+      },
+      {
+        "blueprintId": "blueprint:vessel-augment-shell",
+        "omnitekType": "augment",
+        "omnitekSubtypes": ["shell"],
+        "composition": "synthesized",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "synthesized-shell-containing-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.augment.shell",
+          "runtimeTargetLayer": "web-console",
+          "runtimeIntent": "validate",
+          "permissionSource": "owner_session",
+          "itemActionMethod": "equip",
+          "runtimeActions": [
+            "omnitek.augment.shell.equip",
+            "veritas.design-system.resolve",
+            "syn.verify.ui-laws"
+          ],
+          "risk": "medium",
+          "operatorGateRequired": true
+        },
+        "exemplar": "Relic Phosphor Shell synthesizing @ark/tokens, @ark/ui, and native PhosphorKit Components/Elements under one Shell Skrypt"
+      },
+      {
+        "blueprintId": "blueprint:ark-capability-mod",
+        "omnitekType": "mod",
+        "omnitekSubtypes": [],
+        "composition": "atomic",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "agent-capability-invoked-by-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.mod",
+          "runtimeTargetLayer": "runtime-gateway",
+          "runtimeIntent": "execute",
+          "permissionSource": "spell_cast",
+          "itemActionMethod": "use",
+          "runtimeActions": [
+            "omnitek.mod.install",
+            "runtime.service.status",
+            "mcp.capability.execute"
+          ],
+          "risk": "medium",
+          "operatorGateRequired": false
+        },
+        "exemplar": "Dev Modz (DM), PC Modz (PCM), and Courier Modz (CM) consumed by agents and triggered from Omniwand's GrimX Flow Orb and AInbox"
+      },
+      {
+        "blueprintId": "blueprint:physical-gear-conduit",
+        "omnitekType": "gear",
+        "omnitekSubtypes": ["instrument", "console"],
+        "composition": "atomic",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "physical-conduit-bridged-to-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.gear",
+          "runtimeTargetLayer": "edge-gateway",
+          "runtimeIntent": "sync",
+          "permissionSource": "item_use",
+          "itemActionMethod": "equip",
+          "runtimeActions": [
+            "omnitek.gear.equip",
+            "omnitek.gear.detect-hid",
+            "omnitek.gear.stream-telemetry"
+          ],
+          "risk": "low",
+          "operatorGateRequired": false
+        },
+        "exemplar": "Logitech MX Master 4 (instrument) and Meta Quest 3 (console) bridged into Omniwand hardware detection and VR cursor cache management"
+      },
+      {
+        "blueprintId": "blueprint:system-potion-elixir",
+        "omnitekType": "potion",
+        "omnitekSubtypes": ["config", "profile", "elixir"],
+        "composition": "synthesized",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "state-modifier-cast-from-component",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.potion",
+          "runtimeTargetLayer": "runtime-gateway",
+          "runtimeIntent": "execute",
+          "permissionSource": "ritual_cast",
+          "itemActionMethod": "apply",
+          "runtimeActions": [
+            "omnitek.potion.apply",
+            "omniwand.profile.cycle",
+            "omniwand.vr.flush-cursor-cache",
+            "navigate.release.repair-configuration"
+          ],
+          "risk": "medium",
+          "operatorGateRequired": false
+        },
+        "exemplar": "Smooth-cursor profile Potion and OculusDash ReactSystem HCURSOR cache flush Elixir cast from Omniwand with PhosphorToast receipts"
+      },
+      {
+        "blueprintId": "blueprint:synthesized-scroll-pack",
+        "omnitekType": "scroll",
+        "omnitekSubtypes": ["pack", "skrypt", "brief", "contract", "dataset", "curriculum", "lore"],
+        "composition": "synthesized",
+        "referenceBlueprintId": "blueprint:desktop-augment-component",
+        "referenceRelation": "governing-skrypt-and-handoff-scroll",
+        "bamfArchitecture": {
+          "instantiateAction": "atlas.blueprint.instantiate.scroll",
+          "runtimeTargetLayer": "ainbox",
+          "runtimeIntent": "read",
+          "permissionSource": "item_use",
+          "itemActionMethod": "follow",
+          "runtimeActions": [
+            "omnitek.scroll.read",
+            "omnitek.scroll.skrypt.follow",
+            "ainbox.scroll.handoff.emit"
+          ],
+          "risk": "low",
+          "operatorGateRequired": false
+        },
+        "exemplar": "Phosphor Shell Skrypt governing PhosphorKit verification and Scribe-drafted CP-20 SpecCardPanel Handoff Scrolls emitted by AInboxIntakeWidgetForm"
+      }
+    ]
+  }
+}

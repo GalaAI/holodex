@@ -1,0 +1,137 @@
+{
+  "root": "E:\\ArkStation\\augments\\omniwand",
+  "promotedRoot": "E:\\ArkStation\\augments\\omniwand",
+  "promotedRootSource": "docs/architecture/DRIVE_TOPOLOGY.md: E:\\ArkStation\\augments is the home for Omnitek Augment items that live outside the repo (extensions precedent, 2026-10-11). Not a SolaTree worktree.",
+  "contract": "rows are @ark/lexicon omnitekItemSchema fields (type, subtype, composition, origin, tier, actions) plus item metadata; kind is the host sub-kind under subtype extension; archetype is from augmentArchetypeSchema",
+  "classification": "Ruled from AGENTS.md canon on 2026-10-15: Omniwand.exe is an Augment, atomic subtype Component, the native Windows surface of the Wand capability. Its Logi plugin is a separate Augment, subtype Extension. Neither is a Mod (no agent consumes it through Ark) nor a Machina (it hosts no Host or Automaton work).",
+  "canonRulings": "Operator ruling 2026-10-15 (Justin): keep the Omniwand name and re-admit it in canon as the label of the Windows Wand Component. The earlier superseded rows in ARK_CAPABILITY_REGISTRY_BLUEPRINT.md and ARK_CORE_TAXONOMY_AND_PROGRESSION.md and the drizzle 0022 ops-row migration (component:omniwand to component:wand) are historical. Canon term `omniwand` (parent component, surface of wand) is being added by the registration PR.",
+  "type": "augment",
+  "subtypes": [
+    "component",
+    "extension"
+  ],
+  "kinds": [
+    "desktop-extension"
+  ],
+  "kindsNote": "desktop-extension is the existing lexicon Extension sub-kind for desktop host applications (ruled 2026-10-14); Logi Options+ is such a host, so no new sub-kind is added.",
+  "tierVocabulary": [
+    "planned",
+    "scaffolded",
+    "implemented",
+    "validated",
+    "integrated",
+    "runtime-proven",
+    "blocked",
+    "stale",
+    "unknown"
+  ],
+  "entries": [
+    {
+      "slug": "omniwand",
+      "name": "Omniwand",
+      "type": "augment",
+      "subtype": "component",
+      "composition": "atomic",
+      "origin": "internal-manifestation",
+      "tier": "implemented",
+      "archetype": "custom",
+      "archetypeNote": "No desktop-overlay archetype exists in augmentArchetypeSchema; custom until one is ruled.",
+      "capability": "wand",
+      "capabilityActions": {
+        "point": "Overlay.Wand",
+        "capture": "AInbox.CaptureButton, Wiz.AttachScreenToggle",
+        "prompt": "Hud.PromptBox",
+        "palette": "Logi Options+ Actions Ring (native, primary) and Overlay.FlowOrb (F15 fallback)",
+        "architect": "Wiz",
+        "annotate": "no surface yet"
+      },
+      "shell": "phosphor",
+      "platform": "windows",
+      "runtime": "net10.0-windows WinForms + Win32/GDI+",
+      "version": "0.2.0",
+      "path": "E:\\ArkStation\\augments\\omniwand",
+      "source": "E:\\ArkStation\\augments\\omniwand\\Omniwand.csproj (published exe in dist\\ is the item; rebuild per CLAUDE.md with dotnet publish --disable-build-servers)",
+      "atlas": "atlas/omniwand.md",
+      "arkLinks": [
+        {
+          "service": "model-gateway",
+          "origin": "http://127.0.0.1:8788"
+        },
+        {
+          "service": "input-studio",
+          "origin": "http://127.0.0.1:8842",
+          "routes": [
+            "POST /api/spine/event",
+            "POST /api/omniwand/wiz/chat",
+            "POST /api/omniwand/ainbox/intake"
+          ]
+        },
+        {
+          "service": "pc-modz",
+          "origin": "http://127.0.0.1:8830"
+        }
+      ],
+      "controlSurface": "Named Pipe ArkStation.Omniwand.Control",
+      "gearBridged": [
+        "mx-master-4"
+      ],
+      "evidence": "dist\\Omniwand.exe rebuilt 2026-10-15 04:3x and running (single instance, no .NET Runtime crash events after the rebuild); control pipe round-trips (scale:0 -> ok:scale:1.25x; hud/wiz/ainbox summon and widgets:close verified by capture). Widgets rebuilt on PhosphorKit with the token fonts and the approved ArkMark geometry; AInbox handoff scroll renders as the CP-20 SpecCard. No automated tests; Actions Ring proven end to end 2026-10-16 02:16 from physical MX Master 4 presses: plugin log shows 'Triggered haptic=GrimXFlowCastEvent cmd=slot:spell' (02:16:25), 'cmd=slot:ritual' (02:16:44) and 'Triggered haptic=AInboxHandoffEvent cmd=ainbox:summon' (02:16:58); the AInbox widget (700x900) was visible immediately after, and the operator confirmed it opened. No automated tests yet, so tier stays implemented.",
+      "installed": "running from dist",
+      "oauth": "none",
+      "domain": "desktop-control",
+      "agentConsumer": "none (human-operated)",
+      "created": "2026-10-14",
+      "updated": "2026-10-16",
+      "tags": [
+        "cursor",
+        "overlay",
+        "wand",
+        "grimx-flow",
+        "phosphor"
+      ]
+    },
+    {
+      "slug": "omniwand-logi-mx4",
+      "name": "ArkStation Omniwand Logi plugin",
+      "type": "augment",
+      "subtype": "extension",
+      "kind": "desktop-extension",
+      "composition": "atomic",
+      "origin": "internal-manifestation",
+      "tier": "implemented",
+      "archetype": "host-extension",
+      "host": "Logi Options+ (LogiPluginService, plugin4 package)",
+      "platform": "windows",
+      "version": "0.2.0.1014",
+      "path": "E:\\ArkStation\\augments\\omniwand\\logi-mx4-plugin",
+      "package": "E:\\ArkStation\\augments\\omniwand\\dist\\ArkStationOmniwand.lplug4",
+      "atlas": "atlas/omniwand.md",
+      "supportedDevices": [
+        "LoupedeckCtFamily",
+        "LoupedeckExtendedFamily",
+        "Loupedeck72"
+      ],
+      "pluginCapabilities": [
+        "HasHapticMapping"
+      ],
+      "servesItem": "omniwand",
+      "transport": "Named Pipe ArkStation.Omniwand.Control",
+      "gearBridged": [
+        "mx-master-4"
+      ],
+      "evidence": "Plugin rebuilt 2026-10-15 as a universal plugin (HasNoApplication true, matching the working MX Master 4 haptic plugins); LogiPluginService loaded it cleanly in 682 ms with 13 dynamic actions and the 5 declared haptic events; dist\\ArkStationOmniwand.lplug4 repacked with the metadata, events and win layout only. Actions Ring proven end to end 2026-10-16 02:16 from physical MX Master 4 presses: plugin log shows 'Triggered haptic=GrimXFlowCastEvent cmd=slot:spell' (02:16:25), 'cmd=slot:ritual' (02:16:44) and 'Triggered haptic=AInboxHandoffEvent cmd=ainbox:summon' (02:16:58); the AInbox widget (700x900) was visible immediately after, and the operator confirmed it opened. No automated tests yet, so tier stays implemented.",
+      "installed": "unpacked into LogiPluginService plugins folder",
+      "oauth": "none",
+      "domain": "desktop-control",
+      "agentConsumer": "none (human-operated)",
+      "created": "2026-10-14",
+      "updated": "2026-10-16",
+      "tags": [
+        "logi",
+        "mx-master-4",
+        "haptics",
+        "actions-ring"
+      ]
+    }
+  ]
+}
