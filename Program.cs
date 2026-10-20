@@ -426,7 +426,28 @@ internal sealed class OmniwandAppContext : ApplicationContext
             ContextMenuStrip = menu,
             Visible = true
         };
-        _trayIcon.DoubleClick += (_, _) => ToggleHolodexDrawer();
+        _trayIcon.MouseUp += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                try
+                {
+                    var mi = typeof(NotifyIcon).GetMethod(
+                        "ShowContextMenu",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                    if (mi != null)
+                    {
+                        mi.Invoke(_trayIcon, null);
+                        return;
+                    }
+                }
+                catch
+                {
+                    // Fallback to direct ContextMenuStrip.Show below
+                }
+                menu.Show(Cursor.Position);
+            }
+        };
 
         _renderThread = new Thread(RenderLoop)
         {
