@@ -64,7 +64,7 @@ public static class MouseHardwareAndWandEngine
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, ref int pvParam, uint fWinIni);
 
-    public static CursorIconStyle ActiveCursorStyle { get; set; } = CursorIconStyle.RelicWand;
+    public static CursorIconStyle ActiveCursorStyle { get; set; } = CursorIconStyle.ArkAperture;
 
     private static readonly (string Pattern, string Brand, string Model, string PackageId, int DefaultDpi, bool GestureBtn)[] KnownMice =
     {
@@ -384,25 +384,40 @@ public static class MouseHardwareAndWandEngine
         else if (style == CursorIconStyle.ArkAperture)
         {
             g.RotateTransform(angleDeg);
-            g.ScaleTransform(scale, scale);
+            float handBoost = role == WindowsCursorRole.Hand ? scale * 1.07f : scale;
+            g.ScaleTransform(handBoost, handBoost);
 
-            // Pointer apex at (0,0) + Ark Aperture ring below it
-            var apexPts = new[]
+            // State-reactive globe color:
+            // - AI thinking / casting: pulsing Coral <-> Seal amber with outer aura
+            // - Hand (link/button hover): Coral (#E08B73)
+            // - Help / UpArrow (inspect): Seal amber (#D4A359)
+            // - Default Arrow (operate): Patina / Emblem Globe green
+            Color stateGlobeColor = role switch
             {
-                new PointF(0f, 0f),
-                new PointF(-6.5f, 12f),
-                new PointF(0f, 9.2f),
-                new PointF(6.5f, 12f)
+                WindowsCursorRole.Hand => PhosphorTheme.Coral,
+                WindowsCursorRole.Help or WindowsCursorRole.UpArrow => PhosphorTheme.Seal,
+                _ => Color.FromArgb(255, PhosphorTheme.EmblemGlobe)
             };
-            using (var fill = new SolidBrush(PhosphorTheme.Ground))
-            using (var pen = new Pen(primaryStroke, 1.8f) { LineJoin = LineJoin.Round })
+
+            if (isAiThinking)
             {
-                g.FillPolygon(fill, apexPts);
-                g.DrawPolygon(pen, apexPts);
+                float t = 0.5f + 0.5f * (float)Math.Sin(spinAngleDeg * Math.PI / 60.0);
+                int r = (int)Math.Round(PhosphorTheme.Coral.R * t + PhosphorTheme.Seal.R * (1f - t));
+                int gr = (int)Math.Round(PhosphorTheme.Coral.G * t + PhosphorTheme.Seal.G * (1f - t));
+                int b = (int)Math.Round(PhosphorTheme.Coral.B * t + PhosphorTheme.Seal.B * (1f - t));
+                stateGlobeColor = Color.FromArgb(255, r, gr, b);
             }
 
-            var apertureRect = new RectangleF(-9f, 10f, 18f, 18f);
-            ArkEmblem.DrawAperture(g, apertureRect, solidGlobe: true);
+            if (isAiThinking || role == WindowsCursorRole.Hand)
+            {
+                using var auraBrush = new SolidBrush(Color.FromArgb(75, stateGlobeColor));
+                g.FillEllipse(auraBrush, -9f, 6.5f, 18f, 18f);
+            }
+
+            // Pure Ark Aperture icon only (no extra cursor arrow attached):
+            // Top apex of the Aperture 'A' sits directly at the cursor hotspot (0, 0).
+            var apertureRect = new RectangleF(-12f, 0f, 24f, 24f);
+            ArkEmblem.DrawAperture(g, apertureRect, solidGlobe: true, globeColorOverride: stateGlobeColor, asCursor: true);
         }
         else if (style == CursorIconStyle.ViewfinderReticle)
         {

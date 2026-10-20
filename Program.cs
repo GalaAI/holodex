@@ -331,8 +331,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         menu.Items.Add(new PhosphorMenuEyebrow("Cursor"));
         var iconStyleMenu = new ToolStripMenuItem("Cursor icon style");
-        AddCursorStyleOption(iconStyleMenu, "Relic Wand", "WAND", CursorIconStyle.RelicWand, true);
-        AddCursorStyleOption(iconStyleMenu, "Ark Aperture", "ARK", CursorIconStyle.ArkAperture, false);
+        AddCursorStyleOption(iconStyleMenu, "Ark Aperture", "ARK", CursorIconStyle.ArkAperture, true);
+        AddCursorStyleOption(iconStyleMenu, "Relic Wand", "WAND", CursorIconStyle.RelicWand, false);
         AddCursorStyleOption(iconStyleMenu, "Phosphor Arrow", "ARR", CursorIconStyle.PhosphorArrow, false);
         AddCursorStyleOption(iconStyleMenu, "Viewfinder Reticle", "CAD", CursorIconStyle.ViewfinderReticle, false);
         menu.Items.Add(iconStyleMenu);

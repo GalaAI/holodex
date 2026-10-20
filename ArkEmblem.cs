@@ -28,7 +28,7 @@ internal static class ArkEmblem
     /// for larger ones, never the 512 artwork scaled. <paramref name="solidGlobe"/> draws the globe at full
     /// opacity for the 16px tray, where the 40% globe disappears into the taskbar (operator call, 2026-10-17).
     /// </summary>
-    public static void DrawAperture(Graphics g, RectangleF rect, bool solidGlobe = false)
+    public static void DrawAperture(Graphics g, RectangleF rect, bool solidGlobe = false, Color? globeColorOverride = null, bool asCursor = false)
     {
         bool small = rect.Width < 20f;
         GraphicsPath path;
@@ -58,7 +58,26 @@ internal static class ArkEmblem
         g.TranslateTransform(rect.X + (rect.Width - bounds.Width * scale) / 2f, rect.Y + (rect.Height - bounds.Height * scale) / 2f);
         g.ScaleTransform(scale, scale);
         g.TranslateTransform(-bounds.X, -bounds.Y);
-        using (var globeBrush = new SolidBrush(solidGlobe ? Color.FromArgb(255, GlobeGreen) : GlobeGreen))
+
+        if (asCursor)
+        {
+            // Subtle drop shadow + dark ground outline so the cream Aperture and globe pop over light and dark surfaces
+            var shadowState = g.Save();
+            g.TranslateTransform(0f, 1.3f);
+            using (var shadowBrush = new SolidBrush(Color.FromArgb(115, 0, 0, 0)))
+            {
+                g.FillEllipse(shadowBrush, globe[0] - globe[2] - 0.6f, globe[1] - globe[2] - 0.6f, (globe[2] + 0.6f) * 2f, (globe[2] + 0.6f) * 2f);
+                g.FillPath(shadowBrush, path);
+            }
+            g.Restore(shadowState);
+
+            using var outlinePen = new Pen(PhosphorTheme.Ground, 1.8f) { LineJoin = LineJoin.Round };
+            g.DrawEllipse(outlinePen, globe[0] - globe[2], globe[1] - globe[2], globe[2] * 2f, globe[2] * 2f);
+            g.DrawPath(outlinePen, path);
+        }
+
+        Color effectiveGlobe = globeColorOverride ?? (solidGlobe ? Color.FromArgb(255, GlobeGreen) : GlobeGreen);
+        using (var globeBrush = new SolidBrush(effectiveGlobe))
         {
             g.FillEllipse(globeBrush, globe[0] - globe[2], globe[1] - globe[2], globe[2] * 2f, globe[2] * 2f);
         }

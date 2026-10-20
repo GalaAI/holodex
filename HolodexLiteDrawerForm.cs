@@ -483,8 +483,8 @@ public sealed class HolodexLiteDrawerForm : Form
         var styleRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
         var styles = new (string Label, CursorIconStyle Style, int Width)[]
         {
-            ("Relic Wand", CursorIconStyle.RelicWand, 114),
-            ("Aperture",   CursorIconStyle.ArkAperture, 104),
+            ("Aperture",   CursorIconStyle.ArkAperture, 108),
+            ("Relic Wand", CursorIconStyle.RelicWand, 110),
             ("Arrow",      CursorIconStyle.PhosphorArrow, 96),
             ("Reticle",    CursorIconStyle.ViewfinderReticle, 114)
         };
