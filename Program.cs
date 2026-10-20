@@ -149,7 +149,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private System.Threading.Timer? _vrTimer;
     private ToolStripMenuItem? _vrStatusItem;
     private const float VrScaleBoost = 1.6f;
-    private volatile RotationMode _rotationMode = RotationMode.TruePathTrailer;
+    private volatile RotationMode _rotationMode = RotationMode.SubtleBank;
     private volatile WindowsCursorRole _currentRole = WindowsCursorRole.Arrow;
 
     // Critically damped position & morph springs
@@ -338,8 +338,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         menu.Items.Add(iconStyleMenu);
 
         var modeMenu = new ToolStripMenuItem("Rotation");
-        AddModeOption(modeMenu, "True path trailer", "Smooth directional, no spinout", RotationMode.TruePathTrailer, true);
-        AddModeOption(modeMenu, "Subtle banking", "Classic angle plus velocity tilt", RotationMode.SubtleBank, false);
+        AddModeOption(modeMenu, "Subtle banking", "Default operator tilt, switches to True Path when Wiz is active", RotationMode.SubtleBank, true);
+        AddModeOption(modeMenu, "True path trailer", "Smooth directional, no spinout", RotationMode.TruePathTrailer, false);
         AddModeOption(modeMenu, "Locked angle", "Smooth position only", RotationMode.LockedAngle, false);
         RotationPreviewItem.Animate(modeMenu);
         _hideNativeMenuItem = new ToolStripMenuItem("Hide Windows cursor")
@@ -359,10 +359,21 @@ internal sealed class OmniwandAppContext : ApplicationContext
         menu.Items.Add(sizeMenu);
 
         var dpiMenu = new ToolStripMenuItem($"Mouse DPI ({_onboardingReport.MouseHardware.Brand})");
+        var trayDpiSlider = new PhosphorDpiSlider { Size = new Size(220, 44), BackColor = PhosphorTheme.Surface };
+        var sliderHost = new ToolStripControlHost(trayDpiSlider)
+        {
+            AutoSize = false,
+            Size = new Size(224, 46),
+            Margin = new Padding(6, 4, 6, 4)
+        };
+        dpiMenu.DropDownItems.Add(sliderHost);
+        dpiMenu.DropDownItems.Add(new ToolStripSeparator());
+        AddDpiPresetOption(dpiMenu, "Ultra-Low Sniper (100 DPI)", 1);
+        AddDpiPresetOption(dpiMenu, "Low Precision (400 DPI)", 3);
         AddDpiPresetOption(dpiMenu, "Precision (800 DPI)", 6);
         AddDpiPresetOption(dpiMenu, "Balanced (1600 DPI)", 10);
-        AddDpiPresetOption(dpiMenu, "High Speed (3200 DPI)", 14);
-        AddDpiPresetOption(dpiMenu, "Ultra (4000+ DPI)", 18);
+        AddDpiPresetOption(dpiMenu, "High Speed (3200 DPI)", 15);
+        AddDpiPresetOption(dpiMenu, "Max (4000 DPI)", 20);
 
         menu.Items.Add(new PhosphorMenuEyebrow("Device"));
         menu.Items.Add(pkgMenu);
@@ -1221,10 +1232,12 @@ internal sealed class OmniwandAppContext : ApplicationContext
             double dy = tipY - _trailY;
             double dist = Math.Sqrt(dx * dx + dy * dy);
 
-            // Lock rotation automatically on non-Arrow / non-Hand roles so IBeam, Crosshair, and Resize never tilt
+            // Lock rotation automatically on non-Arrow / non-Hand roles so IBeam, Crosshair, and Resize never tilt.
+            // Keep operator cursor on SubtleBank by default, and switch to TruePathTrailer when Wiz / AI is active (_isAiThinking).
             bool lockRoleRotation = _currentRole != WindowsCursorRole.Arrow && _currentRole != WindowsCursorRole.Hand;
+            RotationMode activeRotation = _isAiThinking ? RotationMode.TruePathTrailer : _rotationMode;
 
-            if (!lockRoleRotation && _rotationMode == RotationMode.TruePathTrailer)
+            if (!lockRoleRotation && activeRotation == RotationMode.TruePathTrailer)
             {
                 if (dist > DeadzonePx)
                 {
@@ -1255,7 +1268,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                     _scale.Target = 1.0;
                 }
             }
-            else if (!lockRoleRotation && _rotationMode == RotationMode.SubtleBank)
+            else if (!lockRoleRotation && activeRotation == RotationMode.SubtleBank)
             {
                 double bankRad = (-22.5 + Math.Clamp(_cursorX.Velocity * 0.018, -28.0, 28.0) - 90.0) * (Math.PI / 180.0);
                 _targetDirX = Math.Cos(bankRad);

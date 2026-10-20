@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Windows.Forms;
 
 namespace Omniwand;
 
@@ -186,6 +187,12 @@ public static class MouseHardwareAndWandEngine
         return hint;
     }
 
+    public const int MinDpi = 100;
+    public const int MaxDpi = 4000;
+    private static int _customDpi;
+
+    public static event Action<int, int>? DpiChanged;
+
     /// <summary>Gets the live Windows pointer speed (1..20, default 10).</summary>
     public static int GetWindowsMouseSpeed()
     {
@@ -201,17 +208,62 @@ public static class MouseHardwareAndWandEngine
         return 10;
     }
 
+    public static int SpeedToDpi(int speed1To20)
+    {
+        int s = Math.Clamp(speed1To20, 1, 20);
+        if (s <= 1) return MinDpi;
+        double t = (s - 1) / 19.0;
+        int raw = (int)Math.Round(MinDpi + t * (MaxDpi - MinDpi));
+        return Math.Clamp((raw / 50) * 50, MinDpi, MaxDpi);
+    }
+
+    public static int DpiToSpeed(int dpi)
+    {
+        int clamped = Math.Clamp(dpi, MinDpi, MaxDpi);
+        double t = (clamped - MinDpi) / (double)(MaxDpi - MinDpi);
+        return Math.Clamp(1 + (int)Math.Round(t * 19.0), 1, 20);
+    }
+
+    public static int GetCurrentDpi()
+    {
+        if (_customDpi >= MinDpi && _customDpi <= MaxDpi)
+            return _customDpi;
+        return SpeedToDpi(GetWindowsMouseSpeed());
+    }
+
+    /// <summary>Sets the live mouse DPI (100..4000) and synchronizes Windows pointer speed (1..20).</summary>
+    public static int SetMouseDpi(int targetDpi)
+    {
+        int clampedDpi = Math.Clamp((int)Math.Round(targetDpi / 50.0) * 50, MinDpi, MaxDpi);
+        _customDpi = clampedDpi;
+        int speed = DpiToSpeed(clampedDpi);
+        try
+        {
+            SystemParametersInfo(
+                SPI_SETMOUSESPEED,
+                0,
+                new IntPtr(speed),
+                SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+        }
+        catch { }
+        DpiChanged?.Invoke(clampedDpi, speed);
+        return clampedDpi;
+    }
+
     /// <summary>Sets the live Windows pointer speed (1..20) immediately via Win32 SystemParametersInfo.</summary>
     public static bool SetWindowsMouseSpeed(int speed1To20)
     {
         int clamped = Math.Clamp(speed1To20, 1, 20);
+        _customDpi = SpeedToDpi(clamped);
         try
         {
-            return SystemParametersInfo(
+            bool ok = SystemParametersInfo(
                 SPI_SETMOUSESPEED,
                 0,
                 new IntPtr(clamped),
                 SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+            DpiChanged?.Invoke(_customDpi, clamped);
+            return ok;
         }
         catch
         {
@@ -388,36 +440,35 @@ public static class MouseHardwareAndWandEngine
             g.ScaleTransform(handBoost, handBoost);
 
             // State-reactive globe color:
-            // - AI thinking / casting: pulsing Coral <-> Seal amber with outer aura
-            // - Hand (link/button hover): Coral (#E08B73)
+            // - Wiz / AI active (isAiThinking): Coral (#E08B73) with multi-ring radial Bloom effect
+            // - Hand (link/button hover): Coral (#E08B73) with subtle Bloom
             // - Help / UpArrow (inspect): Seal amber (#D4A359)
             // - Default Arrow (operate): Patina / Emblem Globe green
-            Color stateGlobeColor = role switch
-            {
-                WindowsCursorRole.Hand => PhosphorTheme.Coral,
-                WindowsCursorRole.Help or WindowsCursorRole.UpArrow => PhosphorTheme.Seal,
-                _ => Color.FromArgb(255, PhosphorTheme.EmblemGlobe)
-            };
+            Color stateGlobeColor = isAiThinking
+                ? PhosphorTheme.Coral
+                : role switch
+                {
+                    WindowsCursorRole.Hand => PhosphorTheme.Coral,
+                    WindowsCursorRole.Help or WindowsCursorRole.UpArrow => PhosphorTheme.Seal,
+                    _ => Color.FromArgb(255, PhosphorTheme.EmblemGlobe)
+                };
 
-            if (isAiThinking)
-            {
-                float t = 0.5f + 0.5f * (float)Math.Sin(spinAngleDeg * Math.PI / 60.0);
-                int r = (int)Math.Round(PhosphorTheme.Coral.R * t + PhosphorTheme.Seal.R * (1f - t));
-                int gr = (int)Math.Round(PhosphorTheme.Coral.G * t + PhosphorTheme.Seal.G * (1f - t));
-                int b = (int)Math.Round(PhosphorTheme.Coral.B * t + PhosphorTheme.Seal.B * (1f - t));
-                stateGlobeColor = Color.FromArgb(255, r, gr, b);
-            }
-
-            if (isAiThinking || role == WindowsCursorRole.Hand)
-            {
-                using var auraBrush = new SolidBrush(Color.FromArgb(75, stateGlobeColor));
-                g.FillEllipse(auraBrush, -9f, 6.5f, 18f, 18f);
-            }
+            bool bloomActive = isAiThinking || role == WindowsCursorRole.Hand;
+            float bloomPulse = isAiThinking
+                ? 1.08f + 0.22f * (float)Math.Sin(spinAngleDeg * Math.PI / 60.0)
+                : 0.95f;
 
             // Pure Ark Aperture icon only (no extra cursor arrow attached):
             // Top apex of the Aperture 'A' sits directly at the cursor hotspot (0, 0).
             var apertureRect = new RectangleF(-12f, 0f, 24f, 24f);
-            ArkEmblem.DrawAperture(g, apertureRect, solidGlobe: true, globeColorOverride: stateGlobeColor, asCursor: true);
+            ArkEmblem.DrawAperture(
+                g,
+                apertureRect,
+                solidGlobe: true,
+                globeColorOverride: stateGlobeColor,
+                asCursor: true,
+                bloomGlobe: bloomActive,
+                bloomPulse: bloomPulse);
         }
         else if (style == CursorIconStyle.ViewfinderReticle)
         {
@@ -441,5 +492,194 @@ public static class MouseHardwareAndWandEngine
         }
 
         g.Restore(state);
+    }
+}
+
+/// <summary>
+/// Relic Phosphor custom-drawn horizontal DPI slider (100 DPI to 4000 DPI) with live draggable thumb,
+/// tick markers (100 / 800 / 1600 / 3200 / 4000), and real-time Windows pointer speed synchronization.
+/// </summary>
+public sealed class PhosphorDpiSlider : Control
+{
+    private int _dpiValue;
+    private bool _dragging;
+    private bool _hovered;
+
+    public event Action<int>? ValueChanged;
+
+    public int Value
+    {
+        get => _dpiValue;
+        set
+        {
+            int clamped = Math.Clamp(value, MouseHardwareAndWandEngine.MinDpi, MouseHardwareAndWandEngine.MaxDpi);
+            if (_dpiValue == clamped) return;
+            _dpiValue = clamped;
+            Invalidate();
+        }
+    }
+
+    public PhosphorDpiSlider()
+    {
+        SetStyle(
+            ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.OptimizedDoubleBuffer |
+            ControlStyles.ResizeRedraw |
+            ControlStyles.UserPaint |
+            ControlStyles.Selectable,
+            true);
+        BackColor = PhosphorTheme.Surface;
+        ForeColor = PhosphorTheme.Bone;
+        Height = 46;
+        Cursor = Cursors.Hand;
+        _dpiValue = MouseHardwareAndWandEngine.GetCurrentDpi();
+
+        MouseHardwareAndWandEngine.DpiChanged += (dpi, _) =>
+        {
+            if (IsDisposed) return;
+            if (InvokeRequired) BeginInvoke(new Action(() => Value = dpi));
+            else Value = dpi;
+        };
+    }
+
+    private Rectangle TrackRect => new(14, 14, Math.Max(40, Width - 28), 8);
+
+    private void UpdateFromMouseX(int mouseX, bool commitToast)
+    {
+        var tr = TrackRect;
+        float ratio = Math.Clamp((mouseX - tr.Left) / (float)tr.Width, 0f, 1f);
+        int rawDpi = (int)Math.Round(
+            MouseHardwareAndWandEngine.MinDpi +
+            ratio * (MouseHardwareAndWandEngine.MaxDpi - MouseHardwareAndWandEngine.MinDpi));
+        int stepped = Math.Clamp((int)Math.Round(rawDpi / 50.0) * 50, MouseHardwareAndWandEngine.MinDpi, MouseHardwareAndWandEngine.MaxDpi);
+        if (stepped != _dpiValue || commitToast)
+        {
+            _dpiValue = MouseHardwareAndWandEngine.SetMouseDpi(stepped);
+            ValueChanged?.Invoke(_dpiValue);
+            Invalidate();
+        }
+    }
+
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        _hovered = true;
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _hovered = false;
+        Invalidate();
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button == MouseButtons.Left)
+        {
+            _dragging = true;
+            Capture = true;
+            UpdateFromMouseX(e.X, false);
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (_dragging)
+        {
+            UpdateFromMouseX(e.X, false);
+        }
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (_dragging && e.Button == MouseButtons.Left)
+        {
+            _dragging = false;
+            Capture = false;
+            UpdateFromMouseX(e.X, true);
+        }
+    }
+
+    protected override void OnMouseWheel(MouseEventArgs e)
+    {
+        base.OnMouseWheel(e);
+        int delta = e.Delta > 0 ? 100 : -100;
+        int next = Math.Clamp(_dpiValue + delta, MouseHardwareAndWandEngine.MinDpi, MouseHardwareAndWandEngine.MaxDpi);
+        _dpiValue = MouseHardwareAndWandEngine.SetMouseDpi(next);
+        ValueChanged?.Invoke(_dpiValue);
+        Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.Clear(BackColor);
+
+        var tr = TrackRect;
+        float ratio = Math.Clamp(
+            (_dpiValue - MouseHardwareAndWandEngine.MinDpi) /
+            (float)(MouseHardwareAndWandEngine.MaxDpi - MouseHardwareAndWandEngine.MinDpi),
+            0f,
+            1f);
+        int thumbX = tr.Left + (int)Math.Round(ratio * tr.Width);
+        int thumbY = tr.Top + tr.Height / 2;
+
+        // Track background
+        using (var trackBg = new SolidBrush(PhosphorTheme.Ground))
+        using (var trackBorder = new Pen(PhosphorTheme.Line2, 1f))
+        {
+            g.FillRectangle(trackBg, tr);
+            g.DrawRectangle(trackBorder, tr);
+        }
+
+        // Filled active track (Patina normal, Coral while dragging)
+        Color activeColor = _dragging ? PhosphorTheme.Coral : PhosphorTheme.Patina;
+        int fillW = Math.Max(2, thumbX - tr.Left);
+        using (var fillBrush = new SolidBrush(Color.FromArgb(210, activeColor)))
+        {
+            g.FillRectangle(fillBrush, tr.Left + 1, tr.Top + 1, fillW, tr.Height - 2);
+        }
+
+        // Tick marks & labels (100, 800, 1600, 2800, 4000)
+        int[] ticks = { 100, 800, 1600, 2800, 4000 };
+        using var tickPen = new Pen(PhosphorTheme.Line2, 1f);
+        using var tickFont = PhosphorFonts.Mono(9f);
+        using var dimBrush = new SolidBrush(PhosphorTheme.Dim);
+        using var activeTextBrush = new SolidBrush(PhosphorTheme.Bone);
+
+        foreach (int tVal in ticks)
+        {
+            float tRatio = (tVal - MouseHardwareAndWandEngine.MinDpi) /
+                           (float)(MouseHardwareAndWandEngine.MaxDpi - MouseHardwareAndWandEngine.MinDpi);
+            int tx = tr.Left + (int)Math.Round(tRatio * tr.Width);
+            g.DrawLine(tickPen, tx, tr.Bottom + 2, tx, tr.Bottom + 5);
+            string lbl = $"{tVal}";
+            var sz = g.MeasureString(lbl, tickFont);
+            float lx = Math.Clamp(tx - sz.Width / 2f, 2f, Width - sz.Width - 2f);
+            bool nearThumb = Math.Abs(tVal - _dpiValue) <= 150;
+            g.DrawString(lbl, tickFont, nearThumb ? activeTextBrush : dimBrush, lx, tr.Bottom + 6);
+        }
+
+        // Thumb halo + Relic Phosphor thumb handle
+        if (_hovered || _dragging)
+        {
+            using var halo = new SolidBrush(Color.FromArgb(65, activeColor));
+            g.FillEllipse(halo, thumbX - 11, thumbY - 11, 22, 22);
+        }
+        using (var thumbFill = new SolidBrush(PhosphorTheme.Bone))
+        using (var thumbCore = new SolidBrush(activeColor))
+        using (var thumbOutline = new Pen(PhosphorTheme.Ground, 1.6f))
+        {
+            g.FillEllipse(thumbFill, thumbX - 7, thumbY - 7, 14, 14);
+            g.DrawEllipse(thumbOutline, thumbX - 7, thumbY - 7, 14, 14);
+            g.FillEllipse(thumbCore, thumbX - 3.5f, thumbY - 3.5f, 7f, 7f);
+        }
     }
 }

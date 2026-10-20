@@ -449,35 +449,28 @@ public sealed class HolodexLiteDrawerForm : Form
             ForeColor = PhosphorTheme.Patina
         };
 
-        _dpiValueLabel = new DataLabel($"POINTER SPEED // {hw.WindowsPointerSpeed}/20 · EST. {hw.EstimatedDpi} DPI · VSYNC OVERLAY")
+        _dpiValueLabel = new DataLabel($"POINTER SPEED // {hw.WindowsPointerSpeed}/20 · {MouseHardwareAndWandEngine.GetCurrentDpi()} DPI (100–4000 SLIDER) · VSYNC")
         {
             Dock = DockStyle.Top,
             Height = 22,
             ForeColor = PhosphorTheme.Bone
         };
 
-        // Live DPI / Pointer speed control bar
-        var dpiRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
-        void AddSpeedBtn(string text, int deltaOrTarget, bool absolute, int x, int w)
+        // Live DPI Slider (100 DPI to 4000 DPI)
+        var dpiSlider = new PhosphorDpiSlider
         {
-            var b = new PhosphorButton(text) { Location = new Point(x, 2), Size = new Size(w, 36) };
-            b.Click += (_, _) =>
-            {
-                int current = MouseHardwareAndWandEngine.GetWindowsMouseSpeed();
-                int next = absolute ? deltaOrTarget : Math.Clamp(current + deltaOrTarget, 1, 20);
-                MouseHardwareAndWandEngine.SetWindowsMouseSpeed(next);
-                var updated = MouseHardwareAndWandEngine.DetectConnectedMouse();
-                _dpiValueLabel.Text = $"POINTER SPEED // {updated.WindowsPointerSpeed}/20 · EST. {updated.EstimatedDpi} DPI · VSYNC OVERLAY";
-                PhosphorToast.Show("Mouse DPI / Speed Updated", $"Windows pointer speed set to {next}/20 (~{updated.EstimatedDpi} DPI).", "MODS // HARDWARE", 2200);
-            };
-            dpiRow.Controls.Add(b);
-        }
-        AddSpeedBtn("- DPI", -2, false, 0, 86);
-        AddSpeedBtn("800 DPI", 6, true, 92, 92);
-        AddSpeedBtn("1600 DPI", 10, true, 190, 96);
-        AddSpeedBtn("3200 DPI", 14, true, 292, 96);
-        AddSpeedBtn("+ DPI", +2, false, 394, 60);
-        var dpiLabeled = WidgetChrome.Labeled("Live Mouse Sensitivity // DPI Control", dpiRow, 40);
+            Dock = DockStyle.Top,
+            Height = 46,
+            Name = "Holodex.DpiSlider"
+        };
+        MouseHardwareAndWandEngine.DpiChanged += (dpi, speed) =>
+        {
+            if (IsDisposed) return;
+            void UpdateText() => _dpiValueLabel.Text = $"POINTER SPEED // {speed}/20 · {dpi} DPI (100–4000 SLIDER) · VSYNC";
+            if (InvokeRequired) BeginInvoke(new Action(UpdateText));
+            else UpdateText();
+        };
+        var dpiLabeled = WidgetChrome.Labeled("Live Mouse Sensitivity // DPI Slider (100 – 4000 DPI)", dpiSlider, 46);
 
         // On-Brand Cursor Icon Style Picker
         var styleRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
