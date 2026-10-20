@@ -9,3 +9,5 @@ publish/
 *.log
 .env
 .env.*
+
+captures/
