@@ -11,3 +11,5 @@ publish/
 .env.*
 
 captures/
+
+logi-mx4-plugin/
