@@ -13,3 +13,10 @@ publish/
 captures/
 
 logi-mx4-plugin/
+
+# Local operator & internal canon docs (kept on disk, excluded from public OSS repo)
+CLAUDE.md
+HANDOFF_REPORT.md
+INVENTORY.json
+atlas/
+docs/Augment Inventory.html

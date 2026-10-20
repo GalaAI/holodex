@@ -51,8 +51,8 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
   - Full-desktop capture overlay implementing the original Ark Wand toolset (`wand.point`, `wand.annotate`, `wand.capture`, `wand.palette`, `wand.architect`).
   - Draw a **Free-Form Lasso** or **Rectangle Snip**, annotate with Coral/Patina/Amber pens, arrows, or boxes, or inspect any desktop window (`WindowFromPoint` HWND class, title, bounding rect, and live 6x pixel magnifier with click-to-copy HEX).
   - Route any capture to **Multi-Model Vision** (`nvidia/Nemotron-3.5-Super-VL`, `openbmb/MiniCPM-V-4_5`, `Qwen/Qwen2.5-VL-72B-Instruct`, `google/gemma-3-27b-it`, or `ark/kimi`) or save directly into the **Holodex Codex**.
-- **Holodex Lite Drawer (`Alt+H` or `Mouse5`) & Hivemind Lite Token Login**:
-  - Right-edge Relic Phosphor dashboard drawer with one-click **Token Login** (stores your Hivemind/ArkHive or Nebius Token Factory token directly in Windows Credential Manager `wincred://` under `Omniwand:NebiusTokenFactory` & `ArkKeymaster:NEBIUS_API_KEY`).
+- **Holodex Lite Drawer (`Alt+H` or `Mouse5`) & Token Vault Login**:
+  - Right-edge Relic Phosphor dashboard drawer with one-click **Token Login** (stores your Nebius Token Factory API key directly in Windows Credential Manager `wincred://` under `Omniwand:NebiusTokenFactory`).
   - Includes 5 lite tabs:
     1. **Session**: Syndicate Group Chat (`@Gala`, `@Wiz`, `@Smith`, `@Arbiter`, `@Scholar`, `@Muse`, `@Fabrix`, `@Herald`) with live **Work Orders** and **Activity Feed**.
     2. **AInbox**: Drag-and-drop Pod Intake classifier and Handoff Scroll generator.
@@ -67,7 +67,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 
 ## How NVIDIA Nemotron & Nebius Token Factory Are Used
 
-In **Standalone Mode** (whenever a local ArkStation gateway on `:8788` is not running, or when `OMNIWAND_STANDALONE=1` is set), Omniwand routes all AI completions directly to **Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1/chat/completions` and `/v1/models`) using **NVIDIA Nemotron** open models:
+In **Standalone Mode** (default when running standalone or when `OMNIWAND_STANDALONE=1` is set), Omniwand routes all AI completions directly to **Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1/chat/completions` and `/v1/models`) using **NVIDIA Nemotron** open models:
 
 1. **Fast Tier Cursor & Voice-Wand Calls (`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` / `nvidia/Nemotron-3_5-Lightning`)**:
    - Used as the default model in `ModelPicker` for low-latency pointed HUD queries (`Alt+Space`) and GhostTrailer Voice-Wand commands (`F16` / `Alt+V`).
@@ -121,7 +121,7 @@ $env:NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 
 ### 2. Holodex Lite Token Login (`Alt+H`) or Windows Credential Manager (`wincred://`)
 
-Paste your Hivemind / ArkHive or Nebius Token Factory token directly into the **Holodex Lite Drawer (`Alt+H`)** header and click **Connect Vault** — Omniwand writes it directly into Windows Credential Manager (`wincred://` targets `Omniwand:NebiusTokenFactory` and `ArkKeymaster:NEBIUS_API_KEY`). Or set it from PowerShell:
+Paste your Nebius Token Factory API key directly into the **Holodex Lite Drawer (`Alt+H`)** header and click **Connect Vault** — Omniwand stores it securely in Windows Credential Manager (`wincred://` target `Omniwand:NebiusTokenFactory`). Or set it from PowerShell:
 
 ```powershell
 cmdkey /generic:Omniwand:NebiusTokenFactory /user:nebius /pass:your-nebius-token-factory-key
@@ -153,7 +153,7 @@ If no key is configured, Omniwand still launches normally, runs all cursor physi
 ## Tips
 
 - **NVIDIA Broadcast Microphone Tip for Dictation**: When using **GhostTrailer** (`F16` / `Alt+V`) over text editors (`IBeam` cursor role) or issuing Voice-Wand commands in a noisy room, set **Microphone (NVIDIA Broadcast)** with Noise Removal and Room Echo Removal enabled as your default Windows input device for crisp transcription.
-- **Optional ArkStation Integration**: When running on a host with an active ArkStation instance (`:8788` Model Gateway and `:8842` Input Studio), Omniwand automatically detects the local services and enables live Input Spine gesture bindings alongside Nebius Token Factory.
+- **Optional ArkStation Integration**: When running on a host with an active ArkStation instance, Omniwand automatically detects the local integration and enables live gesture bindings alongside Nebius Token Factory.
 - **Optional Logitech MX Master 4 Support**: Omniwand automatically detects a connected Logitech MX Master 4 (`VID_046D&PID_B042`) for Actions Ring bindings (`F15` / `F16` / named pipe `ArkStation.Omniwand.Control`), and falls back cleanly to Universal Mouse mode on any standard mouse.
 
 ---
