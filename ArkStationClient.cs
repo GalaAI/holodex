@@ -141,10 +141,7 @@ public sealed class ArkStationClient
             ? arkRoot
             : DefaultArkRoot;
         DetectMouseHardware();
-        if (!HasArkGatewayCredentials() || !Directory.Exists(ArkRoot))
-        {
-            SelectedModel = DefaultNemotronFastModel;
-        }
+        SelectedModel = DefaultNemotronFastModel;
     }
 
     public bool ForceStandaloneMode =>
@@ -707,8 +704,8 @@ public sealed class ArkStationClient
     public static string ResolveNemotronModel(string? model) =>
         IsNemotronModel(model) ? model! : DefaultNemotronFastModel;
 
-    /// <summary>Model chosen in the Wiz and HUD pickers; shared by every chat surface.</summary>
-    public string SelectedModel { get; set; } = DefaultWizModelSlug;
+    /// <summary>Model chosen in the Wiz and HUD pickers; shared by every chat surface. Defaults to NVIDIA Nemotron fast tier.</summary>
+    public string SelectedModel { get; set; } = DefaultNemotronFastModel;
 
     /// <summary>CLI form of the selection (no "ark/" route prefix).</summary>
     private string CliModelSlug() =>
@@ -720,8 +717,8 @@ public sealed class ArkStationClient
 
     /// <summary>
     /// Models offered by the pickers:
-    /// - When Ark Model Gateway (:8788) is reachable: built-in Ark defaults + live gateway `/v1/models` + Nemotron models.
-    /// - In Standalone mode (:8788 unreachable): NVIDIA Nemotron models (plus live Nebius Token Factory `/v1/models` Nemotron ids when key is set).
+    /// - Always puts NVIDIA Nemotron models on Nebius Token Factory first.
+    /// - When Ark Model Gateway (:8788) is reachable: appends live gateway `/v1/models` and `ark/kimi`.
     /// </summary>
     public async Task<IReadOnlyList<string>> GetAvailableModelsAsync()
     {
@@ -732,7 +729,9 @@ public sealed class ArkStationClient
 
         if (gatewayOnline)
         {
-            var models = new List<string> { DefaultWizModelSlug, DefaultModelSlug };
+            var models = new List<string>(BuiltInNemotronModels);
+            if (!models.Contains(DefaultModelSlug, StringComparer.OrdinalIgnoreCase))
+                models.Add(DefaultModelSlug);
             try
             {
                 string key = ReadInboundKey();
@@ -762,12 +761,6 @@ public sealed class ArkStationClient
             catch
             {
                 // Keep defaults
-            }
-
-            foreach (var nm in BuiltInNemotronModels)
-            {
-                if (!models.Contains(nm, StringComparer.OrdinalIgnoreCase))
-                    models.Add(nm);
             }
             return models;
         }
