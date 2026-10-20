@@ -1,6 +1,6 @@
 """Builds assets/omniwand.ico, the Omniwand app icon (exe, desktop shortcut, taskbar, Alt+Tab).
 
-Each size comes from the brand drawing ratified for it (E:/ArkStation/.ark/packages/ui/src/brand/assets/ark-lockup),
+Each size comes from the brand drawing ratified for it (@ark/packages/ui/src/brand/assets/ark-lockup),
 never one artwork scaled across every size:
 - 16          ark-aperture-favicon-16.svg   (hinted for 16px)
 - 20, 24, 32  ark-aperture-favicon-32.svg   (32px and up drawing)
@@ -17,7 +17,7 @@ import subprocess
 
 from PIL import Image
 
-ARK = pathlib.Path("E:/ArkStation/.ark")
+ARK = pathlib.Path("@ark")
 BRAND = ARK / "packages/ui/src/brand/assets/ark-lockup"
 OUT = pathlib.Path(__file__).resolve().parent.parent / "assets" / "omniwand.ico"
 
