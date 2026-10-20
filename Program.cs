@@ -1624,15 +1624,8 @@ internal static class MagicUiCursorPaths
                 _ => PhosphorTheme.Patina
             };
 
-        void DrawCenterGlobe(float rx, float ry, bool bloom = true)
+        void DrawCenterGlobe(float rx, float ry)
         {
-            if (bloom)
-            {
-                using var outer = new SolidBrush(Color.FromArgb(46, globeColor));
-                using var mid = new SolidBrush(Color.FromArgb(92, globeColor));
-                g.FillEllipse(outer, -rx * 2.1f, -ry * 2.1f, rx * 4.2f, ry * 4.2f);
-                g.FillEllipse(mid, -rx * 1.45f, -ry * 1.45f, rx * 2.9f, ry * 2.9f);
-            }
             using var outline = new Pen(PhosphorTheme.Ground, 1.5f * scale);
             using var fill = new SolidBrush(globeColor);
             g.DrawEllipse(outline, -rx, -ry, rx * 2f, ry * 2f);

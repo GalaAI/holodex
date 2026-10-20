@@ -68,25 +68,6 @@ internal static class ArkEmblem
 
         Color effectiveGlobe = globeColorOverride ?? (solidGlobe ? Color.FromArgb(255, GlobeGreen) : GlobeGreen);
 
-        if (bloomGlobe)
-        {
-            // Multi-ring radial Coral bloom behind and around the globe
-            float gx = globe[0];
-            float gy = globe[1];
-            float gr = globe[2] * Math.Clamp(bloomPulse, 0.85f, 1.35f);
-            using (var outerBloom = new SolidBrush(Color.FromArgb(46, effectiveGlobe)))
-            using (var midBloom = new SolidBrush(Color.FromArgb(92, effectiveGlobe)))
-            using (var innerBloom = new SolidBrush(Color.FromArgb(148, effectiveGlobe)))
-            {
-                float r3 = gr * 2.45f;
-                float r2 = gr * 1.82f;
-                float r1 = gr * 1.34f;
-                g.FillEllipse(outerBloom, gx - r3, gy - r3, r3 * 2f, r3 * 2f);
-                g.FillEllipse(midBloom, gx - r2, gy - r2, r2 * 2f, r2 * 2f);
-                g.FillEllipse(innerBloom, gx - r1, gy - r1, r1 * 2f, r1 * 2f);
-            }
-        }
-
         if (asCursor)
         {
             // Subtle drop shadow + dark ground outline so the cream Aperture and globe pop over light and dark surfaces
@@ -107,13 +88,6 @@ internal static class ArkEmblem
         using (var globeBrush = new SolidBrush(effectiveGlobe))
         {
             g.FillEllipse(globeBrush, globe[0] - globe[2], globe[1] - globe[2], globe[2] * 2f, globe[2] * 2f);
-        }
-        if (bloomGlobe)
-        {
-            // Hot inner bloom specular core on the Coral globe
-            float coreR = globe[2] * 0.52f;
-            using var coreBrush = new SolidBrush(Color.FromArgb(170, 255, 226, 212));
-            g.FillEllipse(coreBrush, globe[0] - coreR, globe[1] - coreR, coreR * 2f, coreR * 2f);
         }
         using (var cream = new SolidBrush(Cream))
         {
@@ -843,20 +817,7 @@ internal static class ArkApertureMorphEngine
         float grx = Math.Max(1.1f, _current.GlobeRx);
         float gry = Math.Max(1.1f, _current.GlobeRy);
 
-        // 1. Steady, non-pulsing radial Bloom behind the Globe / Beam when active
-        if (_current.BloomStrength > 0.02f)
-        {
-            float bAlpha = Math.Clamp(_current.BloomStrength, 0f, 1f);
-            using var outerBloom = new SolidBrush(Color.FromArgb((int)(34 * bAlpha), globeColor));
-            using var midBloom = new SolidBrush(Color.FromArgb((int)(68 * bAlpha), globeColor));
-            using var innerBloom = new SolidBrush(Color.FromArgb((int)(112 * bAlpha), globeColor));
-
-            g.FillEllipse(outerBloom, gx - (grx + 4.8f), gy - (gry + 4.8f), (grx + 4.8f) * 2f, (gry + 4.8f) * 2f);
-            g.FillEllipse(midBloom, gx - (grx + 2.8f), gy - (gry + 2.8f), (grx + 2.8f) * 2f, (gry + 2.8f) * 2f);
-            g.FillEllipse(innerBloom, gx - (grx + 1.3f), gy - (gry + 1.3f), (grx + 1.3f) * 2f, (gry + 1.3f) * 2f);
-        }
-
-        // 2. Solid basic glowing Patina Beam Bar for IBeam (plus subtle morph connectors for Resize/Crosshair)
+        // 1. Solid basic glowing Patina Beam Bar for IBeam (plus subtle morph connectors for Resize/Crosshair)
         if (_current.CaretStemAlpha > 0.02f)
         {
             float stemA = Math.Clamp(_current.CaretStemAlpha, 0f, 1f);
@@ -938,12 +899,6 @@ internal static class ArkApertureMorphEngine
             using (var globeBrush = new SolidBrush(Color.FromArgb(ga, globeColor)))
             {
                 g.FillEllipse(globeBrush, gx - grx, gy - gry, grx * 2f, gry * 2f);
-            }
-            if (_current.BloomStrength > 0.08f)
-            {
-                int coreAlpha = (int)(135 * Math.Clamp(_current.BloomStrength, 0f, 1f) * globeVisAlpha);
-                using var coreBrush = new SolidBrush(Color.FromArgb(coreAlpha, 255, 232, 218));
-                g.FillEllipse(coreBrush, gx - grx * 0.46f, gy - gry * 0.46f, grx * 0.92f, gry * 0.92f);
             }
         }
 
