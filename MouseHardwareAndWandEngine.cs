@@ -435,40 +435,17 @@ public static class MouseHardwareAndWandEngine
         }
         else if (style == CursorIconStyle.ArkAperture)
         {
-            g.RotateTransform(angleDeg);
-            float handBoost = role == WindowsCursorRole.Hand ? scale * 1.07f : scale;
-            g.ScaleTransform(handBoost, handBoost);
-
-            // State-reactive globe color:
-            // - Wiz / AI active (isAiThinking): Coral (#E08B73) with multi-ring radial Bloom effect
-            // - Hand (link/button hover): Coral (#E08B73) with subtle Bloom
-            // - Help / UpArrow (inspect): Seal amber (#D4A359)
-            // - Default Arrow (operate): Patina / Emblem Globe green
-            Color stateGlobeColor = isAiThinking
-                ? PhosphorTheme.Coral
-                : role switch
-                {
-                    WindowsCursorRole.Hand => PhosphorTheme.Coral,
-                    WindowsCursorRole.Help or WindowsCursorRole.UpArrow => PhosphorTheme.Seal,
-                    _ => Color.FromArgb(255, PhosphorTheme.EmblemGlobe)
-                };
-
-            bool bloomActive = isAiThinking || role == WindowsCursorRole.Hand;
-            float bloomPulse = isAiThinking
-                ? 1.08f + 0.22f * (float)Math.Sin(spinAngleDeg * Math.PI / 60.0)
-                : 0.95f;
-
-            // Pure Ark Aperture icon only (no extra cursor arrow attached):
-            // Top apex of the Aperture 'A' sits directly at the cursor hotspot (0, 0).
-            var apertureRect = new RectangleF(-12f, 0f, 24f, 24f);
-            ArkEmblem.DrawAperture(
+            g.Restore(state);
+            ArkApertureMorphEngine.DrawMorphedApertureCursor(
                 g,
-                apertureRect,
-                solidGlobe: true,
-                globeColorOverride: stateGlobeColor,
-                asCursor: true,
-                bloomGlobe: bloomActive,
-                bloomPulse: bloomPulse);
+                cx,
+                cy,
+                angleDeg,
+                scale,
+                isAiThinking,
+                role,
+                spinAngleDeg);
+            return;
         }
         else if (style == CursorIconStyle.ViewfinderReticle)
         {

@@ -337,6 +337,26 @@ internal sealed class OmniwandAppContext : ApplicationContext
         AddCursorStyleOption(iconStyleMenu, "Viewfinder Reticle", "CAD", CursorIconStyle.ViewfinderReticle, false);
         menu.Items.Add(iconStyleMenu);
 
+        var morphMenu = new ToolStripMenuItem("Aperture morph engine");
+        AddMorphModeOption(morphMenu, "Auto-morph all 14 states", "AUTO", ApertureMorphMode.AutoContextual, true);
+        AddMorphModeOption(morphMenu, "Holoscope Iris", "IRIS", ApertureMorphMode.HoloscopeIris, false);
+        AddMorphModeOption(morphMenu, "Syndicate Compass Rose", "COMP", ApertureMorphMode.SyndicateCompass, false);
+        AddMorphModeOption(morphMenu, "Wiz Wand Star", "STAR", ApertureMorphMode.WizWandStar, false);
+        AddMorphModeOption(morphMenu, "Aegis Shield", "SHLD", ApertureMorphMode.AegisShield, false);
+        morphMenu.DropDownItems.Add(new ToolStripSeparator());
+        var morphShowcaseItem = new ToolStripMenuItem("Run live morph showcase") { ShortcutKeyDisplayString = "DEMO" };
+        morphShowcaseItem.Click += (_, _) =>
+        {
+            ArkApertureMorphEngine.StartMorphShowcase();
+            PhosphorToast.Show(
+                "Aperture Morph Showcase",
+                "Watch the cursor morph through Hand (Coral Bloom), IBeam Caliper, Crosshair Reticle, Resize Caliper, Compass Rose, Turbine, Wiz Star & Aegis Lock.",
+                "ARK APERTURE // 240HZ MORPH ENGINE",
+                6500);
+        };
+        morphMenu.DropDownItems.Add(morphShowcaseItem);
+        menu.Items.Add(morphMenu);
+
         var modeMenu = new ToolStripMenuItem("Rotation");
         AddModeOption(modeMenu, "Subtle banking", "Default operator tilt, switches to True Path when Wiz is active", RotationMode.SubtleBank, true);
         AddModeOption(modeMenu, "True path trailer", "Smooth directional, no spinout", RotationMode.TruePathTrailer, false);
@@ -424,6 +444,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         PhosphorMenuFrame.Apply(orbMenu, "GrimX Flow // ring slots");
         PhosphorMenuFrame.Apply(iconStyleMenu, "Cursor icon // on-brand");
+        PhosphorMenuFrame.Apply(morphMenu, "Aperture morph // 240Hz");
         PhosphorMenuFrame.Apply(modeMenu, "Wand rotation");
         PhosphorMenuFrame.Apply(sizeMenu, "Cursor size");
         PhosphorMenuFrame.Apply(pkgMenu, "Mouse package");
@@ -608,6 +629,30 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
             return "ok:tutorial:summon";
+        }
+        if (string.Equals(cmd, "morph:demo", StringComparison.OrdinalIgnoreCase))
+        {
+            ArkApertureMorphEngine.StartMorphShowcase();
+            _uiSync.Post(_ =>
+            {
+                PhosphorToast.Show(
+                    "Aperture Morph Showcase",
+                    "Cycling live through Hand (Coral Bloom), IBeam Caliper, Crosshair Reticle, Resize Caliper, Compass Rose, Turbine, Wiz Star & Aegis Lock.",
+                    "ARK APERTURE // 240HZ MORPH ENGINE",
+                    6500);
+            }, null);
+            return "ok:morph:demo";
+        }
+        if (cmd.StartsWith("morph:mode:", StringComparison.OrdinalIgnoreCase))
+        {
+            string modeArg = cmd["morph:mode:".Length..].Trim();
+            if (Enum.TryParse<ApertureMorphMode>(modeArg, true, out var parsedMode))
+            {
+                ArkApertureMorphEngine.ActiveMorphMode = parsedMode;
+                _overlay.ForceCursorRedraw();
+                return $"ok:morph:mode:{parsedMode}";
+            }
+            return "error:morph:mode:invalid";
         }
         if (cmd.StartsWith("render:", StringComparison.OrdinalIgnoreCase))
         {
@@ -1010,6 +1055,24 @@ internal sealed class OmniwandAppContext : ApplicationContext
         parent.DropDownItems.Add(item);
     }
 
+    private void AddMorphModeOption(ToolStripMenuItem parent, string label, string tagText, ApertureMorphMode mode, bool isDefault)
+    {
+        var item = new ToolStripMenuItem(label) { Checked = isDefault, ShortcutKeyDisplayString = tagText };
+        item.Click += (_, _) =>
+        {
+            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>())
+            {
+                if (child.ShortcutKeyDisplayString != "DEMO")
+                    child.Checked = false;
+            }
+            item.Checked = true;
+            ArkApertureMorphEngine.ActiveMorphMode = mode;
+            _overlay.ForceCursorRedraw();
+            PhosphorToast.Show("Aperture Morph Mode", $"Active morph formation: {label}", "ARK APERTURE // MORPH", 2200);
+        };
+        parent.DropDownItems.Add(item);
+    }
+
     private void AddDpiPresetOption(ToolStripMenuItem parent, string label, int speed1To20)
     {
         var item = new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{speed1To20}/20" };
@@ -1317,6 +1380,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             }
 
             _scale.Step(dtSec);
+            ArkApertureMorphEngine.Step(dtSec, _currentRole, _isAiThinking, _spinAngleDeg);
 
             if (_zGuard.Tick(_overlay.Handle, cursorPt.X, cursorPt.Y, nowSec))
             {
@@ -1412,58 +1476,85 @@ internal static class MagicUiCursorPaths
     }
 
     /// <summary>
-    /// Draws parametric non-Arrow Windows cursor roles from smooth-cursor.json in Phosphor Shell tokens.
+    /// Draws parametric non-Arrow Windows cursor roles in Relic Phosphor Shell tokens with state-reactive globes.
     /// </summary>
     public static void DrawParametricRole(
         Graphics g,
         WindowsCursorRole role,
         float scale,
-        float spinAngleDeg)
+        float spinAngleDeg,
+        bool isAiThinking = false)
     {
-        using var shadowPen = new Pen(Color.FromArgb(140, PhosphorTheme.Ground), 4.2f * scale)
+        using var shadowPen = new Pen(Color.FromArgb(155, PhosphorTheme.Ground), 4.2f * scale)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round,
             LineJoin = LineJoin.Round
         };
-        using var bonePen = new Pen(PhosphorTheme.Bone, 2.2f * scale)
+        using var bonePen = new Pen(PhosphorTheme.EmblemCream, 2.15f * scale)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round,
             LineJoin = LineJoin.Round
         };
-        using var patinaPen = new Pen(PhosphorTheme.Patina, 2.2f * scale)
+        using var patinaPen = new Pen(isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 2.2f * scale)
         {
             StartCap = LineCap.Round,
             EndCap = LineCap.Round,
             LineJoin = LineJoin.Round
         };
 
+        Color globeColor = isAiThinking
+            ? PhosphorTheme.Coral
+            : role switch
+            {
+                WindowsCursorRole.No => PhosphorTheme.Rust,
+                WindowsCursorRole.Wait or WindowsCursorRole.AppStarting or WindowsCursorRole.Crosshair => PhosphorTheme.Coral,
+                _ => PhosphorTheme.Patina
+            };
+
+        void DrawCenterGlobe(float rx, float ry, bool bloom = true)
+        {
+            if (bloom)
+            {
+                using var outer = new SolidBrush(Color.FromArgb(46, globeColor));
+                using var mid = new SolidBrush(Color.FromArgb(92, globeColor));
+                g.FillEllipse(outer, -rx * 2.1f, -ry * 2.1f, rx * 4.2f, ry * 4.2f);
+                g.FillEllipse(mid, -rx * 1.45f, -ry * 1.45f, rx * 2.9f, ry * 2.9f);
+            }
+            using var outline = new Pen(PhosphorTheme.Ground, 1.5f * scale);
+            using var fill = new SolidBrush(globeColor);
+            g.DrawEllipse(outline, -rx, -ry, rx * 2f, ry * 2f);
+            g.FillEllipse(fill, -rx, -ry, rx * 2f, ry * 2f);
+        }
+
         switch (role)
         {
             case WindowsCursorRole.IBeam:
             {
-                float h = 11f * scale;
-                float serif = 4.2f * scale;
-                foreach (var pen in new[] { shadowPen, patinaPen })
+                float h = 11.5f * scale;
+                float serif = 4.4f * scale;
+                foreach (var pen in new[] { shadowPen, bonePen })
                 {
                     g.DrawLine(pen, 0, -h, 0, h);
                     g.DrawLine(pen, -serif, -h, serif, -h);
                     g.DrawLine(pen, -serif, h, serif, h);
                 }
+                DrawCenterGlobe(2.4f * scale, 4.0f * scale);
                 break;
             }
             case WindowsCursorRole.Crosshair:
             {
-                float len = 11f * scale;
-                float gap = 3f * scale;
-                foreach (var pen in new[] { shadowPen, patinaPen })
+                float len = 11.5f * scale;
+                float gap = 3.8f * scale;
+                foreach (var pen in new[] { shadowPen, bonePen })
                 {
                     g.DrawLine(pen, -len, 0, -gap, 0);
                     g.DrawLine(pen, gap, 0, len, 0);
                     g.DrawLine(pen, 0, -len, 0, -gap);
                     g.DrawLine(pen, 0, gap, 0, len);
                 }
+                DrawCenterGlobe(2.5f * scale, 2.5f * scale);
                 break;
             }
             case WindowsCursorRole.Wait:
@@ -1475,6 +1566,7 @@ internal static class MagicUiCursorPaths
                 using var trackPen = new Pen(PhosphorTheme.Line2, 2.0f * scale);
                 g.DrawEllipse(trackPen, rect);
                 g.DrawArc(patinaPen, rect, spinAngleDeg, 250f);
+                DrawCenterGlobe(4.2f * scale, 4.2f * scale);
                 break;
             }
             case WindowsCursorRole.No:
@@ -1484,6 +1576,7 @@ internal static class MagicUiCursorPaths
                 var rect = new RectangleF(-r, -r, r * 2f, r * 2f);
                 g.DrawEllipse(shadowPen, rect);
                 g.DrawEllipse(rustPen, rect);
+                DrawCenterGlobe(3.8f * scale, 3.8f * scale);
                 float d = r * 0.707f;
                 g.DrawLine(rustPen, -d, -d, d, d);
                 break;
@@ -1502,8 +1595,8 @@ internal static class MagicUiCursorPaths
                 };
                 var st = g.Save();
                 g.RotateTransform(angle);
-                float len = 10f * scale;
-                float head = 4f * scale;
+                float len = 10.5f * scale;
+                float head = 4.2f * scale;
                 foreach (var pen in new[] { shadowPen, bonePen })
                 {
                     g.DrawLine(pen, -len, 0, len, 0);
@@ -1513,16 +1606,18 @@ internal static class MagicUiCursorPaths
                     g.DrawLine(pen, len - head, head, len, 0);
                 }
                 g.Restore(st);
+                DrawCenterGlobe(3.4f * scale, 3.4f * scale);
                 break;
             }
             case WindowsCursorRole.SizeAll:
             {
-                float len = 10.5f * scale;
+                float len = 11.0f * scale;
                 foreach (var pen in new[] { shadowPen, bonePen })
                 {
                     g.DrawLine(pen, -len, 0, len, 0);
                     g.DrawLine(pen, 0, -len, 0, len);
                 }
+                DrawCenterGlobe(3.6f * scale, 3.6f * scale);
                 break;
             }
         }
@@ -1729,6 +1824,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
             _lastGhostStreaming != ghostVis ||
             _orb.ActiveSlotIndex != _lastOrbSlot ||
             animatedRole ||
+            ArkApertureMorphEngine.IsAnimating ||
             role != _lastRole ||
             Math.Abs(angleDeg - _lastAngle) > 0.08f ||
             Math.Abs(scaleMultiplier - _lastScale) > 0.003f ||
@@ -1782,56 +1878,73 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                     _orb.Draw(g, orbCx, orbCy, _cachedDpiScale);
                 }
 
-                // 3. Draw Phosphor Cursor (RelicWand / ArkAperture / ViewfinderReticle / PhosphorArrow or parametric role)
-                bool useArrowGeometry = role is WindowsCursorRole.Arrow or WindowsCursorRole.Hand or WindowsCursorRole.UpArrow or WindowsCursorRole.Help;
-                if (useArrowGeometry)
+                // 3. Draw Phosphor Cursor:
+                // When ArkAperture is active, ALL 14 Windows cursor states & custom morph formations
+                // are rendered by the 240Hz ArkApertureMorphEngine.
+                if (MouseHardwareAndWandEngine.ActiveCursorStyle == CursorIconStyle.ArkAperture)
                 {
-                    if (MouseHardwareAndWandEngine.ActiveCursorStyle != CursorIconStyle.PhosphorArrow)
-                    {
-                        MouseHardwareAndWandEngine.DrawStyledCursor(
-                            g,
-                            MouseHardwareAndWandEngine.ActiveCursorStyle,
-                            cx,
-                            cy,
-                            angleDeg,
-                            _cachedDpiScale * scaleMultiplier,
-                            isAiThinking,
-                            role,
-                            spinAngleDeg);
-                    }
-                    else
-                    {
-                        var cursorState = g.Save();
-                        g.TranslateTransform(cx, cy);
-                        g.RotateTransform(angleDeg);
-                        float handScale = role == WindowsCursorRole.Hand ? finalScale * 1.06f : finalScale;
-                        g.ScaleTransform(handScale, handScale);
-                        g.TranslateTransform(-25.45f, -4.35f);
-
-                        var state = g.Save();
-                        g.TranslateTransform(0f, 3.2f);
-                        g.FillPath(_shadowBrush1, _strokePath);
-                        g.Restore(state);
-
-                        state = g.Save();
-                        g.TranslateTransform(0f, 1.8f);
-                        g.FillPath(_shadowBrush2, _strokePath);
-                        g.Restore(state);
-
-                        g.FillPath(_groundFillBrush, _fillPath);
-                        Pen activePen = isAiThinking
-                            ? _patinaStrokePen
-                            : (role == WindowsCursorRole.Hand ? _coralStrokePen : _boneStrokePen);
-                        g.DrawPath(activePen, _strokePath);
-                        g.Restore(cursorState);
-                    }
+                    ArkApertureMorphEngine.DrawMorphedApertureCursor(
+                        g,
+                        cx,
+                        cy,
+                        angleDeg,
+                        _cachedDpiScale * scaleMultiplier,
+                        isAiThinking,
+                        role,
+                        spinAngleDeg);
                 }
                 else
                 {
-                    var roleState = g.Save();
-                    g.TranslateTransform(cx, cy);
-                    MagicUiCursorPaths.DrawParametricRole(g, role, _cachedDpiScale * scaleMultiplier, spinAngleDeg);
-                    g.Restore(roleState);
+                    bool useArrowGeometry = role is WindowsCursorRole.Arrow or WindowsCursorRole.Hand or WindowsCursorRole.UpArrow or WindowsCursorRole.Help;
+                    if (useArrowGeometry)
+                    {
+                        if (MouseHardwareAndWandEngine.ActiveCursorStyle != CursorIconStyle.PhosphorArrow)
+                        {
+                            MouseHardwareAndWandEngine.DrawStyledCursor(
+                                g,
+                                MouseHardwareAndWandEngine.ActiveCursorStyle,
+                                cx,
+                                cy,
+                                angleDeg,
+                                _cachedDpiScale * scaleMultiplier,
+                                isAiThinking,
+                                role,
+                                spinAngleDeg);
+                        }
+                        else
+                        {
+                            var cursorState = g.Save();
+                            g.TranslateTransform(cx, cy);
+                            g.RotateTransform(angleDeg);
+                            float handScale = role == WindowsCursorRole.Hand ? finalScale * 1.06f : finalScale;
+                            g.ScaleTransform(handScale, handScale);
+                            g.TranslateTransform(-25.45f, -4.35f);
+
+                            var state = g.Save();
+                            g.TranslateTransform(0f, 3.2f);
+                            g.FillPath(_shadowBrush1, _strokePath);
+                            g.Restore(state);
+
+                            state = g.Save();
+                            g.TranslateTransform(0f, 1.8f);
+                            g.FillPath(_shadowBrush2, _strokePath);
+                            g.Restore(state);
+
+                            g.FillPath(_groundFillBrush, _fillPath);
+                            Pen activePen = isAiThinking
+                                ? _patinaStrokePen
+                                : (role == WindowsCursorRole.Hand ? _coralStrokePen : _boneStrokePen);
+                            g.DrawPath(activePen, _strokePath);
+                            g.Restore(cursorState);
+                        }
+                    }
+                    else
+                    {
+                        var roleState = g.Save();
+                        g.TranslateTransform(cx, cy);
+                        MagicUiCursorPaths.DrawParametricRole(g, role, _cachedDpiScale * scaleMultiplier, spinAngleDeg, isAiThinking);
+                        g.Restore(roleState);
+                    }
                 }
             }
 
