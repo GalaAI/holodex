@@ -151,9 +151,7 @@ public sealed class OmniwandHudForm : Form
         _summonCursorPos = cursorPos;
 
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
-        int x = Math.Clamp(cursorPos.X + 18, screen.Left + 12, screen.Right - Width - 12);
-        int y = Math.Clamp(cursorPos.Y + 18, screen.Top + 12, screen.Bottom - Height - 12);
-        Location = new Point(x, y);
+        Location = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 18, cursorPos.Y + 18);
 
         Show();
         Activate();

@@ -27,9 +27,25 @@ internal static class Program
         }
 
         // Always restore system cursors on any exit path
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => NativeCursorManager.RestoreSystemCursors();
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            NativeCursorManager.RestoreSystemCursors();
+            MouseHardwareAndWandEngine.RestoreOriginalSpeed();
+        };
         AppDomain.CurrentDomain.UnhandledException += (_, _) => NativeCursorManager.RestoreSystemCursors();
         Application.ApplicationExit += (_, _) => NativeCursorManager.RestoreSystemCursors();
+
+        // A UI exception becomes a toast, never the WinForms crash dialog.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) =>
+        {
+            try
+            {
+                PhosphorToast.Show("Something went wrong", e.Exception.Message, "OMNIWAND // RECOVERED", 5200, ToastTone.Error);
+                File.AppendAllText(Path.Combine(Path.GetTempPath(), "omniwand-errors.log"), $"{DateTime.Now:O} {e.Exception}\n");
+            }
+            catch { }
+        };
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
@@ -99,7 +115,7 @@ internal enum RotationMode
 }
 
 /// <summary>
-/// All 14 Windows cursor roles from Input Studio (E:\ArkStation\runtimes\cursors\profiles\smooth-cursor.json).
+/// All 14 Windows cursor roles from Input Studio (runtimes/cursors/profiles/smooth-cursor.json).
 /// </summary>
 public enum WindowsCursorRole
 {
@@ -170,6 +186,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private bool _wasMouseDown;
     private bool _wasOrbTriggerDown;
     private bool _wasGhostTriggerDown;
+    private static readonly bool HardwareMacrosEnabled =
+        string.Equals(Environment.GetEnvironmentVariable("OMNIWAND_MOUSE_MACROS"), "1", StringComparison.Ordinal);
     private bool _wasMouse4Down;
     private bool _wasMouse5Down;
     private bool _wasRightMouseDown;
@@ -227,7 +245,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             () => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.FreeformLasso),
             () => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.ElementPicker),
             () => ToggleOrbFromHotkey(),
-            () => CycleCursorStyleFromHotkey());
+            () => CycleCursorStyleFromHotkey(),
+            () => SummonHud(),
+            () => SummonAInboxIntake());
 
         _overlay = new CursorOverlayWindow(_orb, _ghostTrailer);
         _overlay.RegisterHotkeys(
@@ -247,6 +267,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         NativeCursorManager.CaptureStockCursorHandles();
         NativeCursorManager.HideSystemCursors();
 
+        PhosphorTips.Install();
         ToolStripManager.Renderer = new PhosphorMenuRenderer();
         var menu = new ContextMenuStrip
         {
@@ -983,12 +1004,16 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 var (cast, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString());
                 string flow = char.ToUpperInvariant(slot.Title[0]) + slot.Title[1..].ToLowerInvariant();
-                PhosphorToast.Show(
-                    cast ? $"{flow} cast" : $"{flow} not cast",
-                    message,
-                    $"GRIMX FLOW // {slot.Verb}",
-                    cast ? 2400 : 4200,
-                    cast ? ToastTone.Success : ToastTone.Warning);
+                if (cast)
+                {
+                    PhosphorToast.Show($"{flow} cast", message, $"GRIMX FLOW // {slot.Verb}", 2400, ToastTone.Success);
+                }
+                else
+                {
+                    // Standalone build: no local flow runtime, so Wiz crafts the flow on Nemotron instead.
+                    PhosphorToast.Show($"{flow} opened in Wiz", "No local flow runtime found, so Wiz will craft this flow with Nemotron.", $"GRIMX FLOW // {slot.Verb}", 2600, ToastTone.Info);
+                    _wizWidget.SummonAt(pt, slot.Id);
+                }
             }
             finally
             {
@@ -1345,15 +1370,16 @@ internal sealed class OmniwandAppContext : ApplicationContext
             }
             _wasGhostTriggerDown = f16Down;
 
-            // Check Mouse4 (XButton1 = 0x05), Mouse5 (XButton2 = 0x06), and Right-Hold Gesture Flicks
-            bool mouse4Down = (Win32.GetAsyncKeyState(0x05) & 0x8000) != 0;
+            // Check Mouse4 (XButton1 = 0x05), Mouse5 (XButton2 = 0x06), and Right-Hold Gesture Flicks.
+            // Off by default: the side buttons are browser Back/Forward. Opt in with OMNIWAND_MOUSE_MACROS=1.
+            bool mouse4Down = HardwareMacrosEnabled && (Win32.GetAsyncKeyState(0x05) & 0x8000) != 0;
             if (mouse4Down && !_wasMouse4Down)
             {
                 ExecuteMouseMacroTrigger("Mouse4", cursorPt);
             }
             _wasMouse4Down = mouse4Down;
 
-            bool mouse5Down = (Win32.GetAsyncKeyState(0x06) & 0x8000) != 0;
+            bool mouse5Down = HardwareMacrosEnabled && (Win32.GetAsyncKeyState(0x06) & 0x8000) != 0;
             if (mouse5Down && !_wasMouse5Down)
             {
                 ExecuteMouseMacroTrigger("Mouse5", cursorPt);
@@ -1378,7 +1404,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 int gdx = cursorPt.X - _rightGestureAnchor.X;
                 int gdy = cursorPt.Y - _rightGestureAnchor.Y;
                 double gdist = Math.Sqrt(gdx * gdx + gdy * gdy);
-                if (heldSec >= 0.16 && gdist >= 88.0)
+                if (HardwareMacrosEnabled && heldSec >= 0.16 && gdist >= 88.0)
                 {
                     string gestureTrigger = Math.Abs(gdx) > Math.Abs(gdy)
                         ? (gdx > 0 ? "GestureEast" : "GestureWest")
@@ -1517,6 +1543,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _running = false;
         _vrTimer?.Dispose();
         NativeCursorManager.RestoreSystemCursors();
+        MouseHardwareAndWandEngine.RestoreOriginalSpeed();
         _trayIcon.Visible = false;
         try { _renderThread.Join(300); } catch { }
         _hud.Dispose();
@@ -1887,8 +1914,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
         Win32.RegisterHotKey(Handle, HotkeyAInboxId, 0x0001 | 0x4000, (int)Keys.I);
         // Ctrl+Shift+Space -> 8-Slot GrimX Flow Orb
         Win32.RegisterHotKey(Handle, HotkeyOrbId, 0x0002 | 0x0004 | 0x4000, (int)Keys.Space);
-        // Alt+V -> GhostTrailer Ribbon (Dictation / Voice-Wand)
-        Win32.RegisterHotKey(Handle, HotkeyGhostId, 0x0001 | 0x4000, (int)Keys.V);
+        // Alt+V (GhostTrailer dictation) is held back until speech capture lands; no hotkey in v0.3.
         // Alt+C -> Cycle Input Studio Cursor Icon Style
         Win32.RegisterHotKey(Handle, HotkeyCycleProfileId, 0x0001 | 0x4000, (int)Keys.C);
         // Alt+H -> Holodex Lite Drawer (Session, AInbox, Codex, GrimX, Mods)

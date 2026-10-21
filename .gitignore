@@ -20,3 +20,6 @@ HANDOFF_REPORT.md
 INVENTORY.json
 atlas/
 docs/Augment Inventory.html
+
+# Local test captures (contain private desktop screenshots)
+docs/shots/eden-runs/

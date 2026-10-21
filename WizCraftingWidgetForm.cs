@@ -154,8 +154,8 @@ public sealed class WizCraftingWidgetForm : Form
         }
 
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
-        int x = Math.Clamp(cursorPos.X + 20, screen.Left + 12, screen.Right - Width - 12);
-        int y = Math.Clamp(cursorPos.Y - Height / 3, screen.Top + 12, screen.Bottom - Height - 12);
+        var placed = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 20, cursorPos.Y - Height / 3);
+        int x = placed.X, y = placed.Y;
         Location = new Point(x, y);
 
         Show();

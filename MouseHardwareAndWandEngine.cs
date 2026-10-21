@@ -95,7 +95,12 @@ public static class MouseHardwareAndWandEngine
         ("VID_05AC",          "Apple",    "Magic Mouse / Trackpad Bridge", "universal-mouse", 1200, true)
     };
 
-    public static MouseHardwareReport DetectConnectedMouse()
+    private static MouseHardwareReport? _cachedMouse;
+
+    /// <summary>Cached: the PnP scan shells out to PowerShell and blocks for 1 to 2 s, so it runs once per launch.</summary>
+    public static MouseHardwareReport DetectConnectedMouse() => _cachedMouse ??= ScanConnectedMouse();
+
+    private static MouseHardwareReport ScanConnectedMouse()
     {
         var rawIds = new List<string>();
         try
@@ -231,9 +236,25 @@ public static class MouseHardwareAndWandEngine
         return SpeedToDpi(GetWindowsMouseSpeed());
     }
 
-    /// <summary>Sets the live mouse DPI (100..4000) and synchronizes Windows pointer speed (1..20).</summary>
+    private static int _originalSpeed = -1;
+
+    /// <summary>Remembers the user's pointer speed before Omniwand first changes it.</summary>
+    private static void RememberOriginalSpeed()
+    {
+        if (_originalSpeed < 0) _originalSpeed = GetWindowsMouseSpeed();
+    }
+
+    /// <summary>Puts the Windows pointer speed back to what it was before Omniwand touched it. Safe to call twice.</summary>
+    public static void RestoreOriginalSpeed()
+    {
+        if (_originalSpeed < 1) return;
+        try { SystemParametersInfo(SPI_SETMOUSESPEED, 0, new IntPtr(_originalSpeed), SPIF_SENDCHANGE); } catch { }
+    }
+
+    /// <summary>Sets the live mouse DPI (100..4000) and synchronizes Windows pointer speed (1..20) for this session.</summary>
     public static int SetMouseDpi(int targetDpi)
     {
+        RememberOriginalSpeed();
         int clampedDpi = Math.Clamp((int)Math.Round(targetDpi / 50.0) * 50, MinDpi, MaxDpi);
         _customDpi = clampedDpi;
         int speed = DpiToSpeed(clampedDpi);
@@ -243,7 +264,7 @@ public static class MouseHardwareAndWandEngine
                 SPI_SETMOUSESPEED,
                 0,
                 new IntPtr(speed),
-                SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                SPIF_SENDCHANGE);
         }
         catch { }
         DpiChanged?.Invoke(clampedDpi, speed);
@@ -253,6 +274,7 @@ public static class MouseHardwareAndWandEngine
     /// <summary>Sets the live Windows pointer speed (1..20) immediately via Win32 SystemParametersInfo.</summary>
     public static bool SetWindowsMouseSpeed(int speed1To20)
     {
+        RememberOriginalSpeed();
         int clamped = Math.Clamp(speed1To20, 1, 20);
         _customDpi = SpeedToDpi(clamped);
         try
@@ -261,7 +283,7 @@ public static class MouseHardwareAndWandEngine
                 SPI_SETMOUSESPEED,
                 0,
                 new IntPtr(clamped),
-                SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                SPIF_SENDCHANGE);
             DpiChanged?.Invoke(_customDpi, clamped);
             return ok;
         }

@@ -6,7 +6,7 @@ using System.Drawing.Drawing2D;
 namespace Omniwand;
 
 /// <summary>
-/// Port of E:\ArkStation\models\GhostTrailer Flow cubic Bezier ribbon engine into Omniwand's
+/// Port of the ArkStation GhostTrailer Flow cubic Bezier ribbon engine into Omniwand's
 /// VSync-locked GDI+ renderer, styled in ArkStation Phosphor Shell tokens.
 /// Context-Aware Dual Mode:
 /// - Over IBeam (text fields): Dictation mode (Patina #79C4B7) — types/pastes text on release.

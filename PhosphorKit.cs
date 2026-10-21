@@ -329,6 +329,10 @@ internal sealed class PhosphorButton : Control
     /// <summary>Glyph mode draws the text as a single large glyph (the close ×) with no tracking.</summary>
     public bool Glyph { get; set; }
 
+    private bool _selected;
+    /// <summary>Selected tab or toggle: Default variant with bone ink and the highlight aura sidelight, never a bone fill.</summary>
+    public bool Selected { get => _selected; set { _selected = value; Invalidate(); } }
+
     protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
     protected override void OnMouseLeave(EventArgs e) { _hover = false; _down = false; Invalidate(); base.OnMouseLeave(e); }
     protected override void OnMouseDown(MouseEventArgs e) { _down = true; Invalidate(); Focus(); base.OnMouseDown(e); }
@@ -371,8 +375,8 @@ internal sealed class PhosphorButton : Control
                 break;
             default:
                 fill = _down ? PhosphorTheme.Line : PhosphorTheme.Surface2;
-                border = _hover ? PhosphorTheme.Ghost : PhosphorTheme.Line2;
-                ink = _hover ? PhosphorTheme.Bone : PhosphorTheme.Dim;
+                border = _hover || Selected ? PhosphorTheme.Ghost : PhosphorTheme.Line2;
+                ink = _hover || Selected ? PhosphorTheme.Bone : PhosphorTheme.Dim;
                 break;
         }
         if (!Enabled)
@@ -394,6 +398,8 @@ internal sealed class PhosphorButton : Control
         }
 
         PhosphorPaint.FillRounded(g, rect, radius, fill);
+        if (Selected && Variant == PhosphorButtonVariant.Default)
+            PhosphorTheme.DrawHighlightAura(g, Rectangle.Round(rect), PhosphorTheme.Coral, 1f, (int)Math.Round(radius));
         PhosphorPaint.StrokeRounded(g, rect, radius, border);
 
         if (Focused && !_hover)
@@ -954,6 +960,22 @@ internal static class WidgetChrome
             if (c is TextBoxBase) PhosphorPaint.UseDarkScrollbars(c);
         }
         return header;
+    }
+
+    /// <summary>Math.Clamp that tolerates min greater than max (a widget taller than the screen) instead of throwing.</summary>
+    public static int SafeClamp(int value, int min, int max) => max < min ? min : Math.Clamp(value, min, max);
+
+    /// <summary>
+    /// Places a widget near the cursor inside the working area. A widget taller or wider than the screen
+    /// (768p laptops, 125 percent scaling) is shrunk to fit first, so placement never throws.
+    /// </summary>
+    public static Point PlaceNear(Form form, Rectangle work, int x, int y)
+    {
+        if (form.Height > work.Height - 24) form.Height = Math.Max(200, work.Height - 24);
+        if (form.Width > work.Width - 24) form.Width = Math.Max(200, work.Width - 24);
+        return new Point(
+            SafeClamp(x, work.Left + 12, work.Right - form.Width - 12),
+            SafeClamp(y, work.Top + 12, work.Bottom - form.Height - 12));
     }
 
     /// <summary>Keeps a borderless widget clipped to its rounded frame so its square corners never show.</summary>

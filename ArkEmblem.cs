@@ -1010,7 +1010,7 @@ internal static class OmniwandSpellGestureEngine
 
     public static bool Enabled { get; set; } = true;
     public static bool HoldCtrlToArm { get; set; } = true;
-    public static bool HoldRightMouseToArm { get; set; } = true;
+    public static bool HoldRightMouseToArm { get; set; } = false; // right-drag is the context menu; opt in from Settings
 
     private struct TrailNode
     {

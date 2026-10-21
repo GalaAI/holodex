@@ -170,7 +170,8 @@ public sealed record TutorialStepInfo(
     string Body,
     string ActionButtonLabel,
     Color AccentColor,
-    Action TryAction);
+    Action TryAction,
+    string? Keys = null);
 
 /// <summary>
 /// Animated Phosphor Tooltip Tutorial overlay guided by Wiz.
@@ -181,8 +182,10 @@ public sealed class PhosphorAnimatedTooltipForm : Form
 {
     private readonly List<TutorialStepInfo> _steps;
     private int _currentIndex;
-    private float _animPhase;
     private float _entryProgress;
+    private float _dotProgress = 1f;
+    private int _previousIndex;
+    private readonly Stopwatch _stepClock = Stopwatch.StartNew();
     private readonly System.Windows.Forms.Timer _animTimer;
 
     private readonly PhosphorBadge _stepBadge;
@@ -197,7 +200,9 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         Action openSnipLasso,
         Action openElementPicker,
         Action openOrb,
-        Action cycleCursorStyle)
+        Action cycleCursorStyle,
+        Action openHud,
+        Action openAInbox)
     {
         PhosphorFonts.EnsureLoaded();
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -210,51 +215,74 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "WizTutorialTooltip";
-        Size = new Size(500, 268);
+        Size = new Size(540, 300);
+        KeyPreview = true;
 
-        string clis = report.DetectedClis.Count > 0 ? string.Join(", ", report.DetectedClis) : "standalone runtime";
-        string vaultState = report.NebiusReady ? "Windows Vault + Nebius Ready" : "Token Login Ready in Holodex";
+        string vaultState = report.NebiusReady
+            ? "Your Nebius key is linked, so answers come from NVIDIA Nemotron on Token Factory."
+            : "No model key yet. Open Holodex (Alt+H) and paste a Nebius Token Factory key to turn on answers.";
 
         _steps = new List<TutorialStepInfo>
         {
             new(1,
-                "WIZ ONBOARDING // AUTO-PROVISIONED",
-                $"Detected {report.MouseHardware.Brand} {report.MouseHardware.Model}",
-                $"Wiz scanned your environment ({report.DisplaySummary}, CLIs: {clis}), created your agent workspace at ~/.ark/agents/omniwand, configured {report.MouseHardware.Brand} macros ({report.MouseHardware.EstimatedDpi} DPI), and linked {vaultState}.",
-                "Cycle Wand Cursor",
+                "WELCOME // OMNIWAND",
+                "Your cursor is now a wand",
+                $"Omniwand lives in the tray and draws the Ark Aperture cursor. It found your {report.MouseHardware.Brand} {report.MouseHardware.Model} and {report.DisplaySummary}. {vaultState}",
+                "Cycle cursor style",
                 PhosphorTheme.Patina,
-                cycleCursorStyle),
+                cycleCursorStyle,
+                "Alt+C"),
             new(2,
-                "WAND + GESTURES // HARDWARE INTELLIGENCE",
-                "On-Brand Relic Wand Cursor, DPI & Gesture Flicks",
-                $"Your cursor now renders the on-brand Relic Wand at VSync. Hold Right-Click and flick North/East/South/West (or press Mouse4/Mouse5 on your {report.MouseHardware.Brand} mouse) to trigger Wiz spells and tools.",
-                "Test GrimX Orb",
-                PhosphorTheme.Coral,
-                openOrb),
-            new(3,
-                "VISION + UI INSPECTOR // WAND.POINT",
-                "Free-Form Lasso, Annotator & Element Picker",
-                "Press Alt+S (or Mouse4) to draw a Free-Form Lasso with live Phosphor annotations, or press Alt+E to inspect any desktop window's HWND, geometry, and pixel hex palette with NVIDIA Nemotron VL or MiniCPM-V.",
-                "Try Lasso & Snip",
+                "COMMAND HUD // ASK",
+                "Ask anything, from anywhere",
+                "Press Alt+Space to open the HUD at your cursor. Type a question and press Enter. Nemotron answers in place, and you can attach the screen when the question is about what you are looking at.",
+                "Open the HUD",
                 PhosphorTheme.Patina,
-                openSnipLasso),
+                openHud,
+                "Alt+Space"),
+            new(3,
+                "LASSO // SEE",
+                "Circle it, then ask about it",
+                "Press Alt+S and draw around anything on screen. Ink on it to point, then Analyze to send the region to a vision model or Save to keep it in Codex.",
+                "Try the lasso",
+                PhosphorTheme.Patina,
+                openSnipLasso,
+                "Alt+S"),
             new(4,
-                "ELEMENT PICKER // WAND.PALETTE",
-                "Live Desktop Element & Pixel Palette Inspector",
-                "Hover over any app on Windows to inspect its live class, bounding dimensions, and exact #HEX color token, then save to Codex or route straight to Wiz.",
-                "Try Point UI (Alt+E)",
-                PhosphorTheme.Seal,
-                openElementPicker),
+                "ELEMENT PICKER // POINT",
+                "Inspect any window or pixel",
+                "Press Alt+E and hover. Omniwand reads the window class, its bounds and the exact hex color under the wand, ready to copy or hand to Wiz.",
+                "Try the picker",
+                PhosphorTheme.Patina,
+                openElementPicker,
+                "Alt+E"),
             new(5,
-                "HOLODEX LITE // SYNDICATE SESSION",
-                "Holodex Drawer + Hivemind Syndicate Session",
-                "Press Alt+H (or Mouse5) to slide open the Holodex Lite drawer: log in with a single Hivemind/Nebius token and chat with the Syndicate (Gala, Wiz, Smith, Arbiter, Scholar, Muse) in a live group session with Work Orders!",
-                "Open Holodex Lite",
-                PhosphorTheme.Coral,
-                openHolodex)
+                "SPELLS // GESTURES",
+                "Hold Ctrl, then draw a spell",
+                "Shake left and right for Wiz. Shake up and down for the lasso. Draw a circle for the GrimX flow orb. Sweep right for Holodex. A ghost ribbon follows the stroke so you can see it land.",
+                "Open the flow orb",
+                PhosphorTheme.Seal,
+                openOrb,
+                "Ctrl+Shift+Space"),
+            new(6,
+                "AINBOX // HAND OFF",
+                "Drop it, say what you want, send it",
+                "Press Alt+I. Drag in files, paste a snippet or capture the screen, add one line of intent, and Omniwand writes the handoff for you.",
+                "Open AInbox",
+                PhosphorTheme.Patina,
+                openAInbox,
+                "Alt+I"),
+            new(7,
+                "HOLODEX LITE // YOUR DRAWER",
+                "Everything else lives here",
+                "Press Alt+H for session chat, saved captures, flows and mouse DPI. Replay this tour any time with Alt+T. Ctrl+Alt+Q quits and restores the normal cursor.",
+                "Open Holodex",
+                PhosphorTheme.Patina,
+                openHolodex,
+                "Alt+H")
         };
 
-        _stepBadge = new PhosphorBadge("STEP 1 / 5", PhosphorBadgeState.Proven)
+        _stepBadge = new PhosphorBadge("STEP 1 / 7", PhosphorBadgeState.Unstated)
         {
             Location = new Point(Width - 138, 16),
             Name = "Tutorial.StepBadge"
@@ -272,7 +300,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         closeBtn.Click += (_, _) => Hide();
         Controls.Add(closeBtn);
 
-        _prevBtn = new PhosphorButton("← Back")
+        _prevBtn = new PhosphorButton("Back")
         {
             Size = new Size(96, 38),
             Location = new Point(22, Height - 52),
@@ -290,7 +318,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         _tryBtn.Click += (_, _) => _steps[_currentIndex].TryAction?.Invoke();
         Controls.Add(_tryBtn);
 
-        _nextBtn = new PhosphorButton("Next Step →", PhosphorButtonVariant.Primary)
+        _nextBtn = new PhosphorButton("Next", PhosphorButtonVariant.Primary)
         {
             Size = new Size(164, 38),
             Location = new Point(Width - 186, Height - 52),
@@ -308,9 +336,8 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         _animTimer = new System.Windows.Forms.Timer { Interval = 16 };
         _animTimer.Tick += (_, _) =>
         {
-            _animPhase = (_animPhase + 0.08f) % (float)(Math.PI * 2.0);
-            if (_entryProgress < 1f) _entryProgress = Math.Min(1f, _entryProgress + 0.09f);
             Invalidate();
+            if (_stepClock.ElapsedMilliseconds > PhosphorMotion.DurDisclosure + 50) _animTimer.Stop();
         };
 
         WidgetChrome.ClipToFrame(this);
@@ -322,8 +349,8 @@ public sealed class PhosphorAnimatedTooltipForm : Form
     {
         var work = Screen.FromPoint(anchorPt).WorkingArea;
         Location = new Point(
-            Math.Clamp(work.Right - Width - 28, work.Left + 16, work.Right - Width - 16),
-            Math.Clamp(work.Bottom - Height - 28, work.Top + 16, work.Bottom - Height - 16));
+            WidgetChrome.SafeClamp(work.Right - Width - 28, work.Left + 16, work.Right - Width - 16),
+            WidgetChrome.SafeClamp(work.Bottom - Height - 28, work.Top + 16, work.Bottom - Height - 16));
         StepTo(0);
         Show();
         Activate();
@@ -337,10 +364,47 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         else _animTimer.Start();
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        switch (e.KeyCode)
+        {
+            case Keys.Right:
+            case Keys.PageDown:
+                if (_currentIndex + 1 < _steps.Count) StepTo(_currentIndex + 1); else Hide();
+                e.Handled = true;
+                return;
+            case Keys.Left:
+            case Keys.PageUp:
+                StepTo(_currentIndex - 1);
+                e.Handled = true;
+                return;
+            case Keys.Escape:
+                Hide();
+                e.Handled = true;
+                return;
+        }
+        base.OnKeyDown(e);
+    }
+
+    protected override bool ProcessDialogKey(Keys keyData)
+    {
+        // Arrow keys would otherwise move focus between buttons before OnKeyDown sees them.
+        if (keyData is Keys.Left or Keys.Right or Keys.Escape)
+        {
+            OnKeyDown(new KeyEventArgs(keyData));
+            return true;
+        }
+        return base.ProcessDialogKey(keyData);
+    }
+
     private void StepTo(int index)
     {
+        _previousIndex = _currentIndex;
         _currentIndex = Math.Clamp(index, 0, _steps.Count - 1);
         _entryProgress = 0f;
+        _dotProgress = 0f;
+        _stepClock.Restart();
+        if (Visible) _animTimer.Start();
         SyncStepControls();
         Invalidate();
     }
@@ -353,7 +417,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         _stepBadge.Location = new Point(Width - _stepBadge.Width - 54, 16);
         _prevBtn.Enabled = _currentIndex > 0;
         _tryBtn.Text = step.ActionButtonLabel;
-        _nextBtn.Text = _currentIndex + 1 < _steps.Count ? "Next Step →" : "Finish Setup";
+        _nextBtn.Text = _currentIndex + 1 < _steps.Count ? "Next" : "Finish";
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -363,53 +427,57 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         float s = PhosphorPaint.Scale(this);
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
+        // Motion is computed from the clock at paint time, so a capture of a form that never ticked is settled.
+        float t = PhosphorMotion.ReducedMotion ? 1f : Math.Min(1f, _stepClock.ElapsedMilliseconds / (float)PhosphorMotion.DurDisclosure);
+        _entryProgress = PhosphorMotion.EaseAnalog(t);
+        _dotProgress = PhosphorMotion.EaseOut(t);
+
         var step = _steps[_currentIndex];
         WidgetChrome.PaintFrame(this, g, step.AccentColor);
 
-        // Animated leading-edge Phosphor disclosure aura
-        float auraStrength = 0.55f + 0.35f * (float)Math.Sin(_animPhase);
-        PhosphorTheme.DrawHighlightAura(
-            g,
-            new Rectangle(2, 2, Width - 4, 62),
-            step.AccentColor,
-            auraStrength,
-            PhosphorTheme.RadiusWidget);
-
-        // Animated pulsing beacon ring on top-left
-        float pulseR = (13f + 3.5f * (float)Math.Sin(_animPhase * 1.4f)) * s;
+        // Static sidelight aura (FX-02). Pulse is reserved for live state, so the tour does not breathe.
+        PhosphorTheme.DrawHighlightAura(g, new Rectangle(2, 2, Width - 4, 62), PhosphorTheme.Coral, 1f, PhosphorTheme.RadiusBadge);
         float cx = 32f * s;
         float cy = 34f * s;
-        using (var pulsePen = new Pen(Color.FromArgb(140, step.AccentColor), 2f))
-        {
-            g.DrawEllipse(pulsePen, cx - pulseR, cy - pulseR, pulseR * 2, pulseR * 2);
-        }
         PhosphorTheme.DrawArkMark(g, new RectangleF(cx - 12 * s, cy - 12 * s, 24 * s, 24 * s));
 
-        // Eyebrow & Title with slide-in entry motion
+        // Eyebrow and title slide 10px and fade in on dur-disclosure; the body follows a beat later.
         float slideOffset = (1f - _entryProgress) * 10f * s;
         float textLeft = 58f * s + slideOffset;
-        PhosphorPaint.DrawEyebrow(g, step.Eyebrow, step.AccentColor, textLeft, 14f * s, s);
+        int alpha = (int)Math.Round(255 * _entryProgress);
+        int bodyAlpha = (int)Math.Round(255 * Math.Clamp((_entryProgress - 0.25f) / 0.75f, 0f, 1f));
+        PhosphorPaint.DrawEyebrow(g, step.Eyebrow, Color.FromArgb(alpha, step.AccentColor), textLeft, 14f * s, s);
 
         using var titleFont = PhosphorFonts.Ui(15f, heavy: true);
         using var bodyFont = PhosphorFonts.Body(12.5f);
-        using var boneBrush = new SolidBrush(PhosphorTheme.Bone);
-        using var dimBrush = new SolidBrush(PhosphorTheme.Dim);
+        using var boneBrush = new SolidBrush(Color.FromArgb(alpha, PhosphorTheme.Bone));
+        using var dimBrush = new SolidBrush(Color.FromArgb(bodyAlpha, PhosphorTheme.Dim));
 
         g.DrawString(step.Title, titleFont, boneBrush, textLeft, 32f * s);
 
-        var bodyRect = new RectangleF(22f * s, 72f * s, Width - 44f * s, 112f * s);
+        float bodyTop = 76f * s;
+        if (step.Keys is { } keys)
+        {
+            using var keyLabel = new SolidBrush(Color.FromArgb(bodyAlpha, PhosphorTheme.Ghost));
+            using var monoFont = PhosphorFonts.Mono(10.5f);
+            g.DrawString("SHORTCUT", monoFont, keyLabel, 22f * s, bodyTop + 3f * s);
+            KeycapRow.Draw(g, keys, 22f * s + g.MeasureString("SHORTCUT", monoFont).Width + 8f * s, bodyTop, s);
+            bodyTop += 30f * s;
+        }
+
+        var bodyRect = new RectangleF(22f * s, bodyTop, Width - 44f * s, Height - bodyTop - 76f * s);
         g.DrawString(step.Body, bodyFont, dimBrush, bodyRect);
 
-        // Step progress dots bar above buttons
-        int dotY = Height - 68;
-        int dotStartX = 24;
+        // Progress pills: the active pill grows to 28px while the previous one shrinks, eased together.
+        float dotY = Height - 70f * s;
+        float dotX = 24f * s;
         for (int i = 0; i < _steps.Count; i++)
         {
-            bool active = i == _currentIndex;
-            int w = active ? 28 : 10;
-            var dotRect = new RectangleF(dotStartX, dotY, w, 5);
-            PhosphorPaint.FillRounded(g, dotRect, 2.5f, active ? step.AccentColor : PhosphorTheme.Line2);
-            dotStartX += w + 6;
+            float grow = i == _currentIndex ? _dotProgress : i == _previousIndex && _previousIndex != _currentIndex ? 1f - _dotProgress : 0f;
+            float w = (10f + 18f * grow) * s;
+            Color c = i == _currentIndex ? step.AccentColor : i < _currentIndex ? PhosphorTheme.Ghost : PhosphorTheme.Line2;
+            PhosphorPaint.FillRounded(g, new RectangleF(dotX, dotY, w, 5f * s), 2.5f * s, c);
+            dotX += w + 6f * s;
         }
     }
 }

@@ -72,12 +72,13 @@ public sealed class HolodexLiteDrawerForm : Form
     private DataLabel _mouseHwLabel = null!;
     private DataLabel _dpiValueLabel = null!;
 
-    private readonly List<SyndicateWorkOrder> _workOrders = new()
-    {
-        new("WO-104", "Provision ~/.ark/agents/omniwand & bind mouse hardware macros", "WIZ", "PROVEN", "Just now"),
-        new("WO-105", "Sync Windows Credential Manager (wincred://) <-> ArkHive Vault", "ARBITER", "PROVEN", "Just now"),
-        new("WO-106", "Route desktop Lasso & Element Picker telemetry to Nemotron VL", "GALA", "ACTIVE", "Live")
-    };
+    private readonly List<SyndicateWorkOrder> _workOrders = new();
+
+    // Mouse detection launches PowerShell, so it runs once and the result is reused.
+    private MouseHardwareReport? _cachedMouse;
+    private MouseHardwareReport ConnectedMouse => _cachedMouse ??= MouseHardwareAndWandEngine.DetectConnectedMouse();
+
+    private bool HasNebiusKey => !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
 
     public static readonly SyndicateAgentInfo[] SyndicateRoster =
     {
@@ -123,12 +124,17 @@ public sealed class HolodexLiteDrawerForm : Form
         Size = new Size(500, 760);
         Padding = WidgetChrome.FramePadding();
 
-        _vaultBadge = new PhosphorBadge("Vault Linked", PhosphorBadgeState.Proven) { Name = "Holodex.VaultBadge" };
+        bool hasNebiusKey = HasNebiusKey;
+        _vaultBadge = hasNebiusKey
+            ? new PhosphorBadge("Nebius Key Linked", PhosphorBadgeState.Validated) { Name = "Holodex.VaultBadge" }
+            : new PhosphorBadge("Token Login", PhosphorBadgeState.Unstated) { Name = "Holodex.VaultBadge" };
         _vaultBadge.FitToText();
 
         // 1. Token Login / ArkHive Hivemind Connection Bar
         var tokenBar = new Panel { Dock = DockStyle.Top, Height = 64, BackColor = PhosphorTheme.Surface, Name = "Holodex.TokenBar" };
-        _connectionTelemetry = new DataLabel("HIVEMIND LITE // ARKHIVE + NEBIUS TOKEN FACTORY // WINCRED VAULT READY")
+        _connectionTelemetry = new DataLabel(hasNebiusKey
+            ? "HIVEMIND LITE // NEBIUS KEY LINKED // CHECKING GATEWAY"
+            : "HIVEMIND LITE // NO NEBIUS KEY // PASTE ONE BELOW")
         {
             Dock = DockStyle.Top,
             Height = 18,
@@ -170,8 +176,9 @@ public sealed class HolodexLiteDrawerForm : Form
         foreach (var (id, label) in tabs)
         {
             string capturedId = id;
-            var btn = new PhosphorButton(label, id == _activeTab ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Default)
+            var btn = new PhosphorButton(label)
             {
+                Selected = id == _activeTab,
                 Location = new Point(tabX, 2),
                 Size = new Size(tabW, 34),
                 Name = $"Holodex.Tab.{id}"
@@ -184,7 +191,7 @@ public sealed class HolodexLiteDrawerForm : Form
 
         // 3. Content Host for the 5 tabs
         _contentHost = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.ContentHost" };
-        BuildSessionTab();
+        BuildSessionTab(hasNebiusKey);
         BuildAInboxTab();
         BuildCodexTab();
         BuildGrimXTab();
@@ -196,13 +203,13 @@ public sealed class HolodexLiteDrawerForm : Form
         Controls.Add(WidgetChrome.Spacer(8));
         Controls.Add(tokenBar);
         Controls.Add(WidgetChrome.Spacer(6));
-        WidgetChrome.Attach(this, "ARK://HOLODEX LITE // SYNDICATE DECK", "Holodex", PhosphorTheme.Patina, _vaultBadge);
+        WidgetChrome.Attach(this, "ARK://HOLODEX LITE", "Holodex", PhosphorTheme.Patina, _vaultBadge);
         WidgetDrag.Enable(this);
 
         SwitchTab("session");
     }
 
-    private void BuildSessionTab()
+    private void BuildSessionTab(bool hasNebiusKey)
     {
         _sessionPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionPanel" };
 
@@ -264,7 +271,9 @@ public sealed class HolodexLiteDrawerForm : Form
             Name = "Holodex.SessionChatBox",
             Text =
                 "GALA // NEXUS ORCHESTRATOR\n" +
-                "Welcome to the Hivemind Lite Session inside Omniwand. Your Windows Credential Manager Vault is synced with ArkHive and Nebius Token Factory.\n\n" +
+                (hasNebiusKey
+                    ? "Welcome to the Hivemind Lite Session. Your Nebius key is linked and Nemotron is ready.\n\n"
+                    : "Welcome to the Hivemind Lite Session. Paste a Nebius Token Factory key above to enable Nemotron.\n\n") +
                 "WIZ // 4GE CONDUCTOR\n" +
                 "Your mouse hardware profile, DPI controls, Free-Form Lasso (Alt+S), and Element Picker (Alt+E) are online. Message the Syndicate below or prefix with /order to dispatch a Work Order."
         };
@@ -314,7 +323,7 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         _ainboxPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.AInboxPanel" };
 
-        var openFullBtn = new PhosphorButton("Open Full AInbox Intake + Scroll (Alt+I)", PhosphorButtonVariant.Primary)
+        var openFullBtn = new PhosphorButton("Open Full AInbox Intake + Scroll (Alt+I)")
         {
             Dock = DockStyle.Top,
             Height = 42
@@ -351,10 +360,11 @@ public sealed class HolodexLiteDrawerForm : Form
         _codexPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.CodexPanel" };
 
         var btnRow = new Panel { Dock = DockStyle.Top, Height = 42, BackColor = PhosphorTheme.Surface };
-        var lassoBtn = new PhosphorButton("Free-Form Lasso (Alt+S)", PhosphorButtonVariant.Primary)
+        var lassoBtn = new PhosphorButton("Lasso")
         {
             Dock = DockStyle.Left,
-            Width = 216
+            Width = 216,
+            Name = "Holodex.LassoButton"
         };
         lassoBtn.Click += (_, _) => _openSnipOrPicker(Location, WandCaptureTool.FreeformLasso);
 
@@ -391,10 +401,11 @@ public sealed class HolodexLiteDrawerForm : Form
         _grimxPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.GrimXPanel" };
 
         var wizBtnRow = new Panel { Dock = DockStyle.Top, Height = 42, BackColor = PhosphorTheme.Surface };
-        var openWizBtn = new PhosphorButton("Open Wiz Crafting (Alt+W)", PhosphorButtonVariant.Primary)
+        var openWizBtn = new PhosphorButton("Open Wiz")
         {
             Dock = DockStyle.Left,
-            Width = 224
+            Width = 224,
+            Name = "Holodex.OpenWizButton"
         };
         openWizBtn.Click += (_, _) => _openWiz(Location);
 
@@ -405,9 +416,22 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         autoMacroBtn.Click += (_, _) =>
         {
-            var hw = MouseHardwareAndWandEngine.DetectConnectedMouse();
+            var hw = ConnectedMouse;
             var defaults = MouseHardwareAndWandEngine.GetDefaultMacroBindings(hw);
-            MouseHardwareAndWandEngine.SaveMacroBindings(defaults);
+            try
+            {
+                MouseHardwareAndWandEngine.SaveMacroBindings(defaults);
+            }
+            catch (Exception ex)
+            {
+                PhosphorToast.Show(
+                    "Mouse Macros Not Saved",
+                    $"Could not save macro bindings: {ex.Message}",
+                    "WIZ // GRIMX MACROS",
+                    4200,
+                    ToastTone.Warning);
+                return;
+            }
             RefreshGrimXMacroReadout();
             PhosphorToast.Show(
                 "Wiz Mouse Macros Bound",
@@ -441,7 +465,7 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
 
-        var hw = MouseHardwareAndWandEngine.DetectConnectedMouse();
+        var hw = ConnectedMouse;
         _mouseHwLabel = new DataLabel($"MOUSE // {hw.Brand.ToUpperInvariant()} {hw.Model.ToUpperInvariant()} ({hw.VidPid})")
         {
             Dock = DockStyle.Top,
@@ -449,7 +473,7 @@ public sealed class HolodexLiteDrawerForm : Form
             ForeColor = PhosphorTheme.Patina
         };
 
-        _dpiValueLabel = new DataLabel($"POINTER SPEED // {hw.WindowsPointerSpeed}/20 · {MouseHardwareAndWandEngine.GetCurrentDpi()} DPI (100–4000 SLIDER) · VSYNC")
+        _dpiValueLabel = new DataLabel($"POINTER SPEED // {hw.WindowsPointerSpeed}/20 · {MouseHardwareAndWandEngine.GetCurrentDpi()} DPI (100 to 4000 SLIDER) · VSYNC")
         {
             Dock = DockStyle.Top,
             Height = 22,
@@ -466,11 +490,11 @@ public sealed class HolodexLiteDrawerForm : Form
         MouseHardwareAndWandEngine.DpiChanged += (dpi, speed) =>
         {
             if (IsDisposed) return;
-            void UpdateText() => _dpiValueLabel.Text = $"POINTER SPEED // {speed}/20 · {dpi} DPI (100–4000 SLIDER) · VSYNC";
+            void UpdateText() => _dpiValueLabel.Text = $"POINTER SPEED // {speed}/20 · {dpi} DPI (100 to 4000 SLIDER) · VSYNC";
             if (InvokeRequired) BeginInvoke(new Action(UpdateText));
             else UpdateText();
         };
-        var dpiLabeled = WidgetChrome.Labeled("Live Mouse Sensitivity // DPI Slider (100 – 4000 DPI)", dpiSlider, 46);
+        var dpiLabeled = WidgetChrome.Labeled("Live Mouse Sensitivity // DPI Slider (100 to 4000 DPI)", dpiSlider, 46);
 
         // On-Brand Cursor Icon Style Picker
         var styleRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
@@ -485,11 +509,12 @@ public sealed class HolodexLiteDrawerForm : Form
         foreach (var (lbl, st, w) in styles)
         {
             var captured = st;
-            var btn = new PhosphorButton(lbl, MouseHardwareAndWandEngine.ActiveCursorStyle == st ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Default)
+            var btn = new PhosphorButton(lbl)
             {
                 Location = new Point(sx, 2),
                 Size = new Size(w, 36),
-                Tag = st
+                Tag = st,
+                Selected = MouseHardwareAndWandEngine.ActiveCursorStyle == st
             };
             btn.Click += (_, _) =>
             {
@@ -499,7 +524,7 @@ public sealed class HolodexLiteDrawerForm : Form
                 {
                     if (c.Tag is CursorIconStyle cs)
                     {
-                        c.Variant = cs == captured ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Default;
+                        c.Selected = cs == captured;
                         c.Invalidate();
                     }
                 }
@@ -510,7 +535,7 @@ public sealed class HolodexLiteDrawerForm : Form
         var styleLabeled = WidgetChrome.Labeled("On-Brand Cursor Icon // VSync Vector Morph", styleRow, 40);
 
         // Wiz Automated Onboarding & Animated Tooltip Tutorial button
-        var onboardBtn = new PhosphorButton("Run Wiz Onboarding & Animated Tooltips", PhosphorButtonVariant.Primary)
+        var onboardBtn = new PhosphorButton("Run Wiz Onboarding & Animated Tooltips")
         {
             Dock = DockStyle.Top,
             Height = 42,
@@ -555,10 +580,13 @@ public sealed class HolodexLiteDrawerForm : Form
 
     public void SwitchTab(string tabId)
     {
+        // Unknown tab names (for example holodex:tab:bogus) keep the current tab.
+        tabId = (tabId ?? string.Empty).Trim().ToLowerInvariant();
+        if (!_tabButtons.ContainsKey(tabId)) return;
         _activeTab = tabId;
         foreach (var (id, btn) in _tabButtons)
         {
-            btn.Variant = id == tabId ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Default;
+            btn.Selected = id == tabId;
             btn.Invalidate();
         }
         _sessionPanel.Visible = tabId == "session";
@@ -577,6 +605,7 @@ public sealed class HolodexLiteDrawerForm : Form
         var entries = ScreenSnipAndElementPickerForm.LoadCodexEntries();
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("HOLODEX CODEX // CAPTURED LASSO ARTIFACTS & ELEMENT INSPECTIONS\n");
+        if (entries.Count == 0) sb.AppendLine(ScreenSnipAndElementPickerForm.CodexEmptyStateText);
         foreach (var e in entries)
         {
             sb.AppendLine($"[{e.Kind.ToUpperInvariant()}] {e.Title}");
@@ -590,7 +619,7 @@ public sealed class HolodexLiteDrawerForm : Form
     public void RefreshGrimXMacroReadout()
     {
         if (_macroReadoutBox == null) return;
-        var hw = MouseHardwareAndWandEngine.DetectConnectedMouse();
+        var hw = ConnectedMouse;
         var macros = MouseHardwareAndWandEngine.LoadOrCreateMacroBindings(hw);
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"WIZ MOUSE MACRO & GESTURE BINDER // {hw.Brand.ToUpperInvariant()} {hw.Model.ToUpperInvariant()}\n");
@@ -602,13 +631,19 @@ public sealed class HolodexLiteDrawerForm : Form
         sb.AppendLine("GRIMX FLOW ONTOLOGY (8-SLOT ORB // MIDDLE-HOLD OR F15)");
         foreach (var s in GrimXFlowOrb.Slots)
         {
-            sb.AppendLine($"  [{s.Index + 1}] {s.Verb} {s.Title} — {s.Subtitle}");
+            string slotLabel = string.Equals(s.Verb, s.Title, StringComparison.OrdinalIgnoreCase) ? s.Title : $"{s.Verb} {s.Title}";
+            sb.AppendLine($"  [{s.Index + 1}] {slotLabel} // {s.Subtitle}");
         }
         _macroReadoutBox.Text = sb.ToString();
     }
 
     private void RefreshWorkOrdersText()
     {
+        if (_workOrders.Count == 0)
+        {
+            _workOrdersBox.Text = "No work orders yet. Add one or ask in the session.";
+            return;
+        }
         var sb = new System.Text.StringBuilder();
         foreach (var wo in _workOrders)
         {
@@ -622,11 +657,12 @@ public sealed class HolodexLiteDrawerForm : Form
         string text = _sessionInputField.Box.Text.Trim();
         if (string.IsNullOrEmpty(text))
         {
-            text = "Audit active desktop UI surface & optimize mouse macro bindings";
+            PhosphorToast.Show("Work Order", "Type the task in the message box first.", "HOLODEX // WORK ORDERS", 2800, ToastTone.Warning);
+            return;
         }
         string owner = _selectedSyndicateTarget == "all" ? "WIZ" : _selectedSyndicateTarget.ToUpperInvariant();
         string orderId = $"WO-{100 + _workOrders.Count + 1}";
-        _workOrders.Insert(0, new SyndicateWorkOrder(orderId, text, owner, "ACTIVE", "Just now"));
+        _workOrders.Insert(0, new SyndicateWorkOrder(orderId, text, owner, "QUEUED", "Just now"));
         RefreshWorkOrdersText();
         _sessionChatBox.AppendText($"\n\n[WORK ORDER CREATED // {orderId} -> {owner}]\n{text}");
         _sessionChatBox.SelectionStart = _sessionChatBox.TextLength;
@@ -679,12 +715,24 @@ public sealed class HolodexLiteDrawerForm : Form
         _tokenField.Box.Clear();
         await RefreshConnectionHeaderAsync();
 
-        PhosphorToast.Show(
-            saved ? "Token Saved to Windows Vault" : "Token Applied for Session",
-            "Synced credential into Windows Credential Manager (wincred://) and connected Hivemind / Nebius routing.",
-            "KEYMASTER // WINCRED VAULT",
-            3600,
-            ToastTone.Success);
+        if (saved)
+        {
+            PhosphorToast.Show(
+                "Token Saved to Windows Vault",
+                "Stored in Windows Credential Manager (wincred://) and applied to this session.",
+                "KEYMASTER // WINCRED VAULT",
+                3600,
+                ToastTone.Success);
+        }
+        else
+        {
+            PhosphorToast.Show(
+                "Token Applied for Session Only",
+                "Could not write to Windows Credential Manager. The token works until Omniwand closes.",
+                "KEYMASTER // WINCRED VAULT",
+                4200,
+                ToastTone.Warning);
+        }
     }
 
     public async Task RefreshConnectionHeaderAsync()
@@ -693,20 +741,20 @@ public sealed class HolodexLiteDrawerForm : Form
         bool bundle = ArkStationClient.HasWinCredVaultBundle();
         if (st.GatewayOnline)
         {
-            _vaultBadge.Text = "Hivemind Online";
-            _vaultBadge.State = PhosphorBadgeState.Proven;
-            _connectionTelemetry.Text = $"HIVEMIND ONLINE // ARKHIVE GATEWAY :8788 + WINCRED VAULT ({(bundle ? "89 KEYS SYNCED" : "LINKED")})";
+            _vaultBadge.Text = "Online";
+            _vaultBadge.State = PhosphorBadgeState.Validated;
+            _connectionTelemetry.Text = $"HIVEMIND ONLINE // ARKHIVE GATEWAY :8788 // WINCRED VAULT {(bundle ? "LINKED" : "NOT LINKED")}";
         }
         else if (st.NebiusKeyLoaded)
         {
-            _vaultBadge.Text = "Vault + Nemotron";
-            _vaultBadge.State = PhosphorBadgeState.Proven;
-            _connectionTelemetry.Text = $"WINCRED VAULT LINKED // NEBIUS TOKEN FACTORY + ARKHIVE ({(bundle ? "89 KEYS SYNCED" : "READY")})";
+            _vaultBadge.Text = "Nebius Key Linked";
+            _vaultBadge.State = PhosphorBadgeState.Validated;
+            _connectionTelemetry.Text = $"NEBIUS KEY LINKED // NEMOTRON READY // WINCRED VAULT {(bundle ? "LINKED" : "NOT LINKED")}";
         }
         else
         {
             _vaultBadge.Text = "Token Login";
-            _vaultBadge.State = PhosphorBadgeState.Validated;
+            _vaultBadge.State = PhosphorBadgeState.Unstated;
             _connectionTelemetry.Text = "PASTE HIVEMIND OR NEBIUS TOKEN BELOW TO LINK WINDOWS VAULT";
         }
         _vaultBadge.FitToText();

@@ -133,7 +133,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         int bx = 14;
         void AddToolBtn(string label, WandCaptureTool tool, int width = 88)
         {
-            var btn = new PhosphorButton(label, _activeTool == tool ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Default)
+            var btn = new PhosphorButton(label, PhosphorButtonVariant.Default)
             {
                 Location = new Point(bx, 8),
                 Size = new Size(width, 36),
@@ -300,8 +300,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         {
             if (ctrl.Tag is WandCaptureTool t)
             {
-                ctrl.Variant = t == tool ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Default;
-                ctrl.Invalidate();
+                ctrl.Variant = PhosphorButtonVariant.Default;
+                ctrl.Selected = t == tool;
             }
         }
         _telemetryLabel.Text = tool switch
@@ -320,6 +320,16 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     public void SummonAt(Point cursorPos, WandCaptureTool initialTool = WandCaptureTool.FreeformLasso)
     {
         var screen = Screen.FromPoint(cursorPos).Bounds;
+
+        // The frozen desktop must be captured with the overlay off screen, otherwise a re-summon
+        // (or a window left shown by an offscreen render) captures the dim overlay itself.
+        if (Visible || IsWindowVisible(Handle))
+        {
+            Hide();
+            ShowWindow(Handle, 0); // SW_HIDE, also clears a raw ShowWindow from offscreen rendering
+            try { Win32.DwmFlush(); } catch { }
+        }
+
         try
         {
             _desktopSnapshot?.Dispose();
@@ -345,10 +355,13 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _actionDrawer.Location = new Point(Math.Max(16, (screen.Width - _actionDrawer.Width) / 2), screen.Height - _actionDrawer.Height - 24);
 
         SelectTool(initialTool);
-        UpdateHoveredElement(cursorPos);
+        if (initialTool == WandCaptureTool.ElementPicker) UpdateHoveredElement(cursorPos);
+        else _hoveredElementRect = Rectangle.Empty;
 
         Show();
         Activate();
+        Invalidate(true);
+        Update();
         _visionPromptField.Box.Focus();
     }
 
@@ -486,9 +499,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                 _hoveredHex = $"#{_hoveredPixelColor.R:X2}{_hoveredPixelColor.G:X2}{_hoveredPixelColor.B:X2}";
             }
 
-            // Temporarily hide or inspect underneath
-            IntPtr hwnd = WindowFromPoint(new Win32.POINT { X = screenPt.X, Y = screenPt.Y });
-            if (hwnd != IntPtr.Zero && hwnd != Handle)
+            // The overlay is fullscreen and topmost, so WindowFromPoint would always hit it.
+            // Walk the real windows underneath in z-order instead.
+            IntPtr hwnd = ResolveWindowUnderPoint(screenPt);
+            if (hwnd != IntPtr.Zero)
             {
                 var clsSb = new StringBuilder(128);
                 GetClassName(hwnd, clsSb, clsSb.Capacity);
@@ -513,13 +527,47 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                     try { _hoveredProcess = Process.GetProcessById((int)pid).ProcessName; } catch { }
                 }
             }
-            _telemetryLabel.Text = $"POINT // {_hoveredProcess.ToUpperInvariant()} · {_hoveredClass} // PALETTE {_hoveredHex} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height}";
+            if (_activeTool == WandCaptureTool.ElementPicker)
+                _telemetryLabel.Text = $"POINT // {_hoveredProcess.ToUpperInvariant()} · {_hoveredClass} // PALETTE {_hoveredHex} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height}";
         }
         catch { }
     }
 
-    private string RenderSelectionDataUrl()
+    private IntPtr ResolveWindowUnderPoint(Point screenPt)
     {
+        IntPtr self = Handle;
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((h, _) =>
+        {
+            if (h == self || !IsWindowVisible(h)) return true;
+            if (DwmGetWindowAttribute(h, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0) return true;
+            if ((GetWindowLong(h, GWL_EXSTYLE) & WS_EX_TRANSPARENT) != 0) return true;
+            if (!GetWindowRect(h, out RECT r) || r.Right <= r.Left || r.Bottom <= r.Top) return true;
+            if (screenPt.X < r.Left || screenPt.X >= r.Right || screenPt.Y < r.Top || screenPt.Y >= r.Bottom) return true;
+            found = h;
+            return false;
+        }, IntPtr.Zero);
+
+        if (found == IntPtr.Zero) return IntPtr.Zero;
+
+        // Descend to the deepest visible, non-transparent child under the point.
+        IntPtr current = found;
+        for (int depth = 0; depth < 32; depth++)
+        {
+            var pt = new Win32.POINT { X = screenPt.X, Y = screenPt.Y };
+            if (!ScreenToClient(current, ref pt)) break;
+            IntPtr child = ChildWindowFromPointEx(current, pt, CWP_SKIPINVISIBLE | CWP_SKIPTRANSPARENT);
+            if (child == IntPtr.Zero || child == current) break;
+            current = child;
+        }
+        return current;
+    }
+
+    private string RenderSelectionDataUrl() => RenderSelectionDataUrl(out _);
+
+    private string RenderSelectionDataUrl(out string error)
+    {
+        error = string.Empty;
         try
         {
             Rectangle crop = _selectionRect.Width >= 16 && _selectionRect.Height >= 16
@@ -546,8 +594,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             outBmp.Save(ms, ImageFormat.Png);
             return "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
         }
-        catch
+        catch (Exception ex)
         {
+            error = ex.Message;
             return string.Empty;
         }
     }
@@ -563,7 +612,14 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
 
         string chosenVisionModel = _visionModelSelect.SelectedItem?.ToString() ?? VisionModels[0];
-        string dataUrl = RenderSelectionDataUrl();
+        string dataUrl = RenderSelectionDataUrl(out string renderError);
+        if (string.IsNullOrEmpty(dataUrl))
+        {
+            // Never send a vision request without the image; a text-only answer would be invented.
+            _visionOutputBox.ForeColor = PhosphorTheme.Rust;
+            _visionOutputBox.Text = $"Vision request not sent: capture could not be rendered ({renderError}).";
+            return;
+        }
 
         _visionOutputBox.ForeColor = PhosphorTheme.Patina;
         _visionOutputBox.Text = $"Routing annotated capture ({_selectionRect.Width}x{_selectionRect.Height}px, palette {_hoveredHex}) to {chosenVisionModel}...";
@@ -576,6 +632,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             var (ok, output) = await _ark.AskVisionModelAsync(enrichedPrompt, dataUrl, chosenVisionModel);
             _visionOutputBox.ForeColor = ok ? PhosphorTheme.Bone : PhosphorTheme.Rust;
             _visionOutputBox.Text = output;
+        }
+        catch (Exception ex)
+        {
+            _visionOutputBox.ForeColor = PhosphorTheme.Rust;
+            _visionOutputBox.Text = $"Vision request to {chosenVisionModel} failed: {ex.GetType().Name}: {ex.Message}";
         }
         finally
         {
@@ -600,7 +661,16 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             dataUrl,
             DateTime.UtcNow.ToString("O"));
 
-        SaveCodexEntryToDisk(entry);
+        if (!SaveCodexEntryToDisk(entry, out string saveError))
+        {
+            PhosphorToast.Show(
+                "Codex save failed",
+                $"Could not write {CodexLogPath}: {saveError}",
+                "HOLODEX // CODEX",
+                5200,
+                ToastTone.Error);
+            return;
+        }
         _onCodexSaved?.Invoke(entry);
 
         PhosphorToast.Show(
@@ -614,14 +684,24 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     public static string CodexLogPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "codex-entries.jsonl");
 
-    public static void SaveCodexEntryToDisk(CodexCaptureEntry entry)
+    public const string CodexEmptyStateText = "Nothing saved yet. Lasso something and press Save to Codex.";
+
+    public static bool SaveCodexEntryToDisk(CodexCaptureEntry entry) => SaveCodexEntryToDisk(entry, out _);
+
+    public static bool SaveCodexEntryToDisk(CodexCaptureEntry entry, out string error)
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(CodexLogPath)!);
             File.AppendAllText(CodexLogPath, JsonSerializer.Serialize(entry) + Environment.NewLine);
+            error = string.Empty;
+            return true;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
     }
 
     public static List<CodexCaptureEntry> LoadCodexEntries()
@@ -641,31 +721,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
         catch { }
 
-        if (list.Count == 0)
-        {
-            list.Add(new CodexCaptureEntry(
-                "codex:seed-lasso",
-                "wand.lasso",
-                "Free-Form Lasso // Phosphor Component Audit",
-                "Lasso capture of desktop widget chrome routed through nvidia/Nemotron-3.5-Super-VL.",
-                "WinForms.PhosphorSurface",
-                "360x198 @ (64,82)",
-                "#79C4B7",
-                "nvidia/Nemotron-3.5-Super-VL",
-                null,
-                DateTime.UtcNow.ToString("O")));
-            list.Add(new CodexCaptureEntry(
-                "codex:seed-element",
-                "wand.element",
-                "Element Picker // Desktop Window Telemetry",
-                "Point + Palette + Architect readout: verified #0B0B0B Ground and #F3EFE6 Bone contrast.",
-                "Chrome_WidgetWin_1",
-                "460x820 @ (1460,40)",
-                "#F3EFE6",
-                "openbmb/MiniCPM-V-4_5",
-                null,
-                DateTime.UtcNow.ToString("O")));
-        }
+        // Only real saved entries. Callers render CodexEmptyStateText when this is empty.
         return list;
     }
 
@@ -676,8 +732,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         if (_desktopSnapshot != null)
         {
-            g.DrawImage(_desktopSnapshot, 0, 0);
-            using var dimBrush = new SolidBrush(Color.FromArgb(135, 8, 10, 12));
+            // Explicit destination rect: DrawImage(img, x, y) rescales by the bitmap DPI on scaled monitors.
+            var snapRect = new Rectangle(0, 0, _desktopSnapshot.Width, _desktopSnapshot.Height);
+            g.DrawImage(_desktopSnapshot, snapRect, snapRect, GraphicsUnit.Pixel);
+            using var dimBrush = new SolidBrush(Color.FromArgb(135, PhosphorTheme.Ground));
             g.FillRectangle(dimBrush, ClientRectangle);
 
             if (_selectionRect.Width > 8 && _selectionRect.Height > 8)
@@ -693,7 +751,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                 {
                     g.SetClip(_selectionRect, CombineMode.Replace);
                 }
-                g.DrawImage(_desktopSnapshot, 0, 0);
+                g.DrawImage(_desktopSnapshot, snapRect, snapRect, GraphicsUnit.Pixel);
                 g.Clip = prevClip;
             }
         }
@@ -726,13 +784,14 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
 
         // Draw Element Picker (wand.point + wand.palette + wand.architect) live card
-        if (_hoveredElementRect.Width > 8)
+        if (_activeTool == WandCaptureTool.ElementPicker && _hoveredElementRect.Width > 8)
         {
-            using var elemPen = new Pen(PhosphorTheme.Coral, 2f);
-            g.DrawRectangle(elemPen, _hoveredElementRect);
+            using (var elemPath = PhosphorTheme.CreateRoundedRect(_hoveredElementRect, PhosphorTheme.RadiusTile))
+            using (var elemPen = new Pen(PhosphorTheme.Patina, 2f))
+                g.DrawPath(elemPen, elemPath);
 
             var cardRect = new Rectangle(_hoveredElementRect.Left + 10, _hoveredElementRect.Top + 10, 250, 96);
-            PhosphorTheme.DrawPhosphorPanel(g, cardRect, PhosphorTheme.RadiusTile, PhosphorTheme.Surface, PhosphorTheme.Coral);
+            PhosphorTheme.DrawPhosphorPanel(g, cardRect, PhosphorTheme.RadiusTile, PhosphorTheme.Surface, PhosphorTheme.Line);
             using var monoFont = PhosphorFonts.Mono(9.5f);
             using var titleFont = PhosphorFonts.Ui(10.5f, heavy: true);
             using var boneBrush = new SolidBrush(PhosphorTheme.Bone);
@@ -792,11 +851,12 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
             if (_hoveredElementRect.Width > 8)
             {
-                using var elemPen = new Pen(PhosphorTheme.Coral, 2f);
-                g.DrawRectangle(elemPen, _hoveredElementRect);
+                using (var elemPath = PhosphorTheme.CreateRoundedRect(_hoveredElementRect, PhosphorTheme.RadiusTile))
+                using (var elemPen = new Pen(PhosphorTheme.Patina, 2f))
+                    g.DrawPath(elemPen, elemPath);
 
                 var cardRect = new Rectangle(_hoveredElementRect.Left + 10, _hoveredElementRect.Top + 12, 250, 96);
-                PhosphorTheme.DrawPhosphorPanel(g, cardRect, PhosphorTheme.RadiusTile, PhosphorTheme.Surface, PhosphorTheme.Coral);
+                PhosphorTheme.DrawPhosphorPanel(g, cardRect, PhosphorTheme.RadiusTile, PhosphorTheme.Surface, PhosphorTheme.Line);
                 using var monoFont = PhosphorFonts.Mono(9.0f);
                 using var titleFont = PhosphorFonts.Ui(10.0f, heavy: true);
                 using var boneBrush = new SolidBrush(PhosphorTheme.Bone);
@@ -849,8 +909,34 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }
 
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TRANSPARENT = 0x20;
+    private const int DWMWA_CLOAKED = 14;
+    private const uint CWP_SKIPINVISIBLE = 0x0001;
+    private const uint CWP_SKIPTRANSPARENT = 0x0004;
+
     [DllImport("user32.dll")]
-    private static extern IntPtr WindowFromPoint(Win32.POINT Point);
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
+
+    [DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr hWnd, ref Win32.POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr ChildWindowFromPointEx(IntPtr hwndParent, Win32.POINT pt, uint uFlags);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);

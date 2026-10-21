@@ -16,7 +16,7 @@ namespace Omniwand;
 
 public sealed class ArkStationStatus
 {
-    public string ArkRoot { get; init; } = @"E:\ArkStation\.ark";
+    public string ArkRoot { get; init; } = ArkStationClient.DefaultArkRoot;
     public bool KeyLoaded { get; init; }
     public bool GatewayOnline { get; init; }
     public bool NebiusKeyLoaded { get; init; }
@@ -86,9 +86,14 @@ public sealed record PodInboxIntakeReceipt(
 /// </summary>
 public sealed class ArkStationClient
 {
-    public const string DefaultArkRoot = @"E:\ArkStation\.ark";
-    public const string DefaultCursorsDir = @"E:\ArkStation\runtimes\cursors";
-    public const string DefaultInputStudioStateDir = @"E:\ArkStation\runtimes\input-studio";
+    // Optional ArkStation integration. A public install has no Ark checkout, so these resolve from ARK_ROOT and
+    // ARK_RUNTIMES_ROOT, and otherwise point at folders that simply do not exist (standalone Nebius mode).
+    public static readonly string DefaultArkRoot =
+        Environment.GetEnvironmentVariable("ARK_ROOT") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "ark-root-not-configured");
+    private static readonly string RuntimesRoot =
+        Environment.GetEnvironmentVariable("ARK_RUNTIMES_ROOT") ?? Path.Combine(Path.GetDirectoryName(DefaultArkRoot.TrimEnd('\\', '/')) ?? DefaultArkRoot, "runtimes");
+    public static readonly string DefaultCursorsDir = Path.Combine(RuntimesRoot, "cursors");
+    public static readonly string DefaultInputStudioStateDir = Path.Combine(RuntimesRoot, "input-studio");
     public const string DefaultGatewayUrl = "http://127.0.0.1:8788";
     public const string DefaultInputSpineUrl = "http://127.0.0.1:8842";
     public const string DefaultPcModzUrl = "http://127.0.0.1:8830";
@@ -1104,10 +1109,16 @@ public sealed class ArkStationClient
         string targetModel = ResolveNemotronModel(model ?? SelectedModel);
         string endpoint = $"{GetNebiusBaseUrl()}/chat/completions";
 
-        // Text-only Nemotron models reject image_url arrays; only attach image_url when an omni/vision model is selected.
+        // Text-only Nemotron models reject image_url arrays. When the screen is attached, route this one request to
+        // the Nemotron VL model instead of silently dropping the image.
         bool supportsVision = targetModel.Contains("omni", StringComparison.OrdinalIgnoreCase) ||
                               targetModel.Contains("vl", StringComparison.OrdinalIgnoreCase) ||
                               targetModel.Contains("vision", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrEmpty(imageDataUrl) && !supportsVision)
+        {
+            targetModel = "nvidia/Nemotron-3.5-Super-VL";
+            supportsVision = true;
+        }
 
         object userContent = (!string.IsNullOrEmpty(imageDataUrl) && supportsVision)
             ? new object[]
@@ -1267,14 +1278,16 @@ public sealed class ArkStationClient
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Fall back to fast Nemotron below
+                return (false, $"Vision request to {preferredVisionModel} failed: {ex.Message}");
             }
+            if (!string.IsNullOrEmpty(imageDataUrl))
+                return (false, $"Vision request to {preferredVisionModel} returned no answer. Check the Nebius key and try again.");
         }
 
         var (fbOk, fbOut) = await AskNebiusTokenFactoryAsync(prompt, null, DefaultNemotronFastModel);
-        return (fbOk, fbOk ? $"[{DefaultNemotronFastModel} // Vision Telemetry Fallback]\n{fbOut}" : fbOut);
+        return (fbOk, fbOk ? $"[{DefaultNemotronFastModel} // text only, no image]\n{fbOut}" : fbOut);
     }
 
     /// <summary>
