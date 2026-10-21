@@ -83,7 +83,8 @@ internal sealed class PhosphorToast : Form
         // Clock-driven disclosure (dur-disclosure, ease-analog in, ease-out away), so timing holds under load.
         _fade.Tick += (_, _) =>
         {
-            float t = PhosphorMotion.ReducedMotion ? 1f : Math.Min(1f, _clock.ElapsedMilliseconds / (float)PhosphorMotion.DurDisclosure);
+            if (IsDisposed || Disposing) { _fade.Stop(); return; }
+            float t =PhosphorMotion.ReducedMotion ? 1f : Math.Min(1f, _clock.ElapsedMilliseconds / (float)PhosphorMotion.DurDisclosure);
             float e = _fadingOut ? 1f - PhosphorMotion.EaseOut(t) : PhosphorMotion.EaseAnalog(t);
             Opacity = e;
             Location = new Point(_rest.X, _rest.Y + (int)Math.Round((1f - e) * RisePx));
@@ -98,6 +99,25 @@ internal sealed class PhosphorToast : Form
     private readonly Point _rest;
 
     protected override bool ShowWithoutActivation => true;
+
+    // A toast replaced or clicked mid-fade must take its timers with it; a timer left running set Opacity
+    // on the disposed form about six times a second.
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _fade.Stop();
+        _life.Stop();
+        base.OnFormClosed(e);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _fade.Dispose();
+            _life.Dispose();
+        }
+        base.Dispose(disposing);
+    }
 
     protected override CreateParams CreateParams
     {

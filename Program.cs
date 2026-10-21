@@ -37,12 +37,21 @@ internal static class Program
 
         // A UI exception becomes a toast, never the WinForms crash dialog.
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        // Always logged; surfaced at most once per 15 s, and never for a toast's own failure, so the handler
+        // can never feed itself.
+        DateTime lastErrorToast = DateTime.MinValue;
         Application.ThreadException += (_, e) =>
         {
             try
             {
-                PhosphorToast.Show("Something went wrong", e.Exception.Message, "OMNIWAND // RECOVERED", 5200, ToastTone.Error);
                 File.AppendAllText(Path.Combine(Path.GetTempPath(), "omniwand-errors.log"), $"{DateTime.Now:O} {e.Exception}\n");
+                bool fromToast = e.Exception.StackTrace?.Contains(nameof(PhosphorToast), StringComparison.Ordinal) == true
+                    || e.Exception.Message.Contains(nameof(PhosphorToast), StringComparison.Ordinal);
+                if (!fromToast && DateTime.Now - lastErrorToast > TimeSpan.FromSeconds(15))
+                {
+                    lastErrorToast = DateTime.Now;
+                    PhosphorToast.Show("Something went wrong", e.Exception.Message, "OMNIWAND // RECOVERED", 5200, ToastTone.Error);
+                }
             }
             catch { }
         };
@@ -1325,7 +1334,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             // Poll cursor role every 4 frames (~240Hz -> 60Hz) for zero overhead
             if ((_rolePollCounter++ & 3) == 0)
             {
-                var detectedRole = _isAiThinking ? WindowsCursorRole.AppStarting : DetectContextualCursorRole(cursorPt);
+                // Thinking reaches the morph separately (coral globe) and switches rotation to True path below.
+                // Forcing AppStarting here tripped the role rotation lock, so Wiz never got True path.
+                var detectedRole = DetectContextualCursorRole(cursorPt);
                 _currentRole = detectedRole;
                 _roleMorph.Target = detectedRole == WindowsCursorRole.Arrow ? 0.0 : 1.0;
             }
@@ -1534,7 +1545,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _isAiThinking,
                 _currentRole,
                 (float)_roleMorph.Current,
-                _spinAngleDeg);
+                _spinAngleDeg,
+                nowSec);
         }
     }
 
@@ -1950,6 +1962,8 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
     }
 
     private volatile bool _suppressed;
+    // The render loop's own clock. Spell ribbon nodes are stamped with it, so the overlay must age them on it too.
+    private double _loopNowSec;
 
     /// <summary>Hides the overlay while a shell surface covers it (the native cursor is back), and restores it.</summary>
     public void SetSuppressed(bool suppressed)
@@ -1969,9 +1983,11 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
         bool isAiThinking,
         WindowsCursorRole role,
         float roleMorph,
-        float spinAngleDeg)
+        float spinAngleDeg,
+        double loopNowSec)
     {
         if (_suppressed) return;
+        _loopNowSec = loopNowSec;
 
         int targetLeft = (int)Math.Round(x - CanvasSize / 2.0);
         int targetTop = (int)Math.Round(y - CanvasSize / 2.0);
@@ -2039,13 +2055,12 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                 // 1b. Draw MagiXLab Omniwand Spell Ribbon & 4-Point Twinkling Star Dust when Ctrl / RMB is held
                 if (spellVis)
                 {
-                    double nowSecOverlay = Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency;
                     OmniwandSpellGestureEngine.DrawInOverlay(
                         g,
                         new PointF((float)x, (float)y),
                         cx,
                         cy,
-                        nowSecOverlay,
+                        _loopNowSec,
                         _cachedDpiScale);
                 }
 
