@@ -118,6 +118,7 @@ public sealed class OmniwandHudForm : Form
         Controls.Add(WidgetChrome.Spacer(8));
         WidgetChrome.Attach(this, "ARK://WAND // WINDOWS SURFACE", "Omniwand", PhosphorTheme.Patina, _statusBadge);
         WidgetDrag.Enable(this);
+        ShowStandaloneStatus(!string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
         FitToAnswer();
     }
 
@@ -160,27 +161,34 @@ public sealed class OmniwandHudForm : Form
 
         _ = _modelPicker.RefreshAsync();
 
+        // Local key state is instant; show it now so the HUD never opens on "Checking".
+        // The network probe below only upgrades it when an ArkStation gateway is running.
+        if (!_ark.LastGatewayOnline)
+            ShowStandaloneStatus(!string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
+
         var status = await _ark.CheckStatusAsync();
-        string pkg = status.ActiveMousePackage == "mx-master-4" ? "MX Master 4" : "universal mouse";
         if (status.GatewayOnline)
         {
             _statusBadge.Text = "Online";
             _statusBadge.State = PhosphorBadgeState.Validated;
-            string spine = status.InputSpineOnline ? "spine 8842" : "spine off";
-            _statusLine.Text = $"GATEWAY // ONLINE // {spine.ToUpperInvariant()} // {pkg.ToUpperInvariant()}";
-        }
-        else if (status.NebiusKeyLoaded)
-        {
-            _statusBadge.Text = "Nemotron";
-            _statusBadge.State = PhosphorBadgeState.Validated;
-            _statusLine.Text = $"STANDALONE // NEBIUS TOKEN FACTORY // NEMOTRON // {pkg.ToUpperInvariant()}";
+            _statusBadge.FitToText();
+            _statusLine.Text = "ARKSTATION GATEWAY // ONLINE";
         }
         else
         {
-            _statusBadge.Text = "No key";
-            _statusBadge.State = PhosphorBadgeState.Blocked;
-            _statusLine.Text = $"STANDALONE // SET NEBIUS_API_KEY // {pkg.ToUpperInvariant()}";
+            ShowStandaloneStatus(status.NebiusKeyLoaded);
         }
+    }
+
+    private void ShowStandaloneStatus(bool keyLoaded)
+    {
+        _statusBadge.Text = keyLoaded ? "Ready" : "No key";
+        _statusBadge.State = keyLoaded ? PhosphorBadgeState.Validated : PhosphorBadgeState.Blocked;
+        _statusBadge.FitToText();
+        _statusLine.Text = keyLoaded
+            ? "NEMOTRON // NEBIUS TOKEN FACTORY // READY"
+            : "NO MODEL KEY // ADD A NEBIUS KEY IN HOLODEX (ALT+H)";
+        _statusLine.ForeColor = keyLoaded ? PhosphorTheme.Dim : PhosphorTheme.Ember;
     }
 
     private async void OnPromptKeyDown(object? sender, KeyEventArgs e)

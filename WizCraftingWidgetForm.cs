@@ -15,6 +15,7 @@ public sealed class WizCraftingWidgetForm : Form
 
     private readonly PhosphorBadge _runtimeBadge;
     private readonly DataLabel _runtimeLine;
+    private readonly FlowLayoutPanel _starterRow;
     private readonly ComboBox _flowLensSelect;
     private readonly ModelPicker _modelPicker;
     private readonly RichTextBox _threadBox;
@@ -79,7 +80,7 @@ public sealed class WizCraftingWidgetForm : Form
         var lensLabeled = WidgetChrome.Labeled("Flow lens // Model", lensRow, 26);
 
         string initialHost = ArkStationClient.IsNemotronModel(_ark.SelectedModel) ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
-        _runtimeLine = new DataLabel($"HOST // {initialHost} // MODEL // {_ark.SelectedModel.ToUpperInvariant()}") { Dock = DockStyle.Top, Height = 20, Name = "Wiz.RuntimeLine" };
+        _runtimeLine = new DataLabel($"RUNS ON // {initialHost}") { Dock = DockStyle.Top, Height = 20, Name = "Wiz.RuntimeLine" };
 
         _threadBox = new RichTextBox
         {
@@ -91,8 +92,8 @@ public sealed class WizCraftingWidgetForm : Form
             Font = PhosphorFonts.Body(13f),
             Name = "Wiz.ThreadBox",
             Text =
-                "Wiz crafts GrimX Flows: Spell (cast), Ritual (perform), Symphony (conduct), Ultima (pursue), Charm (bind), Summon (summon), and Omnitek Augments.\n\n" +
-                "Describe the Flow, Spell or Augment to craft."
+                "Wiz turns a goal into a step-by-step flow you can follow, refine or hand off.\n\n" +
+                "Pick a starter below, or describe what you want done. Tick \"Attach the screen\" when the goal is about what you are looking at."
         };
 
         // Composer: attach toggle, multiline field, the region's one primary button.
@@ -120,7 +121,33 @@ public sealed class WizCraftingWidgetForm : Form
         composer.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 8, BackColor = PhosphorTheme.Surface });
         composer.Controls.Add(_attachScreenCheck);
 
+        _starterRow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 46,
+            BackColor = PhosphorTheme.Surface,
+            WrapContents = false,
+            Padding = new Padding(0, 0, 0, 8),
+            Name = "Wiz.Starters"
+        };
+        void AddStarter(string label, string name, string prompt, bool attachScreen)
+        {
+            var chip = new PhosphorButton(label) { Width = 182, Height = 36, Margin = new Padding(0, 0, 8, 0), Name = name };
+            chip.Click += (_, _) =>
+            {
+                _promptField.Box.Text = prompt;
+                _attachScreenCheck.Checked = attachScreen;
+                _promptField.Box.Focus();
+                _promptField.Box.SelectionStart = _promptField.Box.TextLength;
+            };
+            _starterRow.Controls.Add(chip);
+        }
+        AddStarter("Explain my screen", "Wiz.StarterExplain", "Explain what is on my screen and what I should do next.", true);
+        AddStarter("Make a checklist", "Wiz.StarterChecklist", "Turn this goal into a step-by-step checklist: ", false);
+        AddStarter("Automate a task", "Wiz.StarterAutomate", "Plan a repeatable flow for this task: ", false);
+
         Controls.Add(_threadBox);
+        Controls.Add(_starterRow);
         Controls.Add(composer);
         Controls.Add(WidgetChrome.Spacer(8));
         Controls.Add(_runtimeLine);
@@ -171,7 +198,7 @@ public sealed class WizCraftingWidgetForm : Form
         _runtimeBadge.Text = nemotron ? "Nemotron" : "Gemini Argon";
         _runtimeBadge.FitToText();
         string host = nemotron ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
-        _runtimeLine.Text = $"HOST // {host} // MODEL // {_ark.SelectedModel.ToUpperInvariant()}";
+        _runtimeLine.Text = $"RUNS ON // {host}";
     }
 
     private async void OnPromptKeyDown(object? sender, KeyEventArgs e)
@@ -187,6 +214,7 @@ public sealed class WizCraftingWidgetForm : Form
     private async System.Threading.Tasks.Task SubmitCraftingPromptAsync()
     {
         string prompt = _promptField.Box.Text.Trim();
+        if (!string.IsNullOrEmpty(prompt)) _starterRow.Visible = false;
         if (string.IsNullOrEmpty(prompt)) return;
 
         _promptField.Box.Clear();
@@ -210,7 +238,7 @@ public sealed class WizCraftingWidgetForm : Form
             var (ok, runtime, model, output) = await _ark.AskWizGeminiArgonAsync(prompt, _activeFlowLens, snapshot);
             _runtimeBadge.Text = model;
             _runtimeBadge.FitToText();
-            _runtimeLine.Text = $"HOST // {runtime.ToUpperInvariant()} // MODEL // {model.ToUpperInvariant()}";
+            _runtimeLine.Text = $"RUNS ON // {runtime.ToUpperInvariant()}";
             _threadBox.AppendText($"\n\n{runtime.ToUpperInvariant()} // {model.ToUpperInvariant()}\n{output}");
             _threadBox.SelectionStart = _threadBox.TextLength;
             _threadBox.ScrollToCaret();

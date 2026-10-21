@@ -885,13 +885,13 @@ public sealed class ArkStationClient
         var evidence = new HandoffScrollDesiredEvidenceInfo(
             !string.IsNullOrWhiteSpace(customProofOfReceived)
                 ? customProofOfReceived.Trim()
-                : $"AInbox receipt recorded in {pod.InboxChannel} and acknowledged by {pod.OrchestratorAgentId}.",
+                : $"Expect an AInbox receipt in {pod.InboxChannel}, acknowledged by {pod.OrchestratorAgentId}.",
             !string.IsNullOrWhiteSpace(customWorkingState)
                 ? customWorkingState.Trim()
-                : $"{pod.Label} Pod workspace staged with validated [{subtypeLabel}] dependencies and active {pod.OrchestratorAgentId} session.",
+                : $"Expect the {pod.Label} Pod workspace staged with the [{subtypeLabel}] dependencies and an active {pod.OrchestratorAgentId} session.",
             !string.IsNullOrWhiteSpace(customDeliverable)
                 ? customDeliverable.Trim()
-                : $"Verified {subtypeLabel} artifact, test/validation receipt, and Nexus lineage record emitted from {pod.Label}.");
+                : $"Expect a verified {subtypeLabel} artifact, a test or validation receipt, and a lineage record from {pod.Label}.");
 
         string stamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("x");
         return new HandoffScrollInfo(
@@ -985,12 +985,23 @@ public sealed class ArkStationClient
             await File.AppendAllTextAsync(logPath, JsonSerializer.Serialize(receipt) + Environment.NewLine);
             if (!spineSaved)
             {
+                string mdPath = Path.Combine(stateDir, $"handoff-{pod.PodId}-{stamp}.md");
+                var ev = receipt.HandoffScroll.DesiredEvidence;
+                await File.WriteAllTextAsync(mdPath,
+                    $"# Handoff scroll: {pod.Label}\n\n" +
+                    $"- Scroll: {receipt.HandoffScroll.ScrollId}\n- Item: {detected.DisplayBadge} ({detected.Confidence} confidence)\n" +
+                    (string.IsNullOrWhiteSpace(fileName) ? "" : $"- File: {fileName}\n") +
+                    $"- Written: {DateTimeOffset.Now:yyyy-MM-dd HH:mm}\n\n" +
+                    $"## Intent\n\n{(string.IsNullOrWhiteSpace(intent) ? "(none)" : intent.Trim())}\n\n" +
+                    (string.IsNullOrWhiteSpace(text) ? "" : $"## Content\n\n{text.Trim()}\n\n") +
+                    $"## Context\n\n{receipt.HandoffScroll.Context}\n\n## Goal\n\n{receipt.HandoffScroll.Goal}\n\n" +
+                    $"## Desired evidence\n\n- Proof of received: {ev.ProofOfReceived}\n- Working state: {ev.WorkingState}\n- Deliverable: {ev.DeliverableEvidence}\n");
                 PhosphorToast.Show(
-                    "AInbox Scroll Saved Locally",
-                    $"Input Studio (:8842) is offline. Saved Handoff Scroll {receipt.HandoffScroll.ScrollId} locally.",
+                    "Handoff saved",
+                    $"ArkStation is not running, so the scroll was saved to {mdPath}.",
                     "STANDALONE // AINBOX",
-                    3600,
-                    ToastTone.Info);
+                    5200,
+                    ToastTone.Success);
             }
         }
         catch

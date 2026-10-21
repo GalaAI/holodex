@@ -56,7 +56,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "AInbox";
-        Size = new Size(700, 964);
+        Size = new Size(700, 1012);
         Padding = WidgetChrome.FramePadding();
 
         DragEnter += (_, e) =>
@@ -137,24 +137,24 @@ public sealed class AInboxIntakeWidgetForm : Form
         _scroll = new SpecCardPanel { Dock = DockStyle.Fill, Name = "AInbox.HandoffScroll" };
         _scrollContextField = new PhosphorField("", true, 52, mono: true) { Name = "AInbox.ScrollContextField" };
         _scrollContextField.Box.Name = "AInbox.ScrollContextBox";
-        _scrollGoalField = new PhosphorField("", false, 36, mono: true) { Name = "AInbox.ScrollGoalField" };
+        _scrollGoalField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ScrollGoalField" };
         _scrollGoalField.Box.Name = "AInbox.ScrollGoalBox";
-        _evidenceReceivedField = new PhosphorField("", false, 36, mono: true) { Name = "AInbox.ProofOfReceivedField" };
+        _evidenceReceivedField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ProofOfReceivedField" };
         _evidenceReceivedField.Box.Name = "AInbox.ProofOfReceivedBox";
-        _evidenceWorkingField = new PhosphorField("", false, 36, mono: true) { Name = "AInbox.WorkingStateField" };
+        _evidenceWorkingField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.WorkingStateField" };
         _evidenceWorkingField.Box.Name = "AInbox.WorkingStateBox";
-        _evidenceDeliverableField = new PhosphorField("", false, 36, mono: true) { Name = "AInbox.DeliverableEvidenceField" };
+        _evidenceDeliverableField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.DeliverableEvidenceField" };
         _evidenceDeliverableField.Box.Name = "AInbox.DeliverableEvidenceBox";
 
         var rowContext = WidgetChrome.Labeled("1 // Context", _scrollContextField, 52);
         ((Control)rowContext.Tag!).Name = "AInbox.ScrollContextLabel";
-        var rowGoal = WidgetChrome.Labeled("2 // Goal", _scrollGoalField, 36);
+        var rowGoal = WidgetChrome.Labeled("2 // Goal", _scrollGoalField, 48);
         ((Control)rowGoal.Tag!).Name = "AInbox.ScrollGoalLabel";
-        var rowProof = WidgetChrome.Labeled("3A // Proof of received", _evidenceReceivedField, 36);
+        var rowProof = WidgetChrome.Labeled("3A // Proof of received", _evidenceReceivedField, 48);
         ((Control)rowProof.Tag!).Name = "AInbox.ProofOfReceivedLabel";
-        var rowWorking = WidgetChrome.Labeled("3B // Working state", _evidenceWorkingField, 36);
+        var rowWorking = WidgetChrome.Labeled("3B // Working state", _evidenceWorkingField, 48);
         ((Control)rowWorking.Tag!).Name = "AInbox.WorkingStateLabel";
-        var rowDeliverable = WidgetChrome.Labeled("3C // Deliverable evidence", _evidenceDeliverableField, 36);
+        var rowDeliverable = WidgetChrome.Labeled("3C // Deliverable evidence", _evidenceDeliverableField, 48);
         ((Control)rowDeliverable.Tag!).Name = "AInbox.DeliverableEvidenceLabel";
 
         _scroll.Controls.Add(rowDeliverable);
@@ -169,7 +169,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
         // Footer: receipt line and the one primary.
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "AInbox.Footer" };
-        _receiptStatusLabel = new DataLabel("READY // submit writes the scroll and pulses the Pod") { Dock = DockStyle.Fill, Height = 44, Name = "AInbox.ReceiptStatus" };
+        _receiptStatusLabel = new DataLabel("READY // submit writes the scroll and sends it to the Pod") { Dock = DockStyle.Fill, Height = 44, Name = "AInbox.ReceiptStatus" };
         _submitBtn = new PhosphorButton("Submit intake", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "AInbox.SubmitButton" };
         _submitBtn.Click += async (_, _) => await SubmitIntakeAsync();
         footer.Controls.Add(_receiptStatusLabel);
@@ -353,9 +353,12 @@ public sealed class AInboxIntakeWidgetForm : Form
                 _evidenceWorkingField.Box.Text,
                 _evidenceDeliverableField.Box.Text);
 
+            bool pulsed = receipt.PulseStatus == "pulsed";
             _receiptStatusLabel.ForeColor = PhosphorTheme.Moss;
-            _receiptStatusLabel.Text = $"PULSED // {receipt.OrchestratorAgentId} @ {receipt.PodInboxChannel}";
-            _scroll.Status = "Written";
+            _receiptStatusLabel.Text = pulsed
+                ? $"PULSED // {receipt.OrchestratorAgentId} @ {receipt.PodInboxChannel}"
+                : "SAVED // handoff written locally // ArkStation not running";
+            _scroll.Status = pulsed ? "Sent" : "Saved";
             _scroll.StatusState = PhosphorBadgeState.Proven;
             _scroll.Receipt = $"RCPT // {receipt.HandoffScroll.ScrollId}";
         }

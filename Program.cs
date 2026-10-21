@@ -1902,29 +1902,45 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
         _onOpenElementPickerHotkey = onOpenElementPicker;
         _onOpenTutorialHotkey = onOpenTutorial;
 
+        // Each shortcut is registered through Bind so one another app already owns is reported, not silently dead.
+        var taken = new List<string>();
+        void Bind(int id, uint mods, Keys key)
+        {
+            if (Win32.RegisterHotKey(Handle, id, mods, (int)key)) return;
+            string label = ((mods & 0x0002) != 0 ? "Ctrl+" : "") + ((mods & 0x0004) != 0 ? "Shift+" : "") + ((mods & 0x0001) != 0 ? "Alt+" : "") + key;
+            taken.Add(label);
+        }
+
         // Alt+Space -> Phosphor Command HUD
-        Win32.RegisterHotKey(Handle, HotkeySummonId, 0x0001 | 0x4000, (int)Keys.Space);
+        Bind(HotkeySummonId, 0x0001 | 0x4000, Keys.Space);
         // Ctrl+Alt+C -> Toggle Native Cursor
-        Win32.RegisterHotKey(Handle, HotkeyToggleId, 0x0002 | 0x0001 | 0x4000, (int)Keys.C);
+        Bind(HotkeyToggleId, 0x0002 | 0x0001 | 0x4000, Keys.C);
         // Ctrl+Alt+Q -> Quit & Restore
-        Win32.RegisterHotKey(Handle, HotkeyQuitId, 0x0002 | 0x0001 | 0x4000, (int)Keys.Q);
+        Bind(HotkeyQuitId, 0x0002 | 0x0001 | 0x4000, Keys.Q);
         // Alt+W -> Slot 7 Wiz Crafting Chatbot (Gemini Argon)
-        Win32.RegisterHotKey(Handle, HotkeyWizId, 0x0001 | 0x4000, (int)Keys.W);
+        Bind(HotkeyWizId, 0x0001 | 0x4000, Keys.W);
         // Alt+I -> Slot 8 AInbox Pod Intake + Handoff Scroll
-        Win32.RegisterHotKey(Handle, HotkeyAInboxId, 0x0001 | 0x4000, (int)Keys.I);
+        Bind(HotkeyAInboxId, 0x0001 | 0x4000, Keys.I);
         // Ctrl+Shift+Space -> 8-Slot GrimX Flow Orb
-        Win32.RegisterHotKey(Handle, HotkeyOrbId, 0x0002 | 0x0004 | 0x4000, (int)Keys.Space);
+        Bind(HotkeyOrbId, 0x0002 | 0x0004 | 0x4000, Keys.Space);
         // Alt+V (GhostTrailer dictation) is held back until speech capture lands; no hotkey in v0.3.
         // Alt+C -> Cycle Input Studio Cursor Icon Style
-        Win32.RegisterHotKey(Handle, HotkeyCycleProfileId, 0x0001 | 0x4000, (int)Keys.C);
+        Bind(HotkeyCycleProfileId, 0x0001 | 0x4000, Keys.C);
         // Alt+H -> Holodex Lite Drawer (Session, AInbox, Codex, GrimX, Mods)
-        Win32.RegisterHotKey(Handle, HotkeyHolodexId, 0x0001 | 0x4000, (int)Keys.H);
+        Bind(HotkeyHolodexId, 0x0001 | 0x4000, Keys.H);
         // Alt+S -> Free-Form Lasso & Phosphor Annotator
-        Win32.RegisterHotKey(Handle, HotkeySnipLassoId, 0x0001 | 0x4000, (int)Keys.S);
+        Bind(HotkeySnipLassoId, 0x0001 | 0x4000, Keys.S);
         // Alt+E -> Desktop Element & Pixel Palette Picker
-        Win32.RegisterHotKey(Handle, HotkeyElementPickerId, 0x0001 | 0x4000, (int)Keys.E);
+        Bind(HotkeyElementPickerId, 0x0001 | 0x4000, Keys.E);
         // Alt+T -> Animated Phosphor Tooltip Tutorials
-        Win32.RegisterHotKey(Handle, HotkeyTutorialId, 0x0001 | 0x4000, (int)Keys.T);
+        Bind(HotkeyTutorialId, 0x0001 | 0x4000, Keys.T);
+        if (taken.Count > 0)
+            PhosphorToast.Show(
+                "Some shortcuts are taken",
+                $"Another app already uses {string.Join(", ", taken)}. Those tools are still in the tray menu.",
+                "OMNIWAND // SHORTCUTS",
+                7000,
+                ToastTone.Warning);
     }
 
     public void ForceCursorRedraw()

@@ -67,7 +67,8 @@ internal sealed class PhosphorToast : Form
         Opacity = 0.0;
 
         var area = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
-        Location = new Point(area.Right - Width - 16, area.Bottom - Height - 16);
+        _rest = new Point(area.Right - Width - 16, area.Bottom - Height - 16);
+        Location = new Point(_rest.X, _rest.Y + RisePx);
 
         Click += (_, _) => Close();
 
@@ -76,17 +77,25 @@ internal sealed class PhosphorToast : Form
         {
             _life.Stop();
             _fadingOut = true;
+            _clock.Restart();
             _fade.Start();
         };
+        // Clock-driven disclosure (dur-disclosure, ease-analog in, ease-out away), so timing holds under load.
         _fade.Tick += (_, _) =>
         {
-            double step = _fadingOut ? -0.08 : 0.12;
-            double next = Math.Clamp(Opacity + step, 0.0, 0.97);
-            Opacity = next;
-            if (_fadingOut && next <= 0.0) { _fade.Stop(); Close(); }
-            else if (!_fadingOut && next >= 0.97) { _fade.Stop(); _life.Start(); }
+            float t = PhosphorMotion.ReducedMotion ? 1f : Math.Min(1f, _clock.ElapsedMilliseconds / (float)PhosphorMotion.DurDisclosure);
+            float e = _fadingOut ? 1f - PhosphorMotion.EaseOut(t) : PhosphorMotion.EaseAnalog(t);
+            Opacity = e;
+            Location = new Point(_rest.X, _rest.Y + (int)Math.Round((1f - e) * RisePx));
+            if (t < 1f) return;
+            _fade.Stop();
+            if (_fadingOut) Close(); else _life.Start();
         };
     }
+
+    private const int RisePx = 8;
+    private readonly System.Diagnostics.Stopwatch _clock = new();
+    private readonly Point _rest;
 
     protected override bool ShowWithoutActivation => true;
 
@@ -116,6 +125,7 @@ internal sealed class PhosphorToast : Form
             _current = toast;
             toast.FormClosed += (_, _) => { if (ReferenceEquals(_current, toast)) _current = null; toast.Dispose(); };
             toast.Show();
+            toast._clock.Restart();
             toast._fade.Start();
         }
 

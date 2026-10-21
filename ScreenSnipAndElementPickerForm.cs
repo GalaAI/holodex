@@ -317,6 +317,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         Invalidate();
     }
 
+    private static void LogSnapshot(string line)
+    {
+        try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "omniwand-snip.log"), $"{DateTime.Now:O} {line}{Environment.NewLine}"); } catch { }
+    }
+
     public void SummonAt(Point cursorPos, WandCaptureTool initialTool = WandCaptureTool.FreeformLasso)
     {
         var screen = Screen.FromPoint(cursorPos).Bounds;
@@ -334,11 +339,12 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         {
             _desktopSnapshot?.Dispose();
             _desktopSnapshot = new Bitmap(screen.Width, screen.Height, PixelFormat.Format24bppRgb);
-            using var g = Graphics.FromImage(_desktopSnapshot);
-            g.CopyFromScreen(screen.Left, screen.Top, 0, 0, screen.Size, CopyPixelOperation.SourceCopy);
+            using (var g = Graphics.FromImage(_desktopSnapshot))
+                g.CopyFromScreen(screen.Left, screen.Top, 0, 0, screen.Size, CopyPixelOperation.SourceCopy);
         }
-        catch
+        catch (Exception ex)
         {
+            LogSnapshot($"capture failed {screen}: {ex.GetType().Name}: {ex.Message}");
             _desktopSnapshot = null;
         }
 
@@ -729,7 +735,6 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
-
         if (_desktopSnapshot != null)
         {
             // Explicit destination rect: DrawImage(img, x, y) rescales by the bitmap DPI on scaled monitors.
@@ -811,7 +816,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
 
         DrawAnnotations(g);
-        WidgetChrome.PaintFrame(this, g, PhosphorTheme.Patina);
+        using (var edgePen = new Pen(Color.FromArgb(160, PhosphorTheme.Patina), 2f))
+            g.DrawRectangle(edgePen, 1, 1, ClientSize.Width - 3, ClientSize.Height - 3);
     }
 
     public Bitmap OverlayCanvasPreview(Bitmap baseRender)

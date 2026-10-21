@@ -133,15 +133,15 @@ public sealed class HolodexLiteDrawerForm : Form
         // 1. Token Login / ArkHive Hivemind Connection Bar
         var tokenBar = new Panel { Dock = DockStyle.Top, Height = 64, BackColor = PhosphorTheme.Surface, Name = "Holodex.TokenBar" };
         _connectionTelemetry = new DataLabel(hasNebiusKey
-            ? "HIVEMIND LITE // NEBIUS KEY LINKED // CHECKING GATEWAY"
-            : "HIVEMIND LITE // NO NEBIUS KEY // PASTE ONE BELOW")
+            ? "NEBIUS KEY LINKED // NEMOTRON READY"
+            : "NO MODEL KEY // PASTE A NEBIUS KEY BELOW")
         {
             Dock = DockStyle.Top,
             Height = 18,
             ForeColor = PhosphorTheme.Patina
         };
         var tokenInputRow = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface };
-        _tokenField = new PhosphorField("Paste Hivemind / ArkHive Token or Nebius Key to sync to Windows Vault...", false, 36, mono: true)
+        _tokenField = new PhosphorField("Paste a Nebius Token Factory key. It is saved to Windows Credential Manager.", false, 36, mono: true)
         {
             Dock = DockStyle.Fill,
             Name = "Holodex.TokenField"
@@ -257,7 +257,7 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         PhosphorPaint.UseDarkScrollbars(_workOrdersBox);
         RefreshWorkOrdersText();
-        var ordersLabeled = WidgetChrome.Labeled("Syndicate Work Orders // Live Activity", _workOrdersBox, 104);
+        var ordersLabeled = WidgetChrome.Labeled("Work orders", _workOrdersBox, 104);
 
         // Group chat thread box
         _sessionChatBox = new RichTextBox
@@ -272,8 +272,8 @@ public sealed class HolodexLiteDrawerForm : Form
             Text =
                 "GALA // NEXUS ORCHESTRATOR\n" +
                 (hasNebiusKey
-                    ? "Welcome to the Hivemind Lite Session. Your Nebius key is linked and Nemotron is ready.\n\n"
-                    : "Welcome to the Hivemind Lite Session. Paste a Nebius Token Factory key above to enable Nemotron.\n\n") +
+                    ? "Welcome. Your Nebius key is linked and Nemotron is ready to chat.\n\n"
+                    : "Welcome. Paste a Nebius Token Factory key above to turn on Nemotron.\n\n") +
                 "WIZ // 4GE CONDUCTOR\n" +
                 "Your mouse hardware profile, DPI controls, Free-Form Lasso (Alt+S), and Element Picker (Alt+E) are online. Message the Syndicate below or prefix with /order to dispatch a Work Order."
         };
@@ -707,7 +707,7 @@ public sealed class HolodexLiteDrawerForm : Form
         string token = _tokenField.Box.Text.Trim();
         if (string.IsNullOrEmpty(token))
         {
-            PhosphorToast.Show("Token Login", "Paste a Hivemind / ArkHive token or Nebius API key first.", "HOLODEX // VAULT", 2800, ToastTone.Warning);
+            PhosphorToast.Show("No key to link", "Paste a Nebius Token Factory key first.", "HOLODEX // VAULT", 2800, ToastTone.Warning);
             return;
         }
 
@@ -743,19 +743,19 @@ public sealed class HolodexLiteDrawerForm : Form
         {
             _vaultBadge.Text = "Online";
             _vaultBadge.State = PhosphorBadgeState.Validated;
-            _connectionTelemetry.Text = $"HIVEMIND ONLINE // ARKHIVE GATEWAY :8788 // WINCRED VAULT {(bundle ? "LINKED" : "NOT LINKED")}";
+            _connectionTelemetry.Text = "ARKSTATION GATEWAY ONLINE";
         }
         else if (st.NebiusKeyLoaded)
         {
-            _vaultBadge.Text = "Nebius Key Linked";
+            _vaultBadge.Text = "Ready";
             _vaultBadge.State = PhosphorBadgeState.Validated;
-            _connectionTelemetry.Text = $"NEBIUS KEY LINKED // NEMOTRON READY // WINCRED VAULT {(bundle ? "LINKED" : "NOT LINKED")}";
+            _connectionTelemetry.Text = $"NEBIUS KEY LINKED // NEMOTRON READY{(bundle ? " // SAVED IN WINDOWS VAULT" : "")}";
         }
         else
         {
-            _vaultBadge.Text = "Token Login";
+            _vaultBadge.Text = "No key";
             _vaultBadge.State = PhosphorBadgeState.Unstated;
-            _connectionTelemetry.Text = "PASTE HIVEMIND OR NEBIUS TOKEN BELOW TO LINK WINDOWS VAULT";
+            _connectionTelemetry.Text = "NO MODEL KEY // PASTE A NEBIUS KEY BELOW";
         }
         _vaultBadge.FitToText();
     }
