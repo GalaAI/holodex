@@ -824,6 +824,9 @@ internal sealed class PhosphorCheckBox : CheckBox
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
+        // Paint the whole row first. Without this the double buffer keeps stale pixels: a black strip, or a
+        // ghost of whatever the parent last drew there (the Wiz starter buttons on hover).
+        g.Clear(BackColor.A == 255 ? BackColor : (Parent?.BackColor is { A: 255 } pb ? pb : PhosphorTheme.Surface));
         float s = PhosphorPaint.Scale(this);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         float box = PhosphorTheme.S4 * s;
