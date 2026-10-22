@@ -68,10 +68,10 @@ internal static class SurfaceCapture
         Save(RenderCursorMorphSheet(), Path.Combine(dir, "cursor-morph-sheet.png"), written);
 
         // Toasts: one per tone, built by the real class with the copy the app raises.
-        Save(PhosphorToast.RenderPreview("Omniwand Active", "Actions Ring casts the eight GrimX Flow slots. Right-click the tray mark for settings.", "PHOSPHOR SHELL // GRIMX WAND", ToastTone.Info), Path.Combine(dir, "toast-info.png"), written);
-        Save(PhosphorToast.RenderPreview("Spell cast", "Cast Spell dispatched through Input Spine.", "GRIMX FLOW // CAST", ToastTone.Success), Path.Combine(dir, "toast-success.png"), written);
-        Save(PhosphorToast.RenderPreview("Ritual not cast", "No Input Spine binding for grimx/ritual, so nothing was cast. Bind it in Input Studio.", "GRIMX FLOW // PERFORM", ToastTone.Warning), Path.Combine(dir, "toast-warning.png"), written);
-        Save(PhosphorToast.RenderPreview("Ritual not cast", "Input Spine (:8842) is unreachable, so nothing was cast.", "GRIMX FLOW // PERFORM", ToastTone.Error), Path.Combine(dir, "toast-error.png"), written);
+        Save(PhosphorToast.RenderPreview("Omniwand Active", "Actions Ring casts the eight Spell Orb slots. Right-click the tray mark for settings.", "PHOSPHOR SHELL // GRIMX WAND", ToastTone.Info), Path.Combine(dir, "toast-info.png"), written);
+        Save(PhosphorToast.RenderPreview("Cast: Quick Cast", "Quick Cast dispatched through Input Spine.", "GRIMX SPELL // CAST", ToastTone.Success), Path.Combine(dir, "toast-success.png"), written);
+        Save(PhosphorToast.RenderPreview("Ritual not cast", "No Input Spine binding for grimx/ritual, so nothing was cast. Bind it in Input Studio.", "GRIMX SPELL // PERFORM", ToastTone.Warning), Path.Combine(dir, "toast-warning.png"), written);
+        Save(PhosphorToast.RenderPreview("Ritual not cast", "Input Spine (:8842) is unreachable, so nothing was cast.", "GRIMX SPELL // PERFORM", ToastTone.Error), Path.Combine(dir, "toast-error.png"), written);
 
         foreach (var (name, form) in widgets)
         {

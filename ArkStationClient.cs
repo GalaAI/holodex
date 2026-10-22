@@ -126,7 +126,7 @@ public sealed class ArkStationClient
         new("magixlab", "MagiXLab", "ainbox:pod:magixlab", "muse", "Muse (Creative & Media Conductor)", "create", "coral",
             "Multimodal media synthesis, Phosphor visual exploration, motion studies, and reference intake."),
         new("forge", "4GE", "ainbox:pod:forge", "wiz", "Wiz (GrimX & Crafting Conductor)", "create", "coral",
-            "GrimX Flow crafting (Spells, Rituals, Symphonies, Ultimas, Charms, Summons), Augments, and Blueprints."),
+            "GrimX Spell crafting (Quick Casts, Combos, Rituals, Symphonies, Ultimas, Charms, Summons), Augments, and Blueprints."),
         new("anvl", "Anvl", "ainbox:pod:anvl", "fabrix", "Fabrix (Fabrication & Build Conductor)", "create", "coral",
             "Co-LabStation fabrication, hardware/Gear integration, CAD/3D print Skrypts, and physical builds."),
         new("bazaar", "Bazaar", "ainbox:pod:bazaar", "herald", "Herald (Distribution & Exchange Conductor)", "distribute", "seal",
@@ -533,7 +533,7 @@ public sealed class ArkStationClient
     }
 
     /// <summary>
-    /// Dispatches a GrimX Flow cast to Input Spine (:8842/api/spine/event). Ok is true only when
+    /// Dispatches a GrimX Spell cast to Input Spine (:8842/api/spine/event). Ok is true only when
     /// Spine matched a binding for the gesture; in standalone mode (when Input Studio is absent),
     /// degrades gracefully and reports a clean warning message for the Phosphor toast.
     /// </summary>
@@ -612,8 +612,8 @@ public sealed class ArkStationClient
 
         string wizSystem =
             "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance Agent inside Omniwand. " +
-            "Focus strictly on GrimX and Flow: Spell (Cast), Ritual (Perform), Symphony (Conduct), Ultima (Pursue), Charm (Bind), and Summon (Summon). " +
-            $"Active lens: {flowKind}.\n\nOperator Request: {prompt}";
+            "Focus strictly on GrimX Spells. Spell kinds: Quick Cast (Cast), Combo (Chain), Ritual (Perform, scheduled or long-running), Symphony (Conduct), Ultima (Pursue), Charm (Bind), and Summon (Summon). " +
+            $"Active Spell type: {SpellTypeName(flowKind)}.\n\nOperator Request: {prompt}";
 
         if (!ForceStandaloneMode && !isNemotronSelected)
         {
@@ -813,6 +813,17 @@ public sealed class ArkStationClient
     }
 
     /// <summary>
+    /// Display name for a Spell type id. Ids stay on the wire contract (slot:spell,
+    /// grimx/spell); "spell" is the Quick Cast kind and "flow" is every Spell.
+    /// </summary>
+    public static string SpellTypeName(string id) => id.ToLowerInvariant() switch
+    {
+        "flow" => "All Spells",
+        "spell" => "Quick Cast",
+        _ => System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(id.ToLowerInvariant())
+    };
+
+    /// <summary>
     /// Deterministic local + remote Omnitek item auto-detector matching @ark/ainbox-core.
     /// </summary>
     public OmnitekAutoDetectInfo AutoDetectOmnitekItem(string? fileName, string? text, string? intent)
@@ -821,17 +832,19 @@ public sealed class ArkStationClient
         string ext = Path.GetExtension(fileName ?? string.Empty).TrimStart('.').ToLowerInvariant();
 
         if (combined.Contains("ultima") || combined.Contains("deluge"))
-            return new("flow", "ultima", "high", "Detected GrimX Ultima Flow keywords.", "forge");
+            return new("flow", "ultima", "high", "Detected GrimX Ultima keywords.", "forge");
         if (combined.Contains("symphony") || combined.Contains("orchestra"))
-            return new("flow", "symphony", "high", "Detected GrimX Symphony Flow keywords.", "forge");
+            return new("flow", "symphony", "high", "Detected GrimX Symphony keywords.", "forge");
         if (combined.Contains("ritual") || combined.Contains("schedule") || combined.Contains("cron"))
-            return new("flow", "ritual", "high", "Detected GrimX Ritual Flow keywords.", "forge");
+            return new("flow", "ritual", "high", "Detected GrimX Ritual keywords.", "forge");
         if (combined.Contains("charm") || combined.Contains("relic") || combined.Contains("enchant"))
-            return new("flow", "charm", "high", "Detected GrimX Charm Flow keywords.", "forge");
+            return new("flow", "charm", "high", "Detected GrimX Charm keywords.", "forge");
         if (combined.Contains("summon") || combined.Contains("drone") || combined.Contains("clone"))
-            return new("flow", "summon", "high", "Detected GrimX Summon Flow keywords.", "forge");
+            return new("flow", "summon", "high", "Detected GrimX Summon keywords.", "forge");
+        if (combined.Contains("combo") || combined.Contains("chain"))
+            return new("flow", "combo", "high", "Detected GrimX Combo keywords.", "forge");
         if (combined.Contains("spell") || combined.Contains("cast"))
-            return new("flow", "spell", "high", "Detected GrimX Spell Flow keywords.", "forge");
+            return new("flow", "spell", "high", "Detected GrimX Quick Cast keywords.", "forge");
 
         if (ext is "tsx" or "jsx" or "css" || combined.Contains("component") || combined.Contains("phosphor") || combined.Contains("widget"))
             return new("augment", "component", "high", "Detected Phosphor UI Component source or widget reference.", "forge");
@@ -1057,7 +1070,7 @@ public sealed class ArkStationClient
                     new
                     {
                         role = "system",
-                        content = "You are Omniwand, the desktop AI cursor and wand interface for ArkStation. Focus on GrimX Flow and Phosphor Shell. Answer concisely and directly."
+                        content = "You are Omniwand, the desktop AI cursor and wand interface for ArkStation. Focus on GrimX Spells and Phosphor Shell. Answer concisely and directly."
                     },
                     new
                     {
@@ -1157,7 +1170,7 @@ public sealed class ArkStationClient
                         new
                         {
                             role = "system",
-                            content = "You are Omniwand, a native Windows desktop AI cursor and GrimX Flow wand powered by NVIDIA Nemotron on Nebius Token Factory. Answer concisely, accurately, and directly."
+                            content = "You are Omniwand, a native Windows desktop AI cursor and GrimX Spell wand powered by NVIDIA Nemotron on Nebius Token Factory. Answer concisely, accurately, and directly."
                         },
                         new
                         {

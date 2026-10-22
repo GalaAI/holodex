@@ -389,7 +389,7 @@ internal sealed class PhosphorMenuEyebrow : ToolStripItem
     public override Size GetPreferredSize(Size constrainingSize)
     {
         float s = Scale;
-        // Wide enough for the tracked label, so a long header ("GRIMX FLOW // RING SLOTS") is never clipped.
+        // Wide enough for the tracked label, so a long header ("SPELL ORB // RING SLOTS") is never clipped.
         using var font = PhosphorFonts.Eyebrow();
         using var probe = new Bitmap(1, 1);
         using var g = Graphics.FromImage(probe);

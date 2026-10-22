@@ -1,4 +1,4 @@
-# Omniwand v0.3: Phosphor Shell, Holodex Lite & GrimX Flow Desktop AI Wand
+# Omniwand v0.3: Phosphor Shell, Holodex Lite & GrimX Spell Desktop AI Wand
 
 **Omniwand** is a native Windows desktop AI cursor, radial workflow wand, screen lasso & element inspector, and **Holodex Lite** control deck built on .NET 10 (`net10.0-windows`), WinForms, and Win32/GDI+ (`UpdateLayeredWindow` + `DwmFlush`).
 
@@ -41,7 +41,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
     3. **Draw a Circle (`≥ 300° signed turn + ≥ 210px travel in 1400ms`)**: Casts `MUTATION · GRIMX SPELL CAST` (casts GrimX Slot 1 Spell).
     4. **Unbroken Sweep Right (`≥ 280px`)**: Casts `SYNTHESIZE · HOLODEX BRIDGE` (opens Holodex Lite Syndicate Session).
 - **Streamlined Root Tray Menu & Consolidated `Settings` Menu**:
-  - Top-level tray menu keeps the 6 primary workflow surfaces (`Phosphor HUD`, `Holodex Lite drawer`, `Wiz crafting`, `Capture & intake >`, `GrimX Flow orb >`, `Settings >`) while housing all hardware, cursor, morph, DPI slider (`100 to 4000 DPI`), spellbook, onboarding, and VR controls cleanly inside **`Settings`**.
+  - Top-level tray menu keeps the 6 primary workflow surfaces (`Phosphor HUD`, `Holodex Lite drawer`, `Wiz crafting`, `Capture & intake >`, `Spell Orb >`, `Settings >`) while housing all hardware, cursor, morph, DPI slider (`100 to 4000 DPI`), spellbook, onboarding, and VR controls cleanly inside **`Settings`**.
 - **Zero-Manual Wiz Environment Onboarding & Animated Phosphor Tooltips (`Alt+T`)**:
   - On first launch, **Wiz** automatically scans your hardware (connected mouse brand & model via VID/PID, Windows pointer speed, display DPI, installed CLIs, and Windows Credential Manager `wincred://` vault), auto-provisions `~/.ark/agents/omniwand` (`omniwand.agent.bamf.json` + `SKILL.md` + `mouse-macros.json`), and launches a 7-step **guided tour** with eased Phosphor motion, keycap shortcuts and keyboard navigation (Left, Right, Esc) with zero manual configuration.
 - **Intelligent Mouse Brand Detection, Live 100 to 4000 DPI Slider & Macro Binder**:
@@ -57,7 +57,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
     1. **Session**: Syndicate Group Chat (`@Gala`, `@Wiz`, `@Smith`, `@Arbiter`, `@Scholar`, `@Muse`, `@Fabrix`, `@Herald`) with live **Work Orders** and **Activity Feed**.
     2. **AInbox**: Drag-and-drop Pod Intake classifier and Handoff Scroll generator.
     3. **Codex**: Persistent visual knowledge base of Lasso captures, UI inspections, and vision analyses.
-    4. **GrimX**: Capability catalog (`Spell`, `Ritual`, `Symphony`, `Ultima`, `Charm`, `Summon`) with one-click execution and Wiz Flow crafting.
+    4. **GrimX**: Spell catalog (`Quick Cast`, `Combo`, `Ritual`, `Symphony`, `Ultima`, `Charm`, `Summon`) with one-click execution and Wiz Spell crafting.
     5. **Mods**: Hardware & augment deck showing live mouse VID/PID telemetry, DPI speed presets, cursor icon switcher, and `wincred://` Vault status.
 
 ---
@@ -69,7 +69,7 @@ In **Standalone Mode** (default when running standalone or when `OMNIWAND_STANDA
 1. **Fast Tier Cursor Calls (`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` / `nvidia/Nemotron-3_5-Lightning`)**:
    - Used as the default model in `ModelPicker` for low-latency pointed HUD queries (`Alt+Space`).
 2. **Reasoning, Vision & Workflow Crafting (`nvidia/nemotron-3-super-120b-a12b`, `nvidia/Nemotron-3.5-Super-VL`, `nvidia/Nemotron-3-Ultra-550b-a55b`)**:
-   - Selectable in the shared `ModelPicker` dropdown inside both the **Phosphor HUD** and **Wiz Crafting (`Alt+W`)** to draft structured GrimX Flows (`Spell`, `Ritual`, `Symphony`, `Ultima`, `Charm`, `Summon`).
+   - Selectable in the shared `ModelPicker` dropdown inside both the **Phosphor HUD** and **Wiz Crafting (`Alt+W`)** to draft structured GrimX Spells (`Quick Cast`, `Combo`, `Ritual`, `Symphony`, `Ultima`, `Charm`, `Summon`).
 3. **Dynamic Model Discovery**:
    - When a Token Factory key is present, `ArkStationClient.GetAvailableModelsAsync()` queries `GET https://api.tokenfactory.nebius.com/v1/models` and merges any live Nemotron model IDs into the `ModelPicker` dropdown.
 
@@ -139,7 +139,7 @@ If no key is configured, Omniwand still launches normally, runs all cursor physi
 | Summon **Wiz Crafting** | `Alt+W` or **Right-Hold + Flick East** |
 | Summon **AInbox Intake** | `Alt+I` |
 | Launch **Animated Phosphor Tooltip Tutorials** | `Alt+T` (auto-runs on first onboarding) |
-| Summon **GrimX Flow Radial Orb** | `F15` or hold **Middle Mouse Button** (`>180ms`) |
+| Summon the **Spell Orb** | `F15` or hold **Middle Mouse Button** (`>180ms`) |
 | Cycle On-Brand Cursor Style (`Relic Wand`, `Ark Aperture`, `Phosphor Arrow`, `Viewfinder`) | `Alt+C` |
 | Toggle Native Windows Cursor Visibility | `Ctrl+Alt+C` |
 | Exit & Restore Default Windows Cursor | `Ctrl+Alt+Q` (or via Tray Menu) |

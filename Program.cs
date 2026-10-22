@@ -316,11 +316,11 @@ internal sealed class OmniwandAppContext : ApplicationContext
         captureMenu.DropDownItems.Add(ainboxItem);
         menu.Items.Add(captureMenu);
 
-        var orbMenu = new ToolStripMenuItem("GrimX Flow orb");
+        var orbMenu = new ToolStripMenuItem("Spell Orb");
         foreach (var slot in GrimXFlowOrb.Slots)
         {
             var s = slot;
-            string label = s.Id == "ainbox" ? "AInbox" : s.Title[..1] + s.Title[1..].ToLowerInvariant();
+            string label = s.Id == "ainbox" ? "AInbox" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s.Title.ToLowerInvariant());
             var slotItem = new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle };
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
             orbMenu.DropDownItems.Add(slotItem);
@@ -526,7 +526,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         menu.Items.Add(new PhosphorMenuSpacer());
 
         PhosphorMenuFrame.Apply(captureMenu, "Capture & intake");
-        PhosphorMenuFrame.Apply(orbMenu, "GrimX Flow // ring slots");
+        PhosphorMenuFrame.Apply(orbMenu, "Spell Orb // ring slots");
         PhosphorMenuFrame.Apply(settingsMenu, "Omniwand settings");
         PhosphorMenuFrame.Apply(gestureMenu, "Spells // Ctrl + gesture");
         PhosphorMenuFrame.Apply(iconStyleMenu, "Cursor icon // on-brand");
@@ -1006,21 +1006,21 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 return;
             }
 
-            // Slots 1-6: GrimX Flow kinds (Spell, Ritual, Symphony, Ultima, Charm, Summon).
+            // Slots 1-6: GrimX Spell kinds (Quick Cast, Ritual, Symphony, Ultima, Charm, Summon).
             // A cast reports in a toast; it never opens Wiz (Wiz is slot 7 only).
             _isAiThinking = true;
             try
             {
                 var (cast, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString());
-                string flow = char.ToUpperInvariant(slot.Title[0]) + slot.Title[1..].ToLowerInvariant();
+                string spell = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
                 if (cast)
                 {
-                    PhosphorToast.Show($"{flow} cast", message, $"GRIMX FLOW // {slot.Verb}", 2400, ToastTone.Success);
+                    PhosphorToast.Show($"Cast: {spell}", message, $"GRIMX SPELL // {slot.Verb}", 2400, ToastTone.Success);
                 }
                 else
                 {
-                    // Standalone build: no local flow runtime, so Wiz crafts the flow on Nemotron instead.
-                    PhosphorToast.Show($"{flow} opened in Wiz", "No local flow runtime found, so Wiz will craft this flow with Nemotron.", $"GRIMX FLOW // {slot.Verb}", 2600, ToastTone.Info);
+                    // Standalone build: no local Spell runtime, so Wiz crafts the Spell on Nemotron instead.
+                    PhosphorToast.Show($"{spell} opened in Wiz", "No local Spell runtime found, so Wiz will craft this Spell with Nemotron.", $"GRIMX SPELL // {slot.Verb}", 2600, ToastTone.Info);
                     _wizWidget.SummonAt(pt, slot.Id);
                 }
             }
@@ -1341,7 +1341,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _roleMorph.Target = detectedRole == WindowsCursorRole.Arrow ? 0.0 : 1.0;
             }
 
-            // Check hardware / mouse triggers for GrimX Flow Orb (F15 = 0x7E or Middle Mouse Hold > 180ms)
+            // Check hardware / mouse triggers for the Spell Orb (F15 = 0x7E or Middle Mouse Hold > 180ms)
             bool f15Down = (Win32.GetAsyncKeyState(0x7E) & 0x8000) != 0;
             bool mmbDown = (Win32.GetAsyncKeyState(0x04) & 0x8000) != 0;
             if (mmbDown && _middleMouseDownStartSec < 0)
@@ -1787,7 +1787,7 @@ internal static class MagicUiCursorPaths
 
 /// <summary>
 /// Persistent 32-bit DIB section click-through layered window.
-/// Renders the Smooth Cursor, 14-role parametric morphs, 8-Slot GrimX Flow Orb, and GhostTrailer ribbon.
+/// Renders the Smooth Cursor, 14-role parametric morphs, 8-slot Spell Orb, and GhostTrailer ribbon.
 /// </summary>
 internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 {
@@ -1933,7 +1933,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
         Bind(HotkeyWizId, 0x0001 | 0x4000, Keys.W);
         // Alt+I -> Slot 8 AInbox Pod Intake + Handoff Scroll
         Bind(HotkeyAInboxId, 0x0001 | 0x4000, Keys.I);
-        // Ctrl+Shift+Space -> 8-Slot GrimX Flow Orb
+        // Ctrl+Shift+Space -> 8-slot Spell Orb
         Bind(HotkeyOrbId, 0x0002 | 0x0004 | 0x4000, Keys.Space);
         // Alt+V (GhostTrailer dictation) is held back until speech capture lands; no hotkey in v0.3.
         // Alt+C -> Cycle Input Studio Cursor Icon Style
@@ -2064,7 +2064,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                         _cachedDpiScale);
                 }
 
-                // 2. Draw 8-Slot GrimX Flow Orb if open/closing
+                // 2. Draw the 8-slot Spell Orb if open/closing
                 if (orbVis)
                 {
                     float orbCx = cx + (float)(_orb.AnchorScreenPt.X - x);

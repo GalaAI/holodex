@@ -5,7 +5,7 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>
-/// Wiz: the GrimX Flow crafting thread (Alt+W, Actions Ring slot 7, pipe wiz:summon).
+/// Wiz: the GrimX Spell crafting thread (Alt+W, Actions Ring slot 7, pipe wiz:summon).
 /// Zone CREATE, so the panel edge and the selected lens read coral.
 /// </summary>
 public sealed class WizCraftingWidgetForm : Form
@@ -29,14 +29,19 @@ public sealed class WizCraftingWidgetForm : Form
 
     private static readonly (string Id, string Label)[] FlowLenses =
     {
-        ("flow",     "All GrimX Flows // overview and crafting"),
-        ("spell",    "Spell // cast // one-shot execution"),
+        ("flow",     "All Spells // overview and crafting"),
+        ("spell",    "Quick Cast // cast // one-shot execution"),
+        ("combo",    "Combo // chain // linked casts, run now"),
         ("ritual",   "Ritual // perform // scheduled cadence"),
         ("symphony", "Symphony // conduct // orchestra"),
         ("ultima",   "Ultima // pursue // deluge synthesis"),
         ("charm",    "Charm // bind // relic enchantment"),
         ("summon",   "Summon // summon // automaton")
     };
+
+    /// <summary>The selected Spell type's name, the part of its label before the first " // ".</summary>
+    private string ActiveLensTitle =>
+        FlowLenses.FirstOrDefault(l => l.Id == _activeFlowLens).Label?.Split(" // ")[0] ?? _activeFlowLens;
 
     public WizCraftingWidgetForm(ArkStationClient ark, Action<bool> setThinkingState)
     {
@@ -63,7 +68,7 @@ public sealed class WizCraftingWidgetForm : Form
         { AccentColor = PhosphorTheme.Coral, Name = "Wiz.RuntimeBadge" };
         _runtimeBadge.FitToText();
 
-        // Lens row: flow lens select plus the shared model picker.
+        // Lens row: Spell type select plus the shared model picker.
         var lensRow = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Color.Transparent, Name = "Wiz.LensBar" };
         _flowLensSelect = new PhosphorComboBox { Dock = DockStyle.Fill, Name = "Wiz.FlowLensSelect" };
         foreach (var lens in FlowLenses) _flowLensSelect.Items.Add(lens.Label);
@@ -77,7 +82,7 @@ public sealed class WizCraftingWidgetForm : Form
         lensRow.Controls.Add(_flowLensSelect);
         lensRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = Color.Transparent });
         lensRow.Controls.Add(_modelPicker);
-        var lensLabeled = WidgetChrome.Labeled("Flow lens // Model", lensRow, 26);
+        var lensLabeled = WidgetChrome.Labeled("Spell type // Model", lensRow, 26);
 
         string initialHost = ArkStationClient.IsNemotronModel(_ark.SelectedModel) ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
         _runtimeLine = new DataLabel($"RUNS ON // {initialHost}") { Dock = DockStyle.Top, Height = 20, Name = "Wiz.RuntimeLine" };
@@ -92,7 +97,7 @@ public sealed class WizCraftingWidgetForm : Form
             Font = PhosphorFonts.Body(13f),
             Name = "Wiz.ThreadBox",
             Text =
-                "Wiz turns a goal into a step-by-step flow you can follow, refine or hand off.\n\n" +
+                "Wiz turns a goal into a Combo: an ordered chain of steps you can follow, refine or hand off.\n\n" +
                 "Pick a starter below, or describe what you want done. Tick \"Attach the screen\" when the goal is about what you are looking at."
         };
 
@@ -106,12 +111,12 @@ public sealed class WizCraftingWidgetForm : Form
             Name = "Wiz.AttachScreenToggle"
         };
         var inputRow = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Wiz.InputRow" };
-        _promptField = new PhosphorField("Craft a GrimX Flow or Omnitek Augment. Enter sends, Shift+Enter breaks a line.", true, 72) { Dock = DockStyle.Fill, Name = "Wiz.PromptField" };
+        _promptField = new PhosphorField("Craft a Spell or Omnitek Augment. Enter sends, Shift+Enter breaks a line.", true, 72) { Dock = DockStyle.Fill, Name = "Wiz.PromptField" };
         _promptField.Box.Name = "Wiz.PromptBox";
         _promptField.Box.KeyDown += OnPromptKeyDown;
         // Button column keeps the primary at the 44px contract height, bottom-aligned to the field.
         var sendColumn = new Panel { Dock = DockStyle.Right, Width = 150, BackColor = PhosphorTheme.Surface };
-        _sendBtn = new PhosphorButton("Craft Flow", PhosphorButtonVariant.Primary) { Dock = DockStyle.Bottom, Height = PhosphorTheme.TouchMin, Name = "Wiz.CraftButton" };
+        _sendBtn = new PhosphorButton("Craft Spell", PhosphorButtonVariant.Primary) { Dock = DockStyle.Bottom, Height = PhosphorTheme.TouchMin, Name = "Wiz.CraftButton" };
         _sendBtn.Click += async (_, _) => await SubmitCraftingPromptAsync();
         sendColumn.Controls.Add(_sendBtn);
         inputRow.Controls.Add(_promptField);
@@ -144,7 +149,7 @@ public sealed class WizCraftingWidgetForm : Form
         }
         AddStarter("Explain my screen", "Wiz.StarterExplain", "Explain what is on my screen and what I should do next.", true);
         AddStarter("Make a checklist", "Wiz.StarterChecklist", "Turn this goal into a step-by-step checklist: ", false);
-        AddStarter("Automate a task", "Wiz.StarterAutomate", "Plan a repeatable flow for this task: ", false);
+        AddStarter("Automate a task", "Wiz.StarterAutomate", "Plan a Combo I can rerun for this task: ", false);
 
         Controls.Add(_threadBox);
         Controls.Add(_starterRow);
@@ -154,7 +159,7 @@ public sealed class WizCraftingWidgetForm : Form
         Controls.Add(WidgetChrome.Spacer(4));
         Controls.Add(lensLabeled);
         Controls.Add(WidgetChrome.Spacer(8));
-        WidgetChrome.Attach(this, "4GE // GRIMX FLOW CRAFTING", "Wiz", PhosphorTheme.Coral, _runtimeBadge);
+        WidgetChrome.Attach(this, "4GE // GRIMX SPELL CRAFTING", "Wiz", PhosphorTheme.Coral, _runtimeBadge);
         WidgetDrag.Enable(this);
     }
 
@@ -225,7 +230,7 @@ public sealed class WizCraftingWidgetForm : Form
         _setThinkingState(true);
 
         _threadBox.ForeColor = PhosphorTheme.Bone;
-        _threadBox.AppendText($"\n\nOPERATOR // {_activeFlowLens.ToUpperInvariant()}\n{prompt}\n\nWIZ // {_ark.SelectedModel.ToUpperInvariant()} // crafting");
+        _threadBox.AppendText($"\n\nOPERATOR // {ActiveLensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // {_ark.SelectedModel.ToUpperInvariant()} // crafting");
         _threadBox.SelectionStart = _threadBox.TextLength;
         _threadBox.ScrollToCaret();
 

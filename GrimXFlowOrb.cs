@@ -14,15 +14,15 @@ public sealed record GrimXOrbSlot(
     Color AccentColor);
 
 /// <summary>
-/// 8-Slot GrimX Flow Orb rendered in ArkStation Phosphor Shell tokens.
-/// Zero Ev3-Orb or Omnidex references — strictly GrimX Flow kinds (Slots 1-6),
+/// 8-slot Spell Orb rendered in ArkStation Phosphor Shell tokens.
+/// Zero Ev3-Orb or Omnidex references — strictly GrimX Spell kinds (Slots 1-6),
 /// Wiz Crafting Chatbot (Slot 7), and AInbox Pod Intake + Handoff Scroll (Slot 8).
 /// </summary>
 public sealed class GrimXFlowOrb
 {
     public static readonly GrimXOrbSlot[] Slots =
     {
-        new(0, "spell",    "SPELL",    "CAST",    "One-shot Flow",       "operate",    PhosphorTheme.Patina),
+        new(0, "spell",    "QUICK CAST", "CAST",  "One-shot Spell",      "operate",    PhosphorTheme.Patina),
         new(1, "ritual",   "RITUAL",   "PERFORM", "Scheduled cadence",   "operate",    PhosphorTheme.Patina),
         new(2, "symphony", "SYMPHONY", "CONDUCT", "Orchestra workflow",  "create",     PhosphorTheme.Coral),
         new(3, "ultima",   "ULTIMA",   "PURSUE",  "Deluge synthesis",    "distribute", PhosphorTheme.Seal),
@@ -144,7 +144,7 @@ public sealed class GrimXFlowOrb
     public bool IsVisible => IsActive || _openProgress.Current > 0.02;
 
     /// <summary>
-    /// Draws the 8-Slot GrimX Flow Orb in Phosphor Shell styling centered at (centerX, centerY).
+    /// Draws the 8-slot Spell Orb in Phosphor Shell styling centered at (centerX, centerY).
     /// </summary>
     public void Draw(Graphics g, float centerX, float centerY, float dpiScale)
     {

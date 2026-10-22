@@ -628,7 +628,7 @@ public sealed class HolodexLiteDrawerForm : Form
             sb.AppendLine($"• {m.TriggerLabel}");
             sb.AppendLine($"  -> {m.ActionLabel} ({m.Parameter})\n");
         }
-        sb.AppendLine("GRIMX FLOW ONTOLOGY (8-SLOT ORB // MIDDLE-HOLD OR F15)");
+        sb.AppendLine("SPELL ORB (8 SLOTS // MIDDLE-HOLD OR F15)");
         foreach (var s in GrimXFlowOrb.Slots)
         {
             string slotLabel = string.Equals(s.Verb, s.Title, StringComparison.OrdinalIgnoreCase) ? s.Title : $"{s.Verb} {s.Title}";
