@@ -88,7 +88,6 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         "nvidia/Nemotron-3.5-Super-VL",
         "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
         "openbmb/MiniCPM-V-4_5",
-        "Qwen/Qwen2.5-VL-72B-Instruct",
         "google/gemma-3-27b-it",
         "ark/kimi"
     };
@@ -242,7 +241,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         var footer = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "Snip.Footer" };
         _visionModel = VisionModels[0];
         _visionModelChip = new ModelChip(_ark, VisionModels, () => _visionModel, m => _visionModel = m) { Dock = DockStyle.Left, Name = "Snip.VisionModelSelect" };
-        _visionModelChip.SizeChanged += (_, _) => SyncAskLabel();
+        _visionModelChip.ModelChanged += (_, _) => SyncAskLabel();
         _analyzeBtn = new PhosphorButton("Ask", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Snip.AnalyzeButton" };
         _analyzeBtn.Click += async (_, _) => await RunLiveVisionAnalysisAsync();
         footer.Controls.Add(_visionModelChip);
@@ -300,6 +299,13 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             ? "Ask about the element. Empty asks for Phosphor improvements."
             : "Ask about the capture. Empty asks for a description and next steps.";
         Invalidate();
+    }
+
+    /// <summary>Probes the gateway first so gateway-only models are offered exactly when it is up.</summary>
+    private async System.Threading.Tasks.Task RefreshVisionModelsAsync()
+    {
+        await _ark.CheckStatusAsync();
+        await _visionModelChip.RefreshAsync();
     }
 
     private void SyncAskLabel()
@@ -383,7 +389,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         Invalidate(true);
         Update();
         _visionPromptBox.Focus();
-        _ = _visionModelChip.RefreshAsync();
+        _ = RefreshVisionModelsAsync();
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -641,7 +647,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             return;
         }
 
+        if (!_analyzeBtn.Enabled) return; // a request is already out
         ShowAnswer($"Asking {ModelChip.ShortName(chosenVisionModel)} about the {_selectionRect.Width}x{_selectionRect.Height} capture...", PhosphorTheme.Patina);
+        _analyzeBtn.Enabled = false;
         _setThinkingState(true);
 
         try
@@ -657,6 +665,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
         finally
         {
+            _analyzeBtn.Enabled = true;
             _setThinkingState(false);
         }
     }

@@ -1288,7 +1288,7 @@ public sealed class ArkStationClient
 
     /// <summary>
     /// Multi-model Live Vision router supporting NVIDIA Nemotron VL (`nvidia/Nemotron-3.5-Super-VL`),
-    /// open vision models on Nebius Token Factory (`openbmb/MiniCPM-V-4_5`, `Qwen/Qwen2.5-VL-72B-Instruct`,
+    /// open vision models on Nebius Token Factory (`openbmb/MiniCPM-V-4_5`,
     /// `google/gemma-3-27b-it`), and Ark Model Gateway (`ark/kimi`), with automatic graceful fallback to
     /// `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` when a vision tier is unavailable.
     /// </summary>

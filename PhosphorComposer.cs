@@ -142,7 +142,7 @@ internal class ComposerSurface : Control
     public Panel Content { get; }
 
     /// <summary>Control height that fits <paramref name="contentHeight"/> of composer inside the insets.</summary>
-    public int HeightFor(int contentHeight) => contentHeight + (int)Math.Round(2 * (InsetPx + PadYPx) * PhosphorPaint.Scale(this));
+    public int HeightFor(int contentHeight) => contentHeight + (int)Math.Round(2 * (InsetPx + PadYPx) * PhosphorComposerScale.Of(this));
 
     protected RectangleF WellRect
     {
@@ -325,8 +325,8 @@ internal class SuggestionChip : Control
     public void Fit()
     {
         AccessibleName = Detail.Length > 0 ? $"{Label}, {Detail}" : Label;
-        float s = PhosphorPaint.Scale(this);
-        using var g = CreateGraphics();
+        float s = PhosphorComposerScale.Of(this);
+        using var g = Graphics.FromHwnd(IntPtr.Zero);
         using var font = PhosphorFonts.Mono(10.5f * s);
         float text = PhosphorPaint.MeasureTracked(g, Text2, font, 1f * s);
         Width = (int)Math.Ceiling(text + (ShowArrow ? 88f : 66f) * s);
@@ -411,6 +411,10 @@ internal sealed class ModelChip : SuggestionChip
     private readonly IReadOnlyList<string>? _fixedModels;
     private List<string> _models = new();
     private string? _runtime;
+    private string? _lastLabel;
+
+    /// <summary>Raised when the model the chip names changes (owners relabel their primary from it).</summary>
+    public event EventHandler? ModelChanged;
 
     public ModelChip(ArkStationClient ark, IReadOnlyList<string>? fixedModels = null, Func<string>? get = null, Action<string>? set = null)
     {
@@ -429,6 +433,8 @@ internal sealed class ModelChip : SuggestionChip
     public async Task RefreshAsync()
     {
         var models = (_fixedModels ?? await _ark.GetAvailableModelsAsync()).ToList();
+        // ark/ models only answer through the ArkStation gateway; offer them only while it is up.
+        if (!_ark.LastGatewayOnline) models.RemoveAll(m => m.StartsWith("ark/", StringComparison.OrdinalIgnoreCase));
         if (!models.Contains(_get(), StringComparer.OrdinalIgnoreCase)) models.Insert(0, _get());
         _models = models;
         Sync();
@@ -437,7 +443,12 @@ internal sealed class ModelChip : SuggestionChip
     /// <summary>After a run, the runtime that actually answered (for example ANTIGRAVITY CLI) replaces the guess.</summary>
     public void ShowRuntime(string runtime)
     {
-        _runtime = runtime;
+        // Runtimes come back as ids like "ark-model-gateway (nvidia/...)"; the chip names the host.
+        string r = runtime.ToLowerInvariant();
+        _runtime = r.Contains("gemini") ? "Gemini"
+            : r.Contains("gateway") ? "Ark gateway"
+            : r.Contains("nebius") || r.Contains("token") ? "Nebius"
+            : runtime.Split(' ', '(')[0];
         Sync();
     }
 
@@ -450,6 +461,11 @@ internal sealed class ModelChip : SuggestionChip
         Confident = keyed;
         DotColor = keyed ? null : PhosphorTheme.Ember;
         Fit();
+        if (_lastLabel != model)
+        {
+            _lastLabel = model;
+            ModelChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private string Host(string model) => model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase) || (_ark.LastGatewayOnline && !ArkStationClient.IsNemotronModel(model))
@@ -557,6 +573,15 @@ internal sealed class DisclosureRow : Control
     }
 }
 
+/// <summary>
+/// Scale for sizes the kit computes. Before a control has a window its sizes are logical 96-DPI pixels that the
+/// form's DPI autoscale multiplies later, so they must not be pre-scaled; once it has a window they are device pixels.
+/// </summary>
+internal static class PhosphorComposerScale
+{
+    public static float Of(Control c) => c.IsHandleCreated ? PhosphorPaint.Scale(c) : 1f;
+}
+
 /// <summary>Sizes a widget to its docked children, keeping its top edge and staying on screen.</summary>
 internal static class FitToContent
 {
@@ -574,6 +599,8 @@ internal static class FitToContent
             c.Visible = on;
             if (on) height += c.Height;
         }
+        var area = (form.Visible ? Screen.FromControl(form) : Screen.FromPoint(form.Location)).WorkingArea;
+        height = Math.Min(height, area.Height - 24);
         if (height == form.Height) return;
         var top = form.Location;
         form.Height = height;

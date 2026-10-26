@@ -26,7 +26,8 @@ internal static class WidgetDrag
 
     private static void Attach(Form form, Control control)
     {
-        if (control == form || control is Panel || control is Label)
+        // SpecCardPanel takes its own clicks (the barcode copies the seal), so it is not a drag surface.
+        if (control == form || (control is Panel && control is not SpecCardPanel) || control is Label)
         {
             control.MouseDown += (_, e) =>
             {

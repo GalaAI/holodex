@@ -209,6 +209,9 @@ public sealed class WizCraftingWidgetForm : Form
         if (_working) return;
         if (string.IsNullOrEmpty(prompt)) { _promptBox.Focus(); return; }
 
+        // Clearing the box re-runs the lens suggestion on empty text; keep the lens this goal is crafted with.
+        string lens = _activeFlowLens;
+        string lensTitle = ActiveLensTitle;
         _promptBox.Clear();
         _starterRow.Visible = false;
         _promptBox.Enabled = false;
@@ -218,7 +221,7 @@ public sealed class WizCraftingWidgetForm : Form
         _setThinkingState(true);
 
         _threadBox.ForeColor = PhosphorTheme.Bone;
-        _threadBox.AppendText($"{(HasThread ? "\n\n" : "")}YOU // {ActiveLensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // crafting");
+        _threadBox.AppendText($"{(HasThread ? "\n\n" : "")}YOU // {lensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // crafting");
         _threadBox.SelectionStart = _threadBox.TextLength;
         _threadBox.ScrollToCaret();
         FitToThread();
@@ -229,7 +232,7 @@ public sealed class WizCraftingWidgetForm : Form
 
         try
         {
-            var (ok, runtime, model, output) = await _ark.AskWizGeminiArgonAsync(prompt, _activeFlowLens, snapshot);
+            var (ok, runtime, model, output) = await _ark.AskWizGeminiArgonAsync(prompt, lens, snapshot);
             _modelChip.ShowRuntime(runtime);
             _threadBox.AppendText($"\n\nWIZ // {ModelChip.ShortName(model).ToUpperInvariant()}\n{output}");
             _threadBox.SelectionStart = _threadBox.TextLength;

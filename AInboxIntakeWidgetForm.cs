@@ -58,6 +58,10 @@ public sealed class AInboxIntakeWidgetForm : Form
     private bool _working;
     private System.Windows.Forms.Timer? _undoTimer;
     private int _undoLeft;
+    private bool _evidenceEdited;
+    private bool _settingScroll;
+    private long _lastDragMs;
+    private readonly System.Windows.Forms.Timer _dragLeaveTimer = new() { Interval = 150 };
 
     /// <summary>Opens the snip tools (Pick, Lasso); their Send to AInbox comes back through SummonAt.</summary>
     internal Action<WandCaptureTool>? RequestCapture { get; set; }
@@ -130,8 +134,16 @@ public sealed class AInboxIntakeWidgetForm : Form
         _evidenceWorkingField.Box.Name = "AInbox.WorkingStateBox";
         _evidenceDeliverableField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.DeliverableEvidenceField" };
         _evidenceDeliverableField.Box.Name = "AInbox.DeliverableEvidenceBox";
+        // Context and Goal are drafted from the intent and are what the scroll states, so they are read-only here;
+        // the three evidence lines are the operator's to edit, and an edit sticks and re-seals.
+        _scrollContextField.Box.ReadOnly = true;
+        _scrollGoalField.Box.ReadOnly = true;
         foreach (var field in new[] { _evidenceReceivedField, _evidenceWorkingField, _evidenceDeliverableField })
-            field.Box.TextChanged += (_, _) => UpdateSeal();
+            field.Box.TextChanged += (_, _) =>
+            {
+                if (!_settingScroll) _evidenceEdited = true;
+                UpdateSeal();
+            };
 
         var rowContext = WidgetChrome.Labeled("1 // Context", _scrollContextField, 48);
         ((Control)rowContext.Tag!).Name = "AInbox.ScrollContextLabel";
@@ -180,7 +192,13 @@ public sealed class AInboxIntakeWidgetForm : Form
         WidgetChrome.Attach(this, "AINBOX // INTAKE", "AInbox", PhosphorTheme.Seal, null);
         WidgetDrag.Enable(this);
 
-        // A drop anywhere on the widget lands in the composer, and the well shows it while it is over.
+        // A drop anywhere on the widget lands in the composer, and the well shows it while it is over. A leave settles
+        // after a beat: moving onto another of the widget's targets keeps the well, a cancel (Esc) or real leave resets it.
+        _dragLeaveTimer.Tick += (_, _) =>
+        {
+            _dragLeaveTimer.Stop();
+            if (_composer.Mode == CaptureWellMode.DragOver && Environment.TickCount64 - _lastDragMs > 120) _composer.SetMode(_composer.RestMode);
+        };
         WireDrop(this);
         WireDrop(_composer);
         WireDrop(_intentBox);
@@ -195,7 +213,12 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        if (keyData == Keys.Escape) { Hide(); return true; }
+        if (keyData == Keys.Escape)
+        {
+            if (_undoTimer != null) CancelPendingSend();
+            else Hide();
+            return true;
+        }
         if (keyData == (Keys.Control | Keys.Enter)) { OnSendClicked(); return true; }
         if (keyData == Keys.Tab && _intentBox.Focused && _intentBox.TextLength == 0 && _suggestion.Length > 0)
         {
@@ -211,6 +234,7 @@ public sealed class AInboxIntakeWidgetForm : Form
     public void SummonAt(Point cursorPos, string? preCapturedDataUrl = null, string? captureName = null)
     {
         _summonPos = cursorPos;
+        if (_composer.Mode == CaptureWellMode.DragOver) _composer.SetMode(_composer.RestMode);
         if (!string.IsNullOrEmpty(preCapturedDataUrl))
         {
             _capturedDataUrl = preCapturedDataUrl;
@@ -295,15 +319,17 @@ public sealed class AInboxIntakeWidgetForm : Form
             if (e.Data != null && (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text) || e.Data.GetDataPresent(DataFormats.Bitmap)))
             {
                 e.Effect = DragDropEffects.Copy;
+                _lastDragMs = Environment.TickCount64;
                 if (_composer.Mode != CaptureWellMode.DragOver) _composer.SetMode(CaptureWellMode.DragOver, CaptureKinds.FromDrag(e.Data));
             }
         };
-        c.DragOver += (_, e) => { if (_composer.Mode == CaptureWellMode.DragOver) e.Effect = DragDropEffects.Copy; };
-        c.DragLeave += (_, _) =>
+        c.DragOver += (_, e) =>
         {
-            // Moving between the widget's own drop targets is not leaving it.
-            if (!RectangleToScreen(ClientRectangle).Contains(Cursor.Position)) _composer.SetMode(_composer.RestMode);
+            if (_composer.Mode != CaptureWellMode.DragOver) return;
+            e.Effect = DragDropEffects.Copy;
+            _lastDragMs = Environment.TickCount64;
         };
+        c.DragLeave += (_, _) => { _dragLeaveTimer.Stop(); _dragLeaveTimer.Start(); };
         c.DragDrop += OnDragDrop;
     }
 
@@ -470,6 +496,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private void ResetComposer()
     {
+        _evidenceEdited = false;
         _selectedFilePath = null;
         _capturedDataUrl = null;
         _attachmentSha = null;
@@ -495,7 +522,10 @@ public sealed class AInboxIntakeWidgetForm : Form
         _hashTask = null;
         if (!string.IsNullOrEmpty(_capturedDataUrl))
         {
-            _attachmentSha = ArkStationClient.Sha256Hex(System.Text.Encoding.UTF8.GetBytes(_capturedDataUrl));
+            // Hash the image bytes, not the data URL text, so a receiver hashing the PNG gets the same value.
+            int comma = _capturedDataUrl.IndexOf(',');
+            try { _attachmentSha = ArkStationClient.Sha256Hex(Convert.FromBase64String(_capturedDataUrl[(comma + 1)..])); }
+            catch (FormatException) { _attachmentSha = ArkStationClient.Sha256Hex(System.Text.Encoding.UTF8.GetBytes(_capturedDataUrl)); }
             return;
         }
         string? path = _selectedFilePath;
@@ -625,11 +655,16 @@ public sealed class AInboxIntakeWidgetForm : Form
         _summary.Accent = podAccent;
         _summary.Invalidate();
 
+        _settingScroll = true;
         _scrollContextField.Box.Text = previewScroll.Context;
         _scrollGoalField.Box.Text = previewScroll.Goal;
-        _evidenceReceivedField.Box.Text = previewScroll.DesiredEvidence.ProofOfReceived;
-        _evidenceWorkingField.Box.Text = previewScroll.DesiredEvidence.WorkingState;
-        _evidenceDeliverableField.Box.Text = previewScroll.DesiredEvidence.DeliverableEvidence;
+        if (!_evidenceEdited)
+        {
+            _evidenceReceivedField.Box.Text = previewScroll.DesiredEvidence.ProofOfReceived;
+            _evidenceWorkingField.Box.Text = previewScroll.DesiredEvidence.WorkingState;
+            _evidenceDeliverableField.Box.Text = previewScroll.DesiredEvidence.DeliverableEvidence;
+        }
+        _settingScroll = false;
 
         _scroll.Code = pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
         _scroll.Title = "Handoff Scroll";
@@ -751,6 +786,9 @@ public sealed class AInboxIntakeWidgetForm : Form
                 _attachmentSha);
 
             bool pulsed = receipt.PulseStatus == "pulsed";
+            if (!Visible)
+                PhosphorToast.Show(pulsed ? $"Sent to {receipt.PodLabel}" : "Handoff saved locally",
+                    $"sha256:{receipt.HandoffScroll.Sha256[..12]}", "AINBOX // HANDOFF", 3200, ToastTone.Success);
             ResetComposer();
             SetStatus(pulsed
                 ? $"SENT // {receipt.OrchestratorAgentId} @ {receipt.PodInboxChannel} // sha256:{receipt.HandoffScroll.Sha256[..12]}"
@@ -759,6 +797,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         catch (Exception ex)
         {
             SetStatus($"NOT SENT // {ex.Message}", PhosphorTheme.Rust);
+            if (!Visible) PhosphorToast.Show("Handoff not sent", ex.Message, "AINBOX // HANDOFF", 4200, ToastTone.Error);
         }
         finally
         {
@@ -768,6 +807,15 @@ public sealed class AInboxIntakeWidgetForm : Form
             _sendBtn.Text = $"Send to {SelectedPod.Label}";
             Invalidate();
         }
+    }
+
+    /// <summary>Closing the widget while a send is pending sends it now; the result comes back as a toast.</summary>
+    protected override void OnVisibleChanged(EventArgs e)
+    {
+        base.OnVisibleChanged(e);
+        if (Visible || _undoTimer == null) return;
+        StopUndoTimer();
+        _ = SubmitIntakeAsync();
     }
 
     protected override void OnPaint(PaintEventArgs e)

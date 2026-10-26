@@ -100,7 +100,7 @@ public sealed class OmniwandHudForm : Form
         // Footer: which model answers, what is happening, and the one primary.
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Hud.Footer" };
         _modelChip = new ModelChip(_ark) { Dock = DockStyle.Left, Name = "Hud.ModelPicker" };
-        _modelChip.SizeChanged += (_, _) => SyncAskLabel();
+        _modelChip.ModelChanged += (_, _) => { SyncAskLabel(); SyncVisionHint(); };
         _statusLine = new DataLabel("ENTER ASKS") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "Hud.StatusLine" };
         _askBtn = new PhosphorButton("Ask", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Hud.AskButton" };
         _askBtn.Click += async (_, _) => await AskAsync();
@@ -128,7 +128,21 @@ public sealed class OmniwandHudForm : Form
     /// <summary>No answer yet: no answer box. An answer (or the asking state) opens it under the question.</summary>
     private void FitToAnswer() => FitToContent.Apply(this, c => c == _responseBox || c == _responseGap ? HasAnswer : true);
 
-    private void SyncVisionHint() => _visionHint.Text = _visionToggle.Selected ? "SCREEN AROUND THE TIP GOES WITH IT" : "TEXT ONLY";
+    /// <summary>
+    /// The model that actually answers: on the Nebius path a text-only Nemotron hands an attached screen to
+    /// Nemotron 3.5 Super VL (ArkStationClient.AskNebiusTokenFactoryAsync), so say that rather than the chip's model.
+    /// </summary>
+    private string AnsweringModel(bool withScreen)
+    {
+        string model = _ark.SelectedModel;
+        bool nebiusPath = !_ark.LastGatewayOnline || ArkStationClient.IsNemotronModel(model);
+        bool vision = model.Contains("vl", StringComparison.OrdinalIgnoreCase) || model.Contains("omni", StringComparison.OrdinalIgnoreCase) || model.Contains("vision", StringComparison.OrdinalIgnoreCase);
+        return withScreen && nebiusPath && !vision ? "nvidia/Nemotron-3.5-Super-VL" : model;
+    }
+
+    private void SyncVisionHint() => _visionHint.Text = _visionToggle.Selected
+        ? $"SCREEN GOES WITH IT // {ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant()} READS IT"
+        : "TEXT ONLY";
 
     private void SyncAskLabel()
     {
@@ -207,7 +221,7 @@ public sealed class OmniwandHudForm : Form
             var (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot);
             _responseBox.ForeColor = ok ? PhosphorTheme.Bone : PhosphorTheme.Rust;
             _responseBox.Text = output;
-            SetStatus(ok ? "ENTER ASKS AGAIN" : "NOT ANSWERED", ok ? PhosphorTheme.Ghost : PhosphorTheme.Rust);
+            SetStatus(ok ? $"ANSWERED BY {ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant()}" : "NOT ANSWERED", ok ? PhosphorTheme.Ghost : PhosphorTheme.Rust);
             FitToAnswer();
         }
         finally

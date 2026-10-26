@@ -103,8 +103,8 @@ internal static class PhosphorTips
         ["AInbox.ContentRow"] = new("Link or snippet", "Pasted text that travels with the handoff. The x removes it."),
         ["AInbox.RouteChip"] = new("Send to", "Omnitek picks the pod from what you attach; the dot lights when it is sure. Click to steer it."),
         ["AInbox.ScrollSummary"] = new("Handoff scroll", "What the receiving agent will read, in one line. Review opens the full scroll to edit."),
-        ["AInbox.SubmitButton"] = new("Send", "Waits five seconds so you can undo, then writes the scroll and pulses the pod.", "Ctrl+Enter"),
-        ["AInbox.HandoffScroll"] = new("Handoff scroll", "The fields the receiving agent reads. Edit anything before you send."),
+        ["AInbox.SubmitButton"] = new("Send", "Waits five seconds so you can undo (or press Esc), then writes the scroll and pulses the pod.", "Ctrl+Enter"),
+        ["AInbox.HandoffScroll"] = new("Handoff scroll", "What the receiving agent reads. Edit the three evidence lines before you send; the seal follows your edits."),
 
         ["Holodex.TabBar"] = new("Holodex tabs", "Session, AInbox, Codex, GrimX and Mods. Each tab keeps its state while the drawer is closed."),
         ["Holodex.VaultBadge"] = new("Connection", "Nemotron ready or Gateway online when a key works. Click to link or replace the Nebius key."),
