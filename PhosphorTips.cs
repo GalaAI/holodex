@@ -29,6 +29,12 @@ internal static class PhosphorMotion
     /// <summary>cubic-bezier(0.45,0.05,0.35,1) solved for y at progress t.</summary>
     public static float EaseAnalog(float t) => CubicBezier(Math.Clamp(t, 0f, 1f), 0.45f, 0.05f, 0.35f, 1f);
 
+    /// <summary>
+    /// ease-spring cubic-bezier(0.34,1.36,0.5,1) (CP-36, approved 2026-10-20): the one overshoot easing, for
+    /// things that lift, drop, land or snap back. Overshoots past 1 before settling.
+    /// </summary>
+    public static float EaseSpring(float t) => CubicBezier(Math.Clamp(t, 0f, 1f), 0.34f, 1.36f, 0.5f, 1f);
+
     /// <summary>Ease-out cubic for entries that should settle, not swing.</summary>
     public static float EaseOut(float t)
     {
@@ -83,9 +89,16 @@ internal static class PhosphorTips
         ["Wiz.ModelPicker"] = new("Model", "Which Nebius-hosted model plans the Spell."),
         ["Wiz.RuntimeBadge"] = new("Runtime", "Shows which endpoint answered and whether it is online."),
 
-        ["AInbox.Uploader"] = new("Drop it here", "Drag in files, paste a snippet or capture the screen. Several items stack into one handoff."),
-        ["AInbox.ChooseFileButton"] = new("Choose files", "Browse for files to add to this handoff."),
-        ["AInbox.CaptureButton"] = new("Capture", "Grab a region of the screen straight into the stack.", "Alt+S"),
+        ["AInbox.Well"] = new("Capture well", "Drop a file, image, link or text here, or click to choose a file. The kind it carries lifts out of the fan.", "Enter"),
+        ["AInbox.Kind.File"] = new("File", "Drop any file on the well, or choose one."),
+        ["AInbox.Kind.Screen"] = new("Screen", "Grabs 640x420 around the wand tip."),
+        ["AInbox.Kind.Pick"] = new("Pick", "Point at a window or element, then Send to AInbox from the picker.", "Alt+E"),
+        ["AInbox.Kind.Lasso"] = new("Lasso", "Draw a free-form region on any screen, then Send to AInbox.", "Alt+S"),
+        ["AInbox.Kind.Record"] = new("Record (planned)", "Records the screen with live annotation. Not built yet."),
+        ["AInbox.Kind.Whisper"] = new("Whisper (planned)", "A Ghost Whisper voice note, transcribed. Not wired to AInbox yet."),
+        ["AInbox.Kind.Snippet"] = new("Snippet", "Pastes selected text, code or notes from the clipboard."),
+        ["AInbox.Kind.Link"] = new("Link", "Pastes a URL from the clipboard; the service fetches and titles it."),
+        ["AInbox.CapturedRow"] = new("Captured", "What goes with this handoff and what Omnitek predicts it is. The x removes it."),
         ["AInbox.PodSelect"] = new("Target pod", "Where the handoff lands. The orchestrator suggests one; you can steer it."),
         ["AInbox.IntentField"] = new("Intent", "One line on what should happen with this drop."),
         ["AInbox.SubmitButton"] = new("Hand it off", "Writes the handoff scroll and sends it to the selected pod."),
@@ -106,6 +119,7 @@ internal static class PhosphorTips
         ["Snip.AnalyzeButton"] = new("Analyze", "Sends the lasso region and your prompt to a vision model."),
         ["Snip.InkButton"] = new("Ink", "Draw on the capture to point at what matters."),
         ["Snip.SaveCodexButton"] = new("Save to Codex", "Keeps this capture and its notes in Holodex."),
+        ["Snip.ToAInboxButton"] = new("Send to AInbox", "Hands this capture to the AInbox capture well."),
         ["Snip.VisionModelSelect"] = new("Vision model", "Which model reads the capture."),
         ["Snip.VisionPromptField"] = new("Ask about the capture", "What should the model look for?", "Enter"),
 

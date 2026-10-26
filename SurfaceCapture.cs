@@ -82,6 +82,15 @@ internal static class SurfaceCapture
                 Save(RenderForm(holodex), Path.Combine(dir, "holodex-mods.png"), written);
                 holodex.SwitchTab("session");
             }
+            if (form is AInboxIntakeWidgetForm ainbox)
+            {
+                // The capture well's other two states: a file dragged over (TraceBeam mid-orbit) and a sample capture.
+                ainbox.PreviewState("drag");
+                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-drag.png"), written);
+                ainbox.PreviewState("captured");
+                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-captured.png"), written);
+                ainbox.PreviewState("reset");
+            }
         }
 
         return written;

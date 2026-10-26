@@ -851,11 +851,16 @@ public sealed class ArkStationClient
         if (ext == "svg" || combined.Contains("token") || combined.Contains("icon") || combined.Contains("badge"))
             return new("augment", "element", "high", "Detected atomic visual Element or token.", "magixlab");
         if (combined.Contains("modz") || combined.Contains("mcp"))
-            return new("augment", "modz", "high", "Detected MCP Modz capability bundle.", "forge");
+            return new("mod", null, "high", "Detected an MCP Mod capability bundle.", "forge");
         if (combined.Contains("adapter") || combined.Contains("webhook") || combined.Contains("connector"))
             return new("augment", "adapter", "high", "Detected transport or protocol Adapter.", "eden");
-        if (ext is "png" or "jpg" or "jpeg" or "webp" or "gif" or "mp4" or "wav")
-            return new("augment", "artifact", "high", "Detected visual/media Artifact capture.", "magixlab");
+        // Artifact is its own Omnitek item type (2026-10-23): App (Desktop App, Web App) and Deliverable.
+        if (ext is "exe" or "msi" or "msix" or "appx")
+            return new("artifact", "desktop-app", "high", "Detected a standalone Desktop App Artifact.", "forge");
+        if (ext is "png" or "jpg" or "jpeg" or "webp" or "gif" or "mp4" or "webm" or "wav" or "mp3")
+            return new("artifact", "deliverable", "high", "Detected a captured or generated media Deliverable.", "magixlab");
+        if (ext is "pdf" or "docx" or "pptx" or "xlsx" or "zip")
+            return new("artifact", "deliverable", "high", "Detected an exported document or bundle Deliverable.", "nexus");
 
         if (ext is "csv" or "jsonl" or "parquet" or "db" || combined.Contains("dataset") || combined.Contains("corpus"))
             return new("scroll", "dataset", "high", "Detected structured Dataset corpus.", "cortex");

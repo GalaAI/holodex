@@ -228,6 +228,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _ark,
             thinking => _isAiThinking = thinking,
             _ => _holodexDrawer?.RefreshCodexEntries());
+        // The AInbox well's Pick and Lasso chips open the snip tools, and Send to AInbox brings the capture back.
+        _ainboxWidget.RequestCapture = tool => _snipWidget.SummonAt(GetCursorPoint(), tool);
+        _snipWidget.OnSendToAInbox = (pt, dataUrl, name) => _ainboxWidget.SummonAt(pt, dataUrl, name);
         _holodexDrawer = new HolodexLiteDrawerForm(
             _ark,
             thinking => _isAiThinking = thinking,

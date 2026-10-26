@@ -222,7 +222,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             38)
         {
             Location = new Point(16, 38),
-            Size = new Size(424, 38),
+            Size = new Size(294, 38),
             Name = "Snip.VisionPromptField"
         };
         _visionPromptField.Box.KeyDown += async (_, e) =>
@@ -235,6 +235,15 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             }
         };
         _actionDrawer.Controls.Add(_visionPromptField);
+
+        var toAInboxBtn = new PhosphorButton("To AInbox")
+        {
+            Location = new Point(318, 36),
+            Size = new Size(122, 40),
+            Name = "Snip.ToAInboxButton"
+        };
+        toAInboxBtn.Click += (_, _) => SendCurrentCaptureToAInbox();
+        _actionDrawer.Controls.Add(toAInboxBtn);
 
         var analyzeBtn = new PhosphorButton("Ask Vision", PhosphorButtonVariant.Primary)
         {
@@ -648,6 +657,23 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         {
             _setThinkingState(false);
         }
+    }
+
+    /// <summary>Hands the current lasso or element capture to the AInbox capture well (CP-27).</summary>
+    internal Action<Point, string, string>? OnSendToAInbox { get; set; }
+
+    private void SendCurrentCaptureToAInbox()
+    {
+        string dataUrl = RenderSelectionDataUrl(out string renderError);
+        if (string.IsNullOrEmpty(dataUrl) || OnSendToAInbox == null)
+        {
+            PhosphorToast.Show("Nothing to send", string.IsNullOrEmpty(renderError) ? "Lasso a region or pick an element first." : renderError, "SNIP // AINBOX", 2600, ToastTone.Warning);
+            return;
+        }
+        string name = _activeTool == WandCaptureTool.ElementPicker ? "element-capture.png" : "lasso-capture.png";
+        var at = Cursor.Position;
+        Hide();
+        OnSendToAInbox(at, dataUrl, name);
     }
 
     private void SaveCurrentCaptureToCodex()

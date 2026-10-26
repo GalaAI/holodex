@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -8,18 +10,20 @@ namespace Omniwand;
 
 /// <summary>
 /// AInbox intake (Alt+I, Actions Ring slot 8, pipe ainbox:summon).
-/// Uploader, intent and content composer, Omnitek auto-detect, seven-Pod target, and the
-/// Scribe handoff scroll presented as a CP-20 SpecCard ticket. Submitting writes the scroll
-/// and pulses the Pod orchestrator.
+/// The CP-27 capture well and its eight kind chips, intent and content composer, Omnitek auto-detect,
+/// seven-Pod target, and the Scribe handoff scroll presented as a CP-20 SpecCard ticket. Submitting
+/// writes the scroll and pulses the Pod orchestrator.
 /// </summary>
 public sealed class AInboxIntakeWidgetForm : Form
 {
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
 
-    private readonly DataLabel _fileStatusLabel;
+    private readonly CaptureWellControl _well;
+    private readonly Panel _kindRow;
+    private readonly List<KindChip> _chips = new();
+    private readonly CapturedRow _capturedRow;
     private readonly PhosphorBadge _autoDetectBadge;
-    private readonly DataLabel _detectLine;
     private readonly ComboBox _podDropdown;
     private readonly DataLabel _podOrchestratorLabel;
     private readonly PhosphorField _intentField;
@@ -39,6 +43,9 @@ public sealed class AInboxIntakeWidgetForm : Form
     private bool _userChosePodManually;
     private bool _working;
 
+    /// <summary>Opens the snip tools (Pick, Lasso) for the well; their Send to AInbox comes back through SummonAt.</summary>
+    internal Action<WandCaptureTool>? RequestCapture { get; set; }
+
     public AInboxIntakeWidgetForm(ArkStationClient ark, Action<bool> setThinkingState)
     {
         _ark = ark;
@@ -56,40 +63,42 @@ public sealed class AInboxIntakeWidgetForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "AInbox";
-        Size = new Size(700, 1012);
+        Size = new Size(700, 1030);
         Padding = WidgetChrome.FramePadding();
 
+        // A drop anywhere on the widget lands like a drop on the well, and the well shows it while it is over.
         DragEnter += (_, e) =>
         {
-            if (e.Data != null && (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text)))
+            if (e.Data != null && (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text) || e.Data.GetDataPresent(DataFormats.Bitmap)))
+            {
                 e.Effect = DragDropEffects.Copy;
+                _well!.SetMode(CaptureWellMode.DragOver, CaptureKinds.FromDrag(e.Data));
+            }
         };
+        DragLeave += (_, _) => _well!.SetMode(_well.RestMode);
         DragDrop += OnFormDragDrop;
 
         _autoDetectBadge = new PhosphorBadge("Scroll", PhosphorBadgeState.Unstated) { Name = "AInbox.AutoDetectBadge" };
         _autoDetectBadge.FitToText();
 
-        // Uploader: two default buttons and the drop hint.
-        var uploader = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "AInbox.Uploader" };
-        var chooseFileBtn = new PhosphorButton("Choose file") { Dock = DockStyle.Left, Width = 140, Name = "AInbox.ChooseFileButton" };
-        chooseFileBtn.Click += (_, _) => ChooseFile();
-        var captureBtn = new PhosphorButton("Attach capture") { Dock = DockStyle.Left, Width = 160, Name = "AInbox.CaptureButton" };
-        captureBtn.Click += (_, _) =>
-        {
-            _capturedDataUrl = ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y, 640, 420);
-            _selectedFilePath = "cursor-capture.png";
-            if (_fileStatusLabel != null)
-                _fileStatusLabel.Text = "ATTACHED // cursor-capture.png // 640x420";
-            RefreshAutoDetectionAndScroll();
-        };
-        _fileStatusLabel = new DataLabel("DROP // any file, script, dataset or capture") { Dock = DockStyle.Fill, Height = 44, Name = "AInbox.FileStatus" };
-        uploader.Controls.Add(_fileStatusLabel);
-        uploader.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 12, BackColor = Color.Transparent });
-        uploader.Controls.Add(captureBtn);
-        uploader.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
-        uploader.Controls.Add(chooseFileBtn);
+        // CP-27 capture well: replaces the old Choose file / Attach capture row.
+        _well = new CaptureWellControl { Dock = DockStyle.Top, Height = 88, Name = "AInbox.Well" };
+        _well.Activated += (_, _) => ChooseFile();
+        _well.Dropped += (_, e) => OnFormDragDrop(this, e);
 
-        _detectLine = new DataLabel("OMNITEK // detecting") { Dock = DockStyle.Top, Height = 20, Name = "AInbox.DetectLine" };
+        // Eight kind chips while nothing is captured; the captured row takes their place after.
+        _kindRow = new Panel { Dock = DockStyle.Top, Height = 46, BackColor = Color.Transparent, Name = "AInbox.KindRow" };
+        _capturedRow = new CapturedRow { Dock = DockStyle.Fill, Visible = false };
+        _capturedRow.RemoveClicked += (_, _) => ClearCapture();
+        _kindRow.Controls.Add(_capturedRow);
+        foreach (var info in CaptureKinds.All)
+        {
+            var chip = new KindChip(info);
+            chip.Click += (_, _) => OnKindChip(info);
+            _chips.Add(chip);
+            _kindRow.Controls.Add(chip);
+        }
+        _kindRow.Resize += (_, _) => LayoutChips();
 
         // Target Pod.
         _podDropdown = new PhosphorComboBox { Name = "AInbox.PodSelect" };
@@ -135,22 +144,22 @@ public sealed class AInboxIntakeWidgetForm : Form
 
         // Handoff scroll as a SpecCard ticket (CP-20).
         _scroll = new SpecCardPanel { Dock = DockStyle.Fill, Name = "AInbox.HandoffScroll" };
-        _scrollContextField = new PhosphorField("", true, 52, mono: true) { Name = "AInbox.ScrollContextField" };
+        _scrollContextField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ScrollContextField" };
         _scrollContextField.Box.Name = "AInbox.ScrollContextBox";
         _scrollGoalField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ScrollGoalField" };
         _scrollGoalField.Box.Name = "AInbox.ScrollGoalBox";
-        _evidenceReceivedField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ProofOfReceivedField" };
+        _evidenceReceivedField = new PhosphorField("", false, 36, mono: true) { Name = "AInbox.ProofOfReceivedField" };
         _evidenceReceivedField.Box.Name = "AInbox.ProofOfReceivedBox";
         _evidenceWorkingField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.WorkingStateField" };
         _evidenceWorkingField.Box.Name = "AInbox.WorkingStateBox";
         _evidenceDeliverableField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.DeliverableEvidenceField" };
         _evidenceDeliverableField.Box.Name = "AInbox.DeliverableEvidenceBox";
 
-        var rowContext = WidgetChrome.Labeled("1 // Context", _scrollContextField, 52);
+        var rowContext = WidgetChrome.Labeled("1 // Context", _scrollContextField, 48);
         ((Control)rowContext.Tag!).Name = "AInbox.ScrollContextLabel";
         var rowGoal = WidgetChrome.Labeled("2 // Goal", _scrollGoalField, 48);
         ((Control)rowGoal.Tag!).Name = "AInbox.ScrollGoalLabel";
-        var rowProof = WidgetChrome.Labeled("3A // Proof of received", _evidenceReceivedField, 48);
+        var rowProof = WidgetChrome.Labeled("3A // Proof of received", _evidenceReceivedField, 36);
         ((Control)rowProof.Tag!).Name = "AInbox.ProofOfReceivedLabel";
         var rowWorking = WidgetChrome.Labeled("3B // Working state", _evidenceWorkingField, 48);
         ((Control)rowWorking.Tag!).Name = "AInbox.WorkingStateLabel";
@@ -158,13 +167,13 @@ public sealed class AInboxIntakeWidgetForm : Form
         ((Control)rowDeliverable.Tag!).Name = "AInbox.DeliverableEvidenceLabel";
 
         _scroll.Controls.Add(rowDeliverable);
-        _scroll.Controls.Add(WidgetChrome.Spacer(10));
+        _scroll.Controls.Add(WidgetChrome.Spacer(8));
         _scroll.Controls.Add(rowWorking);
-        _scroll.Controls.Add(WidgetChrome.Spacer(10));
+        _scroll.Controls.Add(WidgetChrome.Spacer(8));
         _scroll.Controls.Add(rowProof);
-        _scroll.Controls.Add(WidgetChrome.Spacer(10));
+        _scroll.Controls.Add(WidgetChrome.Spacer(8));
         _scroll.Controls.Add(rowGoal);
-        _scroll.Controls.Add(WidgetChrome.Spacer(10));
+        _scroll.Controls.Add(WidgetChrome.Spacer(8));
         _scroll.Controls.Add(rowContext);
 
         // Footer: receipt line and the one primary.
@@ -176,21 +185,21 @@ public sealed class AInboxIntakeWidgetForm : Form
         footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
         footer.Controls.Add(_submitBtn);
 
-        // Equal 14px gaps above and below the scroll; the lower one docks Bottom so it sits between the card and the footer.
+        // Equal 10px gaps above and below the scroll; the lower one docks Bottom so it sits between the card and the footer.
         Controls.Add(_scroll);
-        Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 14, BackColor = Color.Transparent });
+        Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = Color.Transparent });
         Controls.Add(footer);
-        Controls.Add(WidgetChrome.Spacer(14));
-        Controls.Add(composer);
         Controls.Add(WidgetChrome.Spacer(10));
+        Controls.Add(composer);
+        Controls.Add(WidgetChrome.Spacer(8));
         Controls.Add(_podOrchestratorLabel);
-        Controls.Add(WidgetChrome.Spacer(6));
+        Controls.Add(WidgetChrome.Spacer(4));
         Controls.Add(podRow);
         Controls.Add(WidgetChrome.Spacer(10));
-        Controls.Add(_detectLine);
+        Controls.Add(_kindRow);
         Controls.Add(WidgetChrome.Spacer(6));
-        Controls.Add(uploader);
-        Controls.Add(WidgetChrome.Spacer(8));
+        Controls.Add(_well);
+        Controls.Add(WidgetChrome.Spacer(6));
         WidgetChrome.Attach(this, "AINBOX // POD INTAKE", "AInbox intake", PhosphorTheme.Seal, _autoDetectBadge);
         WidgetDrag.Enable(this);
 
@@ -203,14 +212,16 @@ public sealed class AInboxIntakeWidgetForm : Form
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
-    public void SummonAt(Point cursorPos, string? preCapturedDataUrl = null)
+    /// <summary>Opens the widget at the cursor. A capture handed over from the snip tools lands in the well.</summary>
+    public void SummonAt(Point cursorPos, string? preCapturedDataUrl = null, string? captureName = null)
     {
         _summonPos = cursorPos;
         if (!string.IsNullOrEmpty(preCapturedDataUrl))
         {
             _capturedDataUrl = preCapturedDataUrl;
-            _selectedFilePath = "lasso-capture.png";
-            _fileStatusLabel.Text = "ATTACHED // lasso-capture.png // region";
+            string name = captureName ?? "lasso-capture.png";
+            bool pick = name.StartsWith("element", StringComparison.OrdinalIgnoreCase);
+            SetCaptured(pick ? CaptureKind.Pick : CaptureKind.Lasso, name, pick ? "PICK // element + origin" : "LASSO // region");
         }
 
         RefreshAutoDetectionAndScroll();
@@ -223,6 +234,91 @@ public sealed class AInboxIntakeWidgetForm : Form
         _intentField.Box.Focus();
     }
 
+    /// <summary>For the as-built capture: "drag" (beam mid-orbit, File lifted), "captured" (a sample file), "reset".</summary>
+    internal void PreviewState(string state)
+    {
+        switch (state)
+        {
+            case "drag":
+                _well.SetMode(CaptureWellMode.DragOver, CaptureKind.File);
+                _well.FreezeForCapture(0.18f);
+                break;
+            case "captured":
+                _well.Unfreeze();
+                SetCaptured(CaptureKind.File, "report.pdf", "FILE // 1.4 MB");
+                _well.FreezeForCapture(0f);
+                break;
+            default:
+                _well.Unfreeze();
+                ClearCapture();
+                break;
+        }
+        Refresh();
+    }
+
+    private void LayoutChips()
+    {
+        float s = PhosphorPaint.Scale(_kindRow);
+        int gap = (int)Math.Round(6 * s);
+        int n = _chips.Count;
+        int w = (_kindRow.Width - gap * (n - 1)) / n;
+        for (int i = 0; i < n; i++)
+        {
+            _chips[i].SetBounds(i * (w + gap), 0, i == n - 1 ? _kindRow.Width - i * (w + gap) : w, _kindRow.Height);
+        }
+    }
+
+    private void OnKindChip(CaptureKindInfo info)
+    {
+        if (info.Planned)
+        {
+            PhosphorToast.Show($"{CaptureKinds.Name(info.Kind)} is planned", info.Kind == CaptureKind.Record
+                ? "Screen recording into AInbox is not built yet."
+                : "Ghost Whisper voice notes are not wired to AInbox yet.", "AINBOX // CAPTURE", 2600, ToastTone.Info);
+            return;
+        }
+        switch (info.Kind)
+        {
+            case CaptureKind.File: ChooseFile(); break;
+            case CaptureKind.Screen: AttachScreen(); break;
+            case CaptureKind.Pick: OpenSnipTool(WandCaptureTool.ElementPicker); break;
+            case CaptureKind.Lasso: OpenSnipTool(WandCaptureTool.FreeformLasso); break;
+            case CaptureKind.Snippet: PasteClipboard(link: false); break;
+            case CaptureKind.Link: PasteClipboard(link: true); break;
+        }
+    }
+
+    private void OpenSnipTool(WandCaptureTool tool)
+    {
+        if (RequestCapture == null) return;
+        // Hide first so the frozen desktop the snip tool captures does not include this widget.
+        Hide();
+        var delay = new System.Windows.Forms.Timer { Interval = 150 };
+        delay.Tick += (_, _) => { delay.Stop(); delay.Dispose(); RequestCapture(tool); };
+        delay.Start();
+    }
+
+    private void AttachScreen()
+    {
+        _capturedDataUrl = ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y, 640, 420);
+        SetCaptured(CaptureKind.Screen, "cursor-capture.png", "SCREEN // 640x420");
+    }
+
+    private void PasteClipboard(bool link)
+    {
+        string text = Clipboard.ContainsText() ? Clipboard.GetText().Trim() : "";
+        bool isLink = text.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || text.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        if (text.Length == 0 || (link && !isLink))
+        {
+            PhosphorToast.Show(link ? "No link on the clipboard" : "Clipboard is empty",
+                link ? "Copy a URL first, then press Link." : "Copy some text or code first, then press Snippet.",
+                "AINBOX // CAPTURE", 2400, ToastTone.Warning);
+            return;
+        }
+        _contentField.Box.Text = text;
+        _contentField.Box.Focus();
+    }
+
     private void ChooseFile()
     {
         using var dlg = new OpenFileDialog
@@ -232,32 +328,80 @@ public sealed class AInboxIntakeWidgetForm : Form
         };
         if (dlg.ShowDialog(this) == DialogResult.OK)
         {
-            _selectedFilePath = dlg.FileName;
-            _fileStatusLabel.Text = $"ATTACHED // {Path.GetFileName(dlg.FileName)}";
-            _userChosePodManually = false;
-            RefreshAutoDetectionAndScroll();
+            _capturedDataUrl = null;
+            SetCaptured(CaptureKind.File, dlg.FileName, FileMeta(dlg.FileName));
         }
     }
 
     private void OnFormDragDrop(object? sender, DragEventArgs e)
     {
-        if (e.Data == null) return;
+        if (e.Data == null) { _well.SetMode(_well.RestMode); return; }
         if (e.Data.GetDataPresent(DataFormats.FileDrop) &&
             e.Data.GetData(DataFormats.FileDrop) is string[] files &&
             files.Length > 0)
         {
-            _selectedFilePath = files[0];
-            _fileStatusLabel.Text = $"DROPPED // {Path.GetFileName(files[0])}";
-            _userChosePodManually = false;
-            RefreshAutoDetectionAndScroll();
+            // One capture travels with a handoff today; extra files are named so nothing is dropped silently.
+            string meta = FileMeta(files[0]) + (files.Length > 1 ? $" // {files.Length - 1} more not sent" : "");
+            _capturedDataUrl = null;
+            SetCaptured(CaptureKind.File, files[0], meta);
+        }
+        else if (e.Data.GetDataPresent(DataFormats.Bitmap) && e.Data.GetData(DataFormats.Bitmap) is Image img)
+        {
+            using var ms = new MemoryStream();
+            img.Save(ms, ImageFormat.Png);
+            _capturedDataUrl = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+            SetCaptured(CaptureKind.Screen, "dropped-image.png", $"IMAGE // {img.Width}x{img.Height}");
         }
         else if (e.Data.GetDataPresent(DataFormats.Text) &&
                  e.Data.GetData(DataFormats.Text) is string text)
         {
             _contentField.Box.Text = text;
+            _well.SetMode(_well.RestMode);
             RefreshAutoDetectionAndScroll();
         }
+        else _well.SetMode(_well.RestMode);
     }
+
+    private void SetCaptured(CaptureKind kind, string path, string meta)
+    {
+        _selectedFilePath = path;
+        _userChosePodManually = false;
+        _capturedRow.Kind = kind;
+        _capturedRow.ItemName = Path.GetFileName(path);
+        _capturedRow.Meta = meta;
+        foreach (var chip in _chips) chip.Visible = false;
+        _capturedRow.Visible = true;
+        _well.RestMode = CaptureWellMode.Captured;
+        _well.SetMode(CaptureWellMode.Captured);
+        RefreshAutoDetectionAndScroll();
+    }
+
+    private void ClearCapture()
+    {
+        _selectedFilePath = null;
+        _capturedDataUrl = null;
+        _capturedRow.Visible = false;
+        foreach (var chip in _chips) chip.Visible = true;
+        _well.RestMode = CaptureWellMode.Idle;
+        _well.SetMode(CaptureWellMode.Idle);
+        RefreshAutoDetectionAndScroll();
+    }
+
+    private static string FileMeta(string path)
+    {
+        try
+        {
+            long bytes = new FileInfo(path).Length;
+            string size = bytes >= 1 << 20 ? $"{bytes / 1048576.0:0.0} MB" : bytes >= 1024 ? $"{bytes / 1024.0:0.0} KB" : $"{bytes} B";
+            return $"FILE // {size}";
+        }
+        catch { return "FILE"; }
+    }
+
+    /// <summary>Omnitek's prediction as TYPE // SUBTYPE, for example ARTIFACT // DELIVERABLE.</summary>
+    private static string ItemLabel(OmnitekAutoDetectInfo d) => string.IsNullOrEmpty(d.ItemSubtype)
+        ? d.ItemType.ToUpperInvariant()
+        : $"{d.ItemType.ToUpperInvariant()} // {d.ItemSubtype.Replace('-', ' ').ToUpperInvariant()}";
 
     private ArkPodInboxInfo GetSelectedPod()
     {
@@ -269,12 +413,10 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         var detected = _ark.AutoDetectOmnitekItem(_selectedFilePath, _contentField.Box.Text, _intentField.Box.Text);
         string badge = detected.DisplayBadge;
-        if (badge.Length > 16) badge = badge[..16];
+        if (badge.Length > 24) badge = badge[..24];
         _autoDetectBadge.Text = badge;
-        _autoDetectBadge.State = string.Equals(detected.Confidence, "high", StringComparison.OrdinalIgnoreCase)
-            ? PhosphorBadgeState.Validated
-            : PhosphorBadgeState.Unstated;
-        _detectLine.Text = $"OMNITEK // {detected.DisplayBadge.ToUpperInvariant()} // {detected.Confidence.ToUpperInvariant()} confidence";
+        bool high = string.Equals(detected.Confidence, "high", StringComparison.OrdinalIgnoreCase);
+        _autoDetectBadge.State = high ? PhosphorBadgeState.Validated : PhosphorBadgeState.Unstated;
 
         if (!_userChosePodManually)
         {
@@ -292,6 +434,27 @@ public sealed class AInboxIntakeWidgetForm : Form
         Color podAccent = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _podOrchestratorLabel.ForeColor = podAccent;
         _podOrchestratorLabel.Text = $"PULSE // {pod.OrchestratorLabel} @ {pod.InboxChannel}";
+
+        // The well's copy and its Omnitek line follow what is captured.
+        string item = ItemLabel(detected);
+        bool anyInput = _selectedFilePath != null || !string.IsNullOrWhiteSpace(_contentField.Box.Text) || !string.IsNullOrWhiteSpace(_intentField.Box.Text);
+        if (_selectedFilePath != null)
+        {
+            _well.Title = "Captured";
+            _well.Body = "Drop or click to replace it, then say what should happen.";
+        }
+        else
+        {
+            _well.Title = "Drop anything into AInbox";
+            _well.Body = "Files, the screen at the tip, picks, lassos, snippets or links.";
+        }
+        _well.Line = anyInput
+            ? $"OMNITEK // {item} // {detected.Confidence} // {pod.Label}"
+            : "OMNITEK // waiting for a capture";
+        _well.LineColor = !anyInput ? PhosphorTheme.Ghost : high ? PhosphorTheme.Patina : PhosphorTheme.Dim;
+        _well.Invalidate();
+        _capturedRow.Prediction = item;
+        _capturedRow.Invalidate();
 
         var previewScroll = _ark.BuildPreviewHandoffScroll(
             pod.PodId,
