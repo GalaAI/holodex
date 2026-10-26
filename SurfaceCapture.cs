@@ -93,9 +93,22 @@ internal static class SurfaceCapture
             Save(RenderForm(form), Path.Combine(dir, $"{name}.png"), written);
             if (form is HolodexLiteDrawerForm holodex)
             {
-                holodex.SwitchTab("mods");
-                Save(RenderForm(holodex), Path.Combine(dir, "holodex-mods.png"), written);
+                foreach (var tab in new[] { "ainbox", "codex", "grimx", "mods" })
+                {
+                    holodex.SwitchTab(tab);
+                    Save(RenderForm(holodex), Path.Combine(dir, $"holodex-{tab}.png"), written);
+                }
+                holodex.SwitchTab("codex");
+                holodex.PreviewState("codex");
+                Save(RenderForm(holodex), Path.Combine(dir, "holodex-codex-entry.png"), written);
+                holodex.PreviewState("reset");
                 holodex.SwitchTab("session");
+            }
+            if (form is ScreenSnipAndElementPickerForm snip)
+            {
+                snip.PreviewState("answered");
+                Save(RenderForm(snip), Path.Combine(dir, "snip-answer.png"), written);
+                snip.PreviewState("reset");
             }
             if (form is OmniwandHudForm hud)
             {

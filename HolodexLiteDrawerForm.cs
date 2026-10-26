@@ -68,17 +68,17 @@ public sealed class HolodexLiteDrawerForm : Form
     private PromptTextBox _sessionInputBox = null!;
     private SuggestionChip _rosterChip = null!;
     private PhosphorButton _sessionSendBtn = null!;
-    private DataLabel _activeRosterLabel = null!;
+    private LedRow _activeRosterLabel = null!;
 
-    // Codex controls
-    private RichTextBox _codexListBox = null!;
+    // Codex: a card per saved capture.
+    private ThreadView _codexList = null!;
 
-    // GrimX / Macro controls
-    private RichTextBox _macroReadoutBox = null!;
+    // GrimX: a card per mouse binding, then a card per Spell orb slot.
+    private ThreadView _macroList = null!;
 
     // Mods / Hardware controls
-    private DataLabel _mouseHwLabel = null!;
-    private DataLabel _dpiValueLabel = null!;
+    private LedRow _mouseHwLabel = null!;
+    private LedRow _dpiValueLabel = null!;
 
     private readonly List<SyndicateWorkOrder> _workOrders = new();
 
@@ -273,8 +273,12 @@ public sealed class HolodexLiteDrawerForm : Form
         footer.Controls.Add(_rosterChip);
         footer.Controls.Add(_sessionSendBtn);
 
-        // Roster: who the message reaches, under the chip.
-        _activeRosterLabel = new DataLabel("") { Dock = DockStyle.Bottom, Height = 20, Name = "Holodex.RosterLine" };
+        // Roster: who the message reaches, under the chip, one LED per agent in its accent. It wraps rather than
+        // dropping anyone, and refits its height when the target changes.
+        _activeRosterLabel = new LedRow { Dock = DockStyle.Bottom, Height = 20, Wrap = true, Name = "Holodex.RosterLine" };
+        void FitRoster() => _activeRosterLabel.Height = _activeRosterLabel.HeightFor(Math.Max(80, _sessionPanel.ClientSize.Width));
+        _activeRosterLabel.LedsChanged += (_, _) => FitRoster();
+        _sessionPanel.Resize += (_, _) => FitRoster();
 
         _sessionPanel.Controls.Add(_sessionThread);
         _sessionPanel.Controls.Add(ordersGap);
@@ -301,9 +305,10 @@ public sealed class HolodexLiteDrawerForm : Form
         _rosterChip.Fit();
         string who = agent.Id == "all" ? "all" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(agent.Name.ToLowerInvariant());
         _sessionSendBtn.Text = $"Send to {who}";
-        _activeRosterLabel.Text = agent.Id == "all"
-            ? "ROSTER // ALL SYNDICATE · GALA + WIZ + SMITH + ARBITER + SCHOLAR + MUSE"
-            : $"ROSTER // {agent.Name} · {agent.Pod.ToUpperInvariant()} POD";
+        // The chip names the agent and its pod; the line says who else that reaches (everyone) or the agent's role.
+        _activeRosterLabel.Set(agent.Id == "all"
+            ? SyndicateRoster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)).ToArray()
+            : new[] { (agent.Accent, agent.Role) });
     }
 
     private void ShowTokenBar(bool show)
@@ -316,35 +321,41 @@ public sealed class HolodexLiteDrawerForm : Form
         if (show) _tokenField.Box.Focus();
     }
 
+    private static Color PodAccent(string token) => token switch
+    {
+        "coral" => PhosphorTheme.Coral,
+        "seal" => PhosphorTheme.Seal,
+        _ => PhosphorTheme.Patina
+    };
+
+    /// <summary>A list of cards that stays at its top, for the tabs that show records rather than a conversation.</summary>
+    private static ThreadView CardList(string name) => new(name) { Dock = DockStyle.Fill, FollowNewest = false };
+
     private void BuildAInboxTab()
     {
         _ainboxPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.AInboxPanel" };
 
-        var openFullBtn = new PhosphorButton("Open Full AInbox Intake + Scroll (Alt+I)")
+        var openFullBtn = new PhosphorButton("Open AInbox (Alt+I)")
         {
             Dock = DockStyle.Top,
-            Height = 42
+            Height = 42,
+            Name = "Holodex.OpenAInboxButton"
         };
         openFullBtn.Click += (_, _) => _openAInbox(Location);
 
-        var podBox = new RichTextBox
-        {
-            Dock = DockStyle.Fill,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface2,
-            ForeColor = PhosphorTheme.Bone,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Mono(11f)
-        };
-        PhosphorPaint.UseDarkScrollbars(podBox);
-
-        var lines = new List<string> { "ARKSTATION POD INBOXES // SCRIBE HANDOFF SCROLL ROUTING\n" };
+        // A card per pod inbox in its zone accent: what the pod handles, then its channel and conductor as LEDs.
+        var podBox = CardList("Holodex.PodInboxList");
+        podBox.AddSection("Pod inboxes // Handoff Scroll routing");
         foreach (var p in ArkStationClient.PodInboxes)
         {
-            lines.Add($"[{p.Label.ToUpperInvariant()}]  {p.InboxChannel}  ·  Conductor: {p.OrchestratorLabel}");
-            lines.Add($"  {p.Description}\n");
+            Color accent = PodAccent(p.AccentToken);
+            var card = podBox.Add(ThreadTone.Action, $"{p.Label} // {p.Zone}", p.Description, leds: new[]
+            {
+                (accent, p.InboxChannel),
+                (PhosphorTheme.Patina, $"Conductor {p.OrchestratorLabel}")
+            });
+            card.EdgeOverride = accent;
         }
-        podBox.Text = string.Join("\n", lines);
 
         _ainboxPanel.Controls.Add(podBox);
         _ainboxPanel.Controls.Add(WidgetChrome.Spacer(10));
@@ -357,7 +368,7 @@ public sealed class HolodexLiteDrawerForm : Form
         _codexPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.CodexPanel" };
 
         var btnRow = new Panel { Dock = DockStyle.Top, Height = 42, BackColor = PhosphorTheme.Surface };
-        var lassoBtn = new PhosphorButton("Lasso")
+        var lassoBtn = new PhosphorButton("Lasso (Alt+S)")
         {
             Dock = DockStyle.Left,
             Width = 216,
@@ -365,29 +376,20 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         lassoBtn.Click += (_, _) => _openSnipOrPicker(Location, WandCaptureTool.FreeformLasso);
 
-        var elemBtn = new PhosphorButton("Element Picker (Alt+E)")
+        var elemBtn = new PhosphorButton("Point at UI (Alt+E)")
         {
             Dock = DockStyle.Right,
-            Width = 216
+            Width = 216,
+            Name = "Holodex.PointButton"
         };
         elemBtn.Click += (_, _) => _openSnipOrPicker(Location, WandCaptureTool.ElementPicker);
         btnRow.Controls.Add(elemBtn);
         btnRow.Controls.Add(lassoBtn);
 
-        _codexListBox = new RichTextBox
-        {
-            Dock = DockStyle.Fill,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface2,
-            ForeColor = PhosphorTheme.Bone,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Mono(11f),
-            Name = "Holodex.CodexListBox"
-        };
-        PhosphorPaint.UseDarkScrollbars(_codexListBox);
+        _codexList = CardList("Holodex.CodexListBox");
         RefreshCodexEntries();
 
-        _codexPanel.Controls.Add(_codexListBox);
+        _codexPanel.Controls.Add(_codexList);
         _codexPanel.Controls.Add(WidgetChrome.Spacer(10));
         _codexPanel.Controls.Add(btnRow);
         _contentHost.Controls.Add(_codexPanel);
@@ -406,10 +408,11 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         openWizBtn.Click += (_, _) => _openWiz(Location);
 
-        var autoMacroBtn = new PhosphorButton("Wiz Auto-Bind Mouse")
+        var autoMacroBtn = new PhosphorButton("Auto-bind mouse")
         {
             Dock = DockStyle.Right,
-            Width = 210
+            Width = 210,
+            Name = "Holodex.AutoBindButton"
         };
         autoMacroBtn.Click += (_, _) =>
         {
@@ -440,19 +443,10 @@ public sealed class HolodexLiteDrawerForm : Form
         wizBtnRow.Controls.Add(autoMacroBtn);
         wizBtnRow.Controls.Add(openWizBtn);
 
-        _macroReadoutBox = new RichTextBox
-        {
-            Dock = DockStyle.Fill,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface2,
-            ForeColor = PhosphorTheme.Bone,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Mono(11f)
-        };
-        PhosphorPaint.UseDarkScrollbars(_macroReadoutBox);
+        _macroList = CardList("Holodex.GrimXList");
         RefreshGrimXMacroReadout();
 
-        _grimxPanel.Controls.Add(_macroReadoutBox);
+        _grimxPanel.Controls.Add(_macroList);
         _grimxPanel.Controls.Add(WidgetChrome.Spacer(10));
         _grimxPanel.Controls.Add(wizBtnRow);
         _contentHost.Controls.Add(_grimxPanel);
@@ -464,21 +458,15 @@ public sealed class HolodexLiteDrawerForm : Form
 
         var hw = ConnectedMouse;
         // The mouse (brand, model, VID/PID), then the pointer: speed, DPI, the slider's range and VSync.
-        _mouseHwLabel = new DataLabel($"MOUSE // {hw.Brand.ToUpperInvariant()} {hw.Model.ToUpperInvariant()} ({hw.VidPid})")
-        {
-            Dock = DockStyle.Top,
-            Height = 22,
-            ForeColor = PhosphorTheme.Patina,
-            Name = "Holodex.MouseLine"
-        };
-        static string PointerLine(int dpi, int speed) => $"POINTER SPEED // {speed}/20 · {dpi} DPI (100 to 4000 SLIDER) · VSYNC";
-        _dpiValueLabel = new DataLabel(PointerLine(MouseHardwareAndWandEngine.GetCurrentDpi(), hw.WindowsPointerSpeed))
-        {
-            Dock = DockStyle.Top,
-            Height = 22,
-            ForeColor = PhosphorTheme.Bone,
-            Name = "Holodex.PointerLine"
-        };
+        // One LED per fact; the slider's eyebrow below says its 100 to 4000 DPI range.
+        _mouseHwLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Holodex.MouseLine" };
+        _mouseHwLabel.Set((PhosphorTheme.Patina, $"Mouse // {hw.Brand} {hw.Model}"), (PhosphorTheme.Moss, $"VID/PID {hw.VidPid}"));
+        _dpiValueLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Holodex.PointerLine" };
+        void PointerLine(int dpi, int speed) => _dpiValueLabel.Set(
+            (PhosphorTheme.Patina, $"Pointer speed {speed}/20"),
+            (PhosphorTheme.Coral, $"{dpi} DPI"),
+            (PhosphorTheme.Moss, "VSync morph"));
+        PointerLine(MouseHardwareAndWandEngine.GetCurrentDpi(), hw.WindowsPointerSpeed);
 
         // Live DPI Slider (100 DPI to 4000 DPI)
         var dpiSlider = new PhosphorDpiSlider
@@ -490,7 +478,7 @@ public sealed class HolodexLiteDrawerForm : Form
         MouseHardwareAndWandEngine.DpiChanged += (dpi, speed) =>
         {
             if (IsDisposed) return;
-            void UpdateText() => _dpiValueLabel.Text = PointerLine(dpi, speed);
+            void UpdateText() => PointerLine(dpi, speed);
             if (InvokeRequired) BeginInvoke(new Action(UpdateText));
             else UpdateText();
         };
@@ -543,27 +531,26 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         onboardBtn.Click += (_, _) => _runWizOnboardingTutorial();
 
-        var modsInfoBox = new RichTextBox
+        // What is equipped: the spellbook's gesture casts, then the mods, a card each.
+        var modsInfoBox = CardList("Holodex.ModsInfoBox");
+        modsInfoBox.AddSection("Equipped // Spellbook");
+        foreach (var (spell, gesture, opens) in new[]
         {
-            Dock = DockStyle.Fill,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface2,
-            ForeColor = PhosphorTheme.Bone,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Mono(10.5f),
-            Name = "Holodex.ModsInfoBox",
-            Text =
-                "EQUIPPED OMNIWAND AUGMENTS, SPELLBOOK & MODS\n" +
-                "• [SPELL] Hold Ctrl or Right-Click + Shake L-R  ->  TIME SPLITTER (Wiz Inspect)\n" +
-                "• [SPELL] Hold Ctrl or Right-Click + Shake U-D  ->  COPYCAT (Free-Form Lasso)\n" +
-                "• [SPELL] Hold Ctrl or Right-Click + Circle     ->  MUTATION (GrimX Spell Cast)\n" +
-                "• [SPELL] Hold Ctrl or Right-Click + Sweep R    ->  SYNTHESIZE (Holodex Session)\n" +
-                "• [MOD] Ark Aperture 240Hz Morph Engine (Solid Patina IBeam, Coral Hover/Wiz Globe)\n" +
-                "• [MOD] Mouse Hardware Intelligence (USB/HID VID/PID Brand & 100-4000 DPI Slider)\n" +
-                "• [MOD] KeyMaster Local Vault Sync (Windows Credential Manager wincred:// <-> ArkHive)\n" +
-                "• [MOD] Hivemind Lite Session Bridge (Nemotron 3 Nano/Super + Syndicate Group Chat)"
-        };
-        PhosphorPaint.UseDarkScrollbars(modsInfoBox);
+            ("Time Splitter", "Hold Ctrl or right-click, then shake left and right.", "Wiz Inspect"),
+            ("Copycat", "Hold Ctrl or right-click, then shake up and down.", "Free-form lasso"),
+            ("Mutation", "Hold Ctrl or right-click, then draw a circle.", "GrimX Spell cast"),
+            ("Synthesize", "Hold Ctrl or right-click, then sweep right.", "Holodex session")
+        })
+            modsInfoBox.Add(ThreadTone.Action, $"Spell // {spell}", gesture, leds: new[] { (PhosphorTheme.Patina, $"Opens {opens}") });
+        modsInfoBox.AddSection("Equipped // Mods");
+        foreach (var (mod, what, leds) in new (string, string, (Color, string)[])[]
+        {
+            ("Ark Aperture morph engine", "Solid patina I-beam, coral hover and the Wiz globe.", new[] { (PhosphorTheme.Moss, "240 Hz") }),
+            ("Mouse hardware intelligence", "Reads the brand and VID/PID over USB/HID and drives the DPI slider.", new[] { (PhosphorTheme.Moss, "100 to 4000 DPI") }),
+            ("KeyMaster local vault sync", "Keeps the model key in Windows Credential Manager, synced with ArkHive.", new[] { (PhosphorTheme.Patina, "wincred:// to ArkHive") }),
+            ("Hivemind Lite session bridge", "The Syndicate group chat on Nemotron.", new[] { (PhosphorTheme.Patina, "Nemotron 3 Nano"), (PhosphorTheme.Patina, "Nemotron 3 Super") })
+        })
+            modsInfoBox.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
 
         _modsPanel.Controls.Add(modsInfoBox);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(10));
@@ -602,40 +589,69 @@ public sealed class HolodexLiteDrawerForm : Form
 
     public void RefreshCodexEntries()
     {
-        if (_codexListBox == null) return;
-        var entries = ScreenSnipAndElementPickerForm.LoadCodexEntries();
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("HOLODEX CODEX // CAPTURED LASSO ARTIFACTS & ELEMENT INSPECTIONS\n");
-        if (entries.Count == 0) sb.AppendLine(ScreenSnipAndElementPickerForm.CodexEmptyStateText);
+        if (_codexList == null) return;
+        ShowCodexEntries(ScreenSnipAndElementPickerForm.LoadCodexEntries());
+    }
+
+    private void ShowCodexEntries(IReadOnlyList<CodexCaptureEntry> entries)
+    {
+        _codexList.Clear();
+        _codexList.AddSection("Codex // lasso captures and element picks");
+        if (entries.Count == 0) _codexList.Add(ThreadTone.Intro, "None yet", ScreenSnipAndElementPickerForm.CodexEmptyStateText);
         foreach (var e in entries)
         {
-            sb.AppendLine($"[{e.Kind.ToUpperInvariant()}] {e.Title}");
-            sb.AppendLine($"  CLASS: {e.ElementClass}  ·  GEOMETRY: {e.Geometry}  ·  PALETTE: {e.HexColor}");
-            sb.AppendLine($"  MODEL: {e.ModelUsed}");
-            sb.AppendLine($"  {e.Summary}\n");
+            var glyph = e.Kind.EndsWith("element", StringComparison.OrdinalIgnoreCase) ? PhosphorGlyph.Pick
+                : e.Kind.EndsWith("lasso", StringComparison.OrdinalIgnoreCase) ? PhosphorGlyph.Lasso
+                : PhosphorGlyph.Rect;
+            // The palette LED is drawn in the captured color itself.
+            Color swatch = PhosphorTheme.Ghost;
+            try { if (e.HexColor.StartsWith('#')) swatch = ColorTranslator.FromHtml(e.HexColor); }
+            catch (Exception) { }
+            _codexList.Add(ThreadTone.Action, $"{e.Kind} // {ModelChip.ShortName(e.ModelUsed)}", $"{e.Title}\n{e.Summary}", glyph, new[]
+            {
+                (swatch, e.HexColor),
+                (PhosphorTheme.Patina, e.ElementClass),
+                (PhosphorTheme.Ghost, e.Geometry)
+            });
         }
-        _codexListBox.Text = sb.ToString();
     }
 
     public void RefreshGrimXMacroReadout()
     {
-        if (_macroReadoutBox == null) return;
+        if (_macroList == null) return;
         var hw = ConnectedMouse;
         var macros = MouseHardwareAndWandEngine.LoadOrCreateMacroBindings(hw);
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"WIZ MOUSE MACRO & GESTURE BINDER // {hw.Brand.ToUpperInvariant()} {hw.Model.ToUpperInvariant()}\n");
+        _macroList.Clear();
+        // The full model is on the Mods tab; each binding names the device it reads.
+        _macroList.AddSection($"Wiz mouse bindings // {hw.Brand}");
         foreach (var m in macros)
-        {
-            sb.AppendLine($"• {m.TriggerLabel}");
-            sb.AppendLine($"  -> {m.ActionLabel} ({m.Parameter})\n");
-        }
-        sb.AppendLine("SPELL ORB (8 SLOTS // MIDDLE-HOLD OR F15)");
+            _macroList.Add(ThreadTone.Action, m.TriggerLabel, m.ActionLabel,
+                leds: string.IsNullOrWhiteSpace(m.Parameter) ? null : new[] { (PhosphorTheme.Patina, m.Parameter) });
+
+        _macroList.AddSection("Spell orb // 8 slots // middle-hold or F15");
         foreach (var s in GrimXFlowOrb.Slots)
         {
             string slotLabel = string.Equals(s.Verb, s.Title, StringComparison.OrdinalIgnoreCase) ? s.Title : $"{s.Verb} {s.Title}";
-            sb.AppendLine($"  [{s.Index + 1}] {slotLabel} // {s.Subtitle}");
+            var card = _macroList.Add(ThreadTone.Step, $"Slot {s.Index + 1} // {slotLabel}", s.Subtitle,
+                leds: new[] { (s.AccentColor, $"{s.ZoneToken} zone") });
+            card.EdgeOverride = s.AccentColor;
         }
-        _macroReadoutBox.Text = sb.ToString();
+    }
+
+    /// <summary>For the as-built render: "codex" shows one saved element pick as a card; "reset" reloads the real list.</summary>
+    internal void PreviewState(string state)
+    {
+        if (state != "codex")
+        {
+            RefreshCodexEntries();
+            return;
+        }
+        ShowCodexEntries(new[]
+        {
+            new CodexCaptureEntry("codex:preview", "wand.element", "ArkStation: ArkStation // Holodex Drawer",
+                "A docked drawer with five tabs. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
+                "Chrome_WidgetWin_1", "270x184 @ (450,92)", "#79C4B7", "nvidia/Nemotron-3.5-Super-VL", null, DateTime.UtcNow.ToString("O"))
+        });
     }
 
     private void RefreshWorkOrdersText()

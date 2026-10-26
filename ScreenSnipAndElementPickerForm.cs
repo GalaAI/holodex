@@ -89,13 +89,15 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     private readonly Panel _actionDrawer;
     private readonly ModelChip _visionModelChip;
     private readonly PromptTextBox _visionPromptBox;
-    private readonly RichTextBox _visionOutputBox;
+    private readonly ThreadView _visionOutputBox;
     private readonly Panel _outputGap;
     private readonly ComposerSurface _composer;
-    private readonly DataLabel _telemetryLabel;
+    private readonly LedRow _telemetryLabel;
     private readonly PhosphorButton _analyzeBtn;
     private readonly IconToolButton _inkBtn;
     private bool _hasAnswer;
+    // The answer (or failure) Codex keeps with the capture; the asking card and notices are not answers.
+    private string _answerText = "";
 
     /// <summary>The output area's empty state: what the overlay does, visible until there is an answer.</summary>
     private const string GuidanceText =
@@ -224,19 +226,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                 PhosphorPaint.Scale(_actionDrawer));
         };
 
-        _visionOutputBox = new RichTextBox
-        {
-            Dock = DockStyle.Top,
-            Height = 120,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Dim,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Body(12.5f),
-            Name = "Snip.VisionOutputBox",
-            Text = GuidanceText
-        };
-        PhosphorPaint.UseDarkScrollbars(_visionOutputBox);
+        // The output is one card in the AInbox card language: the guidance at rest, then the asking card, then the
+        // answer kicked with the model and route that answered (or a failure card).
+        _visionOutputBox = new ThreadView("Snip.VisionOutputBox") { Dock = DockStyle.Top, Height = 60 };
+        _visionOutputBox.ContentChanged += (_, _) => FitDrawer();
         _outputGap = WidgetChrome.Spacer(8);
 
         _composer = new ComposerSurface { Dock = DockStyle.Top, Name = "Snip.Composer" };
@@ -270,8 +263,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         footer.Controls.Add(_visionModelChip);
         footer.Controls.Add(_analyzeBtn);
 
-        // Full-width telemetry: class, palette hex, size, position and process of what the wand holds.
-        _telemetryLabel = new DataLabel("WAND // LASSO + ANNOTATE + ELEMENT PICKER // SELECT REGION OR HOVER UI") { Dock = DockStyle.Top, Height = 20, ForeColor = PhosphorTheme.Dim, Name = "Snip.Telemetry" };
+        // Full-width telemetry as LEDs: the tool or what the wand holds, its class, palette (the LED is the color
+        // itself), size, position and process. It wraps rather than dropping a fact.
+        _telemetryLabel = new LedRow { Dock = DockStyle.Top, Height = 20, Wrap = true, Name = "Snip.Telemetry" };
+        _telemetryLabel.Set((PhosphorTheme.Patina, "Wand // lasso + annotate + element picker"), (PhosphorTheme.Ghost, "Select a region or hover UI"));
+        _telemetryLabel.LedsChanged += (_, _) => FitTelemetry();
 
         _actionDrawer.Controls.Add(footer);
         _actionDrawer.Controls.Add(WidgetChrome.Spacer(8));
@@ -285,7 +281,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         Controls.Add(_actionDrawer);
         SyncAskLabel();
         SelectTool(_activeTool);
-        FitDrawer();
+        ShowGuidance();
 
         // Seed preview state for SurfaceCapture offscreen rendering
         SeedPreviewDemoState();
@@ -313,18 +309,19 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _activeTool = tool;
         foreach (var ctrl in _topToolbar.Controls.OfType<IconToolButton>())
             if (ctrl.Tag is WandCaptureTool t) ctrl.Selected = t == tool;
-        _telemetryLabel.Text = tool switch
+        // Annotate tools light their LED in the current ink.
+        _telemetryLabel.Set(tool switch
         {
-            WandCaptureTool.FreeformLasso => "WAND // FREE-FORM LASSO // DRAG TO LASSO ANY SCREEN SHAPE",
-            WandCaptureTool.RectangleSnip => "WAND // RECTANGLE SNIP // DRAG TO FRAME CAPTURE REGION",
+            WandCaptureTool.FreeformLasso => new[] { (PhosphorTheme.Patina, "Wand // free-form lasso"), (PhosphorTheme.Ghost, "Drag to lasso any screen shape") },
+            WandCaptureTool.RectangleSnip => new[] { (PhosphorTheme.Patina, "Wand // rectangle snip"), (PhosphorTheme.Ghost, "Drag to frame the capture") },
             WandCaptureTool.ElementPicker => _pick == null
-                ? "WAND // POINT + PALETTE + ARCHITECT // HOVER, THEN CLICK TO PICK"
+                ? new[] { (PhosphorTheme.Patina, "Wand // point + palette + architect"), (PhosphorTheme.Ghost, "Hover, then click to pick") }
                 : PickedTelemetry(_pick),
-            WandCaptureTool.AnnotatePen   => "WAND // ANNOTATE PEN // DRAW FREEHAND CALLOUTS // CTRL+Z UNDO",
-            WandCaptureTool.AnnotateArrow => "WAND // ANNOTATE ARROW // DRAG TO POINT AT TARGET // CTRL+Z UNDO",
-            WandCaptureTool.AnnotateBox   => "WAND // ANNOTATE BOX // DRAG TO HIGHLIGHT TARGET // CTRL+Z UNDO",
-            _ => "WAND // READY"
-        };
+            WandCaptureTool.AnnotatePen   => new[] { (_activeInk, "Wand // annotate pen"), (PhosphorTheme.Ghost, "Draw freehand callouts"), (PhosphorTheme.Ghost, "Ctrl+Z undo") },
+            WandCaptureTool.AnnotateArrow => new[] { (_activeInk, "Wand // annotate arrow"), (PhosphorTheme.Ghost, "Drag to point at a target"), (PhosphorTheme.Ghost, "Ctrl+Z undo") },
+            WandCaptureTool.AnnotateBox   => new[] { (_activeInk, "Wand // annotate box"), (PhosphorTheme.Ghost, "Drag to highlight a target"), (PhosphorTheme.Ghost, "Ctrl+Z undo") },
+            _ => new[] { (PhosphorTheme.Moss, "Wand ready") }
+        });
         _visionPromptBox.Prompt = tool == WandCaptureTool.ElementPicker
             ? "Ask about the element. Empty asks for Phosphor improvements."
             : "Ask about the capture. Empty asks for a description and next steps.";
@@ -353,7 +350,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         // Logical heights scaled the way WinForms scaled the drawer (it was built 640 logical px wide), so the
         // two-line guidance is not clipped on a 125% or 150% monitor.
         float k = _actionDrawer.Width / (float)DrawerLogicalWidth;
-        _visionOutputBox.Height = (int)Math.Round((_hasAnswer ? 120 : 44) * k);
+        // The card's own height, up to a cap (an answer gets more room), then it scrolls.
+        int cap = (int)Math.Round((_hasAnswer ? 220 : 110) * k);
+        _visionOutputBox.Height = Math.Min(cap, _visionOutputBox.ContentHeight(_visionOutputBox.CardWidth) + 2);
         int h = _actionDrawer.Padding.Vertical;
         foreach (Control c in _actionDrawer.Controls) h += c.Height;
         int bottom = _actionDrawer.Bottom;
@@ -363,27 +362,66 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         Invalidate();
     }
 
-    private void ShowAnswer(string text, Color color)
+    /// <summary>
+    /// Shows one card in the output area. An Agent or Fail card is the answer Codex keeps with the capture; a Step
+    /// card (asking) only takes the answer's room.
+    /// </summary>
+    private void ShowAnswer(ThreadTone tone, string kicker, string text)
     {
         _hasAnswer = true;
-        _visionOutputBox.ForeColor = color;
-        _visionOutputBox.Text = text;
-        FitDrawer();
+        _answerText = tone is ThreadTone.Agent or ThreadTone.Fail ? text : "";
+        _visionOutputBox.Clear();
+        _visionOutputBox.Add(tone, kicker, text);
     }
 
-    private void ShowGuidance() => ShowNotice(GuidanceText, PhosphorTheme.Dim);
+    /// <summary>For the as-built render: "answered" shows an answer card for the seeded lasso; "reset" returns to guidance.</summary>
+    internal void PreviewState(string state)
+    {
+        if (!_analyzeBtn.Enabled) return; // never draw over a live ask
+        if (state == "answered")
+        {
+            _telemetryLabel.Set((PhosphorTheme.Moss, "Lasso ready"), (PhosphorTheme.Ghost, $"{_lassoPoints.Count} pts"), (PhosphorTheme.Ghost, $"{_selectionRect.Width}x{_selectionRect.Height} px"));
+            ShowAnswer(ThreadTone.Agent, AnswerKicker(_visionModel),
+                "A Holodex drawer on the Session tab. The roster line wraps onto two rows; the Send to all button names its target. Next: open Codex to check the saved picks.");
+        }
+        else
+        {
+            SelectTool(_activeTool);
+            ShowGuidance();
+        }
+    }
+
+    /// <summary>The model and route on the vision chip, for the answer card's kicker.</summary>
+    private string AnswerKicker(string model, string suffix = "") =>
+        $"{ModelChip.ShortName(model)} // {_visionModelChip.Detail}{suffix}";
+
+    private void ShowGuidance() => ShowNotice(ThreadTone.Intro, "Wand // lasso, snip, annotate, point", GuidanceText);
 
     /// <summary>A short instruction in the output area; not an answer, so Codex never stores it as one.</summary>
-    private void ShowNotice(string text, Color color)
+    private void ShowNotice(ThreadTone tone, string kicker, string text)
     {
         _hasAnswer = false;
-        _visionOutputBox.ForeColor = color;
-        _visionOutputBox.Text = text;
+        _answerText = "";
+        _visionOutputBox.Clear();
+        _visionOutputBox.Add(tone, kicker, text);
+    }
+
+    /// <summary>A wrapping telemetry row is as tall as its lines; refit the drawer only when that changes.</summary>
+    private void FitTelemetry()
+    {
+        int want = _telemetryLabel.HeightFor(Math.Max(80, _actionDrawer.ClientSize.Width - _actionDrawer.Padding.Horizontal));
+        if (_telemetryLabel.Height == want) return;
+        _telemetryLabel.Height = want;
         FitDrawer();
     }
 
-    private static string PickedTelemetry(ElementPick pick) =>
-        $"PICKED // {pick.Class.ToUpperInvariant()} // {pick.Hex} // {pick.Rect.Width}x{pick.Rect.Height} AT ({pick.Rect.X},{pick.Rect.Y}) // CLICK TO RE-PICK";
+    private static (Color, string)[] PickedTelemetry(ElementPick pick) => new[]
+    {
+        (PhosphorTheme.Moss, $"Picked // {pick.Class}"),
+        (pick.Pixel, pick.Hex),
+        (PhosphorTheme.Ghost, $"{pick.Rect.Width}x{pick.Rect.Height} at ({pick.Rect.X},{pick.Rect.Y})"),
+        (PhosphorTheme.Ghost, "Click to re-pick")
+    };
 
     /// <summary>Closes the overlay from Esc or the close button, dropping any drag in progress.</summary>
     private void CloseOverlay()
@@ -606,7 +644,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             _pick = new ElementPick(_hoveredElementRect, _hoveredTitle, _hoveredClass, _hoveredProcess, _hoveredPixelColor, _hoveredHex);
             _selectionRect = _pick.Rect;
             _lassoPoints.Clear(); // the bright cutout follows the element, not an earlier lasso
-            _telemetryLabel.Text = PickedTelemetry(_pick);
+            _telemetryLabel.Set(PickedTelemetry(_pick));
         }
         else
         {
@@ -677,7 +715,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             {
                 UpdateLassoBoundingBox();
                 _pick = null;
-                _telemetryLabel.Text = $"LASSO READY // {_lassoPoints.Count} PTS // {_selectionRect.Width}x{_selectionRect.Height} PX";
+                _telemetryLabel.Set((PhosphorTheme.Moss, "Lasso ready"), (PhosphorTheme.Ghost, $"{_lassoPoints.Count} pts"), (PhosphorTheme.Ghost, $"{_selectionRect.Width}x{_selectionRect.Height} px"));
             }
             else
             {
@@ -689,7 +727,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             if (!stray)
             {
                 _pick = null;
-                _telemetryLabel.Text = $"SNIP READY // {_selectionRect.Width}x{_selectionRect.Height} PX AT ({_selectionRect.X},{_selectionRect.Y})";
+                _telemetryLabel.Set((PhosphorTheme.Moss, "Snip ready"), (PhosphorTheme.Ghost, $"{_selectionRect.Width}x{_selectionRect.Height} px at ({_selectionRect.X},{_selectionRect.Y})"));
             }
             else
             {
@@ -772,7 +810,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                 }
             }
             if (_activeTool == WandCaptureTool.ElementPicker)
-                _telemetryLabel.Text = $"POINT // {_hoveredProcess.ToUpperInvariant()} · {_hoveredClass} // PALETTE {_hoveredHex} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height}";
+                _telemetryLabel.Set(
+                    (PhosphorTheme.Patina, $"Point // {_hoveredProcess} · {_hoveredClass}"),
+                    (_hoveredPixelColor, $"Palette {_hoveredHex}"),
+                    (PhosphorTheme.Ghost, $"{_hoveredElementRect.Width}x{_hoveredElementRect.Height}"));
         }
         catch { }
     }
@@ -895,14 +936,14 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         if (string.IsNullOrEmpty(dataUrl))
         {
             // Never send a vision request without the image; a text-only answer would be invented.
-            if (renderError == PickFirstText) ShowNotice(PickFirstText, PhosphorTheme.Coral);
-            else ShowAnswer($"Vision request not sent: capture could not be rendered ({renderError}).", PhosphorTheme.Rust);
+            if (renderError == PickFirstText) ShowNotice(ThreadTone.Step, "Point at UI // pick first", PickFirstText);
+            else ShowAnswer(ThreadTone.Fail, AnswerKicker(chosenVisionModel, " // not sent"), $"Vision request not sent: capture could not be rendered ({renderError}).");
             return;
         }
 
         var capture = CaptureRect();
         int session = _session;
-        ShowAnswer($"Asking {ModelChip.ShortName(chosenVisionModel)} about the {capture.Width}x{capture.Height} capture...", PhosphorTheme.Patina);
+        ShowAnswer(ThreadTone.Step, AnswerKicker(chosenVisionModel, " // asking"), $"Asking {ModelChip.ShortName(chosenVisionModel)} about the {capture.Width}x{capture.Height} capture...");
         _analyzeBtn.Enabled = false;
         _asksInFlight++;
         _setThinkingState(true);
@@ -915,11 +956,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                 ? $"[Omniwand Vision & Element Inspector | Tool={_activeTool} | Element={pick.Title} ({pick.Class}, {pick.Process}) | Geometry={pick.Rect.Width}x{pick.Rect.Height} | Palette={pick.Hex}]"
                 : $"[Omniwand Vision | Tool={_activeTool} | Region={capture.Width}x{capture.Height} | Marks={_annotations.Count}]";
             var (ok, output) = await _ark.AskVisionModelAsync($"{header}\n{prompt}", dataUrl, chosenVisionModel);
-            if (session == _session) ShowAnswer(output, ok ? PhosphorTheme.Bone : PhosphorTheme.Rust);
+            if (session == _session) ShowAnswer(ok ? ThreadTone.Agent : ThreadTone.Fail, AnswerKicker(chosenVisionModel, ok ? "" : " // not answered"), output);
         }
         catch (Exception ex)
         {
-            if (session == _session) ShowAnswer($"Vision request to {chosenVisionModel} failed: {ex.GetType().Name}: {ex.Message}", PhosphorTheme.Rust);
+            if (session == _session) ShowAnswer(ThreadTone.Fail, AnswerKicker(chosenVisionModel, " // failed"), $"Vision request to {chosenVisionModel} failed: {ex.GetType().Name}: {ex.Message}");
         }
         finally
         {
@@ -962,7 +1003,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             $"codex:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds():x}",
             kind,
             pick != null ? $"{pick.Process}: {pick.Title}" : $"Screen {kind.Split('.')[1].ToUpperInvariant()} ({capture.Width}x{capture.Height})",
-            !_hasAnswer || string.IsNullOrWhiteSpace(_visionOutputBox.Text) ? "Captured via Omniwand Screen Snip & Element Inspector." : _visionOutputBox.Text,
+            string.IsNullOrWhiteSpace(_answerText) ? "Captured via Omniwand Screen Snip & Element Inspector." : _answerText,
             pick?.Class ?? "Screen.Region",
             $"{capture.Width}x{capture.Height} @ ({capture.X},{capture.Y})",
             pick?.Hex ?? "n/a",

@@ -15,6 +15,8 @@ internal enum ThreadTone { Intro, You, Agent, Step, Action, Approval, Ok, Fail }
 /// accent edge, a tracked mono kicker (WHO // MODEL), and wrapped body text. An action card carries the tool's
 /// icon tile like a <see cref="CapturedRow"/> and takes its result in place, with a Moss or Ember dot. An approval
 /// card carries Skip and Approve, like the Aegis card carries Stow in Vault, and settles to the operator's answer.
+/// Facts about the item (a channel, a class, a palette hex) sit under the body as <see cref="Leds"/>, the same
+/// status LEDs as <see cref="LedRow"/>, wrapping whole entries; an LED's color can be the fact itself.
 /// </summary>
 internal sealed class ThreadCard : Control
 {
@@ -25,12 +27,13 @@ internal sealed class ThreadCard : Control
     // Its own flag: Control.Visible reads false while the form is hidden, which would drop the buttons' room.
     private bool _waiting;
 
-    public ThreadCard(ThreadTone tone, string kicker, string? body, PhosphorGlyph? glyph = null)
+    public ThreadCard(ThreadTone tone, string kicker, string? body, PhosphorGlyph? glyph = null, IReadOnlyList<(Color Led, string Text)>? leds = null)
     {
         Tone = tone;
         Kicker = kicker;
         Body = body?.Trim() ?? "";
         Glyph = glyph;
+        Leds = leds ?? Array.Empty<(Color, string)>();
         Name = $"Thread.{tone}Card";
         SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Color.Transparent;
@@ -51,6 +54,10 @@ internal sealed class ThreadCard : Control
     public string Kicker { get; private set; }
     public string Body { get; private set; }
     public PhosphorGlyph? Glyph { get; }
+    public IReadOnlyList<(Color Led, string Text)> Leds { get; }
+
+    /// <summary>An accent edge in place of the tone's, for cards that carry an owner's color (a pod, an agent).</summary>
+    public Color? EdgeOverride { get; set; }
     public string? Result { get; private set; }
     public bool ResultOk { get; private set; }
 
@@ -90,6 +97,7 @@ internal sealed class ThreadCard : Control
         float textW = Math.Max(40f, width - TextLeft(s) - Pad * s);
         float h = 12f * s + 16f * s; // kicker line
         if (Body.Length > 0) h += 4f * s + StackPaint.MeasureWrapped(Body, BodyPx, textW, this);
+        if (Leds.Count > 0) h += 6f * s + LedPaint.Measure(Leds, textW, s, wrap: true);
         if (Result is { Length: > 0 }) h += 8f * s + 16f * s + StackPaint.MeasureWrapped(Result, 12f, textW - 14f * s, this);
         h += ButtonsHeight(s) + 12f * s;
         if (Glyph != null) h = Math.Max(h, Tile * s + 24f * s);
@@ -137,7 +145,7 @@ internal sealed class ThreadCard : Control
     {
         var g = e.Graphics;
         float s = PhosphorPaint.Scale(this);
-        StackPaint.Card(g, this, Tone == ThreadTone.Intro ? null : Edge, active: Waiting);
+        StackPaint.Card(g, this, EdgeOverride ?? (Tone == ThreadTone.Intro ? null : Edge), active: Waiting);
 
         if (Glyph is PhosphorGlyph glyph)
         {
@@ -161,6 +169,12 @@ internal sealed class ThreadCard : Control
             y += 4f * s;
             Color ink = Tone == ThreadTone.Intro ? PhosphorTheme.Dim : PhosphorTheme.Bone;
             y += StackPaint.Wrapped(g, Body, BodyPx, ink, new RectangleF(x, y, w, Height - y), this);
+        }
+
+        if (Leds.Count > 0)
+        {
+            y += 6f * s;
+            y += LedPaint.Draw(g, Leds, new RectangleF(x, y, w, Height - y), s, wrap: true);
         }
 
         if (Result is { Length: > 0 } result)
@@ -196,12 +210,22 @@ internal sealed class ThreadView : FlowLayoutPanel
 
     public IEnumerable<ThreadCard> Cards => Controls.OfType<ThreadCard>();
 
-    public ThreadCard Add(ThreadTone tone, string kicker, string? body = null, PhosphorGlyph? glyph = null)
+    /// <summary>A conversation follows its newest card; a list (Codex, bindings) stays at its top.</summary>
+    public bool FollowNewest { get; set; } = true;
+
+    /// <summary>An eyebrow between groups of cards, for lists that hold more than one kind.</summary>
+    public void AddSection(string eyebrow)
     {
-        var card = new ThreadCard(tone, kicker, body, glyph);
+        Controls.Add(new EyebrowLabel(eyebrow) { Dock = DockStyle.None, Margin = new Padding(0, 6, 0, 4), Name = "Thread.Section" });
+        Relayout();
+    }
+
+    public ThreadCard Add(ThreadTone tone, string kicker, string? body = null, PhosphorGlyph? glyph = null, IReadOnlyList<(Color Led, string Text)>? leds = null)
+    {
+        var card = new ThreadCard(tone, kicker, body, glyph, leds);
         Controls.Add(card);
         Relayout();
-        ScrollControlIntoView(card);
+        if (FollowNewest) ScrollControlIntoView(card);
         return card;
     }
 
@@ -212,7 +236,9 @@ internal sealed class ThreadView : FlowLayoutPanel
     }
 
     /// <summary>Total content height at a width, for forms that size to their thread.</summary>
-    public int ContentHeight(int width) => Cards.Sum(c => c.HeightFor(width) + c.Margin.Vertical);
+    public int ContentHeight(int width) =>
+        Cards.Sum(c => c.HeightFor(width) + c.Margin.Vertical)
+        + Controls.OfType<EyebrowLabel>().Sum(l => l.Height + l.Margin.Vertical);
 
     /// <summary>Raised after cards are added, resized or settled, so a form can fit the thread.</summary>
     public event EventHandler? ContentChanged;
@@ -225,16 +251,68 @@ internal sealed class ThreadView : FlowLayoutPanel
         int w = CardWidth;
         SuspendLayout();
         foreach (var card in Cards) card.Size = new Size(w, card.HeightFor(w));
+        foreach (var label in Controls.OfType<EyebrowLabel>()) label.Width = w;
         ResumeLayout(true);
         var last = Cards.LastOrDefault();
-        if (last != null) ScrollControlIntoView(last);
+        if (last != null && FollowNewest) ScrollControlIntoView(last);
         ContentChanged?.Invoke(this, EventArgs.Empty);
     }
 }
 
 /// <summary>
-/// A row of status LEDs: a dot and a tracked line each, in the AInbox footer's SYNCED and QUEUED style. Lines that
-/// do not fit are dropped from the end rather than cut mid-word, so the row never runs off the card.
+/// Lays out status LEDs (a dot and a tracked line each) left to right. Wrapping moves a whole entry to the next
+/// line; without wrap, entries that do not fit are dropped from the end, never cut mid-word.
+/// </summary>
+internal static class LedPaint
+{
+    public const float LinePx = 18f;
+
+    /// <summary>Height the LEDs take in a box of <paramref name="width"/> at scale <paramref name="s"/>.</summary>
+    public static float Measure(IReadOnlyList<(Color Led, string Text)> leds, float width, float s, bool wrap)
+    {
+        using var g = Graphics.FromHwnd(IntPtr.Zero);
+        return Flow(g, leds, new RectangleF(0, 0, width, 0), s, wrap, draw: false);
+    }
+
+    /// <summary>Draws the LEDs from the top of <paramref name="box"/>; returns the height used.</summary>
+    public static float Draw(Graphics g, IReadOnlyList<(Color Led, string Text)> leds, RectangleF box, float s, bool wrap)
+    {
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        return Flow(g, leds, box, s, wrap, draw: true);
+    }
+
+    private static float Flow(Graphics g, IReadOnlyList<(Color Led, string Text)> leds, RectangleF box, float s, bool wrap, bool draw)
+    {
+        if (leds.Count == 0) return 0;
+        float dot = 6f * s, gap = 7f * s, sep = 16f * s, line = LinePx * s;
+        float x = 0, y = 0;
+        using var font = PhosphorFonts.Mono(9f * s);
+        using var ink = new SolidBrush(PhosphorTheme.Dim);
+        foreach (var (led, text) in leds)
+        {
+            string upper = text.ToUpperInvariant();
+            float need = dot + gap + PhosphorPaint.MeasureTracked(g, upper, font, 0.9f * s);
+            if (x > 0 && x + need > box.Width)
+            {
+                if (!wrap) break;
+                x = 0;
+                y += line;
+            }
+            if (draw)
+            {
+                float cy = box.Y + y + line / 2f;
+                using (var b = new SolidBrush(led)) g.FillEllipse(b, box.X + x, cy - dot / 2f, dot, dot);
+                PhosphorPaint.DrawTracked(g, upper, font, ink, box.X + x + dot + gap, cy - 6f * s, 0.9f * s);
+            }
+            x += need + sep;
+        }
+        return y + line;
+    }
+}
+
+/// <summary>
+/// A row of status LEDs in the AInbox footer's SYNCED and QUEUED style (<see cref="LedPaint"/>). With
+/// <see cref="Wrap"/> it flows onto more lines and <see cref="HeightFor"/> says how tall it needs to be.
 /// </summary>
 internal class LedRow : Control
 {
@@ -246,28 +324,32 @@ internal class LedRow : Control
 
     public IReadOnlyList<(Color Led, string Text)> Leds { get; set; } = Array.Empty<(Color, string)>();
 
+    /// <summary>Flow onto more lines instead of dropping what does not fit.</summary>
+    public bool Wrap { get; set; }
+
     public void Set(params (Color Led, string Text)[] leds)
     {
         Leds = leds;
         Invalidate();
+        LedsChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>Raised by <see cref="Set"/>, so a wrapping row's host can refit its height.</summary>
+    public event EventHandler? LedsChanged;
 
     /// <summary>The whole status as plain text, for tooltips and as-built checks.</summary>
     public string Summary => string.Join(" // ", Leds.Select(l => l.Text));
 
+    public int HeightFor(int width)
+    {
+        float s = PhosphorComposerScale.Of(this);
+        return (int)Math.Ceiling(Math.Max(LedPaint.LinePx * s, LedPaint.Measure(Leds, width, s, Wrap)));
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
         float s = PhosphorPaint.Scale(this);
-        float dot = 6f * s, cy = Height / 2f, x = 0;
-        foreach (var (led, text) in Leds)
-        {
-            float need = dot + 7f * s + StackPaint.MeasureTracked(g, text, 9f, this, 0.9f);
-            if (x > 0 && x + need > Width) break;
-            using (var b = new SolidBrush(led)) g.FillEllipse(b, x, cy - dot / 2f, dot, dot);
-            x += dot + 7f * s;
-            x += StackPaint.Tracked(g, text, 9f, PhosphorTheme.Dim, x, cy - 6f * s, this, 0.9f) + 16f * s;
-        }
+        float h = Wrap ? LedPaint.Measure(Leds, Width, s, true) : LedPaint.LinePx * s;
+        LedPaint.Draw(e.Graphics, Leds, new RectangleF(0, Math.Max(0, (Height - h) / 2f), Width, h), s, Wrap);
     }
 }
