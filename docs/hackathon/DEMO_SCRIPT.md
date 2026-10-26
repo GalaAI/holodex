@@ -9,8 +9,10 @@ limitations stated plainly, and Nebius Token Factory plus Nemotron named out lou
 
 ## The family line (say it the same way in all three videos)
 
-ArkStation is Justin's personal orchestration software. Each entry takes one part of it and stands on
-its own:
+ArkStation is Justin's personal orchestration software, built over the past couple of months. To show
+what it can do, Justin used ArkStation itself to build these apps end to end and publish them to
+GitHub: Gala plans the work, dispatches missions to Ark agents, and each step leaves a receipt. Each
+entry takes one part of ArkStation and stands on its own:
 
 - **Hivemind** is the brain that connects AI together, under the orchestration of Gala, running on
   NVIDIA models.
@@ -56,7 +58,7 @@ NANO" on AInbox cards, and the model on each Wiz step.
 | 1:50 to 2:15 | Click Fix it in a Pod on A, open Review: fields tagged PREDICTED, FROM STACK A, NEMOTRON. Click the barcode; toast says seal copied. Send A, the 5 second undo, the footer status | "The Handoff Scroll adapts to the intent, shows where each field came from, and is sealed: that barcode is the SHA-256 of what the agent will act on. Five seconds to undo, then it goes to the pod's inbox." |
 | 2:15 to 2:40 | Alt+W. "Schedule a summary of my open PRs every Friday." The Spell chip flips to Ritual. Send to Wiz. The thread shows Nemotron 3 Super steps and an action row asking to approve a Codex save; approve | "Wiz is the agent. It picked a Ritual from the word schedule, plans with Nemotron 3 Super, and asks before it changes anything." (Reshoot this beat after the Wiz agent build lands.) |
 | 2:40 to 2:50 | README limitations section | "Windows only. Images are not scanned for secrets yet, and Record and Whisper are planned." |
-| 2:50 to 2:58 | ArkStation mark, then the repo URL | "Omniwand comes out of ArkStation, my personal orchestration software, where Hivemind is the brain and Ryozan runs the business. Omniwand is the tool for every job, and it's Apache 2.0 on GitHub." |
+| 2:50 to 2:58 | ArkStation mark, then the repo URL | "I've been building ArkStation, my personal orchestration software, for the past couple of months, and I used it to build and ship this. Hivemind is the brain, Ryozan runs the business, and Omniwand is the tool for every job. It's Apache 2.0 on GitHub." |
 
 ## After recording
 
@@ -68,7 +70,7 @@ NANO" on AInbox cards, and the model on each Wiz step.
 
 | Time | Picture | Line |
 |---|---|---|
-| 0 to 8s | ArkStation running: agents, sessions, the Gala orchestrator | "I tattoo for a living, and I built ArkStation, my personal orchestration software, to run the work around the art. These three apps each take one part of it." |
+| 0 to 8s | ArkStation running: Gala dispatching a mission, the receipt landing in a Hivemind session | "I tattoo for a living. For the past couple of months I've been building ArkStation, my personal orchestration software, and to show what it can do I used it to build and publish these three apps." |
 | 8 to 20s | Hivemind: sessions and receipts with several agents in one thread | "Hivemind is the brain. It connects AI together under the orchestration of Gala, running on NVIDIA models." |
 | 20 to 32s | Ryozan: bookings, client messages and the studio portal in one screen (only once Ryozan is built) | "Ryozan is one unified interface for managing your business operations." |
 | 32 to 50s | Omniwand: Alt+Space ask and answer, a lasso, a drop into AInbox with the ranked cards | "And Omniwand is the tool for every job: NVIDIA Nemotron at your cursor, on any app, and it shows which model did what." |
