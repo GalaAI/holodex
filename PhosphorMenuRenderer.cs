@@ -426,7 +426,13 @@ internal static class PhosphorMenuLayout
     /// <summary>Each fixed-size hosted control's own width, before the column stretched it.</summary>
     private static readonly ConditionalWeakTable<ToolStripControlHost, StrongBox<int>> HostWidths = new();
 
-    /// <summary>Applies the width and direction rules to <paramref name="root"/> and every submenu under it.</summary>
+    /// <summary>What each tree looked like when it was last sized (see <see cref="Signature"/>).</summary>
+    private static readonly ConditionalWeakTable<ToolStripDropDown, string> Applied = new();
+
+    /// <summary>
+    /// Applies the width and direction rules to <paramref name="root"/> and every submenu under it. Sizing lays
+    /// every panel out several times, so a tree whose rows have not changed since the last call is left as is.
+    /// </summary>
     public static void Apply(ToolStripDropDown root)
     {
         var panels = new List<ToolStripDropDown>();
@@ -442,22 +448,55 @@ internal static class PhosphorMenuLayout
                 if (item.HasDropDownItems) item.DropDownDirection = ToolStripDropDownDirection.Right;
         }
 
-        // The column is the widest panel's natural width (its spacer at zero, so content alone decides).
-        int column = 0;
-        foreach (var panel in panels)
-        {
-            SetStrut(panel, 0, fitHeaders: false);
-            column = Math.Max(column, PreferredWidth(panel));
-        }
+        string signature = Signature(panels);
+        if (Applied.TryGetValue(root, out var last) && last == signature) return;
 
-        // A panel is its label column plus fixed chrome (check gutter, paddings, arrow column). Probe the chrome
-        // with a wide spacer, then size the spacer, and any header, so the panel lands exactly on the column.
+        // Measure with AutoSize off: the passes below read preferred sizes only, and letting each pass resize
+        // the panel windows (and re-clip their regions) cost 20-30 ms per panel. One resize happens at the end.
+        var autoSized = panels.Where(p => p.AutoSize).ToList();
+        foreach (var panel in autoSized) panel.AutoSize = false;
+        try
+        {
+            // The column is the widest panel's natural width (its spacer at zero, so content alone decides).
+            int column = 0;
+            foreach (var panel in panels)
+            {
+                SetStrut(panel, 0, fitHeaders: false);
+                column = Math.Max(column, PreferredWidth(panel));
+            }
+
+            // A panel is its label column plus fixed chrome (check gutter, paddings, arrow column). Probe the
+            // chrome with a wide spacer, then size the spacer, and any header, so the panel lands on the column.
+            foreach (var panel in panels)
+            {
+                SetStrut(panel, ProbeWidth, fitHeaders: false);
+                int chrome = PreferredWidth(panel) - ProbeWidth;
+                SetStrut(panel, Math.Max(0, column - chrome), fitHeaders: true);
+            }
+        }
+        finally
+        {
+            foreach (var panel in autoSized) panel.AutoSize = true;
+        }
+        Applied.AddOrUpdate(root, signature);
+    }
+
+    /// <summary>Everything that changes a panel's width: its DPI and font, and each row's text, shortcut and check.</summary>
+    private static string Signature(List<ToolStripDropDown> panels)
+    {
+        var sb = new System.Text.StringBuilder();
         foreach (var panel in panels)
         {
-            SetStrut(panel, ProbeWidth, fitHeaders: false);
-            int chrome = PreferredWidth(panel) - ProbeWidth;
-            SetStrut(panel, Math.Max(0, column - chrome), fitHeaders: true);
+            sb.Append(panel.DeviceDpi).Append('|').Append(panel.Font.Size).Append('|').Append(panel.Items.Count).Append('{');
+            foreach (ToolStripItem item in panel.Items)
+            {
+                sb.Append(item.Available ? '1' : '0').Append(item.Text).Append('\u0001');
+                if (item is ToolStripMenuItem mi) sb.Append(mi.ShortcutKeyDisplayString).Append(mi.Checked ? '+' : '-').Append(mi.CheckOnClick ? 'c' : ' ');
+                sb.Append('\u0002');
+            }
+            sb.Append('}');
         }
+        return sb.ToString();
     }
 
     /// <summary>
@@ -489,8 +528,7 @@ internal static class PhosphorMenuLayout
             if (item.HasDropDownItems) Collect(item.DropDown, into);
     }
 
-    private static int PreferredWidth(ToolStripDropDown panel) =>
-        panel.AutoSize ? panel.GetPreferredSize(Size.Empty).Width : panel.Width;
+    private static int PreferredWidth(ToolStripDropDown panel) => panel.GetPreferredSize(Size.Empty).Width;
 
     private static void SetStrut(ToolStripDropDown panel, int width, bool fitHeaders)
     {
@@ -523,16 +561,28 @@ internal static class PhosphorMenuLayout
 /// </summary>
 internal sealed class PhosphorTrayMenu : ContextMenuStrip
 {
+    /// <summary>
+    /// The bottom-right corner the menu was last asked to open at (NotifyIcon opens it above and left of the
+    /// pointer), so a width change while opening keeps the menu on the pointer.
+    /// </summary>
+    private Point? _anchor;
+    private bool _applying;
+
     protected override void OnOpening(System.ComponentModel.CancelEventArgs e)
     {
-        PhosphorMenuLayout.Apply(this);
+        _applying = true;
+        try { PhosphorMenuLayout.Apply(this); }
+        finally { _applying = false; }
+        if (_anchor is Point anchor && Location != new Point(anchor.X - Width, anchor.Y - Height))
+            Location = new Point(anchor.X - Width, anchor.Y - Height);
         base.OnOpening(e);
     }
 
     protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
     {
-        if (OwnerItem == null && Items.Count > 0)
+        if (OwnerItem == null && Items.Count > 0 && !_applying)
         {
+            if ((specified & BoundsSpecified.Location) != 0) _anchor = new Point(x + width, y + height);
             var workArea = Screen.FromRectangle(new Rectangle(x, y, Math.Max(1, width), Math.Max(1, height))).WorkingArea;
             x = PhosphorMenuLayout.PlaceRootLeft(x, PhosphorMenuLayout.Reach(this, width), workArea);
         }
