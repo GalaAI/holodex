@@ -65,91 +65,40 @@ internal static class CaptureKinds
                (s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || s.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
-    /// Stroke icons on a 24-unit grid, drawn into <paramref name="box"/>. They follow the canvas
-    /// glyphs (Omniwand UI, AInbox upload board) with GDI shapes in place of SVG paths.
-    /// </summary>
-    public static void DrawIcon(Graphics g, CaptureKind kind, RectangleF box, Color ink, float stroke)
+    public static PhosphorGlyph Glyph(CaptureKind k) => k switch
     {
-        var state = g.Save();
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.TranslateTransform(box.X, box.Y);
-        float u = box.Width / 24f;
-        g.ScaleTransform(u, u);
-        using var pen = new Pen(ink, stroke / u) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
-        switch (kind)
-        {
-            case CaptureKind.File:
-                g.DrawLines(pen, new[] { new PointF(14, 3), new PointF(6.5f, 3), new PointF(5, 4.5f), new PointF(5, 19.5f), new PointF(6.5f, 21), new PointF(17.5f, 21), new PointF(19, 19.5f), new PointF(19, 8), new PointF(14, 3) });
-                g.DrawLines(pen, new[] { new PointF(14, 3), new PointF(14, 8), new PointF(19, 8) });
-                break;
-            case CaptureKind.Screen:
-                g.DrawLines(pen, new[] { new PointF(4, 8), new PointF(4, 4), new PointF(8, 4) });
-                g.DrawLines(pen, new[] { new PointF(16, 4), new PointF(20, 4), new PointF(20, 8) });
-                g.DrawLines(pen, new[] { new PointF(20, 16), new PointF(20, 20), new PointF(16, 20) });
-                g.DrawLines(pen, new[] { new PointF(8, 20), new PointF(4, 20), new PointF(4, 16) });
-                g.DrawEllipse(pen, 9, 9, 6, 6);
-                break;
-            case CaptureKind.Pick:
-                g.DrawPolygon(pen, new[] { new PointF(5, 3), new PointF(11, 19), new PointF(13, 13), new PointF(19, 11) });
-                g.DrawLine(pen, 14.5f, 14.5f, 19.5f, 19.5f);
-                break;
-            case CaptureKind.Lasso:
-                g.DrawEllipse(pen, 4, 4, 16, 10);
-                g.DrawBezier(pen, new PointF(7.5f, 13), new PointF(5.5f, 15.5f), new PointF(8.5f, 17.5f), new PointF(7, 21));
-                break;
-            case CaptureKind.Record:
-                g.DrawEllipse(pen, 3, 3, 18, 18);
-                using (var dot = new SolidBrush(ink)) g.FillEllipse(dot, 8.5f, 8.5f, 7, 7);
-                break;
-            case CaptureKind.Whisper:
-                using (var mic = PhosphorTheme.CreateRoundedRect(new RectangleF(9, 3, 6, 12), 3)) g.DrawPath(pen, mic);
-                g.DrawArc(pen, 5, 4, 14, 14, 0, 180);
-                g.DrawLine(pen, 12, 18, 12, 21);
-                break;
-            case CaptureKind.Snippet:
-                g.DrawLines(pen, new[] { new PointF(9, 7), new PointF(4, 12), new PointF(9, 17) });
-                g.DrawLines(pen, new[] { new PointF(15, 7), new PointF(20, 12), new PointF(15, 17) });
-                break;
-            case CaptureKind.Link:
-                foreach (var (cx, cy) in new[] { (9.2f, 14.8f), (14.8f, 9.2f) })
-                {
-                    var st = g.Save();
-                    g.TranslateTransform(cx, cy);
-                    g.RotateTransform(-45);
-                    using (var pill = PhosphorTheme.CreateRoundedRect(new RectangleF(-5.5f, -2.8f, 11, 5.6f), 2.8f)) g.DrawPath(pen, pill);
-                    g.Restore(st);
-                }
-                break;
-            default:
-                g.DrawLine(pen, 12, 5, 12, 19);
-                g.DrawLine(pen, 5, 12, 19, 12);
-                break;
-        }
-        g.Restore(state);
-    }
+        CaptureKind.File => PhosphorGlyph.File,
+        CaptureKind.Screen => PhosphorGlyph.Screen,
+        CaptureKind.Pick => PhosphorGlyph.Pick,
+        CaptureKind.Lasso => PhosphorGlyph.Lasso,
+        CaptureKind.Record => PhosphorGlyph.Record,
+        CaptureKind.Whisper => PhosphorGlyph.Whisper,
+        CaptureKind.Snippet => PhosphorGlyph.Snippet,
+        CaptureKind.Link => PhosphorGlyph.Link,
+        _ => PhosphorGlyph.Plus
+    };
+
+    public static void DrawIcon(Graphics g, CaptureKind kind, RectangleF box, Color ink, float stroke) =>
+        PhosphorIcons.Draw(g, Glyph(kind), box, ink, stroke);
 }
 
 internal enum CaptureWellMode { Idle, DragOver, Captured }
 
 /// <summary>
-/// AInboxUpload CP-27 as the composer surface. At rest it is a filled panel that hosts the composer (attachments,
-/// the intent box and the capture bar) in <see cref="Content"/>. While something is dragged over the widget the
+/// AInboxUpload CP-27 as the composer surface. At rest it is the shared <see cref="ComposerSurface"/> hosting the
+/// composer (attachments, the intent box and the capture bar). While something is dragged over the widget the
 /// content steps aside and the well takes the surface: the fan of capture-kind tiles spreads on ease-spring
 /// (CP-36), the kind the drag carries lifts, and the Augment Inventory's TraceBeam FX-10 runs around it: a 2px
 /// ring 3px outside, coral at 15% with one bright band (coral into #f6dccd) orbiting every 2.2s, over a 6% coral
 /// fill. No name tag. Reduced motion keeps the fan still, outlines the detected tile and holds a static outline.
 /// </summary>
-internal sealed class CaptureWellControl : Control
+internal sealed class CaptureWellControl : ComposerSurface
 {
     private static readonly float[,] Idle = { { -52, 5, -12 }, { -26, 1, -5 }, { 0, 0, 0 }, { 26, 1, 5 }, { 52, 5, 12 } };
     private static readonly float[,] Open = { { -76, -7, -14 }, { -38, 2, -6 }, { 0, 3, 0 }, { 38, 2, 6 }, { 76, -2, 14 } };
     private static readonly Color Hot = Color.FromArgb(0xF6, 0xDC, 0xCD);
     private const float SpreadMs = 500f;
     private const float OrbitMs = 2200f;
-    private const float InsetPx = 5f; // TraceBeam gap (3px) plus ring width (2px) sit inside the control bounds.
-    private const float PadXPx = 10f;
-    private const float PadYPx = 8f;
 
     private readonly System.Windows.Forms.Timer _tick = new() { Interval = 16 };
     private readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -161,23 +110,14 @@ internal sealed class CaptureWellControl : Control
 
     public CaptureWellControl()
     {
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
-        BackColor = Color.Transparent;
-        Content = new Panel { BackColor = Color.Transparent, Name = "AInbox.ComposerContent" };
-        Controls.Add(Content);
+        Content.Name = "AInbox.ComposerContent";
         _tick.Tick += (_, _) => Step();
     }
-
-    /// <summary>The composer stack. Hidden while a drag is over the widget so the well can take the surface.</summary>
-    public Panel Content { get; }
 
     public CaptureWellMode Mode => _mode;
 
     /// <summary>The mode a drag returns to when it leaves: Idle, or Captured once something is attached.</summary>
     public CaptureWellMode RestMode { get; set; } = CaptureWellMode.Idle;
-
-    /// <summary>Control height that fits <paramref name="contentHeight"/> of composer inside the well's insets.</summary>
-    public int HeightFor(int contentHeight) => contentHeight + (int)Math.Round(2 * (InsetPx + PadYPx) * PhosphorPaint.Scale(this));
 
     public void SetMode(CaptureWellMode mode, CaptureKind lifted = CaptureKind.File)
     {
@@ -216,35 +156,16 @@ internal sealed class CaptureWellControl : Control
         Invalidate();
     }
 
-    protected override void OnLayout(LayoutEventArgs levent)
-    {
-        base.OnLayout(levent);
-        float s = PhosphorPaint.Scale(this);
-        int x = (int)Math.Round((InsetPx + PadXPx) * s), y = (int)Math.Round((InsetPx + PadYPx) * s);
-        Content.SetBounds(x, y, Math.Max(0, Width - 2 * x), Math.Max(0, Height - 2 * y));
-    }
-
-    // The border brightens while focus is anywhere in the composer.
-    protected override void OnEnter(EventArgs e) { base.OnEnter(e); Invalidate(); }
-    protected override void OnLeave(EventArgs e) { base.OnLeave(e); Invalidate(); }
-
     protected override void OnPaint(PaintEventArgs e)
     {
+        if (_mode != CaptureWellMode.DragOver) { base.OnPaint(e); return; }
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
-        float inset = InsetPx * s;
-        var well = new RectangleF(inset, inset, Width - 2 * inset, Height - 2 * inset);
+        var well = WellRect;
         float r = 12f * s;
-        bool drag = _mode == CaptureWellMode.DragOver;
-
         PhosphorPaint.FillRounded(g, well, r, PhosphorTheme.Surface2);
-        if (!drag)
-        {
-            PhosphorPaint.StrokeRounded(g, well, r, ContainsFocus ? PhosphorTheme.Ghost : PhosphorTheme.Line2);
-            return;
-        }
 
         var fanCenter = new PointF(well.X + well.Width / 2f, well.Y + well.Height * 0.4f);
         DrawFan(g, fanCenter, s);
@@ -395,55 +316,6 @@ internal sealed class CaptureWellControl : Control
     {
         if (disposing) { _tick.Stop(); _tick.Dispose(); }
         base.Dispose(disposing);
-    }
-}
-
-/// <summary>One capture kind on the composer's capture bar: icon only, 44px square, named for its tooltip.</summary>
-internal sealed class CaptureToolButton : Control
-{
-    private bool _hover;
-
-    public CaptureToolButton(CaptureKindInfo info)
-    {
-        Info = info;
-        Name = "AInbox.Kind." + CaptureKinds.Name(info.Kind);
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
-        BackColor = Color.Transparent;
-        TabStop = true;
-        Cursor = Cursors.Hand;
-        AccessibleName = CaptureKinds.Name(info.Kind);
-        AccessibleRole = AccessibleRole.PushButton;
-    }
-
-    public CaptureKindInfo Info { get; }
-
-    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
-    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
-    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
-    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
-    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Enter or Keys.Space || base.IsInputKey(keyData);
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.KeyCode is Keys.Enter or Keys.Space) { e.Handled = true; OnClick(EventArgs.Empty); }
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        float s = PhosphorPaint.Scale(this);
-        var rect = new RectangleF(2.5f * s, 2.5f * s, Width - 5f * s, Height - 5f * s);
-        float r = 10f * s;
-        if (_hover)
-        {
-            PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface);
-            PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Line2);
-        }
-        if (Focused) PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Patina, 2f * s);
-        float icon = 18f * s;
-        CaptureKinds.DrawIcon(g, Info.Kind, new RectangleF((Width - icon) / 2f, (Height - icon) / 2f, icon, icon), _hover ? PhosphorTheme.Bone : PhosphorTheme.Dim, 1.7f * s);
     }
 }
 

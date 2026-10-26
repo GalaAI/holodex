@@ -133,15 +133,16 @@ internal static class SurfaceCapture
             try
             {
                 snipForm.Location = new Point(-32000, -32000);
+                snipForm.PreviewAllMarks = true; // the lasso and the element card on one board
                 snipForm.CreateControl();
                 ShowWindow(snipForm.Handle, 4); // SW_SHOWNOACTIVATE
                 snipForm.PerformLayout();
                 snipForm.Refresh();
-                using var baseSnap = Render(snipForm);
-                return snipForm.OverlayCanvasPreview(baseSnap);
+                return Render(snipForm);
             }
             finally
             {
+                snipForm.PreviewAllMarks = false;
                 ShowWindow(snipForm.Handle, 0);
                 snipForm.Location = homeSnip;
             }

@@ -30,7 +30,7 @@ public sealed class AInboxIntakeWidgetForm : Form
     private readonly PromptTextBox _intentBox;
     private readonly Panel _captureBar;
     private readonly DataLabel _suggestionHint;
-    private readonly ScrollSummaryRow _summary;
+    private readonly DisclosureRow _summary;
     private readonly Panel _scrollGap;
     private readonly SpecCardPanel _scroll;
     private readonly PhosphorField _scrollContextField;
@@ -38,7 +38,7 @@ public sealed class AInboxIntakeWidgetForm : Form
     private readonly PhosphorField _evidenceReceivedField;
     private readonly PhosphorField _evidenceWorkingField;
     private readonly PhosphorField _evidenceDeliverableField;
-    private readonly RouteChip _route;
+    private readonly SuggestionChip _route;
     private readonly DataLabel _statusLabel;
     private readonly PhosphorButton _sendBtn;
 
@@ -92,18 +92,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _contentRow.RemoveClicked += (_, _) => ClearContent();
         _contentGap = WidgetChrome.Spacer(6);
 
-        _intentBox = new PromptTextBox
-        {
-            Multiline = true,
-            BorderStyle = BorderStyle.None,
-            ScrollBars = ScrollBars.None,
-            Dock = DockStyle.Top,
-            Height = 64,
-            BackColor = PhosphorTheme.Surface2,
-            ForeColor = PhosphorTheme.Bone,
-            Font = PhosphorFonts.Body(PhosphorTheme.TextBody),
-            Name = "AInbox.IntentField"
-        };
+        _intentBox = new PromptTextBox { Dock = DockStyle.Top, Height = 64, Name = "AInbox.IntentField" };
         _intentBox.TextChanged += (_, _) => RefreshAutoDetectionAndScroll();
 
         // Capture bar: the live kinds as icons; the right side offers Omnitek's suggested intent.
@@ -113,7 +102,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _captureBar.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 10, BackColor = Color.Transparent });
         foreach (var info in CaptureKinds.All.Where(k => !k.Planned).Reverse())
         {
-            var tool = new CaptureToolButton(info) { Dock = DockStyle.Left, Width = 44 };
+            var tool = new IconToolButton("AInbox.Kind." + CaptureKinds.Name(info.Kind), CaptureKinds.Glyph(info.Kind), CaptureKinds.Name(info.Kind)) { Dock = DockStyle.Left };
             tool.Click += (_, _) => OnCaptureTool(info.Kind);
             _captureBar.Controls.Add(tool);
         }
@@ -126,7 +115,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         stack.Controls.Add(_captureRow);
 
         // Scroll summary: one line, opens into the full ticket.
-        _summary = new ScrollSummaryRow { Dock = DockStyle.Top, Height = 44, Name = "AInbox.ScrollSummary" };
+        _summary = new DisclosureRow { Dock = DockStyle.Top, Height = 44, Name = "AInbox.ScrollSummary" };
         _summary.Toggled += (_, _) => SetScrollOpen(!_scrollOpen);
 
         // Handoff scroll as a SpecCard ticket (CP-20), closed until reviewed.
@@ -169,7 +158,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
         // Footer: where it goes, what is happening, and the one primary.
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "AInbox.Footer" };
-        _route = new RouteChip { Dock = DockStyle.Left, Name = "AInbox.RouteChip" };
+        _route = new SuggestionChip { Dock = DockStyle.Left, Name = "AInbox.RouteChip" };
         _route.Click += (_, _) => ShowRouteMenu();
         _statusLabel = new DataLabel("CTRL+ENTER SENDS") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "AInbox.ReceiptStatus" };
         _sendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 196, Name = "AInbox.SubmitButton" };
@@ -286,22 +275,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         int scrollHeight = _scroll.Padding.Vertical + _scroll.Controls.Cast<Control>().Sum(c => c.Height);
         _scroll.Height = scrollHeight;
 
-        int height = Padding.Vertical;
-        foreach (Control c in Controls)
-        {
-            bool shown = c == _scroll || c == _scrollGap ? _scrollOpen : c.Dock is DockStyle.Top or DockStyle.Bottom;
-            if (shown) height += c.Height;
-        }
-        if (height == Height) return;
-
-        var top = Location;
-        Height = height;
-        if (Visible)
-        {
-            var work = Screen.FromControl(this).WorkingArea;
-            Location = new Point(top.X, WidgetChrome.SafeClamp(top.Y, work.Top + 12, work.Bottom - Height - 12));
-        }
-        Invalidate();
+        FitToContent.Apply(this, c => c == _scroll || c == _scrollGap ? _scrollOpen : true);
     }
 
     private void SetScrollOpen(bool open)
@@ -594,30 +568,17 @@ public sealed class AInboxIntakeWidgetForm : Form
         return "";
     }
 
-    private void ShowRouteMenu()
-    {
-        var menu = new ContextMenuStrip { Renderer = new PhosphorMenuRenderer(), ShowImageMargin = false };
-        for (int i = 0; i < ArkStationClient.PodInboxes.Count; i++)
+    private void ShowRouteMenu() => _route.ShowChoices(ArkStationClient.PodInboxes.Select((pod, i) => new ChipChoice(
+        $"{pod.Label}  ·  {ShortName(pod.OrchestratorLabel)}",
+        pod.InboxChannel,
+        i == _podIndex,
+        () =>
         {
-            int idx = i;
-            var pod = ArkStationClient.PodInboxes[i];
-            var item = new ToolStripMenuItem($"{pod.Label}  ·  {ShortName(pod.OrchestratorLabel)}")
-            {
-                Checked = i == _podIndex,
-                ShortcutKeyDisplayString = pod.InboxChannel,
-                ToolTipText = pod.Description
-            };
-            item.Click += (_, _) =>
-            {
-                _podIndex = idx;
-                _userChosePodManually = true;
-                RefreshAutoDetectionAndScroll();
-            };
-            menu.Items.Add(item);
-        }
-        menu.Closed += (_, _) => BeginInvoke(new Action(menu.Dispose));
-        menu.Show(_route, new Point(0, 0), ToolStripDropDownDirection.AboveRight);
-    }
+            _podIndex = i;
+            _userChosePodManually = true;
+            RefreshAutoDetectionAndScroll();
+        },
+        pod.Description)));
 
     private void RefreshAutoDetectionAndScroll()
     {
@@ -645,13 +606,11 @@ public sealed class AInboxIntakeWidgetForm : Form
         _intentBox.Prompt = _suggestion.Length > 0 ? _suggestion : "What should happen? Drop, paste or pick something to send with it.";
         _suggestionHint.Text = _suggestion.Length > 0 && intent.Length == 0 ? "TAB // USE THE SUGGESTION" : "";
 
-        _route.PodLabel = pod.Label;
-        _route.Orchestrator = orchestrator;
+        _route.Label = pod.Label;
+        _route.Detail = orchestrator;
         _route.Accent = podAccent;
         _route.Confident = high && !_userChosePodManually;
-        _route.Manual = _userChosePodManually;
-        _route.FitWidth();
-        _route.Invalidate();
+        _route.Fit();
         if (_undoTimer == null && !_working) _sendBtn.Text = $"Send to {pod.Label}";
 
         _detected = detected;
@@ -816,208 +775,4 @@ public sealed class AInboxIntakeWidgetForm : Form
         base.OnPaint(e);
         WidgetChrome.PaintFrame(this, e.Graphics, _working || _undoTimer != null ? Color.FromArgb(200, PhosphorTheme.Patina) : PhosphorTheme.Line2);
     }
-}
-
-/// <summary>Where the handoff goes, as one chip: arrow, POD · ORCHESTRATOR, a confidence dot and a caret. Click steers it.</summary>
-internal sealed class RouteChip : Control
-{
-    private bool _hover;
-
-    public RouteChip()
-    {
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
-        BackColor = Color.Transparent;
-        TabStop = true;
-        Cursor = Cursors.Hand;
-        AccessibleRole = AccessibleRole.ButtonDropDown;
-        Width = 170;
-    }
-
-    public string PodLabel { get; set; } = "";
-    public string Orchestrator { get; set; } = "";
-    public Color Accent { get; set; } = PhosphorTheme.Patina;
-    /// <summary>Omnitek is sure of the pod: the dot glows in the pod's accent. Unsure or steered by hand: a ghost dot.</summary>
-    public bool Confident { get; set; }
-    public bool Manual { get; set; }
-
-    private string Label => $"{PodLabel} · {Orchestrator}".ToUpperInvariant();
-
-    public void FitWidth()
-    {
-        AccessibleName = $"Send to {PodLabel}, {Orchestrator}";
-        float s = PhosphorPaint.Scale(this);
-        using var g = CreateGraphics();
-        using var font = PhosphorFonts.Mono(10.5f * s);
-        float text = PhosphorPaint.MeasureTracked(g, Label, font, 1f * s);
-        Width = (int)Math.Ceiling(text + 88f * s);
-    }
-
-    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
-    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
-    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
-    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
-    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Enter or Keys.Space or Keys.Down || base.IsInputKey(keyData);
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.KeyCode is Keys.Enter or Keys.Space or Keys.Down) { e.Handled = true; OnClick(EventArgs.Empty); }
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-        float s = PhosphorPaint.Scale(this);
-        var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        float r = PhosphorTheme.RadiusButton * s;
-        PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
-        PhosphorPaint.StrokeRounded(g, rect, r, _hover ? PhosphorTheme.Ghost : PhosphorTheme.Line2);
-        if (Focused) PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), Math.Max(1f, r - 2f), Color.FromArgb(160, PhosphorTheme.Patina));
-
-        float cy = Height / 2f;
-        float x = 14f * s;
-        using (var pen = new Pen(Accent, 1.7f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-        {
-            g.DrawLine(pen, x, cy, x + 12f * s, cy);
-            g.DrawLines(pen, new[] { new PointF(x + 7.5f * s, cy - 4.5f * s), new PointF(x + 12f * s, cy), new PointF(x + 7.5f * s, cy + 4.5f * s) });
-        }
-        x += 22f * s;
-
-        using (var font = PhosphorFonts.Mono(10.5f * s))
-        using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Cream))
-            x += PhosphorPaint.DrawTracked(g, Label, font, ink, x, cy - font.GetHeight(g) / 2f, 1f * s);
-
-        float dot = 6f * s;
-        x += 8f * s;
-        using (var b = new SolidBrush(Confident ? Accent : PhosphorTheme.Ghost)) g.FillEllipse(b, x, cy - dot / 2f, dot, dot);
-
-        float cx = Width - 16f * s;
-        using var caret = new Pen(PhosphorTheme.Dim, 1.5f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        g.DrawLines(caret, new[] { new PointF(cx - 4f * s, cy + 2f * s), new PointF(cx, cy - 2f * s), new PointF(cx + 4f * s, cy + 2f * s) });
-    }
-}
-
-/// <summary>The handoff scroll in one line: an accent edge, a kicker, what will happen, and Review to open the full ticket.</summary>
-internal sealed class ScrollSummaryRow : Control
-{
-    private bool _hover;
-    private bool _expanded;
-
-    public ScrollSummaryRow()
-    {
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
-        BackColor = Color.Transparent;
-        TabStop = true;
-        Cursor = Cursors.Hand;
-        AccessibleRole = AccessibleRole.PushButton;
-        AccessibleName = "Review the handoff scroll";
-    }
-
-    public string Kicker { get; set; } = "SCROLL";
-    public string Sentence { get; set; } = "";
-    public bool Muted { get; set; }
-    public Color Accent { get; set; } = PhosphorTheme.Patina;
-
-    public bool Expanded
-    {
-        get => _expanded;
-        set { _expanded = value; AccessibleName = value ? "Close the handoff scroll" : "Review the handoff scroll"; Invalidate(); }
-    }
-
-    public event EventHandler? Toggled;
-
-    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
-    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
-    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
-    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
-    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Enter or Keys.Space || base.IsInputKey(keyData);
-
-    protected override void OnClick(EventArgs e) { base.OnClick(e); Toggled?.Invoke(this, EventArgs.Empty); }
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.KeyCode is Keys.Enter or Keys.Space) { e.Handled = true; OnClick(EventArgs.Empty); }
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-        float s = PhosphorPaint.Scale(this);
-        var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        float r = 10f * s;
-        if (_hover) PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
-        PhosphorPaint.StrokeRounded(g, rect, r, _hover ? PhosphorTheme.Line2 : PhosphorTheme.Line);
-        if (Focused) PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), r - 2f, Color.FromArgb(160, PhosphorTheme.Patina));
-        using (var edge = new SolidBrush(Muted ? PhosphorTheme.Line2 : Accent))
-            g.FillRectangle(edge, 0.5f, 10f * s, 2f * s, Height - 20f * s);
-
-        float cy = Height / 2f;
-        float x = 14f * s;
-        using (var mono = PhosphorFonts.Mono(9.5f * s))
-        using (var ghost = new SolidBrush(PhosphorTheme.Ghost))
-            x += PhosphorPaint.DrawTracked(g, Kicker, mono, ghost, x, cy - mono.GetHeight(g) / 2f, 1.1f * s) + 12f * s;
-
-        string action = Expanded ? "CLOSE" : "REVIEW";
-        float actionW;
-        using (var mono = PhosphorFonts.Mono(9.5f * s))
-        using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Dim))
-        {
-            actionW = PhosphorPaint.MeasureTracked(g, action, mono, 1.1f * s);
-            float ax = Width - 30f * s - actionW;
-            PhosphorPaint.DrawTracked(g, action, mono, ink, ax, cy - mono.GetHeight(g) / 2f, 1.1f * s);
-            float cx = Width - 18f * s;
-            using var caret = new Pen(_hover ? PhosphorTheme.Bone : PhosphorTheme.Dim, 1.5f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-            float d = Expanded ? -1f : 1f;
-            g.DrawLines(caret, new[] { new PointF(cx - 4f * s, cy - 2f * s * d), new PointF(cx, cy + 2f * s * d), new PointF(cx + 4f * s, cy - 2f * s * d) });
-        }
-
-        float tw = Width - 30f * s - actionW - 12f * s - x;
-        using var body = PhosphorFonts.Body(12f * s);
-        using var text = new SolidBrush(Muted ? PhosphorTheme.Ghost : PhosphorTheme.Bone);
-        using var fmt = new StringFormat(StringFormat.GenericTypographic) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
-        g.DrawString(Sentence, body, text, new RectangleF(x, 0, Math.Max(0, tw), Height), fmt);
-    }
-}
-
-/// <summary>
-/// The composer's text box. Its prompt (Omnitek's suggestion when something is attached) stays visible while the
-/// box is empty, focused or not, and in offscreen renders; the stock placeholder hides on focus.
-/// </summary>
-internal sealed class PromptTextBox : TextBox
-{
-    private const int WmPaint = 0x000F;
-    private const int WmPrint = 0x0317;
-    private const int WmPrintClient = 0x0318;
-    private string _prompt = "";
-
-    public string Prompt
-    {
-        get => _prompt;
-        set { if (_prompt == value) return; _prompt = value; Invalidate(); }
-    }
-
-    protected override void WndProc(ref Message m)
-    {
-        base.WndProc(ref m);
-        // Filter on the message first: TextLength sends WM_GETTEXTLENGTH, which comes back through here.
-        if (m.Msg is not (WmPaint or WmPrint or WmPrintClient) || _prompt.Length == 0 || TextLength > 0) return;
-        if (m.Msg == WmPaint)
-        {
-            using var g = Graphics.FromHwnd(Handle);
-            DrawPrompt(g);
-        }
-        else if (m.Msg is WmPrint or WmPrintClient && m.WParam != IntPtr.Zero)
-        {
-            using var g = Graphics.FromHdc(m.WParam);
-            DrawPrompt(g);
-        }
-    }
-
-    private void DrawPrompt(Graphics g) => TextRenderer.DrawText(g, _prompt, Font, new Rectangle(1, 0, ClientSize.Width - 2, ClientSize.Height),
-        PhosphorTheme.Ghost, BackColor, TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl | TextFormatFlags.NoPadding);
 }

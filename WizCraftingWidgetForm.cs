@@ -1,47 +1,50 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Omniwand;
 
 /// <summary>
-/// Wiz: the GrimX Spell crafting thread (Alt+W, Actions Ring slot 7, pipe wiz:summon).
-/// Zone CREATE, so the panel edge and the selected lens read coral.
+/// Wiz: the GrimX Spell crafting thread (Alt+W, Actions Ring slot 7, pipe wiz:summon). One composer for the goal,
+/// with the screen toggle and three starters; the Spell type is a chip Omnitek fills from the goal's words, the
+/// model chip says which model plans it, and the thread opens above once there is one. Zone CREATE.
 /// </summary>
 public sealed class WizCraftingWidgetForm : Form
 {
+    private const int ThreadHeight = 260;
+
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
 
-    private readonly PhosphorBadge _runtimeBadge;
-    private readonly DataLabel _runtimeLine;
-    private readonly FlowLayoutPanel _starterRow;
-    private readonly ComboBox _flowLensSelect;
-    private readonly ModelPicker _modelPicker;
     private readonly RichTextBox _threadBox;
-    private readonly PhosphorCheckBox _attachScreenCheck;
-    private readonly PhosphorField _promptField;
+    private readonly Panel _threadGap;
+    private readonly ComposerSurface _composer;
+    private readonly PromptTextBox _promptBox;
+    private readonly IconToolButton _attachScreenToggle;
+    private readonly FlowLayoutPanel _starterRow;
+    private readonly SuggestionChip _lensChip;
+    private readonly ModelChip _modelChip;
     private readonly PhosphorButton _sendBtn;
 
     private Point _summonPos;
     private string _activeFlowLens = "flow";
+    private bool _lensChosenByHand;
     private bool _working;
 
-    private static readonly (string Id, string Label)[] FlowLenses =
+    private static readonly (string Id, string Title, string Verb)[] FlowLenses =
     {
-        ("flow",     "All Spells // overview and crafting"),
-        ("spell",    "Quick Cast // cast // one-shot execution"),
-        ("combo",    "Combo // chain // linked casts, run now"),
-        ("ritual",   "Ritual // perform // scheduled cadence"),
-        ("symphony", "Symphony // conduct // orchestra"),
-        ("ultima",   "Ultima // pursue // deluge synthesis"),
-        ("charm",    "Charm // bind // relic enchantment"),
-        ("summon",   "Summon // summon // automaton")
+        ("flow",     "Spell",      "any Spell type"),
+        ("spell",    "Quick Cast", "one-shot execution"),
+        ("combo",    "Combo",      "linked casts, run now"),
+        ("ritual",   "Ritual",     "scheduled cadence"),
+        ("symphony", "Symphony",   "orchestra of agents"),
+        ("ultima",   "Ultima",     "deluge synthesis"),
+        ("charm",    "Charm",      "relic enchantment"),
+        ("summon",   "Summon",     "automaton")
     };
 
-    /// <summary>The selected Spell type's name, the part of its label before the first " // ".</summary>
-    private string ActiveLensTitle =>
-        FlowLenses.FirstOrDefault(l => l.Id == _activeFlowLens).Label?.Split(" // ")[0] ?? _activeFlowLens;
+    private string ActiveLensTitle => FlowLenses.FirstOrDefault(l => l.Id == _activeFlowLens).Title ?? "Spell";
 
     public WizCraftingWidgetForm(ArkStationClient ark, Action<bool> setThinkingState)
     {
@@ -59,113 +62,115 @@ public sealed class WizCraftingWidgetForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "Wiz";
-        Size = new Size(620, 560);
+        Size = new Size(620, 320);
         Padding = WidgetChrome.FramePadding();
-
-        _runtimeBadge = new PhosphorBadge(
-            ArkStationClient.IsNemotronModel(_ark.SelectedModel) ? "Nemotron" : "Gemini Argon",
-            PhosphorBadgeState.Accent)
-        { AccentColor = PhosphorTheme.Coral, Name = "Wiz.RuntimeBadge" };
-        _runtimeBadge.FitToText();
-
-        // Lens row: Spell type select plus the shared model picker.
-        var lensRow = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Color.Transparent, Name = "Wiz.LensBar" };
-        _flowLensSelect = new PhosphorComboBox { Dock = DockStyle.Fill, Name = "Wiz.FlowLensSelect" };
-        foreach (var lens in FlowLenses) _flowLensSelect.Items.Add(lens.Label);
-        _flowLensSelect.SelectedIndex = 0;
-        _flowLensSelect.SelectedIndexChanged += (_, _) =>
-        {
-            int idx = Math.Clamp(_flowLensSelect.SelectedIndex, 0, FlowLenses.Length - 1);
-            _activeFlowLens = FlowLenses[idx].Id;
-        };
-        _modelPicker = new ModelPicker(_ark) { Dock = DockStyle.Right, Width = 210, Name = "Wiz.ModelPicker" };
-        lensRow.Controls.Add(_flowLensSelect);
-        lensRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = Color.Transparent });
-        lensRow.Controls.Add(_modelPicker);
-        var lensLabeled = WidgetChrome.Labeled("Spell type // Model", lensRow, 26);
-
-        string initialHost = ArkStationClient.IsNemotronModel(_ark.SelectedModel) ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
-        _runtimeLine = new DataLabel($"RUNS ON // {initialHost}") { Dock = DockStyle.Top, Height = 20, Name = "Wiz.RuntimeLine" };
 
         _threadBox = new RichTextBox
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            Height = ThreadHeight,
             ReadOnly = true,
             BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Dim,
+            ForeColor = PhosphorTheme.Bone,
             BorderStyle = BorderStyle.None,
             Font = PhosphorFonts.Body(13f),
             Name = "Wiz.ThreadBox",
-            Text =
-                "Wiz turns a goal into a Combo: an ordered chain of steps you can follow, refine or hand off.\n\n" +
-                "Pick a starter below, or describe what you want done. Tick \"Attach the screen\" when the goal is about what you are looking at."
+            Text = string.Empty
         };
+        PhosphorPaint.UseDarkScrollbars(_threadBox);
+        _threadGap = WidgetChrome.Spacer(10);
 
-        // Composer: attach toggle, multiline field, the region's one primary button.
-        // Opaque on the panel surface: transparent containers here left stale paint (a black bar, a ghost button).
-        var composer = new Panel { Dock = DockStyle.Bottom, Height = 26 + 8 + 72, BackColor = PhosphorTheme.Surface, Name = "Wiz.Composer" };
-        _attachScreenCheck = new PhosphorCheckBox("Attach the screen around the cursor tip")
+        // Composer: the goal, then a bar with the screen toggle and the starters.
+        _composer = new ComposerSurface { Dock = DockStyle.Top, Name = "Wiz.Composer" };
+        _promptBox = new PromptTextBox
         {
             Dock = DockStyle.Top,
-            Checked = false,
-            Name = "Wiz.AttachScreenToggle"
+            Height = 66,
+            Prompt = "Describe a goal. Wiz turns it into a Spell you can run, refine or hand off.",
+            Name = "Wiz.PromptField"
         };
-        var inputRow = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Wiz.InputRow" };
-        _promptField = new PhosphorField("Craft a Spell or Omnitek Augment. Enter sends, Shift+Enter breaks a line.", true, 72) { Dock = DockStyle.Fill, Name = "Wiz.PromptField" };
-        _promptField.Box.Name = "Wiz.PromptBox";
-        _promptField.Box.KeyDown += OnPromptKeyDown;
-        // Button column keeps the primary at the 44px contract height, bottom-aligned to the field.
-        var sendColumn = new Panel { Dock = DockStyle.Right, Width = 150, BackColor = PhosphorTheme.Surface };
-        _sendBtn = new PhosphorButton("Craft Spell", PhosphorButtonVariant.Primary) { Dock = DockStyle.Bottom, Height = PhosphorTheme.TouchMin, Name = "Wiz.CraftButton" };
-        _sendBtn.Click += async (_, _) => await SubmitCraftingPromptAsync();
-        sendColumn.Controls.Add(_sendBtn);
-        inputRow.Controls.Add(_promptField);
-        inputRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 10, BackColor = PhosphorTheme.Surface });
-        inputRow.Controls.Add(sendColumn);
-        composer.Controls.Add(inputRow);
-        composer.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 8, BackColor = PhosphorTheme.Surface });
-        composer.Controls.Add(_attachScreenCheck);
+        _promptBox.KeyDown += OnPromptKeyDown;
+        _promptBox.TextChanged += (_, _) => { SuggestLens(); _starterRow!.Visible = _promptBox.TextLength == 0 && _threadBox.TextLength == 0; };
 
-        _starterRow = new FlowLayoutPanel
+        var bar = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "Wiz.ComposerBar" };
+        _attachScreenToggle = new IconToolButton("Wiz.AttachScreenToggle", PhosphorGlyph.Screen, "Attach the screen") { Dock = DockStyle.Left };
+        _attachScreenToggle.Click += (_, _) => _attachScreenToggle.Selected = !_attachScreenToggle.Selected;
+        _starterRow = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, BackColor = Color.Transparent, Padding = new Padding(0, 4, 0, 0), Name = "Wiz.Starters" };
+        void AddStarter(string label, string name, string prompt, bool attachScreen, int width)
         {
-            Dock = DockStyle.Bottom,
-            Height = 46,
-            BackColor = PhosphorTheme.Surface,
-            WrapContents = false,
-            Padding = new Padding(0, 0, 0, 8),
-            Name = "Wiz.Starters"
-        };
-        void AddStarter(string label, string name, string prompt, bool attachScreen)
-        {
-            var chip = new PhosphorButton(label) { Width = 182, Height = 36, Margin = new Padding(0, 0, 8, 0), Name = name };
+            var chip = new PhosphorButton(label) { Width = width, Height = 36, Margin = new Padding(0, 0, 6, 0), Name = name };
             chip.Click += (_, _) =>
             {
-                _promptField.Box.Text = prompt;
-                _attachScreenCheck.Checked = attachScreen;
-                _promptField.Box.Focus();
-                _promptField.Box.SelectionStart = _promptField.Box.TextLength;
+                _promptBox.Text = prompt;
+                _attachScreenToggle.Selected = attachScreen;
+                _promptBox.Focus();
+                _promptBox.SelectionStart = _promptBox.TextLength;
             };
             _starterRow.Controls.Add(chip);
         }
-        AddStarter("Explain my screen", "Wiz.StarterExplain", "Explain what is on my screen and what I should do next.", true);
-        AddStarter("Make a checklist", "Wiz.StarterChecklist", "Turn this goal into a step-by-step checklist: ", false);
-        AddStarter("Automate a task", "Wiz.StarterAutomate", "Plan a Combo I can rerun for this task: ", false);
+        AddStarter("Explain screen", "Wiz.StarterExplain", "Explain what is on my screen and what I should do next.", true, 150);
+        AddStarter("Checklist", "Wiz.StarterChecklist", "Turn this goal into a step-by-step checklist: ", false, 112);
+        AddStarter("Automate", "Wiz.StarterAutomate", "Plan a Combo I can rerun for this task: ", false, 112);
+        bar.Controls.Add(_starterRow);
+        bar.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
+        bar.Controls.Add(_attachScreenToggle);
+        _composer.Content.Controls.Add(bar);
+        _composer.Content.Controls.Add(_promptBox);
+        _composer.Height = _composer.HeightFor(_promptBox.Height + bar.Height);
 
+        // Footer: what kind of Spell, which model, and the one primary.
+        var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Wiz.Footer" };
+        _lensChip = new SuggestionChip { Dock = DockStyle.Left, ShowArrow = false, Accent = PhosphorTheme.Coral, Name = "Wiz.FlowLensSelect" };
+        _lensChip.Click += (_, _) => _lensChip.ShowChoices(FlowLenses.Select(l => new ChipChoice(
+            l.Title, l.Verb, l.Id == _activeFlowLens, () => { _lensChosenByHand = true; SetLens(l.Id, confident: false); })));
+        _modelChip = new ModelChip(_ark) { Dock = DockStyle.Left, Name = "Wiz.ModelPicker" };
+        _sendBtn = new PhosphorButton("Craft Spell", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Wiz.CraftButton" };
+        _sendBtn.Click += async (_, _) => await SubmitCraftingPromptAsync();
+        footer.Controls.Add(_modelChip);
+        footer.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
+        footer.Controls.Add(_lensChip);
+        footer.Controls.Add(_sendBtn);
+
+        Controls.Add(_composer);
+        Controls.Add(_threadGap);
         Controls.Add(_threadBox);
-        Controls.Add(_starterRow);
-        Controls.Add(composer);
-        Controls.Add(WidgetChrome.Spacer(8));
-        Controls.Add(_runtimeLine);
-        Controls.Add(WidgetChrome.Spacer(4));
-        Controls.Add(lensLabeled);
-        Controls.Add(WidgetChrome.Spacer(8));
-        WidgetChrome.Attach(this, "4GE // GRIMX SPELL CRAFTING", "Wiz", PhosphorTheme.Coral, _runtimeBadge);
+        Controls.Add(WidgetChrome.Spacer(2));
+        Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
+        Controls.Add(footer);
+        WidgetChrome.Attach(this, "4GE // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, null);
         WidgetDrag.Enable(this);
+
+        SetLens("flow", confident: false);
+        FitToThread();
+    }
+
+    private bool HasThread => _threadBox.TextLength > 0;
+
+    /// <summary>No thread yet: the composer is the whole widget. The thread opens above it after the first craft.</summary>
+    private void FitToThread() => FitToContent.Apply(this, c => c == _threadBox || c == _threadGap ? HasThread : true);
+
+    /// <summary>Omnitek reads the goal: Spell-type words (ritual, schedule, combo, summon...) pick the chip unless chosen by hand.</summary>
+    private void SuggestLens()
+    {
+        if (_lensChosenByHand) return;
+        var d = _ark.AutoDetectOmnitekItem(null, null, _promptBox.Text);
+        bool spell = d.ItemType == "flow" && FlowLenses.Any(l => l.Id == d.ItemSubtype);
+        SetLens(spell ? d.ItemSubtype! : "flow", confident: spell);
+    }
+
+    private void SetLens(string id, bool confident)
+    {
+        _activeFlowLens = id;
+        _lensChip.Label = ActiveLensTitle;
+        _lensChip.Confident = confident;
+        _lensChip.Fit();
+        if (!_working) _sendBtn.Text = $"Craft {ActiveLensTitle}";
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
         if (keyData == Keys.Escape) { Hide(); return true; }
+        if (keyData == (Keys.Control | Keys.Enter)) { _ = SubmitCraftingPromptAsync(); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
@@ -174,36 +179,18 @@ public sealed class WizCraftingWidgetForm : Form
         _summonPos = cursorPos;
         if (!string.IsNullOrWhiteSpace(initialFlowLens))
         {
-            for (int i = 0; i < FlowLenses.Length; i++)
-            {
-                if (string.Equals(FlowLenses[i].Id, initialFlowLens, StringComparison.OrdinalIgnoreCase))
-                {
-                    _flowLensSelect.SelectedIndex = i;
-                    _activeFlowLens = FlowLenses[i].Id;
-                    break;
-                }
-            }
+            var lens = FlowLenses.FirstOrDefault(l => string.Equals(l.Id, initialFlowLens, StringComparison.OrdinalIgnoreCase));
+            if (lens.Id != null) { _lensChosenByHand = true; SetLens(lens.Id, confident: false); }
         }
 
+        FitToThread();
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
-        var placed = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 20, cursorPos.Y - Height / 3);
-        int x = placed.X, y = placed.Y;
-        Location = new Point(x, y);
+        Location = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 20, cursorPos.Y - Height / 3);
 
         Show();
         Activate();
-        _promptField.Box.Focus();
-        _ = RefreshWizHeaderAsync();
-    }
-
-    private async System.Threading.Tasks.Task RefreshWizHeaderAsync()
-    {
-        await _modelPicker.RefreshAsync();
-        bool nemotron = ArkStationClient.IsNemotronModel(_ark.SelectedModel) || !_ark.LastGatewayOnline;
-        _runtimeBadge.Text = nemotron ? "Nemotron" : "Gemini Argon";
-        _runtimeBadge.FitToText();
-        string host = nemotron ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
-        _runtimeLine.Text = $"RUNS ON // {host}";
+        _promptBox.Focus();
+        _ = _modelChip.RefreshAsync();
     }
 
     private async void OnPromptKeyDown(object? sender, KeyEventArgs e)
@@ -218,33 +205,33 @@ public sealed class WizCraftingWidgetForm : Form
 
     private async System.Threading.Tasks.Task SubmitCraftingPromptAsync()
     {
-        string prompt = _promptField.Box.Text.Trim();
-        if (!string.IsNullOrEmpty(prompt)) _starterRow.Visible = false;
-        if (string.IsNullOrEmpty(prompt)) return;
+        string prompt = _promptBox.Text.Trim();
+        if (_working) return;
+        if (string.IsNullOrEmpty(prompt)) { _promptBox.Focus(); return; }
 
-        _promptField.Box.Clear();
-        _promptField.Box.Enabled = false;
+        _promptBox.Clear();
+        _starterRow.Visible = false;
+        _promptBox.Enabled = false;
         _sendBtn.Enabled = false;
         _working = true;
         Invalidate();
         _setThinkingState(true);
 
         _threadBox.ForeColor = PhosphorTheme.Bone;
-        _threadBox.AppendText($"\n\nOPERATOR // {ActiveLensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // {_ark.SelectedModel.ToUpperInvariant()} // crafting");
+        _threadBox.AppendText($"{(HasThread ? "\n\n" : "")}YOU // {ActiveLensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // crafting");
         _threadBox.SelectionStart = _threadBox.TextLength;
         _threadBox.ScrollToCaret();
+        FitToThread();
 
-        string? snapshot = _attachScreenCheck.Checked
+        string? snapshot = _attachScreenToggle.Selected
             ? ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y)
             : null;
 
         try
         {
             var (ok, runtime, model, output) = await _ark.AskWizGeminiArgonAsync(prompt, _activeFlowLens, snapshot);
-            _runtimeBadge.Text = model;
-            _runtimeBadge.FitToText();
-            _runtimeLine.Text = $"RUNS ON // {runtime.ToUpperInvariant()}";
-            _threadBox.AppendText($"\n\n{runtime.ToUpperInvariant()} // {model.ToUpperInvariant()}\n{output}");
+            _modelChip.ShowRuntime(runtime);
+            _threadBox.AppendText($"\n\nWIZ // {ModelChip.ShortName(model).ToUpperInvariant()}\n{output}");
             _threadBox.SelectionStart = _threadBox.TextLength;
             _threadBox.ScrollToCaret();
         }
@@ -253,9 +240,11 @@ public sealed class WizCraftingWidgetForm : Form
             _working = false;
             Invalidate();
             _setThinkingState(false);
-            _promptField.Box.Enabled = true;
+            _promptBox.Enabled = true;
             _sendBtn.Enabled = true;
-            _promptField.Box.Focus();
+            _lensChosenByHand = false;
+            SetLens("flow", confident: false);
+            _promptBox.Focus();
         }
     }
 
