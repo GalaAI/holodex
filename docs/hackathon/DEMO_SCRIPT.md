@@ -1,38 +1,60 @@
 # Omniwand demo video (Nebius x NVIDIA Global AI Hackathon)
 
 Target: 2:50, public YouTube, 1920x1080, voice on every beat. Track: Best Apps and Agents.
-Deadline: Friday 2026-10-30, 10:00 AM PT.
+Deadline: Friday 2026-10-30, 10:00 AM PT. Omniwand is one of three separate entries (with Hivemind and
+Ryozan); this video shows only Omniwand.
 
 Judges asked for: the aha in the first 30 seconds, which model does what, a little onboarding,
 limitations stated plainly, and Nebius Token Factory plus Nemotron named out loud.
 
+## Model routing to say on camera
+
+| Where | Model on Token Factory | Why this size |
+|---|---|---|
+| HUD text questions, Holodex chat, AInbox re-ranking | Nemotron 3 Nano 30B A3B | fast, cheap, every keystroke-adjacent call |
+| Anything Omniwand has to see (HUD with the screen, Lasso, Pick) | Nemotron 3.5 Super VL | the vision model; text Nemotrons reject images |
+| Wiz agent steps (tool choice, plans) | Nemotron 3 Super 120B A12B | multi-step reasoning and tool calls |
+
+The UI names the model in every case: the model chip, "ANSWERED BY ..." on the HUD, "RANKED BY NEMOTRON 3
+NANO" on AInbox cards, and the model on each Wiz step.
+
 ## Before you record
 
-- Fresh boot of Omniwand from `dist\Omniwand.exe`; Nebius key linked (Holodex badge reads
-  "Nemotron ready").
-- Close Discord, mail and anything with private data. Desktop wallpaper plain.
-- Open three props: a browser tab with a busy chart or dashboard, a short error message in a
-  terminal, and a PDF (any public report) on the desktop.
-- OBS: display capture 1080p60, mic at -12 dB, cursor capture on (the Aperture cursor is part of
-  the show).
-- Model routing to say out loud: Nemotron 3 Nano for fast text answers (HUD without the screen,
-  Wiz, Holodex), Nemotron 3.5 Super VL for anything it has to see (Lasso, HUD with the screen
-  attached). The HUD status line names the model that answered.
+- Fresh start of `dist\Omniwand.exe`; the Holodex connection line reads NEBIUS KEY LINKED // NEMOTRON READY.
+- Close mail, chat and anything private. Plain wallpaper.
+- Props, all public:
+  - a browser tab on a GitHub pull request with a visible diff
+  - a terminal showing a short error
+  - a small CSV (`bookings-sample.csv`, fictional rows)
+  - a text file containing a FAKE token such as `ghp_demo0000000000000000000000` (never a real one)
+- Check the AInbox footer before recording. If it says QUEUED because the AInbox service is still
+  rejecting saves, either fix the service first or say "queued for AInbox" on camera; do not claim it
+  delivered.
+- OBS: display capture 1080p60, mic at -12 dB, cursor capture on (the Aperture cursor is part of the show).
 
 ## Shot list
 
 | Time | On screen | Say |
 |---|---|---|
-| 0:00 to 0:20 | Cursor moving over the desktop; the Aperture cursor morphs over a link and a text field | "Your AI lives in a browser tab. Your work lives everywhere else. Omniwand puts NVIDIA Nemotron at the tip of your cursor, on any Windows app, through Nebius Token Factory." |
-| 0:20 to 0:50 | Alt+Space over the chart. Type "what is the trend here and what should I check?" Enter. Answer appears; the status line reads ANSWERED BY NEMOTRON 3.5 SUPER VL | "Point and ask. The screen around the cursor goes with the question, so Nemotron 3.5 Super VL answers, and Omniwand tells you which model did." |
-| 0:50 to 1:25 | Alt+S, lasso the error text, draw an arrow, Ask Nemotron | "Lasso anything, mark it up, and Nemotron 3.5 Super VL reads the pixels, not a guess from text." |
-| 1:25 to 1:55 | Alt+W, type "schedule a summary of my open PRs every Friday". Spell chip flips to Ritual. Craft | "Wiz turns a goal into a Spell. It read 'schedule' and picked a Ritual, a recurring chain, on its own." |
-| 1:55 to 2:30 | Drag the PDF onto Alt+I. The well spreads, the TraceBeam runs. Tab takes the suggestion. Open Review: the barcode. Send, the 5 second undo, the receipt | "AInbox hands work to agents. Drop a file; Omnitek classifies it and picks the inbox. The Scroll is sealed: that barcode is the SHA-256 of what the agent will act on. Five seconds to undo, then it's sent." |
-| 2:30 to 2:45 | Architecture card (one slide): Omniwand (.NET 10) to Token Factory chat completions to Nemotron Nano, Super, Super VL; key in Windows Credential Manager | "Native .NET 10. One OpenAI-compatible API, Token Factory. Keys stay in Windows Credential Manager, never in a file." |
-| 2:45 to 2:55 | README limitations section, repo URL | "Windows only, one capture per handoff today, and the receiving side does not verify the seal yet. It's Apache 2.0: github.com/GalaAI/omniwand." |
+| 0:00 to 0:15 | The Aperture cursor moving over the desktop, morphing over a link and a text field | "Your AI lives in a browser tab. Your work lives everywhere else. Omniwand puts NVIDIA Nemotron at the tip of your cursor, on any Windows app, through Nebius Token Factory." |
+| 0:15 to 0:45 | Alt+Space over the PR diff. Ask "why would this hold the PR?" Enter. Status reads ANSWERED BY NEMOTRON 3.5 SUPER VL | "Point and ask. The screen around the cursor goes with the question, so Nemotron 3.5 Super VL reads the pixels, and Omniwand tells you which model answered." |
+| 0:45 to 1:05 | Alt+S, lasso the error in the terminal, draw an arrow, Ask Nemotron | "Lasso anything, mark it up, and ask about exactly that region." |
+| 1:05 to 1:50 | Alt+I. Drop the CSV, Ctrl+V the fake-token file, press Link with the PR URL copied, then Pick the diff. The stack groups into A (the repo) and B (exports). Cards rank intents; after a beat they read RANKED BY NEMOTRON 3 NANO with a WHY and a synthesis. The Aegis card says a GitHub token was found and will be redacted | "AInbox takes everything at once. Every capture records where it came from, so they stack by context. Omnitek ranks what each group should become, and Nemotron Nano re-ranks it and explains why. Aegis caught a token and redacts it before anything leaves." |
+| 1:50 to 2:15 | Click Fix it in a Pod on A, open Review: fields tagged PREDICTED, FROM STACK A, NEMOTRON. Click the barcode; toast says seal copied. Send A, the 5 second undo, the footer status | "The Handoff Scroll adapts to the intent, shows where each field came from, and is sealed: that barcode is the SHA-256 of what the agent will act on. Five seconds to undo, then it goes to the pod's inbox." |
+| 2:15 to 2:40 | Alt+W. "Schedule a summary of my open PRs every Friday." The Spell chip flips to Ritual. Send to Wiz. The thread shows Nemotron 3 Super steps and an action row asking to approve a Codex save; approve | "Wiz is the agent. It picked a Ritual from the word schedule, plans with Nemotron 3 Super, and asks before it changes anything." (Reshoot this beat after the Wiz agent build lands.) |
+| 2:40 to 2:55 | README limitations section, then the repo URL | "Windows only. Images are not scanned for secrets yet, and Record and Whisper are planned. Omniwand is Apache 2.0 on GitHub." |
 
 ## After recording
 
 - Cut to 2:55 or less. Captions on.
 - Upload public on YouTube; title "Omniwand: Nemotron at your cursor (Nebius x NVIDIA hackathon)".
 - Paste the URL in the Devpost submission.
+
+## 45-second cut (social, optional)
+
+| Time | Picture | Line |
+|---|---|---|
+| 0 to 5s | Aperture cursor sweeping the desktop | "I tattoo for a living, and I build AI tools for the work around the art." |
+| 5 to 30s | Alt+Space ask and answer; a lasso; a drop into AInbox with the stack and ranked cards | "Omniwand puts NVIDIA Nemotron at my cursor. I point at anything, ask about it, lasso it, or hand it to an agent, and it shows which model did what." |
+| 30 to 40s | Ryozan screens (only once Ryozan is built) | "Ryozan is the studio side: booking, client messages and a portal for tattooers and artists." |
+| 40 to 45s | ArkStation mark and the repo URL | "Both run on ArkStation. Omniwand is open source today." |
