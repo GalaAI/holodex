@@ -47,6 +47,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     private readonly Action<CodexCaptureEntry>? _onCodexSaved;
 
     private Bitmap? _desktopSnapshot;
+    /// <summary>The frozen desktop with the dim already applied, so a repaint is two blits, not a full-screen blend.</summary>
+    private Bitmap? _dimmedSnapshot;
+    /// <summary>The monitor the overlay covers (screen pixels).</summary>
+    private Rectangle _overlayScreen = Rectangle.Empty;
     private WandCaptureTool _activeTool = WandCaptureTool.FreeformLasso;
     private Color _activeInk = PhosphorTheme.Coral;
 
@@ -54,6 +58,19 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     private Rectangle _selectionRect = Rectangle.Empty;
     private bool _isDragging;
     private Point _dragStart;
+    // The selection before the current drag, restored when the drag is a stray click or is cancelled with Esc.
+    private Rectangle _selectionBeforeDrag;
+    private List<Point> _lassoBeforeDrag = new();
+    private ElementPick? _pickBeforeDrag;
+
+    /// <summary>A picked UI element, frozen at the click: what Ask, Send to AInbox and Save to Codex act on.</summary>
+    private sealed record ElementPick(Rectangle Rect, string Title, string Class, string Process, Color Pixel, string Hex);
+    private ElementPick? _pick;
+    private IntPtr _hoveredHwnd;
+
+    // Each summon is a session; an answer that comes back after the overlay was closed or re-summoned is dropped.
+    private int _session;
+    private int _asksInFlight;
 
     private readonly List<(WandCaptureTool Tool, Color Color, List<Point> Points)> _annotations = new();
     private List<Point>? _currentStroke;
@@ -84,6 +101,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     private const string GuidanceText =
         "Draw a free-form lasso or rectangle snip, add Phosphor annotations, or switch to Point at UI (Alt+E) to inspect any desktop window's HWND, geometry, and live pixel palette.";
     private string _visionModel;
+
+    private const int DrawerLogicalWidth = 640;
 
     /// <summary>For the as-built render: draw the lasso and the element card together, as the board shows them.</summary>
     internal bool PreviewAllMarks { get; set; }
@@ -181,13 +200,13 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             Size = new Size(36, 36),
             Anchor = AnchorStyles.Top | AnchorStyles.Right
         };
-        closeBtn.Click += (_, _) => Hide();
+        closeBtn.Click += (_, _) => CloseOverlay();
         _topToolbar.Controls.Add(closeBtn);
 
         // Bottom drawer: the output (guidance at rest, the answer after), the question, telemetry, model plus Ask.
         _actionDrawer = new Panel
         {
-            Size = new Size(640, 200),
+            Size = new Size(DrawerLogicalWidth, 200),
             Location = new Point(20, 304),
             BackColor = PhosphorTheme.Surface,
             Padding = new Padding(16, 12, 16, 14),
@@ -298,10 +317,12 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         {
             WandCaptureTool.FreeformLasso => "WAND // FREE-FORM LASSO // DRAG TO LASSO ANY SCREEN SHAPE",
             WandCaptureTool.RectangleSnip => "WAND // RECTANGLE SNIP // DRAG TO FRAME CAPTURE REGION",
-            WandCaptureTool.ElementPicker => "WAND // POINT + PALETTE + ARCHITECT // HOVER & CLICK ANY WINDOW",
-            WandCaptureTool.AnnotatePen   => "WAND // ANNOTATE PEN // DRAW FREEHAND CALLOUTS",
-            WandCaptureTool.AnnotateArrow => "WAND // ANNOTATE ARROW // DRAG TO POINT AT TARGET",
-            WandCaptureTool.AnnotateBox   => "WAND // ANNOTATE BOX // DRAG TO HIGHLIGHT TARGET",
+            WandCaptureTool.ElementPicker => _pick == null
+                ? "WAND // POINT + PALETTE + ARCHITECT // HOVER, THEN CLICK TO PICK"
+                : PickedTelemetry(_pick),
+            WandCaptureTool.AnnotatePen   => "WAND // ANNOTATE PEN // DRAW FREEHAND CALLOUTS // CTRL+Z UNDO",
+            WandCaptureTool.AnnotateArrow => "WAND // ANNOTATE ARROW // DRAG TO POINT AT TARGET // CTRL+Z UNDO",
+            WandCaptureTool.AnnotateBox   => "WAND // ANNOTATE BOX // DRAG TO HIGHLIGHT TARGET // CTRL+Z UNDO",
             _ => "WAND // READY"
         };
         _visionPromptBox.Prompt = tool == WandCaptureTool.ElementPicker
@@ -329,7 +350,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     /// </summary>
     private void FitDrawer()
     {
-        _visionOutputBox.Height = _hasAnswer ? 120 : 44;
+        // Logical heights scaled the way WinForms scaled the drawer (it was built 640 logical px wide), so the
+        // two-line guidance is not clipped on a 125% or 150% monitor.
+        float k = _actionDrawer.Width / (float)DrawerLogicalWidth;
+        _visionOutputBox.Height = (int)Math.Round((_hasAnswer ? 120 : 44) * k);
         int h = _actionDrawer.Padding.Vertical;
         foreach (Control c in _actionDrawer.Controls) h += c.Height;
         int bottom = _actionDrawer.Bottom;
@@ -347,11 +371,25 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         FitDrawer();
     }
 
-    private void ShowGuidance()
+    private void ShowGuidance() => ShowNotice(GuidanceText, PhosphorTheme.Dim);
+
+    /// <summary>A short instruction in the output area; not an answer, so Codex never stores it as one.</summary>
+    private void ShowNotice(string text, Color color)
     {
         _hasAnswer = false;
-        _visionOutputBox.ForeColor = PhosphorTheme.Dim;
-        _visionOutputBox.Text = GuidanceText;
+        _visionOutputBox.ForeColor = color;
+        _visionOutputBox.Text = text;
+        FitDrawer();
+    }
+
+    private static string PickedTelemetry(ElementPick pick) =>
+        $"PICKED // {pick.Class.ToUpperInvariant()} // {pick.Hex} // {pick.Rect.Width}x{pick.Rect.Height} AT ({pick.Rect.X},{pick.Rect.Y}) // CLICK TO RE-PICK";
+
+    /// <summary>Closes the overlay from Esc or the close button, dropping any drag in progress.</summary>
+    private void CloseOverlay()
+    {
+        CancelDrag();
+        Hide();
     }
 
     private static string InkColorName(Color ink) => ink == PhosphorTheme.Patina ? "patina" : ink == PhosphorTheme.Seal ? "seal" : "coral";
@@ -382,38 +420,59 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             try { Win32.DwmFlush(); } catch { }
         }
 
+        ReleaseSnapshots();
         try
         {
-            _desktopSnapshot?.Dispose();
             _desktopSnapshot = new Bitmap(screen.Width, screen.Height, PixelFormat.Format24bppRgb);
             using (var g = Graphics.FromImage(_desktopSnapshot))
                 g.CopyFromScreen(screen.Left, screen.Top, 0, 0, screen.Size, CopyPixelOperation.SourceCopy);
+
+            _dimmedSnapshot = new Bitmap(screen.Width, screen.Height, PixelFormat.Format32bppPArgb);
+            using (var g = Graphics.FromImage(_dimmedSnapshot))
+            using (var dim = new SolidBrush(Color.FromArgb(135, PhosphorTheme.Ground)))
+            {
+                var all = new Rectangle(0, 0, screen.Width, screen.Height);
+                g.DrawImage(_desktopSnapshot, all, all, GraphicsUnit.Pixel);
+                g.FillRectangle(dim, all);
+            }
         }
         catch (Exception ex)
         {
             LogSnapshot($"capture failed {screen}: {ex.GetType().Name}: {ex.Message}");
-            _desktopSnapshot = null;
+            ReleaseSnapshots();
         }
 
+        // A fresh capture: no marks, no pick, no question or answer carried over from the last one.
+        _session++;
+        _analyzeBtn.Enabled = true;
+        CancelDrag();
         _annotations.Clear();
         _lassoPoints.Clear();
+        _pick = null;
+        _hoveredHwnd = IntPtr.Zero;
+        _visionPromptBox.Clear();
         _selectionRect = new Rectangle(
             Math.Clamp(cursorPos.X - screen.Left - 180, 40, Math.Max(40, screen.Width - 400)),
             Math.Clamp(cursorPos.Y - screen.Top - 120, 80, Math.Max(80, screen.Height - 360)),
             360,
             240);
 
+        _overlayScreen = screen;
         Bounds = screen;
-        _topToolbar.Location = new Point(Math.Max(16, (screen.Width - _topToolbar.Width) / 2), 18);
         ShowGuidance();
-        FitDrawer();
-        _actionDrawer.Location = new Point(Math.Max(16, (screen.Width - _actionDrawer.Width) / 2), screen.Height - _actionDrawer.Height - 24);
+        PlaceChrome();
 
         SelectTool(initialTool);
         if (initialTool == WandCaptureTool.ElementPicker) UpdateHoveredElement(cursorPos);
         else _hoveredElementRect = Rectangle.Empty;
 
         Show();
+        // Showing on a monitor whose DPI differs from the last one rescales the form (OnDpiChanged); pin it back.
+        if (Bounds != screen)
+        {
+            Bounds = screen;
+            PlaceChrome();
+        }
         Activate();
         Invalidate(true);
         Update();
@@ -421,15 +480,101 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _ = RefreshVisionModelsAsync();
     }
 
-    protected override void OnKeyDown(KeyEventArgs e)
+    /// <summary>Toolbar centered at the top of the monitor, drawer centered at its bottom.</summary>
+    private void PlaceChrome()
     {
-        if (e.KeyCode == Keys.Escape)
+        if (_overlayScreen.IsEmpty) return;
+        float k = _actionDrawer.Width / (float)DrawerLogicalWidth;
+        _topToolbar.Location = new Point(Math.Max((int)(16 * k), (_overlayScreen.Width - _topToolbar.Width) / 2), (int)(18 * k));
+        FitDrawer();
+        _actionDrawer.Location = new Point(Math.Max((int)(16 * k), (_overlayScreen.Width - _actionDrawer.Width) / 2), _overlayScreen.Height - _actionDrawer.Height - (int)(24 * k));
+    }
+
+    /// <summary>
+    /// WinForms answers a DPI change by resizing the form by the DPI ratio, which pulls the overlay off its
+    /// monitor's edges when it is summoned on a monitor with a different scale. Pin it back to the monitor.
+    /// </summary>
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        base.OnDpiChanged(e);
+        if (_overlayScreen.IsEmpty) return;
+        Bounds = _overlayScreen;
+        PlaceChrome();
+        Invalidate(true);
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData == Keys.Escape)
         {
-            Hide();
-            e.Handled = true;
-            return;
+            // Esc during a drag cancels the drag and keeps the overlay; otherwise it closes the overlay.
+            if (_isDragging)
+            {
+                CancelDrag();
+                Invalidate();
+            }
+            else
+            {
+                CloseOverlay();
+            }
+            return true;
         }
-        base.OnKeyDown(e);
+        // Ctrl+Z removes the last mark, unless the question box has text to undo.
+        if (keyData == (Keys.Control | Keys.Z) && _annotations.Count > 0 && !(_visionPromptBox.Focused && _visionPromptBox.TextLength > 0))
+        {
+            _annotations.RemoveAt(_annotations.Count - 1);
+            Invalidate();
+            return true;
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    /// <summary>Ends a drag without applying it: the selection, lasso and pick from before the drag come back.</summary>
+    private void CancelDrag()
+    {
+        if (!_isDragging) return;
+        _isDragging = false;
+        Capture = false;
+        if (_currentStroke != null)
+        {
+            _annotations.RemoveAll(a => ReferenceEquals(a.Points, _currentStroke));
+            _currentStroke = null;
+        }
+        else if (_activeTool is WandCaptureTool.FreeformLasso or WandCaptureTool.RectangleSnip)
+        {
+            RestoreSelectionBeforeDrag();
+        }
+    }
+
+    private void RestoreSelectionBeforeDrag()
+    {
+        _selectionRect = _selectionBeforeDrag;
+        _lassoPoints.Clear();
+        _lassoPoints.AddRange(_lassoBeforeDrag);
+        _pick = _pickBeforeDrag;
+    }
+
+    protected override void OnVisibleChanged(EventArgs e)
+    {
+        base.OnVisibleChanged(e);
+        if (Visible) return;
+        // Closed: drop the drag state and the frozen desktop (a full-monitor bitmap of whatever was on screen).
+        CancelDrag();
+        ReleaseSnapshots();
+    }
+
+    private void ReleaseSnapshots()
+    {
+        _desktopSnapshot?.Dispose();
+        _desktopSnapshot = null;
+        _dimmedSnapshot?.Dispose();
+        _dimmedSnapshot = null;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) ReleaseSnapshots();
+        base.Dispose(disposing);
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
@@ -439,6 +584,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         _isDragging = true;
         _dragStart = e.Location;
+        _selectionBeforeDrag = _selectionRect;
+        _lassoBeforeDrag = _lassoPoints.ToList();
+        _pickBeforeDrag = _pick;
 
         if (_activeTool == WandCaptureTool.FreeformLasso)
         {
@@ -452,9 +600,13 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
         else if (_activeTool == WandCaptureTool.ElementPicker)
         {
-            _selectionRect = _hoveredElementRect;
-            _telemetryLabel.Text = $"LOCKED // {_hoveredClass.ToUpperInvariant()} // {_hoveredHex} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height} AT ({_hoveredElementRect.X},{_hoveredElementRect.Y})";
-            _visionPromptBox.Text = $"Inspect UI target '{_hoveredTitle}' ({_hoveredClass}, {_hoveredElementRect.Width}x{_hoveredElementRect.Height}, color {_hoveredHex}): suggest Phosphor improvements or automation.";
+            // A click picks whatever is under it, even after an earlier pick froze the hover card. The pick is
+            // frozen here: moving to Ask crosses other windows, and their names must not replace the picked one.
+            UpdateHoveredElement(PointToScreen(e.Location));
+            _pick = new ElementPick(_hoveredElementRect, _hoveredTitle, _hoveredClass, _hoveredProcess, _hoveredPixelColor, _hoveredHex);
+            _selectionRect = _pick.Rect;
+            _lassoPoints.Clear(); // the bright cutout follows the element, not an earlier lasso
+            _telemetryLabel.Text = PickedTelemetry(_pick);
         }
         else
         {
@@ -471,6 +623,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         if (_activeTool == WandCaptureTool.ElementPicker && !_isDragging)
         {
+            // After a pick the card stays on the picked element; the next click re-picks.
+            if (_pick != null) return;
             UpdateHoveredElement(PointToScreen(e.Location));
             Invalidate();
             return;
@@ -515,16 +669,47 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         if (!_isDragging) return;
         _isDragging = false;
         _currentStroke = null;
-        if (_activeTool == WandCaptureTool.FreeformLasso && _lassoPoints.Count > 2)
+        // A click or a jitter of a few pixels is not a new region: keep the selection from before it.
+        bool stray = Math.Abs(e.X - _dragStart.X) < MinDragPx && Math.Abs(e.Y - _dragStart.Y) < MinDragPx;
+        if (_activeTool == WandCaptureTool.FreeformLasso)
         {
-            UpdateLassoBoundingBox();
-            _telemetryLabel.Text = $"LASSO READY // {_lassoPoints.Count} PTS // {_selectionRect.Width}x{_selectionRect.Height} PX";
+            if (_lassoPoints.Count > 2 && !stray)
+            {
+                UpdateLassoBoundingBox();
+                _pick = null;
+                _telemetryLabel.Text = $"LASSO READY // {_lassoPoints.Count} PTS // {_selectionRect.Width}x{_selectionRect.Height} PX";
+            }
+            else
+            {
+                RestoreSelectionBeforeDrag();
+            }
         }
         else if (_activeTool == WandCaptureTool.RectangleSnip)
         {
-            _telemetryLabel.Text = $"SNIP READY // {_selectionRect.Width}x{_selectionRect.Height} PX AT ({_selectionRect.X},{_selectionRect.Y})";
+            if (!stray)
+            {
+                _pick = null;
+                _telemetryLabel.Text = $"SNIP READY // {_selectionRect.Width}x{_selectionRect.Height} PX AT ({_selectionRect.X},{_selectionRect.Y})";
+            }
+            else
+            {
+                RestoreSelectionBeforeDrag();
+            }
         }
         Invalidate();
+    }
+
+    private const int MinDragPx = 6;
+
+    protected override void OnMouseCaptureChanged(EventArgs e)
+    {
+        base.OnMouseCaptureChanged(e);
+        // Capture taken away mid-drag (Alt+Tab, a system dialog): no mouse-up will come, so cancel the drag.
+        if (_isDragging && !Capture)
+        {
+            CancelDrag();
+            Invalidate();
+        }
     }
 
     private void UpdateLassoBoundingBox()
@@ -558,8 +743,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             // The overlay is fullscreen and topmost, so WindowFromPoint would always hit it.
             // Walk the real windows underneath in z-order instead.
             IntPtr hwnd = ResolveWindowUnderPoint(screenPt);
-            if (hwnd != IntPtr.Zero)
+            // Same window as the last move: its name, class, rect and process have not changed, so skip the
+            // lookups (Process.GetProcessById on every mouse move made the card lag).
+            if (hwnd != IntPtr.Zero && hwnd != _hoveredHwnd)
             {
+                _hoveredHwnd = hwnd;
                 var clsSb = new StringBuilder(128);
                 GetClassName(hwnd, clsSb, clsSb.Capacity);
                 _hoveredClass = clsSb.Length > 0 ? clsSb.ToString() : "Win32.Control";
@@ -619,31 +807,63 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         return current;
     }
 
-    private string RenderSelectionDataUrl() => RenderSelectionDataUrl(out _);
+    /// <summary>
+    /// What Ask, Send to AInbox and Save to Codex capture: the picked element while the Point at UI tool is
+    /// active, otherwise the lasso or rectangle. Empty when Point at UI has nothing picked yet.
+    /// </summary>
+    private Rectangle CaptureRect()
+    {
+        if (_activeTool == WandCaptureTool.ElementPicker && _pick == null) return Rectangle.Empty;
+        return _selectionRect.Width >= 16 && _selectionRect.Height >= 16 ? _selectionRect : new Rectangle(40, 60, 360, 220);
+    }
+
+    private const string PickFirstText = "Click a window or control to pick it first. The card shows what a click will pick.";
 
     private string RenderSelectionDataUrl(out string error)
     {
         error = string.Empty;
         try
         {
-            Rectangle crop = _selectionRect.Width >= 16 && _selectionRect.Height >= 16
-                ? _selectionRect
-                : new Rectangle(40, 60, 360, 220);
+            Rectangle crop = CaptureRect();
+            if (crop.IsEmpty)
+            {
+                error = PickFirstText;
+                return string.Empty;
+            }
+            // Only what is on this monitor: a maximized window reaches 8px past the edges, and a window can
+            // continue onto another monitor that is not in the frozen frame.
+            if (_desktopSnapshot != null)
+                crop = Rectangle.Intersect(crop, new Rectangle(0, 0, _desktopSnapshot.Width, _desktopSnapshot.Height));
+            if (crop.Width < 2 || crop.Height < 2)
+            {
+                error = "The selection is outside this monitor.";
+                return string.Empty;
+            }
 
             using var outBmp = new Bitmap(crop.Width, crop.Height, PixelFormat.Format24bppRgb);
             using (var g = Graphics.FromImage(outBmp))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.TranslateTransform(-crop.X, -crop.Y);
                 if (_desktopSnapshot != null)
                 {
-                    g.DrawImage(_desktopSnapshot, new Rectangle(0, 0, crop.Width, crop.Height), crop, GraphicsUnit.Pixel);
+                    // A lasso sends only what it encloses: outside it is the overlay ground, not more desktop.
+                    bool lasso = _lassoPoints.Count > 2 && _pick == null;
+                    if (lasso)
+                    {
+                        g.Clear(PhosphorTheme.Ground);
+                        using var path = new GraphicsPath();
+                        path.AddPolygon(_lassoPoints.ToArray());
+                        g.SetClip(path);
+                    }
+                    g.DrawImage(_desktopSnapshot, crop, crop, GraphicsUnit.Pixel);
+                    g.ResetClip();
                 }
                 else
                 {
                     g.Clear(PhosphorTheme.Surface);
                 }
 
-                g.TranslateTransform(-crop.X, -crop.Y);
                 DrawAnnotations(g);
             }
             using var ms = new MemoryStream();
@@ -659,11 +879,14 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
     private async System.Threading.Tasks.Task RunLiveVisionAnalysisAsync()
     {
+        if (!_analyzeBtn.Enabled) return; // this capture's question is already out
+        var pick = _pick;
         string prompt = _visionPromptBox.Text.Trim();
         if (string.IsNullOrEmpty(prompt))
         {
-            prompt = _activeTool == WandCaptureTool.ElementPicker
-                ? $"Analyze UI element '{_hoveredTitle}' (class {_hoveredClass}, geometry {_hoveredElementRect.Width}x{_hoveredElementRect.Height}, pixel palette {_hoveredHex})."
+            // The empty ask is what the box's placeholder promises for the current tool.
+            prompt = pick != null
+                ? $"Inspect UI target '{pick.Title}' ({pick.Class}, {pick.Rect.Width}x{pick.Rect.Height}, color {pick.Hex}): suggest Phosphor improvements or automation."
                 : "Describe the captured screen region and any annotations, and provide actionable technical guidance.";
         }
 
@@ -672,30 +895,37 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         if (string.IsNullOrEmpty(dataUrl))
         {
             // Never send a vision request without the image; a text-only answer would be invented.
-            ShowAnswer($"Vision request not sent: capture could not be rendered ({renderError}).", PhosphorTheme.Rust);
+            if (renderError == PickFirstText) ShowNotice(PickFirstText, PhosphorTheme.Coral);
+            else ShowAnswer($"Vision request not sent: capture could not be rendered ({renderError}).", PhosphorTheme.Rust);
             return;
         }
 
-        if (!_analyzeBtn.Enabled) return; // a request is already out
-        ShowAnswer($"Asking {ModelChip.ShortName(chosenVisionModel)} about the {_selectionRect.Width}x{_selectionRect.Height} capture...", PhosphorTheme.Patina);
+        var capture = CaptureRect();
+        int session = _session;
+        ShowAnswer($"Asking {ModelChip.ShortName(chosenVisionModel)} about the {capture.Width}x{capture.Height} capture...", PhosphorTheme.Patina);
         _analyzeBtn.Enabled = false;
+        _asksInFlight++;
         _setThinkingState(true);
 
         try
         {
-            string enrichedPrompt =
-                $"[Omniwand Vision & Element Inspector | Tool={_activeTool} | Element={_hoveredTitle} ({_hoveredClass}) | Geometry={_selectionRect.Width}x{_selectionRect.Height} | Palette={_hoveredHex}]\n{prompt}";
-            var (ok, output) = await _ark.AskVisionModelAsync(enrichedPrompt, dataUrl, chosenVisionModel);
-            ShowAnswer(output, ok ? PhosphorTheme.Bone : PhosphorTheme.Rust);
+            // Element facts only for a picked element; a lasso or snip has none, and the hover card's last
+            // window is not what was captured.
+            string header = pick != null
+                ? $"[Omniwand Vision & Element Inspector | Tool={_activeTool} | Element={pick.Title} ({pick.Class}, {pick.Process}) | Geometry={pick.Rect.Width}x{pick.Rect.Height} | Palette={pick.Hex}]"
+                : $"[Omniwand Vision | Tool={_activeTool} | Region={capture.Width}x{capture.Height} | Marks={_annotations.Count}]";
+            var (ok, output) = await _ark.AskVisionModelAsync($"{header}\n{prompt}", dataUrl, chosenVisionModel);
+            if (session == _session) ShowAnswer(output, ok ? PhosphorTheme.Bone : PhosphorTheme.Rust);
         }
         catch (Exception ex)
         {
-            ShowAnswer($"Vision request to {chosenVisionModel} failed: {ex.GetType().Name}: {ex.Message}", PhosphorTheme.Rust);
+            if (session == _session) ShowAnswer($"Vision request to {chosenVisionModel} failed: {ex.GetType().Name}: {ex.Message}", PhosphorTheme.Rust);
         }
         finally
         {
-            _analyzeBtn.Enabled = true;
-            _setThinkingState(false);
+            // A new summon already re-enabled Ask for its own capture.
+            if (session == _session) _analyzeBtn.Enabled = true;
+            if (--_asksInFlight == 0) _setThinkingState(false);
         }
     }
 
@@ -710,7 +940,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             PhosphorToast.Show("Nothing to send", string.IsNullOrEmpty(renderError) ? "Lasso a region or pick an element first." : renderError, "SNIP // AINBOX", 2600, ToastTone.Warning);
             return;
         }
-        string name = _activeTool == WandCaptureTool.ElementPicker ? "element-capture.png" : "lasso-capture.png";
+        string name = _pick != null ? "element-capture.png" : _lassoPoints.Count > 2 ? "lasso-capture.png" : "snip-capture.png";
         var at = Cursor.Position;
         Hide();
         OnSendToAInbox(at, dataUrl, name);
@@ -718,17 +948,24 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
     private void SaveCurrentCaptureToCodex()
     {
-        string dataUrl = RenderSelectionDataUrl();
+        string dataUrl = RenderSelectionDataUrl(out string renderError);
+        if (string.IsNullOrEmpty(dataUrl))
+        {
+            PhosphorToast.Show("Nothing to save", renderError, "HOLODEX // CODEX", 2600, ToastTone.Warning);
+            return;
+        }
         string chosenModel = _visionModel;
-        string kind = _activeTool == WandCaptureTool.ElementPicker ? "wand.element" : (_lassoPoints.Count > 2 ? "wand.lasso" : "wand.snip");
+        var pick = _pick;
+        var capture = CaptureRect();
+        string kind = pick != null ? "wand.element" : (_lassoPoints.Count > 2 ? "wand.lasso" : "wand.snip");
         var entry = new CodexCaptureEntry(
             $"codex:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds():x}",
             kind,
-            _activeTool == WandCaptureTool.ElementPicker ? $"{_hoveredProcess}: {_hoveredTitle}" : $"Screen {kind.Split('.')[1].ToUpperInvariant()} ({_selectionRect.Width}x{_selectionRect.Height})",
+            pick != null ? $"{pick.Process}: {pick.Title}" : $"Screen {kind.Split('.')[1].ToUpperInvariant()} ({capture.Width}x{capture.Height})",
             !_hasAnswer || string.IsNullOrWhiteSpace(_visionOutputBox.Text) ? "Captured via Omniwand Screen Snip & Element Inspector." : _visionOutputBox.Text,
-            _hoveredClass,
-            $"{_selectionRect.Width}x{_selectionRect.Height} @ ({_selectionRect.X},{_selectionRect.Y})",
-            _hoveredHex,
+            pick?.Class ?? "Screen.Region",
+            $"{capture.Width}x{capture.Height} @ ({capture.X},{capture.Y})",
+            pick?.Hex ?? "n/a",
             chosenModel,
             dataUrl,
             DateTime.UtcNow.ToString("O"));
@@ -801,13 +1038,16 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
-        if (_desktopSnapshot != null)
+        if (_desktopSnapshot != null && _dimmedSnapshot != null)
         {
             // Explicit destination rect: DrawImage(img, x, y) rescales by the bitmap DPI on scaled monitors.
+            // The dim is baked into _dimmedSnapshot at summon: blending the whole monitor on every mouse move
+            // made the lasso and the hover card trail the pointer on large screens.
             var snapRect = new Rectangle(0, 0, _desktopSnapshot.Width, _desktopSnapshot.Height);
-            g.DrawImage(_desktopSnapshot, snapRect, snapRect, GraphicsUnit.Pixel);
-            using var dimBrush = new SolidBrush(Color.FromArgb(135, PhosphorTheme.Ground));
-            g.FillRectangle(dimBrush, ClientRectangle);
+            var mode = g.CompositingMode;
+            g.CompositingMode = CompositingMode.SourceCopy;
+            g.DrawImage(_dimmedSnapshot, snapRect, snapRect, GraphicsUnit.Pixel);
+            g.CompositingMode = mode;
 
             if (_selectionRect.Width > 8 && _selectionRect.Height > 8)
             {
@@ -859,27 +1099,37 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
 
         // Draw Element Picker (wand.point + wand.palette + wand.architect) live card
-        if ((_activeTool == WandCaptureTool.ElementPicker || PreviewAllMarks) && _hoveredElementRect.Width > 8)
+        // The card shows the picked element once there is one, else what a click would pick.
+        var shown = _pick ?? new ElementPick(_hoveredElementRect, _hoveredTitle, _hoveredClass, _hoveredProcess, _hoveredPixelColor, _hoveredHex);
+        if ((_activeTool == WandCaptureTool.ElementPicker || PreviewAllMarks) && shown.Rect.Width > 8)
         {
-            using (var elemPath = PhosphorTheme.CreateRoundedRect(_hoveredElementRect, PhosphorTheme.RadiusTile))
+            using (var elemPath = PhosphorTheme.CreateRoundedRect(shown.Rect, PhosphorTheme.RadiusTile))
             using (var elemPen = new Pen(PhosphorTheme.Patina, 2f))
                 g.DrawPath(elemPen, elemPath);
 
-            var cardRect = new Rectangle(_hoveredElementRect.Left + 10, _hoveredElementRect.Top + 10, 250, 96);
+            // Card geometry in logical pixels scaled to the monitor, like its point-size fonts, and kept on screen:
+            // an element at the right or bottom edge would otherwise push the card off the monitor.
+            float k = g.DpiX / 96f;
+            int cw = (int)(264 * k), ch = (int)(96 * k), pad = (int)(10 * k);
+            int cx = Math.Clamp(shown.Rect.Left + pad, pad, Math.Max(pad, ClientSize.Width - cw - pad));
+            int cy = Math.Clamp(shown.Rect.Top + pad, pad, Math.Max(pad, ClientSize.Height - ch - pad));
+            var cardRect = new Rectangle(cx, cy, cw, ch);
             PhosphorTheme.DrawPhosphorPanel(g, cardRect, PhosphorTheme.RadiusTile, PhosphorTheme.Surface, PhosphorTheme.Line);
             using var monoFont = PhosphorFonts.Mono(9.5f);
             using var titleFont = PhosphorFonts.Ui(10.5f, heavy: true);
             using var boneBrush = new SolidBrush(PhosphorTheme.Bone);
             using var dimBrush = new SolidBrush(PhosphorTheme.Dim);
             using var coralBrush = new SolidBrush(PhosphorTheme.Coral);
+            using var trim = new StringFormat { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
+            float tx = cardRect.Left + pad, tw = cardRect.Width - 2 * pad;
 
-            g.DrawString("WAND.POINT // ELEMENT INSPECTOR", monoFont, coralBrush, cardRect.Left + 10, cardRect.Top + 8);
-            g.DrawString(_hoveredTitle, titleFont, boneBrush, cardRect.Left + 10, cardRect.Top + 26);
-            g.DrawString($"CLASS: {_hoveredClass}", monoFont, dimBrush, cardRect.Left + 10, cardRect.Top + 46);
-            g.DrawString($"ARCH:  {_hoveredElementRect.Width}x{_hoveredElementRect.Height}px  PALETTE: {_hoveredHex}", monoFont, boneBrush, cardRect.Left + 10, cardRect.Top + 66);
+            g.DrawString(_pick != null ? "WAND.POINT // PICKED" : "WAND.POINT // ELEMENT INSPECTOR", monoFont, coralBrush, new RectangleF(tx, cardRect.Top + 8 * k, tw, 18 * k), trim);
+            g.DrawString(shown.Title, titleFont, boneBrush, new RectangleF(tx, cardRect.Top + 26 * k, tw, 20 * k), trim);
+            g.DrawString($"CLASS: {shown.Class}", monoFont, dimBrush, new RectangleF(tx, cardRect.Top + 46 * k, tw, 18 * k), trim);
+            g.DrawString($"ARCH:  {shown.Rect.Width}x{shown.Rect.Height}px  PALETTE: {shown.Hex}", monoFont, boneBrush, new RectangleF(tx, cardRect.Top + 66 * k, tw - 26 * k, 18 * k), trim);
 
-            using var swatchBrush = new SolidBrush(_hoveredPixelColor);
-            var swatchRect = new Rectangle(cardRect.Right - 30, cardRect.Top + 62, 18, 18);
+            using var swatchBrush = new SolidBrush(shown.Pixel);
+            var swatchRect = new Rectangle(cardRect.Right - (int)(30 * k), cardRect.Top + (int)(62 * k), (int)(18 * k), (int)(18 * k));
             using var swatchOutline = new Pen(PhosphorTheme.Bone, 1f);
             g.FillRectangle(swatchBrush, swatchRect);
             g.DrawRectangle(swatchOutline, swatchRect);
