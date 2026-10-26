@@ -46,6 +46,10 @@ public sealed class HolodexLiteDrawerForm : Form
     private readonly PhosphorField _tokenField;
     private readonly Panel _tokenBar;
     private readonly Panel _tokenGap;
+    private readonly Label _connectionTelemetry;
+    private readonly PhosphorButton _replaceKeyBtn;
+    private bool _connected;
+    private bool _tokenBarOpen;
 
     private readonly Dictionary<string, PhosphorButton> _tabButtons = new();
     private readonly Panel _contentHost;
@@ -64,6 +68,7 @@ public sealed class HolodexLiteDrawerForm : Form
     private PromptTextBox _sessionInputBox = null!;
     private SuggestionChip _rosterChip = null!;
     private PhosphorButton _sessionSendBtn = null!;
+    private DataLabel _activeRosterLabel = null!;
 
     // Codex controls
     private RichTextBox _codexListBox = null!;
@@ -73,6 +78,7 @@ public sealed class HolodexLiteDrawerForm : Form
 
     // Mods / Hardware controls
     private DataLabel _mouseHwLabel = null!;
+    private DataLabel _dpiValueLabel = null!;
 
     private readonly List<SyndicateWorkOrder> _workOrders = new();
 
@@ -127,15 +133,15 @@ public sealed class HolodexLiteDrawerForm : Form
         Padding = WidgetChrome.FramePadding();
 
         bool hasNebiusKey = HasNebiusKey;
-        // The header badge is the one connection status. With a key linked the key row stays hidden; clicking the
-        // badge brings it back to replace the key.
+        // The header badge sums up the connection; the telemetry line under the header says it in full. With a key
+        // linked the key row stays hidden, and Replace key (or the badge) brings it back.
         _vaultBadge = new PhosphorBadge(hasNebiusKey ? "Nemotron ready" : "No key", hasNebiusKey ? PhosphorBadgeState.Validated : PhosphorBadgeState.Unstated)
         {
             Name = "Holodex.VaultBadge",
             Cursor = Cursors.Hand
         };
         _vaultBadge.FitToText();
-        _vaultBadge.Click += (_, _) => ShowTokenBar(!_tokenBar!.Visible);
+        _vaultBadge.Click += (_, _) => ShowTokenBar(!_tokenBarOpen);
 
         _tokenBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface, Name = "Holodex.TokenBar" };
         _tokenField = new PhosphorField("Paste a Nebius Token Factory key. It is saved to Windows Credential Manager.", false, 40, mono: true)
@@ -155,6 +161,32 @@ public sealed class HolodexLiteDrawerForm : Form
         _tokenBar.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
         _tokenBar.Controls.Add(saveTokenBtn);
         _tokenGap = WidgetChrome.Spacer(8);
+
+        // 1. Connection telemetry, always visible, with the visible way back to the key row.
+        bool bundle = hasNebiusKey && ArkStationClient.HasWinCredVaultBundle();
+        var connectionRow = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = PhosphorTheme.Surface, Name = "Holodex.ConnectionRow" };
+        // A wrapping mono label, so the full telemetry fits beside the button on two lines.
+        _connectionTelemetry = new Label
+        {
+            Text = hasNebiusKey
+                ? $"NEBIUS KEY LINKED // NEMOTRON READY{(bundle ? " // SAVED IN WINDOWS VAULT" : "")}"
+                : "NO MODEL KEY // PASTE A NEBIUS KEY BELOW",
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            UseMnemonic = false,
+            TextAlign = ContentAlignment.MiddleLeft,
+            BackColor = PhosphorTheme.Surface,
+            Font = PhosphorFonts.Mono(PhosphorTheme.TextData),
+            Height = 36,
+            ForeColor = hasNebiusKey ? PhosphorTheme.Patina : PhosphorTheme.Ember,
+            Name = "Holodex.ConnectionLine"
+        };
+        _replaceKeyBtn = new PhosphorButton("Replace key") { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.ReplaceKeyButton" };
+        _replaceKeyBtn.Click += (_, _) => ShowTokenBar(!_tokenBarOpen);
+        connectionRow.Controls.Add(_connectionTelemetry);
+        connectionRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
+        connectionRow.Controls.Add(_replaceKeyBtn);
+        _connected = hasNebiusKey;
 
         // 2. 5-Tab Bar: SESSION | AINBOX | CODEX | GRIMX | MODS
         var tabBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface, Name = "Holodex.TabBar" };
@@ -198,6 +230,8 @@ public sealed class HolodexLiteDrawerForm : Form
         Controls.Add(_tokenGap);
         Controls.Add(_tokenBar);
         Controls.Add(WidgetChrome.Spacer(6));
+        Controls.Add(connectionRow);
+        Controls.Add(WidgetChrome.Spacer(4));
         WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, _vaultBadge);
         WidgetDrag.Enable(this);
 
@@ -209,7 +243,7 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         _sessionPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionPanel" };
 
-        // Work orders: only once there is one.
+        // Work orders: always visible, with its empty state.
         _workOrdersBox = new RichTextBox
         {
             Dock = DockStyle.Top,
@@ -224,7 +258,6 @@ public sealed class HolodexLiteDrawerForm : Form
         PhosphorPaint.UseDarkScrollbars(_workOrdersBox);
         _workOrdersHost = WidgetChrome.Labeled("Work orders", _workOrdersBox, 96);
         var ordersGap = WidgetChrome.Spacer(8);
-        _workOrdersHost.VisibleChanged += (_, _) => ordersGap.Visible = _workOrdersHost.Visible;
 
         _sessionChatBox = new RichTextBox
         {
@@ -235,9 +268,13 @@ public sealed class HolodexLiteDrawerForm : Form
             BorderStyle = BorderStyle.None,
             Font = PhosphorFonts.Body(12.5f),
             Name = "Holodex.SessionChatBox",
-            Text = hasNebiusKey
-                ? "GALA\nReady. Message the Syndicate below; start with /order to queue a work order."
-                : "GALA\nLink a Nebius key (the No key badge above) to turn on Nemotron."
+            Text =
+                "GALA // NEXUS ORCHESTRATOR\n" +
+                (hasNebiusKey
+                    ? "Welcome. Your Nebius key is linked and Nemotron is ready to chat.\n\n"
+                    : "Welcome. Paste a Nebius Token Factory key above to turn on Nemotron.\n\n") +
+                "WIZ // 4GE CONDUCTOR\n" +
+                "Your mouse hardware profile, DPI controls, Free-Form Lasso (Alt+S), and Element Picker (Alt+E) are online. Message the Syndicate below or prefix with /order to dispatch a Work Order."
         };
         PhosphorPaint.UseDarkScrollbars(_sessionChatBox);
 
@@ -270,12 +307,17 @@ public sealed class HolodexLiteDrawerForm : Form
         footer.Controls.Add(_rosterChip);
         footer.Controls.Add(_sessionSendBtn);
 
+        // Roster: who the message reaches, under the chip.
+        _activeRosterLabel = new DataLabel("") { Dock = DockStyle.Bottom, Height = 20, Name = "Holodex.RosterLine" };
+
         _sessionPanel.Controls.Add(_sessionChatBox);
         _sessionPanel.Controls.Add(ordersGap);
         _sessionPanel.Controls.Add(_workOrdersHost);
         _sessionPanel.Controls.Add(composer);
         _sessionPanel.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = PhosphorTheme.Surface });
         _sessionPanel.Controls.Add(footer);
+        _sessionPanel.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = PhosphorTheme.Surface });
+        _sessionPanel.Controls.Add(_activeRosterLabel);
 
         SetSyndicateTarget("all");
         RefreshWorkOrdersText();
@@ -293,11 +335,18 @@ public sealed class HolodexLiteDrawerForm : Form
         _rosterChip.Fit();
         string who = agent.Id == "all" ? "all" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(agent.Name.ToLowerInvariant());
         _sessionSendBtn.Text = $"Send to {who}";
+        _activeRosterLabel.Text = agent.Id == "all"
+            ? "ROSTER // ALL SYNDICATE · GALA + WIZ + SMITH + ARBITER + SCHOLAR + MUSE"
+            : $"ROSTER // {agent.Name} · {agent.Pod.ToUpperInvariant()} POD";
     }
 
     private void ShowTokenBar(bool show)
     {
+        _tokenBarOpen = show;
         _tokenBar.Visible = _tokenGap.Visible = show;
+        // Without a working connection the key row is the way in, so it has no Replace toggle.
+        _replaceKeyBtn.Visible = _connected;
+        _replaceKeyBtn.Text = show ? "Cancel" : "Replace key";
         if (show) _tokenField.Box.Focus();
     }
 
@@ -448,14 +497,21 @@ public sealed class HolodexLiteDrawerForm : Form
         _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
 
         var hw = ConnectedMouse;
-        // One line for the mouse: model, DPI and Windows pointer speed (the VID/PID stays in the tooltip).
-        string MouseLine(int dpi, int speed) => $"{hw.Model.ToUpperInvariant()} // {dpi} DPI // SPEED {speed}/20";
-        _mouseHwLabel = new DataLabel(MouseLine(MouseHardwareAndWandEngine.GetCurrentDpi(), hw.WindowsPointerSpeed))
+        // The mouse (brand, model, VID/PID), then the pointer: speed, DPI, the slider's range and VSync.
+        _mouseHwLabel = new DataLabel($"MOUSE // {hw.Brand.ToUpperInvariant()} {hw.Model.ToUpperInvariant()} ({hw.VidPid})")
         {
             Dock = DockStyle.Top,
             Height = 22,
             ForeColor = PhosphorTheme.Patina,
             Name = "Holodex.MouseLine"
+        };
+        static string PointerLine(int dpi, int speed) => $"POINTER SPEED // {speed}/20 · {dpi} DPI (100 to 4000 SLIDER) · VSYNC";
+        _dpiValueLabel = new DataLabel(PointerLine(MouseHardwareAndWandEngine.GetCurrentDpi(), hw.WindowsPointerSpeed))
+        {
+            Dock = DockStyle.Top,
+            Height = 22,
+            ForeColor = PhosphorTheme.Bone,
+            Name = "Holodex.PointerLine"
         };
 
         // Live DPI Slider (100 DPI to 4000 DPI)
@@ -468,7 +524,7 @@ public sealed class HolodexLiteDrawerForm : Form
         MouseHardwareAndWandEngine.DpiChanged += (dpi, speed) =>
         {
             if (IsDisposed) return;
-            void UpdateText() => _mouseHwLabel.Text = MouseLine(dpi, speed);
+            void UpdateText() => _dpiValueLabel.Text = PointerLine(dpi, speed);
             if (InvokeRequired) BeginInvoke(new Action(UpdateText));
             else UpdateText();
         };
@@ -510,7 +566,7 @@ public sealed class HolodexLiteDrawerForm : Form
             styleRow.Controls.Add(btn);
             sx += w + 6;
         }
-        var styleLabeled = WidgetChrome.Labeled("Cursor", styleRow, 40);
+        var styleLabeled = WidgetChrome.Labeled("Cursor // VSync vector morph", styleRow, 40);
 
         // Wiz Automated Onboarding & Animated Tooltip Tutorial button
         var onboardBtn = new PhosphorButton("Replay the tour")
@@ -529,17 +585,17 @@ public sealed class HolodexLiteDrawerForm : Form
             ForeColor = PhosphorTheme.Bone,
             BorderStyle = BorderStyle.None,
             Font = PhosphorFonts.Mono(10.5f),
+            Name = "Holodex.ModsInfoBox",
             Text =
-                "GESTURES // HOLD CTRL OR THE RIGHT BUTTON, THEN\n" +
-                "  Shake left-right   ->  Time Splitter (Wiz inspect)\n" +
-                "  Shake up-down      ->  Copycat (lasso)\n" +
-                "  Circle             ->  Mutation (cast a Spell)\n" +
-                "  Sweep right        ->  Synthesize (Holodex session)\n\n" +
-                "MODS\n" +
-                "  Ark Aperture cursor (240Hz morph)\n" +
-                "  Mouse hardware (model detection, DPI slider)\n" +
-                "  KeyMaster vault sync (Windows Credential Manager)\n" +
-                "  Hivemind Lite session (Nemotron, Syndicate chat)"
+                "EQUIPPED OMNIWAND AUGMENTS, SPELLBOOK & MODS\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Shake L-R  ->  TIME SPLITTER (Wiz Inspect)\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Shake U-D  ->  COPYCAT (Free-Form Lasso)\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Circle     ->  MUTATION (GrimX Spell Cast)\n" +
+                "• [SPELL] Hold Ctrl or Right-Click + Sweep R    ->  SYNTHESIZE (Holodex Session)\n" +
+                "• [MOD] Ark Aperture 240Hz Morph Engine (Solid Patina IBeam, Coral Hover/Wiz Globe)\n" +
+                "• [MOD] Mouse Hardware Intelligence (USB/HID VID/PID Brand & 100-4000 DPI Slider)\n" +
+                "• [MOD] KeyMaster Local Vault Sync (Windows Credential Manager wincred:// <-> ArkHive)\n" +
+                "• [MOD] Hivemind Lite Session Bridge (Nemotron 3 Nano/Super + Syndicate Group Chat)"
         };
         PhosphorPaint.UseDarkScrollbars(modsInfoBox);
 
@@ -551,6 +607,7 @@ public sealed class HolodexLiteDrawerForm : Form
         _modsPanel.Controls.Add(WidgetChrome.Spacer(10));
         _modsPanel.Controls.Add(dpiLabeled);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+        _modsPanel.Controls.Add(_dpiValueLabel);
         _modsPanel.Controls.Add(_mouseHwLabel);
 
         _contentHost.Controls.Add(_modsPanel);
@@ -617,10 +674,14 @@ public sealed class HolodexLiteDrawerForm : Form
 
     private void RefreshWorkOrdersText()
     {
-        _workOrdersHost.Visible = _workOrders.Count > 0;
-        if (_workOrders.Count == 0)
+        // The panel stays; it is short while empty and opens to its full height with orders in it.
+        bool empty = _workOrders.Count == 0;
+        _workOrdersBox.Height = empty ? 28 : 96;
+        _workOrdersHost.Height = 18 + 4 + _workOrdersBox.Height;
+        _workOrdersBox.ForeColor = empty ? PhosphorTheme.Ghost : PhosphorTheme.Patina;
+        if (empty)
         {
-            _workOrdersBox.Text = string.Empty;
+            _workOrdersBox.Text = "No work orders yet. Add one or ask in the session.";
             return;
         }
         var sb = new System.Text.StringBuilder();
@@ -718,15 +779,30 @@ public sealed class HolodexLiteDrawerForm : Form
     public async Task RefreshConnectionHeaderAsync()
     {
         var st = await _ark.CheckStatusAsync();
-        if (st.GatewayOnline || st.NebiusKeyLoaded)
+        bool bundle = ArkStationClient.HasWinCredVaultBundle();
+        _connected = st.GatewayOnline || st.NebiusKeyLoaded;
+        if (st.GatewayOnline)
         {
-            _vaultBadge.Text = st.GatewayOnline ? "Gateway online" : "Nemotron ready";
+            _vaultBadge.Text = "Gateway online";
             _vaultBadge.State = PhosphorBadgeState.Validated;
+            _connectionTelemetry.Text = "ARKSTATION GATEWAY ONLINE";
+            _connectionTelemetry.ForeColor = PhosphorTheme.Patina;
+            ShowTokenBar(_tokenBarOpen);
+        }
+        else if (st.NebiusKeyLoaded)
+        {
+            _vaultBadge.Text = "Nemotron ready";
+            _vaultBadge.State = PhosphorBadgeState.Validated;
+            _connectionTelemetry.Text = $"NEBIUS KEY LINKED // NEMOTRON READY{(bundle ? " // SAVED IN WINDOWS VAULT" : "")}";
+            _connectionTelemetry.ForeColor = PhosphorTheme.Patina;
+            ShowTokenBar(_tokenBarOpen);
         }
         else
         {
             _vaultBadge.Text = "No key";
             _vaultBadge.State = PhosphorBadgeState.Unstated;
+            _connectionTelemetry.Text = "NO MODEL KEY // PASTE A NEBIUS KEY BELOW";
+            _connectionTelemetry.ForeColor = PhosphorTheme.Ember;
             ShowTokenBar(true);
         }
         _vaultBadge.FitToText();
