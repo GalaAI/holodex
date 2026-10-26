@@ -84,11 +84,14 @@ internal static class SurfaceCapture
             }
             if (form is AInboxIntakeWidgetForm ainbox)
             {
-                // The capture well's other two states: a file dragged over (TraceBeam mid-orbit) and a sample capture.
+                // The composer's other states: a file dragged over (TraceBeam mid-orbit), a sample capture, and that
+                // capture with the handoff scroll open for review.
                 ainbox.PreviewState("drag");
                 Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-drag.png"), written);
                 ainbox.PreviewState("captured");
                 Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-captured.png"), written);
+                ainbox.PreviewState("review");
+                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-review.png"), written);
                 ainbox.PreviewState("reset");
             }
         }

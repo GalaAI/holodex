@@ -16,7 +16,7 @@ internal sealed record CaptureKindInfo(CaptureKind Kind, string Label, bool Plan
 
 internal static class CaptureKinds
 {
-    /// <summary>All eight, in the order the chips show them. Record and Whisper are not built yet.</summary>
+    /// <summary>All eight, in capture-bar order. Record and Whisper are not built yet, so the bar leaves them out.</summary>
     public static readonly CaptureKindInfo[] All =
     {
         new(CaptureKind.File, "FILE", false),
@@ -53,12 +53,16 @@ internal static class CaptureKinds
         if (data.GetDataPresent(DataFormats.Bitmap)) return CaptureKind.Screen;
         if (data.GetDataPresent(DataFormats.Text) && data.GetData(DataFormats.Text) is string t)
         {
-            string s = t.Trim();
-            return s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || s.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                ? CaptureKind.Link
-                : CaptureKind.Snippet;
+            return IsLink(t) ? CaptureKind.Link : CaptureKind.Snippet;
         }
         return CaptureKind.File;
+    }
+
+    public static bool IsLink(string text)
+    {
+        string s = text.Trim();
+        return !s.Contains(' ') && !s.Contains('\n') &&
+               (s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || s.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -129,11 +133,12 @@ internal static class CaptureKinds
 internal enum CaptureWellMode { Idle, DragOver, Captured }
 
 /// <summary>
-/// AInboxUpload CP-27, the capture well. A dashed well with a fan of capture-kind tiles. Dragging something
-/// over spreads the fan on ease-spring (CP-36), lifts the kind it carries, and runs the Augment Inventory's
-/// TraceBeam FX-10 around the well: a 2px ring 3px outside it, coral at 15% with one bright band (coral into
-/// #f6dccd) orbiting every 2.2s, over a 6% coral fill. No name tag. Reduced motion keeps the fan still,
-/// outlines the detected tile and holds a static coral outline.
+/// AInboxUpload CP-27 as the composer surface. At rest it is a filled panel that hosts the composer (attachments,
+/// the intent box and the capture bar) in <see cref="Content"/>. While something is dragged over the widget the
+/// content steps aside and the well takes the surface: the fan of capture-kind tiles spreads on ease-spring
+/// (CP-36), the kind the drag carries lifts, and the Augment Inventory's TraceBeam FX-10 runs around it: a 2px
+/// ring 3px outside, coral at 15% with one bright band (coral into #f6dccd) orbiting every 2.2s, over a 6% coral
+/// fill. No name tag. Reduced motion keeps the fan still, outlines the detected tile and holds a static outline.
 /// </summary>
 internal sealed class CaptureWellControl : Control
 {
@@ -142,6 +147,9 @@ internal sealed class CaptureWellControl : Control
     private static readonly Color Hot = Color.FromArgb(0xF6, 0xDC, 0xCD);
     private const float SpreadMs = 500f;
     private const float OrbitMs = 2200f;
+    private const float InsetPx = 5f; // TraceBeam gap (3px) plus ring width (2px) sit inside the control bounds.
+    private const float PadXPx = 10f;
+    private const float PadYPx = 8f;
 
     private readonly System.Windows.Forms.Timer _tick = new() { Interval = 16 };
     private readonly Stopwatch _clock = Stopwatch.StartNew();
@@ -149,36 +157,33 @@ internal sealed class CaptureWellControl : Control
     private CaptureKind _lifted = CaptureKind.File;
     private float _spreadFrom, _spreadTo, _spreadNow;
     private long _spreadStartMs;
-    private bool _hover;
     private float? _frozenOrbit;
-
-    public string Title { get; set; } = "Drop anything into AInbox";
-    public string Body { get; set; } = "Files, the screen at the tip, picks, lassos, snippets or links.";
-    public string Line { get; set; } = "OMNITEK // waiting for a capture";
-    public Color LineColor { get; set; } = PhosphorTheme.Ghost;
-
-    public event EventHandler? Activated;
-    public event DragEventHandler? Dropped;
 
     public CaptureWellControl()
     {
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
+        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Color.Transparent;
-        AllowDrop = true;
-        TabStop = true;
-        Cursor = Cursors.Hand;
+        Content = new Panel { BackColor = Color.Transparent, Name = "AInbox.ComposerContent" };
+        Controls.Add(Content);
         _tick.Tick += (_, _) => Step();
     }
 
+    /// <summary>The composer stack. Hidden while a drag is over the widget so the well can take the surface.</summary>
+    public Panel Content { get; }
+
     public CaptureWellMode Mode => _mode;
 
-    /// <summary>The mode a drag returns to when it leaves: Idle, or Captured once something is in the well.</summary>
+    /// <summary>The mode a drag returns to when it leaves: Idle, or Captured once something is attached.</summary>
     public CaptureWellMode RestMode { get; set; } = CaptureWellMode.Idle;
+
+    /// <summary>Control height that fits <paramref name="contentHeight"/> of composer inside the well's insets.</summary>
+    public int HeightFor(int contentHeight) => contentHeight + (int)Math.Round(2 * (InsetPx + PadYPx) * PhosphorPaint.Scale(this));
 
     public void SetMode(CaptureWellMode mode, CaptureKind lifted = CaptureKind.File)
     {
         _mode = mode;
         _lifted = lifted;
+        Content.Visible = mode != CaptureWellMode.DragOver;
         float target = mode == CaptureWellMode.DragOver ? 1f : 0f;
         if (PhosphorMotion.ReducedMotion) { _spreadNow = _spreadFrom = _spreadTo = 0f; }
         else if (Math.Abs(target - _spreadTo) > 0.001f)
@@ -211,52 +216,17 @@ internal sealed class CaptureWellControl : Control
         Invalidate();
     }
 
-    protected override void OnDragEnter(DragEventArgs e)
+    protected override void OnLayout(LayoutEventArgs levent)
     {
-        base.OnDragEnter(e);
-        if (e.Data != null && (e.Data.GetDataPresent(DataFormats.FileDrop) || e.Data.GetDataPresent(DataFormats.Text) || e.Data.GetDataPresent(DataFormats.Bitmap)))
-        {
-            e.Effect = DragDropEffects.Copy;
-            SetMode(CaptureWellMode.DragOver, CaptureKinds.FromDrag(e.Data));
-        }
+        base.OnLayout(levent);
+        float s = PhosphorPaint.Scale(this);
+        int x = (int)Math.Round((InsetPx + PadXPx) * s), y = (int)Math.Round((InsetPx + PadYPx) * s);
+        Content.SetBounds(x, y, Math.Max(0, Width - 2 * x), Math.Max(0, Height - 2 * y));
     }
 
-    protected override void OnDragOver(DragEventArgs e)
-    {
-        base.OnDragOver(e);
-        if (_mode == CaptureWellMode.DragOver) e.Effect = DragDropEffects.Copy;
-    }
-
-    protected override void OnDragLeave(EventArgs e)
-    {
-        base.OnDragLeave(e);
-        if (_mode == CaptureWellMode.DragOver) SetMode(RestMode);
-    }
-
-    protected override void OnDragDrop(DragEventArgs e)
-    {
-        base.OnDragDrop(e);
-        Dropped?.Invoke(this, e);
-    }
-
-    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
-    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
-    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
-    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
-
-    protected override void OnMouseClick(MouseEventArgs e)
-    {
-        base.OnMouseClick(e);
-        if (e.Button == MouseButtons.Left) Activated?.Invoke(this, EventArgs.Empty);
-    }
-
-    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Enter or Keys.Space || base.IsInputKey(keyData);
-
-    protected override void OnKeyDown(KeyEventArgs e)
-    {
-        base.OnKeyDown(e);
-        if (e.KeyCode is Keys.Enter or Keys.Space) { e.Handled = true; Activated?.Invoke(this, EventArgs.Empty); }
-    }
+    // The border brightens while focus is anywhere in the composer.
+    protected override void OnEnter(EventArgs e) { base.OnEnter(e); Invalidate(); }
+    protected override void OnLeave(EventArgs e) { base.OnLeave(e); Invalidate(); }
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -264,59 +234,40 @@ internal sealed class CaptureWellControl : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
-        float inset = 5f * s; // TraceBeam gap (3px) plus ring width (2px) sit inside the control bounds.
+        float inset = InsetPx * s;
         var well = new RectangleF(inset, inset, Width - 2 * inset, Height - 2 * inset);
         float r = 12f * s;
         bool drag = _mode == CaptureWellMode.DragOver;
 
-        if (drag) PhosphorPaint.FillRounded(g, well, r, PhosphorTheme.Surface2);
-        else
+        PhosphorPaint.FillRounded(g, well, r, PhosphorTheme.Surface2);
+        if (!drag)
         {
-            using var path = PhosphorTheme.CreateRoundedRect(well, r);
-            using var dash = new Pen(_hover || Focused ? PhosphorTheme.Ghost : PhosphorTheme.Line2, 1f) { DashPattern = new[] { 6f, 6f } };
-            g.DrawPath(dash, path);
+            PhosphorPaint.StrokeRounded(g, well, r, ContainsFocus ? PhosphorTheme.Ghost : PhosphorTheme.Line2);
+            return;
         }
 
-        var fanCenter = new PointF(well.X + 116f * s, well.Y + well.Height / 2f);
-        DrawFan(g, fanCenter, s, drag);
+        var fanCenter = new PointF(well.X + well.Width / 2f, well.Y + well.Height * 0.4f);
+        DrawFan(g, fanCenter, s);
 
-        // Copy, to the right of the fan.
-        float tx = well.X + 236f * s, tw = well.Right - tx - 16f * s;
-        float cy = well.Y + well.Height / 2f;
+        float ty = fanCenter.Y + 38f * s;
         using (var titleFont = PhosphorFonts.Ui(14f * s, heavy: true))
         using (var bodyFont = PhosphorFonts.Body(12f * s))
         using (var bone = new SolidBrush(PhosphorTheme.Bone))
         using (var dim = new SolidBrush(PhosphorTheme.Dim))
-        using (var fmt = new StringFormat(StringFormat.GenericTypographic) { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
+        using (var fmt = new StringFormat(StringFormat.GenericTypographic) { Alignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
         {
-            string title = drag ? "Release to capture" : Title;
-            string body = drag ? $"{CaptureKinds.Name(_lifted)} detected, so the {CaptureKinds.Name(_lifted)} tile lifts." : Body;
-            g.DrawString(title, titleFont, bone, new RectangleF(tx, cy - 30f * s, tw, 20f * s), fmt);
-            g.DrawString(body, bodyFont, dim, new RectangleF(tx, cy - 7f * s, tw, 18f * s), fmt);
-        }
-        using (var monoFont = PhosphorFonts.Mono(10f * s))
-        using (var lineBrush = new SolidBrush(LineColor))
-        {
-            var st = g.Save();
-            g.SetClip(new RectangleF(tx, cy + 13f * s, tw, 16f * s));
-            PhosphorPaint.DrawTracked(g, Line.ToUpperInvariant(), monoFont, lineBrush, tx, cy + 14f * s, 1.2f * s);
-            g.Restore(st);
+            g.DrawString("Release to capture", titleFont, bone, new RectangleF(well.X, ty, well.Width, 20f * s), fmt);
+            g.DrawString($"{CaptureKinds.Name(_lifted)} detected, so the {CaptureKinds.Name(_lifted)} tile lifts.", bodyFont, dim, new RectangleF(well.X, ty + 22f * s, well.Width, 18f * s), fmt);
         }
 
-        if (drag) DrawTraceBeam(g, well, r, s);
-        if (Focused && !drag)
-        {
-            var ring = RectangleF.Inflate(well, 2f * s, 2f * s);
-            PhosphorPaint.StrokeRounded(g, ring, r + 2f * s, PhosphorTheme.Patina, 2f * s);
-        }
+        DrawTraceBeam(g, well, r, s);
     }
 
-    private void DrawFan(Graphics g, PointF center, float s, bool drag)
+    private void DrawFan(Graphics g, PointF center, float s)
     {
         bool reduced = PhosphorMotion.ReducedMotion;
         float spread = reduced ? 0f : _spreadNow;
-        bool captured = _mode == CaptureWellMode.Captured;
-        int liftedIndex = drag ? Array.IndexOf(CaptureKinds.Fan, _lifted) : -1;
+        int liftedIndex = Array.IndexOf(CaptureKinds.Fan, _lifted);
         var order = Enumerable.Range(0, 5).OrderBy(i => i == liftedIndex ? 9 : i == 2 ? 3 : i is 1 or 3 ? 2 : 1).ToArray();
         float tile = 40f * s;
         foreach (int i in order)
@@ -328,7 +279,6 @@ internal sealed class CaptureWellControl : Control
             float dy = Lerp(Idle[i, 1], Open[i, 1], spread) * s;
             float rot = Lerp(Idle[i, 2], Open[i, 2], spread);
             float scale = lifted && !reduced ? Lerp(1f, 1.18f, spread) : Lerp(1f, 1.04f, spread);
-            if (captured) scale *= 0.9f;
 
             var st = g.Save();
             g.TranslateTransform(center.X + dx, center.Y + dy);
@@ -339,12 +289,12 @@ internal sealed class CaptureWellControl : Control
             using (var shadow = PhosphorTheme.CreateRoundedRect(new RectangleF(rect.X, rect.Y + (lifted ? 6f : 3f) * s, rect.Width, rect.Height), rr))
             using (var sb = new SolidBrush(Color.FromArgb(lifted ? 120 : 80, 0, 0, 0)))
                 g.FillPath(sb, shadow);
-            PhosphorPaint.FillRounded(g, rect, rr, lifted ? Color.FromArgb(0x1B, 0x1B, 0x1A) : PhosphorTheme.Surface2);
+            PhosphorPaint.FillRounded(g, rect, rr, lifted ? Color.FromArgb(0x1B, 0x1B, 0x1A) : PhosphorTheme.Surface);
             Color border = lifted ? PhosphorTheme.Coral : more ? PhosphorTheme.Line : PhosphorTheme.Line2;
             PhosphorPaint.StrokeRounded(g, rect, rr, border, lifted ? 1.5f * s : 1f);
             if (lifted && reduced)
                 PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, 3f * s, 3f * s), rr + 3f * s, PhosphorTheme.Coral, 2f * s);
-            Color ink = lifted ? PhosphorTheme.Cream : more ? PhosphorTheme.Ghost : drag ? PhosphorTheme.Dim : PhosphorTheme.Cream;
+            Color ink = lifted ? PhosphorTheme.Cream : more ? PhosphorTheme.Ghost : PhosphorTheme.Dim;
             float icon = 18f * s;
             CaptureKinds.DrawIcon(g, kind, new RectangleF(-icon / 2, -icon / 2, icon, icon), ink, 1.7f * s);
             g.Restore(st);
@@ -448,20 +398,20 @@ internal sealed class CaptureWellControl : Control
     }
 }
 
-/// <summary>One capture-kind chip: icon over its label, 44px or taller, with a tooltip by Name.</summary>
-internal sealed class KindChip : Control
+/// <summary>One capture kind on the composer's capture bar: icon only, 44px square, named for its tooltip.</summary>
+internal sealed class CaptureToolButton : Control
 {
     private bool _hover;
 
-    public KindChip(CaptureKindInfo info)
+    public CaptureToolButton(CaptureKindInfo info)
     {
         Info = info;
         Name = "AInbox.Kind." + CaptureKinds.Name(info.Kind);
         SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
         BackColor = Color.Transparent;
         TabStop = true;
-        Cursor = info.Planned ? Cursors.Default : Cursors.Hand;
-        AccessibleName = CaptureKinds.Name(info.Kind) + (info.Planned ? " (planned)" : "");
+        Cursor = Cursors.Hand;
+        AccessibleName = CaptureKinds.Name(info.Kind);
         AccessibleRole = AccessibleRole.PushButton;
     }
 
@@ -482,34 +432,32 @@ internal sealed class KindChip : Control
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
         float s = PhosphorPaint.Scale(this);
-        var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        float r = PhosphorTheme.RadiusButton * s;
-        bool live = !Info.Planned;
-        PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
-        PhosphorPaint.StrokeRounded(g, rect, r, live && _hover ? PhosphorTheme.Ghost : PhosphorTheme.Line2);
-        if (Focused) PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f * s, -2f * s), r - 2f * s, PhosphorTheme.Patina, 2f * s);
-
-        Color ink = live ? (_hover ? PhosphorTheme.Bone : PhosphorTheme.Cream) : PhosphorTheme.Ghost;
-        float icon = 16f * s;
-        CaptureKinds.DrawIcon(g, Info.Kind, new RectangleF((Width - icon) / 2f, Height / 2f - icon - 1f * s, icon, icon), ink, 1.7f * s);
-
-        using var font = PhosphorFonts.Mono(9.5f * s);
-        using var brush = new SolidBrush(live ? (_hover ? PhosphorTheme.Bone : PhosphorTheme.Dim) : PhosphorTheme.Ghost);
-        float tracking = 0.9f * s;
-        float w = PhosphorPaint.MeasureTracked(g, Info.Label, font, tracking);
-        PhosphorPaint.DrawTracked(g, Info.Label, font, brush, (Width - w) / 2f, Height / 2f + 3f * s, tracking);
+        var rect = new RectangleF(2.5f * s, 2.5f * s, Width - 5f * s, Height - 5f * s);
+        float r = 10f * s;
+        if (_hover)
+        {
+            PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface);
+            PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Line2);
+        }
+        if (Focused) PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Patina, 2f * s);
+        float icon = 18f * s;
+        CaptureKinds.DrawIcon(g, Info.Kind, new RectangleF((Width - icon) / 2f, (Height - icon) / 2f, icon, icon), _hover ? PhosphorTheme.Bone : PhosphorTheme.Dim, 1.7f * s);
     }
 }
 
-/// <summary>The captured item: kind icon, name, meta and the Omnitek prediction, with a 44px remove button.</summary>
+/// <summary>
+/// One attachment in the composer: kind icon, name, meta and, on the primary attachment, the Omnitek prediction
+/// (the only place the classification shows), with a 44px remove button.
+/// </summary>
 internal sealed class CapturedRow : Control
 {
     private bool _hoverRemove;
 
-    public CapturedRow()
+    public CapturedRow(string name)
     {
-        Name = "AInbox.CapturedRow";
+        Name = name;
         SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Color.Transparent;
     }
@@ -552,8 +500,8 @@ internal sealed class CapturedRow : Control
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        PhosphorPaint.FillRounded(g, rect, 12f * s, PhosphorTheme.Surface2);
-        PhosphorPaint.StrokeRounded(g, rect, 12f * s, PhosphorTheme.Line);
+        PhosphorPaint.FillRounded(g, rect, 10f * s, PhosphorTheme.Surface);
+        PhosphorPaint.StrokeRounded(g, rect, 10f * s, PhosphorTheme.Line);
 
         float box = 32f * s, bx = 8f * s, by = (Height - box) / 2f;
         var boxRect = new RectangleF(bx, by, box, box);
@@ -575,13 +523,14 @@ internal sealed class CapturedRow : Control
         {
             var st = g.Save();
             g.SetClip(new RectangleF(tx, Height / 2f + 1f * s, tw, 16f * s));
-            float w = PhosphorPaint.DrawTracked(g, Meta.ToUpperInvariant() + " // ", mono, ghost, tx, Height / 2f + 3f * s, 0.8f * s);
-            PhosphorPaint.DrawTracked(g, Prediction.ToUpperInvariant(), mono, patina, tx + w, Height / 2f + 3f * s, 0.8f * s);
+            string meta = Meta.ToUpperInvariant() + (Prediction.Length > 0 ? " // " : "");
+            float w = PhosphorPaint.DrawTracked(g, meta, mono, ghost, tx, Height / 2f + 3f * s, 0.8f * s);
+            if (Prediction.Length > 0) PhosphorPaint.DrawTracked(g, Prediction.ToUpperInvariant(), mono, patina, tx + w, Height / 2f + 3f * s, 0.8f * s);
             g.Restore(st);
         }
 
         var rr = RemoveRect;
-        if (_hoverRemove) PhosphorPaint.FillRounded(g, rr, 10f * s, PhosphorTheme.Surface);
+        if (_hoverRemove) PhosphorPaint.FillRounded(g, rr, 10f * s, PhosphorTheme.Surface2);
         using var pen = new Pen(_hoverRemove ? PhosphorTheme.Bone : PhosphorTheme.Dim, 1.8f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round };
         float c = 5f * s;
         var mid = new PointF(rr.X + rr.Width / 2f, rr.Y + rr.Height / 2f);
