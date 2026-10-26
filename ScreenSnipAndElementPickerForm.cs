@@ -118,7 +118,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         BackColor = PhosphorTheme.Ground;
         ForeColor = PhosphorTheme.Bone;
         Name = "SnipAnnotator";
-        Size = new Size(760, 520);
+        Size = new Size(760, 640);
         Cursor = Cursors.Cross;
 
         // Top floating toolbar: the six tools as icons, the ink swatch, close.
@@ -334,7 +334,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         foreach (Control c in _actionDrawer.Controls) h += c.Height;
         int bottom = _actionDrawer.Bottom;
         _actionDrawer.Height = h;
-        if (Visible) _actionDrawer.Top = bottom - h;
+        // Live it grows upward from where it sits; the offscreen preview pins it to the bottom of the frame.
+        _actionDrawer.Top = Visible ? bottom - h : ClientSize.Height - h - 16;
         Invalidate();
     }
 

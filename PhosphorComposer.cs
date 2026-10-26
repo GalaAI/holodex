@@ -364,10 +364,45 @@ internal class SuggestionChip : Control
             item.Click += (_, _) => pick();
             menu.Items.Add(item);
         }
-        menu.Closed += (_, _) => BeginInvoke(new Action(menu.Dispose));
+        // WinForms closes a dropdown whenever focus changes. Omniwand's own windows (a tooltip, a toast, a widget a
+        // gesture summoned) can take focus while the menu is open, which closed it under the operator's hand. Keep
+        // it open for those; any other app taking focus, a click outside, Esc or a pick still close it.
+        menu.Closing += (_, e) =>
+        {
+            bool ours = GetWindowThreadProcessId(GetForegroundWindow(), out uint pid) != 0 && pid == (uint)Environment.ProcessId;
+            if (e.CloseReason == ToolStripDropDownCloseReason.AppFocusChange && ours) e.Cancel = true;
+            LogMenuClose(Name, e.CloseReason, e.Cancel);
+        };
+        menu.Opened += (_, _) => PhosphorTips.Suppressed = true;
+        menu.Closed += (_, _) =>
+        {
+            PhosphorTips.Suppressed = false;
+            BeginInvoke(new Action(menu.Dispose));
+        };
+        PhosphorTips.Hide();
         if (above) menu.Show(this, new Point(0, 0), ToolStripDropDownDirection.AboveRight);
         else menu.Show(this, new Point(0, Height), ToolStripDropDownDirection.BelowRight);
     }
+
+    /// <summary>One line per chip-menu close (why, and whether it was kept open) in %TEMP%\omniwand-menu.log.</summary>
+    private static void LogMenuClose(string chip, ToolStripDropDownCloseReason reason, bool kept)
+    {
+        try
+        {
+            var fg = GetForegroundWindow();
+            var cls = new System.Text.StringBuilder(128);
+            GetClassName(fg, cls, cls.Capacity);
+            GetWindowThreadProcessId(fg, out uint pid);
+            System.IO.File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "omniwand-menu.log"),
+                $"{DateTime.Now:O} {chip} {reason}{(kept ? " KEPT-OPEN" : "")} foreground={cls} pid={pid}{Environment.NewLine}");
+        }
+        catch (System.IO.IOException) { }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder name, int max);
 
     protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
     protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }

@@ -818,7 +818,7 @@ public sealed class ArkStationClient
 
         if (ext is "tsx" or "jsx" or "css" || combined.Contains("component") || combined.Contains("phosphor") || combined.Contains("widget"))
             return new("augment", "component", "high", "Detected Phosphor UI Component source or widget reference.", "forge");
-        if (ext == "svg" || combined.Contains("token") || combined.Contains("icon") || combined.Contains("badge"))
+        if (ext == "svg" || System.Text.RegularExpressions.Regex.IsMatch(combined, @"\bdesign[- ]tokens?\b|\btokens?\.(css|json|ts)\b") || combined.Contains("icon") || combined.Contains("badge"))
             return new("augment", "element", "high", "Detected atomic visual Element or token.", "magixlab");
         if (combined.Contains("modz") || combined.Contains("mcp"))
             return new("mod", null, "high", "Detected an MCP Mod capability bundle.", "forge");

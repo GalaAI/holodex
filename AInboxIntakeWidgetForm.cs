@@ -474,7 +474,7 @@ public sealed class AInboxIntakeWidgetForm : Form
             var g = _groups[i];
             _cards.Add(new PredictionCard(g, OmnitekLine(g), id => ChooseIntent(g, id), () => SetActive(index)) { Active = i == _active, Margin = new Padding(0, 0, 0, 8) });
         }
-        var findings = _items.SelectMany(it => it.Secrets.Select(f => (Where: $"{GroupOf(it)?.Letter} {it.Name}", Finding: f))).ToList();
+        var findings = _items.SelectMany(it => it.Secrets.Select(f => (Where: $"stack {GroupOf(it)?.Letter}, {it.Kind.ToString().ToLowerInvariant()} \"{(it.Name.Length > 28 ? it.Name[..28] + "..." : it.Name)}\"", Finding: f))).ToList();
         if (_items.Any(it => it.Scanned))
             _cards.Add(new AegisCard(findings, _items.Any(it => it.DataUrl != null), StowSecrets) { Margin = new Padding(0, 0, 0, 8) });
         int at = _body.Controls.IndexOf(_composer) + 1;
@@ -534,7 +534,7 @@ public sealed class AInboxIntakeWidgetForm : Form
     /// <summary>The widget is as tall as what it holds, up to the screen; past that the body scrolls.</summary>
     private void Relayout()
     {
-        int content = _intentBox.Height + _captureBar.Height + (_stackHost.Visible ? _stackHost.Height + _stackGap.Height : 0);
+        int content = _intentBox.Height + _captureBar.Height + (_stackHost.Height > 0 ? _stackHost.Height + _stackGap.Height : 0);
         _composer.Height = _composer.HeightFor(content);
         _scroll.Visible = _scrollOpen;
         _summary.Visible = _groups.Count > 0;
@@ -554,7 +554,8 @@ public sealed class AInboxIntakeWidgetForm : Form
         int chrome = Padding.Vertical;
         foreach (Control c in Controls) if (c != _body && c.Dock is DockStyle.Top or DockStyle.Bottom) chrome += c.Height;
         var area = (Visible ? Screen.FromControl(this) : Screen.FromPoint(Location)).WorkingArea;
-        int height = Math.Min(chrome + body + 4, area.Height - 24);
+        // The as-built render shows the whole stack; live, the body scrolls past the working area.
+        int height = _preview ? chrome + body + 4 : Math.Min(chrome + body + 4, area.Height - 24);
         if (height != Height)
         {
             var top = Location;
@@ -875,6 +876,7 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         _preview = state != "reset";
         _composer.Unfreeze();
+        _composer.SetMode(CaptureWellMode.Idle);
         _items.Clear();
         _groups.Clear();
         _virtualAsk = null;
@@ -911,7 +913,14 @@ public sealed class AInboxIntakeWidgetForm : Form
                 _items.Add(sql);
                 _intentBox.Text = "Why does Navigate hold this PR without saying why?";
                 Rebuild();
-                if (state == "review") { _scrollOpen = true; _summary.Expanded = true; Relayout(); }
+                if (state == "review")
+                {
+                    _scrollOpen = true;
+                    _summary.Expanded = true;
+                    Relayout();
+                    // The window cannot be taller than the screen, so the review shot scrolls to the Aegis gate and the scroll.
+                    if (_cards.LastOrDefault() is { } aegis) _body.AutoScrollPosition = new Point(0, aegis.Top - _body.AutoScrollPosition.Y - 8);
+                }
                 break;
             default:
                 Rebuild();

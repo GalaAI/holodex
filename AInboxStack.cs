@@ -339,11 +339,14 @@ internal static class IntentRanker
 
         var detected = ark.AutoDetectOmnitekItem(g.Items.FirstOrDefault(i => i.Path != null)?.Path, string.Join("\n", g.Items.Select(i => i.Text ?? i.Url ?? "")), intentText);
         if (detected.ItemType == "flow") Add("flow", 3f, $"a {detected.ItemSubtype} Spell");
-        string fixPod = detected.RecommendedPodId;
+        // Code, picks and repository links get fixed in 4GE; Navigate, SolaTree and infra work in Eden; otherwise
+        // the pod Omnitek routes the item type to.
+        bool code = reasons.Any(r => r is "a picked element" or "a code snippet" or "a repository link" or "source or logs");
+        string fixPod = Regex.IsMatch(words, @"\b(navigate|solatree|eden|deploy\w*|infra\w*|worktree|graft)\b", RegexOptions.IgnoreCase) ? "eden"
+            : code ? "forge" : detected.RecommendedPodId;
 
-        // Squared scores sharpen the lead without hiding the alternatives.
-        float total = score.Values.Sum(v => v * v);
-        g.Ranking = score.Select(kv => IntentCatalog.Option(kv.Key, kv.Value * kv.Value / total, IntentCatalog.PodFor(kv.Key, fixPod)))
+        float total = score.Values.Sum();
+        g.Ranking = score.Select(kv => IntentCatalog.Option(kv.Key, kv.Value / total, IntentCatalog.PodFor(kv.Key, fixPod)))
             .OrderByDescending(o => o.Score).ToList();
         if (!g.ChosenByHand) g.ChosenIntent = g.Ranking[0].Intent.Id;
         g.Why = reasons.Count > 0 ? string.Join(" + ", reasons.Take(3)) : "nothing specific yet; steer it";

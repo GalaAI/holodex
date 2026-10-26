@@ -174,9 +174,13 @@ internal static class PhosphorTips
         Dwell.Tick += (_, _) =>
         {
             Dwell.Stop();
+            if (Suppressed) return;
             if (_pending is { IsDisposed: false, Visible: true } c && Catalog.TryGetValue(c.Name, out var info)) Show(c, info);
         };
     }
+
+    /// <summary>True while a chip menu is open: no tooltip may appear over or beside it.</summary>
+    public static bool Suppressed { get; set; }
 
     public static bool TryGet(string name, out PhosphorTipInfo info) => Catalog.TryGetValue(name, out info!);
 
