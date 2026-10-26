@@ -7,6 +7,19 @@ Ryozan); this video shows only Omniwand.
 Judges asked for: the aha in the first 30 seconds, which model does what, a little onboarding,
 limitations stated plainly, and Nebius Token Factory plus Nemotron named out loud.
 
+## The family line (say it the same way in all three videos)
+
+ArkStation is Justin's personal orchestration software. Each entry takes one part of it and stands on
+its own:
+
+- **Hivemind** is the brain that connects AI together, under the orchestration of Gala, running on
+  NVIDIA models.
+- **Ryozan** is one unified interface for managing your business operations.
+- **Omniwand** is the tool for every job.
+
+Each video names its own app first and uses the family line once, briefly, so the three entries stay
+clearly different.
+
 ## Model routing to say on camera
 
 | Where | Model on Token Factory | Why this size |
@@ -36,25 +49,27 @@ NANO" on AInbox cards, and the model on each Wiz step.
 
 | Time | On screen | Say |
 |---|---|---|
-| 0:00 to 0:15 | The Aperture cursor moving over the desktop, morphing over a link and a text field | "Your AI lives in a browser tab. Your work lives everywhere else. Omniwand puts NVIDIA Nemotron at the tip of your cursor, on any Windows app, through Nebius Token Factory." |
+| 0:00 to 0:15 | The Aperture cursor moving over the desktop, morphing over a link and a text field | "Your AI lives in a browser tab. Your work lives everywhere else. Omniwand is the tool for every job: it puts NVIDIA Nemotron at the tip of your cursor, on any Windows app, through Nebius Token Factory." |
 | 0:15 to 0:45 | Alt+Space over the PR diff. Ask "why would this hold the PR?" Enter. Status reads ANSWERED BY NEMOTRON 3.5 SUPER VL | "Point and ask. The screen around the cursor goes with the question, so Nemotron 3.5 Super VL reads the pixels, and Omniwand tells you which model answered." |
 | 0:45 to 1:05 | Alt+S, lasso the error in the terminal, draw an arrow, Ask Nemotron | "Lasso anything, mark it up, and ask about exactly that region." |
 | 1:05 to 1:50 | Alt+I. Drop the CSV, Ctrl+V the fake-token file, press Link with the PR URL copied, then Pick the diff. The stack groups into A (the repo) and B (exports). Cards rank intents; after a beat they read RANKED BY NEMOTRON 3 NANO with a WHY and a synthesis. The Aegis card says a GitHub token was found and will be redacted | "AInbox takes everything at once. Every capture records where it came from, so they stack by context. Omnitek ranks what each group should become, and Nemotron Nano re-ranks it and explains why. Aegis caught a token and redacts it before anything leaves." |
 | 1:50 to 2:15 | Click Fix it in a Pod on A, open Review: fields tagged PREDICTED, FROM STACK A, NEMOTRON. Click the barcode; toast says seal copied. Send A, the 5 second undo, the footer status | "The Handoff Scroll adapts to the intent, shows where each field came from, and is sealed: that barcode is the SHA-256 of what the agent will act on. Five seconds to undo, then it goes to the pod's inbox." |
 | 2:15 to 2:40 | Alt+W. "Schedule a summary of my open PRs every Friday." The Spell chip flips to Ritual. Send to Wiz. The thread shows Nemotron 3 Super steps and an action row asking to approve a Codex save; approve | "Wiz is the agent. It picked a Ritual from the word schedule, plans with Nemotron 3 Super, and asks before it changes anything." (Reshoot this beat after the Wiz agent build lands.) |
-| 2:40 to 2:55 | README limitations section, then the repo URL | "Windows only. Images are not scanned for secrets yet, and Record and Whisper are planned. Omniwand is Apache 2.0 on GitHub." |
+| 2:40 to 2:50 | README limitations section | "Windows only. Images are not scanned for secrets yet, and Record and Whisper are planned." |
+| 2:50 to 2:58 | ArkStation mark, then the repo URL | "Omniwand comes out of ArkStation, my personal orchestration software, where Hivemind is the brain and Ryozan runs the business. Omniwand is the tool for every job, and it's Apache 2.0 on GitHub." |
 
 ## After recording
 
-- Cut to 2:55 or less. Captions on.
+- Cut to 2:58 or less (the limit is 3:00). Captions on.
 - Upload public on YouTube; title "Omniwand: Nemotron at your cursor (Nebius x NVIDIA hackathon)".
 - Paste the URL in the Devpost submission.
 
-## 45-second cut (social, optional)
+## 45 to 60-second cut: ArkStation and its three apps (social, optional)
 
 | Time | Picture | Line |
 |---|---|---|
-| 0 to 5s | Aperture cursor sweeping the desktop | "I tattoo for a living, and I build AI tools for the work around the art." |
-| 5 to 30s | Alt+Space ask and answer; a lasso; a drop into AInbox with the stack and ranked cards | "Omniwand puts NVIDIA Nemotron at my cursor. I point at anything, ask about it, lasso it, or hand it to an agent, and it shows which model did what." |
-| 30 to 40s | Ryozan screens (only once Ryozan is built) | "Ryozan is the studio side: booking, client messages and a portal for tattooers and artists." |
-| 40 to 45s | ArkStation mark and the repo URL | "Both run on ArkStation. Omniwand is open source today." |
+| 0 to 8s | ArkStation running: agents, sessions, the Gala orchestrator | "I tattoo for a living, and I built ArkStation, my personal orchestration software, to run the work around the art. These three apps each take one part of it." |
+| 8 to 20s | Hivemind: sessions and receipts with several agents in one thread | "Hivemind is the brain. It connects AI together under the orchestration of Gala, running on NVIDIA models." |
+| 20 to 32s | Ryozan: bookings, client messages and the studio portal in one screen (only once Ryozan is built) | "Ryozan is one unified interface for managing your business operations." |
+| 32 to 50s | Omniwand: Alt+Space ask and answer, a lasso, a drop into AInbox with the ranked cards | "And Omniwand is the tool for every job: NVIDIA Nemotron at your cursor, on any app, and it shows which model did what." |
+| 50 to 58s | ArkStation mark, then the three repo names | "All three run on NVIDIA Nemotron through Nebius Token Factory." |
