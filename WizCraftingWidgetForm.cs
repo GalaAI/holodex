@@ -19,7 +19,7 @@ namespace Omniwand;
 /// </summary>
 public sealed class WizCraftingWidgetForm : Form, IWizThread
 {
-    private const int ThreadHeight = 260;
+    private const int ThreadMaxHeight = 300;
 
     private const string ThreadIntro =
         "Wiz turns a goal into a Spell and can act on it: read the screen around the wand, open the lasso or picker, draft an AInbox handoff, list Spell slots, and, with your approval, save to Codex or queue a work order.\n\n" +
@@ -31,20 +31,20 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     private string _agentModel = WizAgent.DefaultReasoningModel;
     private CancellationTokenSource? _runCancel;
 
-    // Approval: one row under the thread, shown only while an action that saves waits for the operator.
-    private readonly Panel _approvalRow;
-    private readonly DataLabel _approvalLine;
+    // Approval: a card in the thread, shown while an action that saves waits for the operator.
     private TaskCompletionSource<bool>? _approval;
+    private ThreadCard? _approvalCard;
+    private ThreadCard? _lastAction;
 
     private readonly PhosphorBadge _runtimeBadge;
-    private readonly RichTextBox _threadBox;
+    private readonly ThreadView _thread;
     private readonly ComposerSurface _composer;
     private readonly PromptTextBox _promptBox;
     private readonly IconToolButton _attachScreenToggle;
     private readonly FlowLayoutPanel _starterRow;
     private readonly SuggestionChip _lensChip;
     private readonly ModelChip _modelChip;
-    private readonly DataLabel _hostLine;
+    private readonly LedRow _hostLine;
     private readonly PhosphorButton _sendBtn;
 
     private Point _summonPos;
@@ -90,20 +90,10 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
 
         _runtimeBadge = new PhosphorBadge("Nemotron", PhosphorBadgeState.Accent) { AccentColor = PhosphorTheme.Coral, Name = "Wiz.RuntimeBadge" };
 
-        // The thread is the body: its intro at rest, the crafts after.
-        _threadBox = new RichTextBox
-        {
-            Dock = DockStyle.Top,
-            Height = ThreadHeight,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Dim,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Body(13f),
-            Name = "Wiz.ThreadBox",
-            Text = ThreadIntro
-        };
-        PhosphorPaint.UseDarkScrollbars(_threadBox);
+        // The thread is the body: its intro card at rest, then a card per turn, in the AInbox card language.
+        _thread = new ThreadView("Wiz.ThreadBox") { Dock = DockStyle.Top, Height = 160 };
+        _thread.ContentChanged += (_, _) => SizeThread();
+        ShowIntro();
 
         // Composer: the goal, then a bar with the screen toggle and the starters.
         _composer = new ComposerSurface { Dock = DockStyle.Top, Name = "Wiz.Composer" };
@@ -157,7 +147,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
 
         // Under the chips: the host line, and the one primary.
         var hostRow = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Wiz.HostRow" };
-        _hostLine = new DataLabel("") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "Wiz.RuntimeLine" };
+        _hostLine = new LedRow { Dock = DockStyle.Fill, Height = 44, Name = "Wiz.RuntimeLine" };
         _sendBtn = new PhosphorButton("Send to Wiz", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 146, Name = "Wiz.CraftButton" };
         _sendBtn.Click += async (_, _) =>
         {
@@ -168,23 +158,9 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         hostRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
         hostRow.Controls.Add(_sendBtn);
 
-        // Approval row: the action on the left, Skip and Approve on the right, 44px targets.
-        _approvalLine = new DataLabel("") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ember, Name = "Wiz.ApprovalLine" };
-        var approveBtn = new PhosphorButton("Approve") { Dock = DockStyle.Right, Width = 120, Height = 44, Name = "Wiz.ApproveButton" };
-        var skipBtn = new PhosphorButton("Skip") { Dock = DockStyle.Right, Width = 96, Height = 44, Name = "Wiz.SkipButton" };
-        approveBtn.Click += (_, _) => _approval?.TrySetResult(true);
-        skipBtn.Click += (_, _) => _approval?.TrySetResult(false);
-        _approvalRow = new Panel { Dock = DockStyle.Top, Height = 52, BackColor = Color.Transparent, Padding = new Padding(0, 8, 0, 0), Name = "Wiz.ApprovalRow" };
-        _approvalRow.Controls.Add(_approvalLine);
-        _approvalRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = Color.Transparent });
-        _approvalRow.Controls.Add(skipBtn);
-        _approvalRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = Color.Transparent });
-        _approvalRow.Controls.Add(approveBtn);
-
         Controls.Add(_composer);
         Controls.Add(WidgetChrome.Spacer(10));
-        Controls.Add(_approvalRow);
-        Controls.Add(_threadBox);
+        Controls.Add(_thread);
         Controls.Add(WidgetChrome.Spacer(2));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
         Controls.Add(chipRow);
@@ -198,8 +174,24 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         FitToThread();
     }
 
-    /// <summary>The thread shows at rest, so the widget is its full stack; the approval row joins it only while it waits.</summary>
-    private void FitToThread() => FitToContent.Apply(this, c => c != _approvalRow || _approval != null);
+    /// <summary>The thread fits its cards up to a cap, then scrolls; the widget follows it.</summary>
+    private void SizeThread()
+    {
+        int want = Math.Clamp(_thread.ContentHeight(_thread.CardWidth) + 2, 96, ThreadMaxHeight);
+        if (_thread.Height == want) return;
+        _thread.Height = want;
+        if (IsHandleCreated) FitToThread();
+    }
+
+    /// <summary>The thread shows at rest, so the widget is always its full stack.</summary>
+    private void FitToThread() => FitToContent.Apply(this, _ => true);
+
+    private void ShowIntro()
+    {
+        _thread.Clear();
+        _lastAction = null;
+        _thread.Add(ThreadTone.Intro, "WIZ // READY", ThreadIntro, PhosphorGlyph.Wiz);
+    }
 
     /// <summary>Omnitek reads the goal: Spell-type words (ritual, schedule, combo, summon...) pick the chip unless chosen by hand.</summary>
     private void SuggestLens()
@@ -232,7 +224,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         string shortModel = ModelChip.ShortName(model);
         _runtimeBadge.Text = shortModel;
         _runtimeBadge.FitToText();
-        _hostLine.Text = $"HOST // {host} // MODEL // {shortModel.ToUpperInvariant()}";
+        _hostLine.Set((PhosphorTheme.Moss, host), (PhosphorTheme.Patina, shortModel));
     }
 
     /// <summary>Runtime ids from AskWizGeminiArgonAsync ("nebius-token-factory", "subscription-gemini (agy)", "ark-model-gateway") as hosts.</summary>
@@ -301,10 +293,9 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         if (!_threadStarted)
         {
             _threadStarted = true;
-            _threadBox.Clear();
+            _thread.Clear();
         }
-        _threadBox.ForeColor = PhosphorTheme.Bone;
-        Say($"YOU // {lensTitle.ToUpperInvariant()}", prompt, PhosphorTheme.Dim);
+        Say(ThreadTone.You, $"YOU // {lensTitle.ToUpperInvariant()}", prompt);
 
         var cancel = new CancellationTokenSource();
         _runCancel = cancel;
@@ -312,30 +303,33 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         {
             if (WizAgent.CanAct(model))
             {
-                Say($"WIZ // AGENT // {Short(model)} // NEBIUS TOKEN FACTORY",
-                    $"Up to {WizAgent.MaxSteps} steps.{(attachScreen ? $" {ModelChip.ShortName(WizAgent.VisionModel)} reads the screen first." : "")}", PhosphorTheme.Ghost);
+                Say(ThreadTone.Step, $"WIZ // AGENT // {Short(model)} // NEBIUS TOKEN FACTORY",
+                    $"Up to {WizAgent.MaxSteps} steps.{(attachScreen ? $" {ModelChip.ShortName(WizAgent.VisionModel)} reads the screen first." : "")}");
                 var outcome = await _agent.RunAsync(prompt, lens, model, _summonPos, attachScreen, this, cancel.Token);
                 _modelChip.ShowRuntime("nebius-token-factory");
                 ShowRuntime("nebius-token-factory", outcome.Model);
-                Say(outcome.Ok
+                Say(outcome.Ok ? ThreadTone.Agent : ThreadTone.Fail,
+                    outcome.Ok
                         ? $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(outcome.Model)}"
                         : $"WIZ // STOPPED // {Short(outcome.Model)}",
-                    outcome.Text, outcome.Ok ? PhosphorTheme.Coral : PhosphorTheme.Ember);
+                    outcome.Text);
+                ToastIfAway(outcome.Ok ? $"Wiz drafted a {lensTitle}" : "Wiz stopped", outcome.Text, outcome.Ok);
             }
             else
             {
                 // Plan-only route: tool calls need a Nemotron model on Token Factory.
-                Say("WIZ // PLAN ONLY", $"{ModelChip.ShortName(model)} drafts without tools. Pick a Nemotron model on the chip to let Wiz act.", PhosphorTheme.Ghost);
+                Say(ThreadTone.Step, "WIZ // PLAN ONLY", $"{ModelChip.ShortName(model)} drafts without tools. Pick a Nemotron model on the chip to let Wiz act.");
                 string? snapshot = attachScreen ? ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y) : null;
                 var (_, runtime, answered, output) = await _ark.AskWizGeminiArgonAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
                 _modelChip.ShowRuntime(runtime);
                 ShowRuntime(runtime, answered);
-                Say($"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output, PhosphorTheme.Coral);
+                Say(ThreadTone.Agent, $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output);
+                ToastIfAway($"Wiz drafted a {lensTitle}", output, true);
             }
         }
         catch (OperationCanceledException)
         {
-            Say("WIZ // STOPPED", "Stopped by the operator.", PhosphorTheme.Ember);
+            Say(ThreadTone.Fail, "WIZ // STOPPED", "Stopped by the operator.");
         }
         finally
         {
@@ -350,6 +344,14 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         }
     }
 
+    /// <summary>A run that ends while Wiz is hidden or behind another window says so with a toast.</summary>
+    private void ToastIfAway(string title, string text, bool ok)
+    {
+        if (Visible && ContainsFocus) return;
+        string first = text.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+        PhosphorToast.Show(title, first.Length > 140 ? first[..140] + "..." : first, "WIZ // ALT+W OPENS IT", 4200, ok ? ToastTone.Success : ToastTone.Warning);
+    }
+
     /// <summary>While Wiz runs, the one primary turns into Stop.</summary>
     private void SetWorking(bool working)
     {
@@ -362,52 +364,52 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
 
     private static string Short(string model) => ModelChip.ShortName(model).ToUpperInvariant();
 
-    /// <summary>Appends one thread block: a mono kicker line in its color, then the body in bone.</summary>
-    private void Say(string kicker, string? body, Color kickerColor)
+    /// <summary>Adds one card to the thread.</summary>
+    private ThreadCard? Say(ThreadTone tone, string kicker, string? body, PhosphorGlyph? glyph = null)
     {
-        if (IsDisposed) return;
-        _threadBox.SelectionStart = _threadBox.TextLength;
-        _threadBox.SelectionLength = 0;
-        _threadBox.SelectionFont = PhosphorFonts.Mono(11f);
-        _threadBox.SelectionColor = kickerColor;
-        _threadBox.AppendText((_threadBox.TextLength > 0 ? "\n\n" : "") + kicker);
-        if (!string.IsNullOrWhiteSpace(body))
-        {
-            _threadBox.SelectionStart = _threadBox.TextLength;
-            _threadBox.SelectionFont = _threadBox.Font;
-            _threadBox.SelectionColor = PhosphorTheme.Bone;
-            _threadBox.AppendText("\n" + body.Trim());
-        }
-        _threadBox.SelectionStart = _threadBox.TextLength;
-        _threadBox.ScrollToCaret();
+        if (IsDisposed) return null;
+        return _thread.Add(tone, kicker, body, glyph);
     }
+
+    /// <summary>The tool's own glyph on its action card, so a run reads like the AInbox stack.</summary>
+    private static PhosphorGlyph ToolGlyph(string call) => call.Split('(')[0].Trim() switch
+    {
+        "capture_screen" => PhosphorGlyph.Screen,
+        "open_lasso" => PhosphorGlyph.Lasso,
+        "open_element_picker" => PhosphorGlyph.Pick,
+        "draft_ainbox_handoff" => PhosphorGlyph.AInbox,
+        "save_to_codex" => PhosphorGlyph.Codex,
+        "queue_work_order" => PhosphorGlyph.Holodex,
+        _ => PhosphorGlyph.Wiz
+    };
 
     // ---- IWizThread: the agent writes every turn here --------------------------------------------------------------
 
     void IWizThread.Vision(string model, string description) =>
-        Say($"WIZ // VISION // {Short(model)}", description, PhosphorTheme.Patina);
+        Say(ThreadTone.Action, $"VISION // {Short(model)}", description, PhosphorGlyph.Screen);
 
     void IWizThread.Step(int step, string model, string reasoning) =>
-        Say($"WIZ // STEP {step} OF {WizAgent.MaxSteps} // {Short(model)}", reasoning, PhosphorTheme.Ghost);
+        Say(ThreadTone.Step, $"STEP {step} OF {WizAgent.MaxSteps} // {Short(model)}", reasoning);
 
     void IWizThread.Action(string call) =>
-        Say($"WIZ // ACTION // {call}", null, PhosphorTheme.Coral);
+        _lastAction = Say(ThreadTone.Action, $"ACTION // {call.Split('(')[0].Trim()}", call, ToolGlyph(call));
 
-    void IWizThread.Result(string text, bool ok) =>
-        Say(ok ? "RESULT" : "RESULT // NOT DONE", text, ok ? PhosphorTheme.Moss : PhosphorTheme.Ember);
+    void IWizThread.Result(string text, bool ok)
+    {
+        if (_lastAction is { Result: null } card) card.SetResult(text, ok);
+        else Say(ok ? ThreadTone.Ok : ThreadTone.Fail, ok ? "RESULT" : "RESULT // NOT DONE", text);
+        _lastAction = null;
+    }
 
     async Task<bool> IWizThread.ApproveAsync(string call, string effect, CancellationToken ct)
     {
-        Say($"WIZ // NEEDS YOUR APPROVAL // {effect.ToUpperInvariant()}", "Approve lets Wiz do this; Skip leaves everything as it is.", PhosphorTheme.Ember);
-        var pending = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _approval = pending;
-        _approvalLine.Text = $"APPROVE // {call}";
-        FitToThread();
+        var pending = BeginApproval(call, effect);
         if (!Visible) Show();
         try
         {
             bool approved = await pending.Task.WaitAsync(ct);
-            Say(approved ? "OPERATOR // APPROVED" : "OPERATOR // SKIPPED", null, approved ? PhosphorTheme.Moss : PhosphorTheme.Ghost);
+            _approvalCard?.Settle(approved);
+            _approvalCard = null;
             return approved;
         }
         finally
@@ -416,14 +418,25 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         }
     }
 
-    /// <summary>Closes the approval row; an unanswered request resolves as Skip.</summary>
+    /// <summary>An approval card at the bottom of the thread: what Wiz wants to do, with Skip and Approve.</summary>
+    private TaskCompletionSource<bool> BeginApproval(string call, string effect)
+    {
+        var pending = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _approval = pending;
+        // The action card right above shows the call; this card is only the decision.
+        _approvalCard = Say(ThreadTone.Approval, $"NEEDS YOUR APPROVAL // {effect}", "Approve lets Wiz do this; Skip leaves everything as it is.", ToolGlyph(call));
+        if (_approvalCard != null) _approvalCard.Answered += a => pending.TrySetResult(a);
+        return pending;
+    }
+
+    /// <summary>Closes a pending approval; an unanswered request resolves as Skip.</summary>
     private void EndApproval()
     {
         if (_approval == null) return;
         _approval.TrySetResult(false);
         _approval = null;
-        _approvalLine.Text = "";
-        FitToThread();
+        _approvalCard?.Settle(false);
+        _approvalCard = null;
     }
 
     /// <summary>
@@ -434,12 +447,10 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     {
         if (_runCancel != null) return; // never draw over a live run
         EndApproval();
-        _threadBox.Clear();
         if (state != "agent")
         {
             _threadStarted = false;
-            _threadBox.ForeColor = PhosphorTheme.Dim;
-            _threadBox.Text = ThreadIntro;
+            ShowIntro();
             _starterRow.Visible = true;
             SetWorking(false);
             ShowRuntime(null, null);
@@ -451,17 +462,15 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         string model = WizAgent.DefaultReasoningModel;
         _threadStarted = true;
         _starterRow.Visible = false;
-        _threadBox.ForeColor = PhosphorTheme.Bone;
-        Say("YOU // RITUAL", "Queue a nightly worktree cleanup Ritual for Arbiter and keep a note of it.", PhosphorTheme.Dim);
-        Say($"WIZ // AGENT // {Short(model)} // NEBIUS TOKEN FACTORY", $"Up to {WizAgent.MaxSteps} steps.", PhosphorTheme.Ghost);
+        _thread.Clear();
+        Say(ThreadTone.You, "YOU // RITUAL", "Queue a nightly worktree cleanup Ritual for Arbiter and keep a note of it.");
         t.Step(1, model, "Check which Spell Orb slot performs Rituals before queuing anything.");
         t.Action("list_spell_slots()");
         t.Result("[2] RITUAL // PERFORM // Scheduled cadence", true);
         t.Step(2, model, "Slot 2 performs Rituals; queue the cleanup for Arbiter.");
-        t.Action("queue_work_order(agent=\"arbiter\", task=\"Nightly worktree cleanup Ritual\")");
-        Say("WIZ // NEEDS YOUR APPROVAL // QUEUES A HOLODEX WORK ORDER", "Approve lets Wiz do this; Skip leaves everything as it is.", PhosphorTheme.Ember);
-        _approval = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _approvalLine.Text = "APPROVE // queue_work_order(agent=\"arbiter\", task=\"Nightly worktree cleanup Ritual\")";
+        const string queue = "queue_work_order(agent=\"arbiter\", task=\"Nightly worktree cleanup Ritual\")";
+        t.Action(queue);
+        BeginApproval(queue, "QUEUES A HOLODEX WORK ORDER");
         SetWorking(true);
         ShowRuntime("nebius-token-factory", model);
         FitToThread();

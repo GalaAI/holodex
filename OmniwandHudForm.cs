@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,7 +15,7 @@ namespace Omniwand;
 /// </summary>
 public sealed class OmniwandHudForm : Form
 {
-    private const int AnswerHeight = 200;
+    private const int AnswerMaxHeight = 260;
 
     private const string ShortcutsText =
         "Actions Ring casts the eight GrimX Spell slots.\n" +
@@ -29,9 +30,9 @@ public sealed class OmniwandHudForm : Form
     private readonly PromptTextBox _promptBox;
     private readonly IconToolButton _visionToggle;
     private readonly DataLabel _visionHint;
-    private readonly RichTextBox _responseBox;
+    private readonly ThreadView _answers;
     private readonly Panel _responseGap;
-    private readonly DataLabel _telemetryLine;
+    private readonly LedRow _telemetryLine;
     private readonly DisclosureRow _shortcutsRow;
     private readonly Label _shortcutsBody;
     private readonly ModelChip _modelChip;
@@ -109,23 +110,14 @@ public sealed class OmniwandHudForm : Form
         _composer.Content.Controls.Add(_promptBox);
         _composer.Height = _composer.HeightFor(_promptBox.Height + bar.Height);
 
-        // The answer appears under the question once there is one.
-        _responseBox = new RichTextBox
-        {
-            Dock = DockStyle.Top,
-            Height = AnswerHeight,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Dim,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Body(13f),
-            Name = "Hud.ResponseBox",
-            Text = string.Empty
-        };
+        // The answers appear under the question once there are any: a card per question and per answer, in the
+        // AInbox card language, fitting their content up to a cap and then scrolling.
+        _answers = new ThreadView("Hud.ResponseBox") { Dock = DockStyle.Top, Height = 0 };
+        _answers.ContentChanged += (_, _) => SizeAnswers();
         _responseGap = WidgetChrome.Spacer(10);
 
-        // Telemetry: gateway state, Input Spine 8842 and the connected mouse, always on one line.
-        _telemetryLine = new DataLabel("GATEWAY // CHECKING") { Dock = DockStyle.Top, Height = 22, ForeColor = PhosphorTheme.Dim, Name = "Hud.Telemetry" };
+        // Telemetry: gateway state, Input Spine 8842 and the connected mouse, one LED each on one line.
+        _telemetryLine = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Hud.Telemetry" };
 
         // Wand shortcuts: one click away, collapsed by default.
         _shortcutsRow = new DisclosureRow
@@ -172,7 +164,7 @@ public sealed class OmniwandHudForm : Form
         Controls.Add(WidgetChrome.Spacer(6));
         Controls.Add(_telemetryLine);
         Controls.Add(WidgetChrome.Spacer(8));
-        Controls.Add(_responseBox);
+        Controls.Add(_answers);
         Controls.Add(_responseGap);
         Controls.Add(_composer);
         Controls.Add(WidgetChrome.Spacer(2));
@@ -186,11 +178,19 @@ public sealed class OmniwandHudForm : Form
         FitToAnswer();
     }
 
-    private bool HasAnswer => !string.IsNullOrEmpty(_responseBox.Text);
+    private bool HasAnswer => _answers.Cards.Any();
+
+    private void SizeAnswers()
+    {
+        int want = HasAnswer ? Math.Min(_answers.ContentHeight(_answers.CardWidth) + 2, AnswerMaxHeight) : 0;
+        if (_answers.Height == want) return;
+        _answers.Height = want;
+        if (IsHandleCreated) FitToAnswer();
+    }
 
     /// <summary>No answer yet: no answer box. An answer (or the asking state) opens it under the question.</summary>
     private void FitToAnswer() => FitToContent.Apply(this, c =>
-        c == _responseBox || c == _responseGap ? HasAnswer
+        c == _answers || c == _responseGap ? HasAnswer
         : c == _shortcutsBody ? _shortcutsRow.Expanded
         : true);
 
@@ -278,13 +278,28 @@ public sealed class OmniwandHudForm : Form
     private void SyncTelemetry()
     {
         bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
-        string gateway = _gatewayOnline ? "GATEWAY ONLINE"
-            : keyed ? "GATEWAY STANDBY // NEBIUS DIRECT"
-            : "GATEWAY STANDBY // NO KEY";
-        string spine = _spineOnline switch { true => "SPINE 8842 UP", false => "SPINE 8842 DOWN", null => "SPINE 8842 CHECKING" };
-        string mouse = _mouseModel == null ? "MOUSE DETECTING" : _mouseModel.Length == 0 ? "NO MOUSE DETECTED" : _mouseModel.ToUpperInvariant();
-        _telemetryLine.Text = $"{gateway} // {spine} // {mouse}";
-        _telemetryLine.ForeColor = keyed ? PhosphorTheme.Dim : PhosphorTheme.Ember;
+        var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "GATEWAY ONLINE")
+            : keyed ? (PhosphorTheme.Patina, "NEBIUS DIRECT")
+            : (PhosphorTheme.Ember, "NO MODEL KEY");
+        var spine = _spineOnline switch
+        {
+            true => (PhosphorTheme.Moss, "SPINE 8842"),
+            false => (PhosphorTheme.Ember, "SPINE 8842 DOWN"),
+            null => (PhosphorTheme.Ghost, "SPINE 8842")
+        };
+        var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
+            : _mouseModel.Length == 0 ? (PhosphorTheme.Ember, "NO MOUSE")
+            : (PhosphorTheme.Moss, ShortMouse(_mouseModel));
+        _telemetryLine.Set(gateway, spine, mouse);
+    }
+
+    /// <summary>"Logitech G PRO X Superlight 2 (Lightspeed)" as "G PRO X SUPERLIGHT 2": the LED row has one line.</summary>
+    private static string ShortMouse(string model)
+    {
+        string m = model.Split('(')[0].Trim();
+        foreach (var brand in new[] { "Logitech ", "Razer ", "SteelSeries ", "Corsair " })
+            if (m.StartsWith(brand, StringComparison.OrdinalIgnoreCase)) m = m[brand.Length..];
+        return m.Length > 24 ? m[..24].TrimEnd() : m;
     }
 
     private void ShowKeyState()
@@ -321,8 +336,7 @@ public sealed class OmniwandHudForm : Form
         _working = true;
         _promptBox.Enabled = false;
         _askBtn.Enabled = false;
-        _responseBox.ForeColor = PhosphorTheme.Dim;
-        _responseBox.Text = "...";
+        _answers.Add(ThreadTone.You, snapshot != null ? "YOU // WITH THE SCREEN" : "YOU", prompt, snapshot != null ? PhosphorGlyph.Screen : null);
         SetStatus($"ASKING {_modelChip.Label.ToUpperInvariant()}", PhosphorTheme.Patina);
         FitToAnswer();
         Invalidate();
@@ -331,9 +345,17 @@ public sealed class OmniwandHudForm : Form
         try
         {
             var (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot);
-            _responseBox.ForeColor = ok ? PhosphorTheme.Bone : PhosphorTheme.Rust;
-            _responseBox.Text = output;
-            SetStatus(ok ? $"ANSWERED BY {ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant()}" : "NOT ANSWERED", ok ? PhosphorTheme.Ghost : PhosphorTheme.Rust);
+            string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
+            _answers.Add(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? $"ANSWERED BY {answeredBy}" : "NOT ANSWERED", output);
+            _promptBox.Clear();
+            SetStatus(ok ? $"ANSWERED BY {answeredBy}" : "NOT ANSWERED", ok ? PhosphorTheme.Ghost : PhosphorTheme.Rust);
+            if (!Visible)
+            {
+                // Esc hid the HUD mid-ask: the answer still arrives, so say where it is.
+                string first = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+                PhosphorToast.Show(ok ? $"Answered by {answeredBy}" : "Not answered", first.Length > 140 ? first[..140] + "..." : first,
+                    "WAND // ALT+SPACE OPENS IT", 4200, ok ? ToastTone.Success : ToastTone.Warning);
+            }
             FitToAnswer();
         }
         finally
@@ -345,6 +367,27 @@ public sealed class OmniwandHudForm : Form
             _promptBox.Focus();
             Invalidate();
         }
+    }
+
+    /// <summary>
+    /// As-built render states (SurfaceCapture): "answered" shows a question with the screen and its answer as the
+    /// cards a live ask adds; "reset" clears them.
+    /// </summary>
+    internal void PreviewState(string state)
+    {
+        if (_working) return; // never draw over a live ask
+        _answers.Clear();
+        if (state == "answered")
+        {
+            string model = ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant();
+            _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
+            _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model}",
+                "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
+            SetStatus($"ANSWERED BY {model}", PhosphorTheme.Ghost);
+        }
+        else ShowKeyState();
+        SizeAnswers();
+        FitToAnswer();
     }
 
     protected override void OnPaint(PaintEventArgs e)

@@ -82,6 +82,13 @@ internal static class SurfaceCapture
                 Save(RenderForm(holodex), Path.Combine(dir, "holodex-mods.png"), written);
                 holodex.SwitchTab("session");
             }
+            if (form is OmniwandHudForm hud)
+            {
+                // A question with the screen and its answer, as cards.
+                hud.PreviewState("answered");
+                Save(RenderForm(hud), Path.Combine(dir, "hud-answer.png"), written);
+                hud.PreviewState("reset");
+            }
             if (form is WizCraftingWidgetForm wiz)
             {
                 // The agent mid-run: steps, an action and its result, then a work order waiting on Approve/Skip.

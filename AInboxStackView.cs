@@ -445,13 +445,11 @@ internal sealed class ScrollFieldRow : Panel
 /// <summary>
 /// Delivery status, the design target's SYNCED and QUEUED lines: a dot and a line each, from the outbound queue.
 /// </summary>
-internal sealed class SyncStatus : Control
+internal sealed class SyncStatus : LedRow
 {
     public SyncStatus()
     {
         Name = "AInbox.SyncStatus";
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
-        BackColor = Color.Transparent;
     }
 
     public int Pending { get; set; }
@@ -460,19 +458,9 @@ internal sealed class SyncStatus : Control
 
     protected override void OnPaint(PaintEventArgs e)
     {
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        float s = PhosphorPaint.Scale(this);
-        float dot = 6f * s, cy = Height / 2f;
-        float x = 0;
-        void Led(Color c, string text)
-        {
-            using (var b = new SolidBrush(c)) g.FillEllipse(b, x, cy - dot / 2f, dot, dot);
-            x += dot + 7f * s;
-            x += StackPaint.Tracked(g, text, 9f, PhosphorTheme.Dim, x, cy - 6f * s, this, 0.9f) + 16f * s;
-        }
-        Led(Online == true ? PhosphorTheme.Moss : Online == false ? PhosphorTheme.Ember : PhosphorTheme.Ghost,
+        var sync = (Online == true ? PhosphorTheme.Moss : Online == false ? PhosphorTheme.Ember : PhosphorTheme.Ghost,
             Online == true ? $"SYNCED // {SentToday} TO AINBOX TODAY" : Online == false ? "AINBOX :8840 OFFLINE" : "AINBOX // CHECKING");
-        if (Pending > 0) Led(PhosphorTheme.Seal, $"QUEUED {Pending} // RETRYING");
+        Leds = Pending > 0 ? new[] { sync, (PhosphorTheme.Seal, $"QUEUED {Pending} // RETRYING") } : new[] { sync };
+        base.OnPaint(e);
     }
 }

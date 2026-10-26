@@ -239,7 +239,11 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 string? orderId = _holodexDrawer.QueueWorkOrder(agent, task, out string error);
                 return (orderId, error);
             },
-            CodexSaved = _ => _holodexDrawer?.RefreshCodexEntries()
+            CodexSaved = entry =>
+            {
+                _holodexDrawer?.RefreshCodexEntries();
+                PhosphorToast.Show("Saved to Codex", entry.Title, "WIZ // CODEX", 2600, ToastTone.Success);
+            }
         });
         _ainboxWidget = new AInboxIntakeWidgetForm(_ark, thinking => _isAiThinking = thinking);
         _snipWidget = new ScreenSnipAndElementPickerForm(

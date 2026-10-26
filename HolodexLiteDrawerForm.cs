@@ -46,7 +46,7 @@ public sealed class HolodexLiteDrawerForm : Form
     private readonly PhosphorField _tokenField;
     private readonly Panel _tokenBar;
     private readonly Panel _tokenGap;
-    private readonly Label _connectionTelemetry;
+    private readonly LedRow _connectionTelemetry;
     private readonly PhosphorButton _replaceKeyBtn;
     private bool _connected;
     private bool _tokenBarOpen;
@@ -62,8 +62,8 @@ public sealed class HolodexLiteDrawerForm : Form
     private Panel _modsPanel = null!;
 
     // Session controls
-    private RichTextBox _sessionChatBox = null!;
-    private RichTextBox _workOrdersBox = null!;
+    private ThreadView _sessionThread = null!;
+    private ThreadView _workOrdersList = null!;
     private Panel _workOrdersHost = null!;
     private PromptTextBox _sessionInputBox = null!;
     private SuggestionChip _rosterChip = null!;
@@ -165,22 +165,9 @@ public sealed class HolodexLiteDrawerForm : Form
         // 1. Connection telemetry, always visible, with the visible way back to the key row.
         bool bundle = hasNebiusKey && ArkStationClient.HasWinCredVaultBundle();
         var connectionRow = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = PhosphorTheme.Surface, Name = "Holodex.ConnectionRow" };
-        // A wrapping mono label, so the full telemetry fits beside the button on two lines.
-        _connectionTelemetry = new Label
-        {
-            Text = hasNebiusKey
-                ? $"NEBIUS KEY LINKED // NEMOTRON READY{(bundle ? " // SAVED IN WINDOWS VAULT" : "")}"
-                : "NO MODEL KEY // PASTE A NEBIUS KEY BELOW",
-            Dock = DockStyle.Fill,
-            AutoSize = false,
-            UseMnemonic = false,
-            TextAlign = ContentAlignment.MiddleLeft,
-            BackColor = PhosphorTheme.Surface,
-            Font = PhosphorFonts.Mono(PhosphorTheme.TextData),
-            Height = 36,
-            ForeColor = hasNebiusKey ? PhosphorTheme.Patina : PhosphorTheme.Ember,
-            Name = "Holodex.ConnectionLine"
-        };
+        // One LED per fact, the AInbox footer's status style.
+        _connectionTelemetry = new LedRow { Dock = DockStyle.Fill, Height = 36, Name = "Holodex.ConnectionLine" };
+        ShowConnection(gatewayOnline: false, hasNebiusKey, bundle);
         _replaceKeyBtn = new PhosphorButton("Replace key") { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.ReplaceKeyButton" };
         _replaceKeyBtn.Click += (_, _) => ShowTokenBar(!_tokenBarOpen);
         connectionRow.Controls.Add(_connectionTelemetry);
@@ -243,40 +230,19 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         _sessionPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionPanel" };
 
-        // Work orders: always visible, with its empty state.
-        _workOrdersBox = new RichTextBox
-        {
-            Dock = DockStyle.Top,
-            Height = 96,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface2,
-            ForeColor = PhosphorTheme.Patina,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Mono(10.5f),
-            Name = "Holodex.WorkOrdersBox"
-        };
-        PhosphorPaint.UseDarkScrollbars(_workOrdersBox);
-        _workOrdersHost = WidgetChrome.Labeled("Work orders", _workOrdersBox, 96);
+        // Work orders: always visible, a card per order (its empty state is a card too), like the AInbox stack.
+        _workOrdersList = new ThreadView("Holodex.WorkOrdersBox") { Dock = DockStyle.Top, Height = 60 };
+        _workOrdersHost = WidgetChrome.Labeled("Work orders", _workOrdersList, 60);
+        _workOrdersList.ContentChanged += (_, _) => SizeWorkOrders();
         var ordersGap = WidgetChrome.Spacer(8);
 
-        _sessionChatBox = new RichTextBox
-        {
-            Dock = DockStyle.Fill,
-            ReadOnly = true,
-            BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Bone,
-            BorderStyle = BorderStyle.None,
-            Font = PhosphorFonts.Body(12.5f),
-            Name = "Holodex.SessionChatBox",
-            Text =
-                "GALA // NEXUS ORCHESTRATOR\n" +
-                (hasNebiusKey
-                    ? "Welcome. Your Nebius key is linked and Nemotron is ready to chat.\n\n"
-                    : "Welcome. Paste a Nebius Token Factory key above to turn on Nemotron.\n\n") +
-                "WIZ // 4GE CONDUCTOR\n" +
-                "Your mouse hardware profile, DPI controls, Free-Form Lasso (Alt+S), and Element Picker (Alt+E) are online. Message the Syndicate below or prefix with /order to dispatch a Work Order."
-        };
-        PhosphorPaint.UseDarkScrollbars(_sessionChatBox);
+        // The session: a card per message, in the same card language as Wiz and the AInbox stack.
+        _sessionThread = new ThreadView("Holodex.SessionChatBox") { Dock = DockStyle.Fill };
+        _sessionThread.Add(ThreadTone.Agent, "GALA // NEXUS ORCHESTRATOR", hasNebiusKey
+            ? "Welcome. Your Nebius key is linked and Nemotron is ready to chat."
+            : "Welcome. Paste a Nebius Token Factory key above to turn on Nemotron.");
+        _sessionThread.Add(ThreadTone.Agent, "WIZ // 4GE CONDUCTOR",
+            "Your mouse hardware profile, DPI controls, Free-Form Lasso (Alt+S), and Element Picker (Alt+E) are online. Message the Syndicate below or prefix with /order to dispatch a Work Order.");
 
         // Composer: the message, a bar with + work order, then who it goes to and Send.
         var composer = new ComposerSurface { Dock = DockStyle.Bottom, Name = "Holodex.SessionComposer" };
@@ -310,7 +276,7 @@ public sealed class HolodexLiteDrawerForm : Form
         // Roster: who the message reaches, under the chip.
         _activeRosterLabel = new DataLabel("") { Dock = DockStyle.Bottom, Height = 20, Name = "Holodex.RosterLine" };
 
-        _sessionPanel.Controls.Add(_sessionChatBox);
+        _sessionPanel.Controls.Add(_sessionThread);
         _sessionPanel.Controls.Add(ordersGap);
         _sessionPanel.Controls.Add(_workOrdersHost);
         _sessionPanel.Controls.Add(composer);
@@ -674,22 +640,40 @@ public sealed class HolodexLiteDrawerForm : Form
 
     private void RefreshWorkOrdersText()
     {
-        // The panel stays; it is short while empty and opens to its full height with orders in it.
-        bool empty = _workOrders.Count == 0;
-        _workOrdersBox.Height = empty ? 28 : 96;
-        _workOrdersHost.Height = 18 + 4 + _workOrdersBox.Height;
-        _workOrdersBox.ForeColor = empty ? PhosphorTheme.Ghost : PhosphorTheme.Patina;
-        if (empty)
-        {
-            _workOrdersBox.Text = "No work orders yet. Add one or ask in the session.";
-            return;
-        }
-        var sb = new System.Text.StringBuilder();
+        // The panel stays: one empty-state card, or a card per order, two tall before it scrolls.
+        _workOrdersList.Clear();
+        if (_workOrders.Count == 0)
+            _workOrdersList.Add(ThreadTone.Intro, "NONE YET", "Add one with + or /order, or ask in the session.");
         foreach (var wo in _workOrders)
+            _workOrdersList.Add(ThreadTone.Action, $"{wo.OrderId} // {wo.Status} // {wo.OwnerAgent} // {wo.CreatedAt}", wo.Title, PhosphorGlyph.Holodex);
+        SizeWorkOrders();
+    }
+
+    /// <summary>Fits the list to two cards, then it scrolls; reruns when its width or content changes.</summary>
+    private void SizeWorkOrders()
+    {
+        int width = _workOrdersList.CardWidth;
+        int content = _workOrdersList.ContentHeight(width) + 2;
+        int cap = _workOrdersList.Cards.Take(2).Sum(c => c.HeightFor(width) + c.Margin.Vertical) + 2;
+        int want = Math.Min(content, cap);
+        if (_workOrdersList.Height == want) return;
+        _workOrdersList.Height = want;
+        _workOrdersHost.Height = 18 + 4 + want;
+    }
+
+    /// <summary>The connection row's LEDs: which route answers, the key, and whether the key is in the vault.</summary>
+    private void ShowConnection(bool gatewayOnline, bool keyed, bool bundle)
+    {
+        var leds = new List<(Color, string)>();
+        if (gatewayOnline) leds.Add((PhosphorTheme.Moss, "ARKSTATION GATEWAY ONLINE"));
+        if (keyed)
         {
-            sb.AppendLine($"[{wo.Status}] {wo.OrderId} · {wo.OwnerAgent}: {wo.Title} ({wo.CreatedAt})");
+            leds.Add((PhosphorTheme.Moss, "NEBIUS KEY LINKED"));
+            leds.Add((PhosphorTheme.Patina, "NEMOTRON READY"));
+            if (bundle) leds.Add((PhosphorTheme.Moss, "WINDOWS VAULT"));
         }
-        _workOrdersBox.Text = sb.ToString().TrimEnd();
+        else if (!gatewayOnline) leds.Add((PhosphorTheme.Ember, "NO MODEL KEY // PASTE ONE BELOW"));
+        _connectionTelemetry.Set(leds.ToArray());
     }
 
     private void CreateWorkOrderFromComposer()
@@ -736,9 +720,8 @@ public sealed class HolodexLiteDrawerForm : Form
         var order = new SyndicateWorkOrder(orderId, text, owner, "QUEUED", "Just now");
         _workOrders.Insert(0, order);
         RefreshWorkOrdersText();
-        _sessionChatBox.AppendText($"\n\n[WORK ORDER CREATED // {orderId} -> {owner}]\n{text}");
-        _sessionChatBox.SelectionStart = _sessionChatBox.TextLength;
-        _sessionChatBox.ScrollToCaret();
+        _sessionThread.Add(ThreadTone.Action, $"WORK ORDER // {orderId} // TO {owner}", text, PhosphorGlyph.Holodex);
+        PhosphorToast.Show($"Work order {orderId} queued", $"{owner} has it: {text}", "HOLODEX // WORK ORDERS", 2600, ToastTone.Success);
         return order;
     }
 
@@ -756,22 +739,54 @@ public sealed class HolodexLiteDrawerForm : Form
         }
 
         var agent = SyndicateRoster.FirstOrDefault(a => a.Id == _selectedSyndicateTarget) ?? SyndicateRoster[0];
-        _sessionChatBox.AppendText($"\n\nYOU -> {agent.Name}\n{msg}");
-        _sessionChatBox.SelectionStart = _sessionChatBox.TextLength;
-        _sessionChatBox.ScrollToCaret();
+        _sessionThread.Add(ThreadTone.You, $"YOU // TO {agent.Name}", msg);
 
         _setThinkingState(true);
         try
         {
             var (ok, reply) = await _ark.AskSyndicateSessionAsync(msg, agent.Id, agent.Name, agent.Role);
-            _sessionChatBox.AppendText($"\n\n{reply}");
-            _sessionChatBox.SelectionStart = _sessionChatBox.TextLength;
-            _sessionChatBox.ScrollToCaret();
+            if (!ok) _sessionThread.Add(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED", reply);
+            else foreach (var (who, text) in SplitTurns(reply, agent.Name)) _sessionThread.Add(ThreadTone.Agent, who, text);
+            if (!Visible || !_sessionPanel.Visible)
+                PhosphorToast.Show(ok ? $"{agent.Name} replied" : $"{agent.Name} did not answer", reply.Length > 140 ? reply[..140] + "..." : reply,
+                    "HOLODEX // SESSION // ALT+H", 4200, ok ? ToastTone.Info : ToastTone.Warning);
         }
         finally
         {
             _setThinkingState(false);
         }
+    }
+
+    /// <summary>
+    /// The session asks agents to answer as "NAME // ROLE:" lines; each turn becomes its own card. A reply with no
+    /// such line is one turn from the agent it was sent to.
+    /// </summary>
+    internal static List<(string Who, string Text)> SplitTurns(string reply, string fallbackName)
+    {
+        var turns = new List<(string Who, string Text)>();
+        string? who = null;
+        var body = new System.Text.StringBuilder();
+        void Flush()
+        {
+            if (who == null && body.Length == 0) return;
+            turns.Add((who ?? fallbackName.ToUpperInvariant(), body.ToString().Trim()));
+            body.Clear();
+        }
+        foreach (var raw in reply.Replace("\r", "").Split('\n'))
+        {
+            string line = raw.Trim().Trim('*').Trim();
+            var head = System.Text.RegularExpressions.Regex.Match(line, @"^([A-Za-z][A-Za-z0-9 .]{0,40}) // ([^:]{1,60}):\s*(.*)$");
+            if (head.Success)
+            {
+                Flush();
+                who = $"{head.Groups[1].Value.Trim().ToUpperInvariant()} // {head.Groups[2].Value.Trim().ToUpperInvariant()}";
+                if (head.Groups[3].Value.Length > 0) body.AppendLine(head.Groups[3].Value);
+                continue;
+            }
+            body.AppendLine(raw);
+        }
+        Flush();
+        return turns.Where(t => t.Text.Length > 0 || turns.Count == 1).ToList();
     }
 
     private async Task SaveTokenLoginAsync()
@@ -817,24 +832,21 @@ public sealed class HolodexLiteDrawerForm : Form
         {
             _vaultBadge.Text = "Gateway online";
             _vaultBadge.State = PhosphorBadgeState.Validated;
-            _connectionTelemetry.Text = "ARKSTATION GATEWAY ONLINE";
-            _connectionTelemetry.ForeColor = PhosphorTheme.Patina;
+            ShowConnection(gatewayOnline: true, st.NebiusKeyLoaded, bundle);
             ShowTokenBar(_tokenBarOpen);
         }
         else if (st.NebiusKeyLoaded)
         {
             _vaultBadge.Text = "Nemotron ready";
             _vaultBadge.State = PhosphorBadgeState.Validated;
-            _connectionTelemetry.Text = $"NEBIUS KEY LINKED // NEMOTRON READY{(bundle ? " // SAVED IN WINDOWS VAULT" : "")}";
-            _connectionTelemetry.ForeColor = PhosphorTheme.Patina;
+            ShowConnection(gatewayOnline: false, keyed: true, bundle);
             ShowTokenBar(_tokenBarOpen);
         }
         else
         {
             _vaultBadge.Text = "No key";
             _vaultBadge.State = PhosphorBadgeState.Unstated;
-            _connectionTelemetry.Text = "NO MODEL KEY // PASTE A NEBIUS KEY BELOW";
-            _connectionTelemetry.ForeColor = PhosphorTheme.Ember;
+            ShowConnection(gatewayOnline: false, keyed: false, bundle: false);
             ShowTokenBar(true);
         }
         _vaultBadge.FitToText();
