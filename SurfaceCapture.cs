@@ -82,6 +82,13 @@ internal static class SurfaceCapture
                 Save(RenderForm(holodex), Path.Combine(dir, "holodex-mods.png"), written);
                 holodex.SwitchTab("session");
             }
+            if (form is WizCraftingWidgetForm wiz)
+            {
+                // The agent mid-run: steps, an action and its result, then a work order waiting on Approve/Skip.
+                wiz.PreviewState("agent");
+                Save(RenderForm(wiz), Path.Combine(dir, "wiz-agent.png"), written);
+                wiz.PreviewState("reset");
+            }
             if (form is AInboxIntakeWidgetForm ainbox)
             {
                 // The composer's other states: a file dragged over (TraceBeam mid-orbit), one capture, a two-context

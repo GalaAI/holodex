@@ -10,6 +10,8 @@ using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Omniwand;
@@ -574,10 +576,12 @@ public sealed class ArkStationClient
     public async Task<(bool Ok, string Runtime, string Model, string Output)> AskWizGeminiArgonAsync(
         string prompt,
         string flowKind = "flow",
-        string? imageDataUrl = null)
+        string? imageDataUrl = null,
+        string? model = null)
     {
-        string selected = SelectedModel;
-        string cliModel = CliModelSlug();
+        // Wiz keeps its own model choice; other surfaces use the shared SelectedModel.
+        string selected = model ?? SelectedModel;
+        string cliModel = CliModelSlug(selected);
         bool isNemotronSelected = IsNemotronModel(selected);
 
         string wizSystem =
@@ -679,12 +683,12 @@ public sealed class ArkStationClient
     public static string ResolveNemotronModel(string? model) =>
         IsNemotronModel(model) ? model! : DefaultNemotronFastModel;
 
-    /// <summary>Model chosen in the Wiz and HUD pickers; shared by every chat surface. Defaults to NVIDIA Nemotron fast tier.</summary>
+    /// <summary>Model chosen in the HUD and other chat pickers; shared by those surfaces. Defaults to NVIDIA Nemotron fast tier. Wiz keeps its own agent model (WizAgent.DefaultReasoningModel).</summary>
     public string SelectedModel { get; set; } = DefaultNemotronFastModel;
 
     /// <summary>CLI form of the selection (no "ark/" route prefix).</summary>
-    private string CliModelSlug() =>
-        SelectedModel.StartsWith("ark/", StringComparison.OrdinalIgnoreCase) ? SelectedModel[4..] : SelectedModel;
+    private static string CliModelSlug(string model) =>
+        model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase) ? model[4..] : model;
 
     /// <summary>Gateway route form of the selection (always "ark/&lt;slug&gt;").</summary>
     private string GatewayModelSlug() =>
@@ -1068,6 +1072,98 @@ public sealed class ArkStationClient
             ToastTone.Error);
         return (false, lastError);
     }
+
+    // Agent turns can run longer than the shared client's 25s ceiling, so they get their own client and a per-call deadline.
+    private static readonly HttpClient AgentHttp = new() { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
+
+    /// <summary>
+    /// One OpenAI-compatible chat turn on Nebius Token Factory with native tool calling (verified 2026-10-26: every
+    /// built-in Nemotron model returns <c>tool_calls</c>). Returns the assistant message as sent back (content,
+    /// reasoning_content, tool_calls). Bounded: one retry on 5xx or a dropped connection, never on auth or cancellation.
+    /// </summary>
+    public async Task<(bool Ok, JsonObject? Message, string Error)> ChatNebiusAsync(
+        JsonArray messages,
+        JsonArray? tools,
+        string model,
+        string? toolChoice,
+        CancellationToken ct,
+        int maxTokens = 1536)
+    {
+        string apiKey = ReadNebiusApiKey();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            PhosphorToast.Show(
+                "Token Factory Key Missing",
+                "Set NEBIUS_API_KEY or add Omniwand:NebiusTokenFactory in Windows Credential Manager to run NVIDIA Nemotron.",
+                "STANDALONE // NEBIUS TOKEN FACTORY",
+                5200,
+                ToastTone.Warning);
+            return (false, null, "Nebius Token Factory API key not found. Set NEBIUS_API_KEY or add 'Omniwand:NebiusTokenFactory' in Windows Credential Manager.");
+        }
+
+        var payload = new JsonObject
+        {
+            ["model"] = model,
+            ["messages"] = messages.DeepClone(),
+            ["max_tokens"] = maxTokens,
+            ["temperature"] = 0.2
+        };
+        if (tools is { Count: > 0 })
+        {
+            payload["tools"] = tools.DeepClone();
+            payload["tool_choice"] = toolChoice ?? "auto";
+        }
+        string json = payload.ToJsonString();
+
+        string lastError = "Unknown error";
+        for (int attempt = 1; attempt <= 2; attempt++)
+        {
+            using var call = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            call.CancelAfter(TimeSpan.FromSeconds(60));
+            try
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Post, $"{GetNebiusBaseUrl()}/chat/completions");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                req.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var resp = await AgentHttp.SendAsync(req, call.Token);
+                string body = await resp.Content.ReadAsStringAsync(call.Token);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    lastError = $"Nebius Token Factory HTTP {(int)resp.StatusCode} ({model}): {Truncate(body, 300)}";
+                    if ((int)resp.StatusCode is 401 or 403)
+                    {
+                        PhosphorToast.Show(
+                            "Token Factory Auth Rejected",
+                            $"Nebius Token Factory returned HTTP {(int)resp.StatusCode}. Verify your NEBIUS_API_KEY.",
+                            "STANDALONE // NEBIUS TOKEN FACTORY",
+                            4800,
+                            ToastTone.Error);
+                    }
+                    if ((int)resp.StatusCode < 500) return (false, null, lastError);
+                    continue;
+                }
+                var root = JsonNode.Parse(body);
+                if (root?["choices"] is JsonArray { Count: > 0 } choices && choices[0]?["message"] is JsonObject message)
+                {
+                    return (true, (JsonObject)message.DeepClone(), "");
+                }
+                return (false, null, "No choices returned by Nebius Token Factory.");
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                lastError = ex is TaskCanceledException
+                    ? $"Nebius Token Factory did not answer within 60s (attempt {attempt}/2, {model})."
+                    : $"Nebius Token Factory connection error (attempt {attempt}/2): {ex.Message}";
+            }
+        }
+        return (false, null, lastError);
+    }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "...";
 
     /// <summary>
     /// Multi-model Live Vision router supporting NVIDIA Nemotron VL (`nvidia/Nemotron-3.5-Super-VL`),

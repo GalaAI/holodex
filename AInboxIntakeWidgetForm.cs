@@ -208,6 +208,14 @@ public sealed class AInboxIntakeWidgetForm : Form
         _ = _queue.DrainAsync();
     }
 
+    /// <summary>Types an ask into the composer (Wiz's draft_ainbox_handoff). Nothing is sent; the operator reviews and sends.</summary>
+    public void PrefillAsk(string ask)
+    {
+        _intentBox.Text = ask.Trim();
+        _intentBox.SelectionStart = _intentBox.TextLength;
+        _intentBox.Focus();
+    }
+
     // ---- Captures ----------------------------------------------------------------------------------------------
 
     private void WireDrop(Control c)
