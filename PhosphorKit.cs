@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -1043,14 +1044,32 @@ internal sealed class SpecCardPanel : Panel
     public string Board { get; set; } = "Board // Scribe";
     public (string Label, string Value)[] Specs { get; set; } = Array.Empty<(string, string)>();
     public string Receipt { get; set; } = "RCPT // pending // written on submit";
+    /// <summary>SHA-256 hex the barcode encodes. Clicking the barcode copies it.</summary>
+    public string Seal { get; set; } = "";
     public Color? EdgeColor { get; set; }
     public Color Edge { get => EdgeColor ?? PhosphorTheme.Patina; set => EdgeColor = value; }
+
+    private RectangleF _barcodeRect;
 
     public SpecCardPanel()
     {
         SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Color.Transparent;
         DoubleBuffered = true;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        Cursor = _barcodeRect.Contains(e.Location) ? Cursors.Hand : Cursors.Default;
+    }
+
+    protected override void OnMouseClick(MouseEventArgs e)
+    {
+        base.OnMouseClick(e);
+        if (e.Button != MouseButtons.Left || Seal.Length == 0 || !_barcodeRect.Contains(e.Location)) return;
+        try { Clipboard.SetText("sha256:" + Seal); } catch { return; }
+        PhosphorToast.Show("Seal copied", "sha256:" + Seal, "HANDOFF SCROLL // SEAL", 2400, ToastTone.Success);
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -1124,8 +1143,11 @@ internal sealed class SpecCardPanel : Panel
         PhosphorPaint.StrokeRounded(g, tagRect, tagRadius, tagLine);
         using (var tagInk = new SolidBrush(StatusState == PhosphorBadgeState.Proven ? PhosphorTheme.Ground : (StatusState == PhosphorBadgeState.Blocked ? PhosphorTheme.Rust : PhosphorTheme.Dim)))
             PhosphorPaint.DrawTracked(g, Status.ToUpperInvariant(), dtFont, tagInk, tagRect.X + 7f * s, tagRect.Y + (tagRect.Height - dtFont.GetHeight(g)) / 2f, trackTight);
-        float boardW = PhosphorPaint.MeasureTracked(g, Board.ToUpperInvariant(), dtFont, trackTight);
-        PhosphorPaint.DrawTracked(g, Board.ToUpperInvariant(), dtFont, ghost, rect.Right - x - boardW, 42f * s, trackTight);
+        if (Board.Length > 0)
+        {
+            float boardW = PhosphorPaint.MeasureTracked(g, Board.ToUpperInvariant(), dtFont, trackTight);
+            PhosphorPaint.DrawTracked(g, Board.ToUpperInvariant(), dtFont, ghost, rect.Right - x - boardW, 42f * s, trackTight);
+        }
 
         // Tear line with real notches.
         float tearY = y + codeH + 10f * s;
@@ -1153,21 +1175,26 @@ internal sealed class SpecCardPanel : Panel
             g.DrawString(Specs[i].Value, ddFont, bone, new RectangleF(cx, gy + 15f * s, colW - 10f * s, 18f * s), fmt);
         }
 
-        // Barcode band.
+        // Barcode band: the seal's digest, one bar and one gap per hex nibble (bar 1 to 4 units from the high two
+        // bits, gap 1 to 4 from the low two), stretched to the card width. It reads back to the hash; no seal, no bars.
         float by = gy + 38f * s;
         float bh = 12f * s;
-        using (var bar = new SolidBrush(PhosphorTheme.Ghost))
+        _barcodeRect = RectangleF.Empty;
+        if (Seal.Length > 0)
         {
+            var nibbles = Seal.Select(c => Convert.ToInt32(c.ToString(), 16)).ToArray();
+            int units = nibbles.Sum(n => (n >> 2) + 1 + (n & 3) + 1);
+            float avail = rect.Right - x - x;
+            float unit = avail / units;
             float bx = x;
-            float[] pattern = { 2, 2, 1, 4, 3, 2, 1, 4 };
-            int k = 0;
-            while (bx < rect.Right - x)
+            using var bar = new SolidBrush(PhosphorTheme.Dim);
+            foreach (int n in nibbles)
             {
-                float w = pattern[k % pattern.Length] * s;
-                if (k % 2 == 0) g.FillRectangle(bar, bx, by, w, bh);
-                bx += w;
-                k++;
+                float w = ((n >> 2) + 1) * unit;
+                g.FillRectangle(bar, bx, by, w, bh);
+                bx += w + ((n & 3) + 1) * unit;
             }
+            _barcodeRect = new RectangleF(x, by - 4f * s, avail, bh + 26f * s);
         }
 
         PhosphorPaint.DrawTracked(g, Receipt.ToUpperInvariant(), dtFont, ghost, x, by + bh + 8f * s, trackWide * 0.75f);

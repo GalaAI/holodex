@@ -46,6 +46,9 @@ public sealed class AInboxIntakeWidgetForm : Form
     private string? _capturedDataUrl;
     private CaptureKind _captureKind = CaptureKind.File;
     private string? _content;
+    private string? _attachmentSha;
+    private System.Threading.Tasks.Task<string?>? _hashTask;
+    private OmnitekAutoDetectInfo? _detected;
     private CaptureKind _contentKind = CaptureKind.Snippet;
     private string _suggestion = "";
     private int _podIndex = 0;
@@ -138,6 +141,8 @@ public sealed class AInboxIntakeWidgetForm : Form
         _evidenceWorkingField.Box.Name = "AInbox.WorkingStateBox";
         _evidenceDeliverableField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.DeliverableEvidenceField" };
         _evidenceDeliverableField.Box.Name = "AInbox.DeliverableEvidenceBox";
+        foreach (var field in new[] { _evidenceReceivedField, _evidenceWorkingField, _evidenceDeliverableField })
+            field.Box.TextChanged += (_, _) => UpdateSeal();
 
         var rowContext = WidgetChrome.Labeled("1 // Context", _scrollContextField, 48);
         ((Control)rowContext.Tag!).Name = "AInbox.ScrollContextLabel";
@@ -441,6 +446,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         if (!keepDataUrl) _capturedDataUrl = null;
         _selectedFilePath = path;
         _captureKind = kind;
+        HashAttachment();
         _userChosePodManually = false;
         _captureRow.Kind = kind;
         _captureRow.ItemName = Path.GetFileName(path);
@@ -455,6 +461,8 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         _selectedFilePath = null;
         _capturedDataUrl = null;
+        _attachmentSha = null;
+        _hashTask = null;
         _composer.RestMode = HasContent ? CaptureWellMode.Captured : CaptureWellMode.Idle;
         _composer.SetMode(_composer.RestMode);
         RefreshAutoDetectionAndScroll();
@@ -490,6 +498,8 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         _selectedFilePath = null;
         _capturedDataUrl = null;
+        _attachmentSha = null;
+        _hashTask = null;
         _content = null;
         _userChosePodManually = false;
         _intentBox.Text = "";
@@ -499,6 +509,36 @@ public sealed class AInboxIntakeWidgetForm : Form
         _summary.Expanded = false;
         RefreshAutoDetectionAndScroll();
         Relayout();
+    }
+
+    /// <summary>
+    /// The attachment's SHA-256 for the seal: the captured image's data URL when there is one, else the file's
+    /// bytes, streamed off the UI thread. A path with nothing readable behind it (the as-built sample) has none.
+    /// </summary>
+    private void HashAttachment()
+    {
+        _attachmentSha = null;
+        _hashTask = null;
+        if (!string.IsNullOrEmpty(_capturedDataUrl))
+        {
+            _attachmentSha = ArkStationClient.Sha256Hex(System.Text.Encoding.UTF8.GetBytes(_capturedDataUrl));
+            return;
+        }
+        string? path = _selectedFilePath;
+        if (path == null || !File.Exists(path)) return;
+        var task = System.Threading.Tasks.Task.Run(() => ArkStationClient.Sha256File(path));
+        _hashTask = task;
+        task.ContinueWith(t =>
+        {
+            if (IsDisposed || !IsHandleCreated) return;
+            BeginInvoke(new Action(() =>
+            {
+                if (_hashTask != task) return;
+                _attachmentSha = t.Result;
+                _hashTask = null;
+                UpdateSeal();
+            }));
+        }, System.Threading.Tasks.TaskScheduler.Default);
     }
 
     private static string FileMeta(string path)
@@ -614,6 +654,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _route.Invalidate();
         if (_undoTimer == null && !_working) _sendBtn.Text = $"Send to {pod.Label}";
 
+        _detected = detected;
         var previewScroll = _ark.BuildPreviewHandoffScroll(pod.PodId, detected, intent, _selectedFilePath, _content);
 
         string what = intent.Trim().Length > 0 ? intent.Trim().Split('\n')[0]
@@ -633,22 +674,43 @@ public sealed class AInboxIntakeWidgetForm : Form
 
         _scroll.Code = pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
         _scroll.Title = "Handoff Scroll";
-        _scroll.Eyebrow = "Augment // Scroll // Handoff";
+        _scroll.Eyebrow = "Scroll // Handoff // Drafted by Scribe";
         _scroll.Alt = $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
-        _scroll.Board = "Board // Scribe";
+        _scroll.Board = "";
         _scroll.Edge = podAccent;
         _scroll.Specs = new[]
         {
-            ("Pod", pod.Label),
+            ("To", orchestrator),
             ("Item", detected.DisplayBadge),
-            ("Confidence", detected.Confidence),
-            ("Drafted by", "Scribe")
+            ("Confidence", detected.Confidence)
         };
         _scroll.Status = "Draft";
         _scroll.StatusState = PhosphorBadgeState.Unstated;
-        _scroll.Receipt = "RCPT // pending // written on send";
+        UpdateSeal();
+    }
+
+    /// <summary>
+    /// Seals the scroll as it would be sent (the evidence as edited, the attachment's hash) so the barcode and the
+    /// seal line always match the receipt. The client owns the canonical form; this only asks it.
+    /// </summary>
+    private void UpdateSeal()
+    {
+        if (_detected == null) return;
+        if (_hashTask != null)
+        {
+            _scroll.Seal = "";
+            _scroll.Receipt = "SEAL // hashing the attachment";
+            _scroll.Invalidate();
+            return;
+        }
+        string seal = _ark.BuildPreviewHandoffScroll(SelectedPod.PodId, _detected, _intentBox.Text, _selectedFilePath, _content,
+            _evidenceReceivedField.Box.Text, _evidenceWorkingField.Box.Text, _evidenceDeliverableField.Box.Text, _attachmentSha).Sha256;
+        _scroll.Seal = seal;
+        _scroll.Receipt = $"SEAL // SHA-256 // {ShortSeal(seal)} // CLICK BARS TO COPY";
         _scroll.Invalidate();
     }
+
+    private static string ShortSeal(string sha) => sha.Length < 20 ? sha : $"{sha[..12]}...{sha[^8..]}";
 
     // ---- Send with undo --------------------------------------------------------------------------------
 
@@ -716,6 +778,8 @@ public sealed class AInboxIntakeWidgetForm : Form
 
         try
         {
+            // A large file may still be hashing; the seal waits for it so the receipt matches the bytes sent.
+            if (_hashTask != null) { _attachmentSha = await _hashTask; _hashTask = null; }
             var receipt = await _ark.SubmitPodInboxIntakeAsync(
                 pod.PodId,
                 _intentBox.Text,
@@ -724,13 +788,14 @@ public sealed class AInboxIntakeWidgetForm : Form
                 _capturedDataUrl,
                 _evidenceReceivedField.Box.Text,
                 _evidenceWorkingField.Box.Text,
-                _evidenceDeliverableField.Box.Text);
+                _evidenceDeliverableField.Box.Text,
+                _attachmentSha);
 
             bool pulsed = receipt.PulseStatus == "pulsed";
             ResetComposer();
             SetStatus(pulsed
-                ? $"SENT // {receipt.OrchestratorAgentId} @ {receipt.PodInboxChannel} // {receipt.HandoffScroll.ScrollId}"
-                : $"SAVED LOCALLY // ArkStation not running // {receipt.HandoffScroll.ScrollId}", PhosphorTheme.Moss);
+                ? $"SENT // {receipt.OrchestratorAgentId} @ {receipt.PodInboxChannel} // sha256:{receipt.HandoffScroll.Sha256[..12]}"
+                : $"SAVED LOCALLY // ArkStation not running // sha256:{receipt.HandoffScroll.Sha256[..12]}", PhosphorTheme.Moss);
         }
         catch (Exception ex)
         {

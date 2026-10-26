@@ -65,7 +65,8 @@ public sealed record HandoffScrollInfo(
     string Context,
     string Goal,
     HandoffScrollDesiredEvidenceInfo DesiredEvidence,
-    string CreatedAt);
+    string CreatedAt,
+    string Sha256);
 
 public sealed record PodInboxIntakeReceipt(
     string IntakeItemId,
@@ -884,7 +885,8 @@ public sealed class ArkStationClient
         string? text,
         string? customProofOfReceived = null,
         string? customWorkingState = null,
-        string? customDeliverable = null)
+        string? customDeliverable = null,
+        string? attachmentSha256 = null)
     {
         var pod = PodInboxes.FirstOrDefault(p => p.PodId == targetPodId) ?? PodInboxes[0];
         string subtypeLabel = string.IsNullOrEmpty(detected.ItemSubtype)
@@ -923,7 +925,47 @@ public sealed class ArkStationClient
             context,
             goal,
             evidence,
-            DateTime.UtcNow.ToString("O"));
+            DateTime.UtcNow.ToString("O"),
+            SealHandoffScroll(pod.PodId, detected, intent, context, goal, evidence, attachmentSha256, text));
+    }
+
+    /// <summary>
+    /// The handoff scroll's seal: SHA-256 (lowercase hex) of what the receiving agent is asked to act on, so a
+    /// receipt can be checked against the scroll that was sent. Canonical form, UTF-8, fields joined by LF:
+    /// "ark.handoff-scroll.v1", pod id, item type, item subtype, intent, context, goal, proof of received,
+    /// working state, deliverable evidence, attachment SHA-256, content SHA-256 (empty when absent).
+    /// Scroll id and timestamps are left out, so the draft and the sent scroll seal the same when unchanged.
+    /// </summary>
+    public static string SealHandoffScroll(string podId, OmnitekAutoDetectInfo detected, string? intent, string context, string goal,
+        HandoffScrollDesiredEvidenceInfo evidence, string? attachmentSha256, string? text)
+    {
+        string canonical = string.Join("\n",
+            "ark.handoff-scroll.v1",
+            podId,
+            detected.ItemType,
+            detected.ItemSubtype ?? "",
+            (intent ?? "").Trim(),
+            context,
+            goal,
+            evidence.ProofOfReceived,
+            evidence.WorkingState,
+            evidence.DeliverableEvidence,
+            attachmentSha256 ?? "",
+            string.IsNullOrEmpty(text) ? "" : Sha256Hex(Encoding.UTF8.GetBytes(text)));
+        return Sha256Hex(Encoding.UTF8.GetBytes(canonical));
+    }
+
+    public static string Sha256Hex(byte[] bytes) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+
+    /// <summary>SHA-256 of a file's bytes, streamed. Null when the file cannot be read.</summary>
+    public static string? Sha256File(string path)
+    {
+        try
+        {
+            using var fs = File.OpenRead(path);
+            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(fs)).ToLowerInvariant();
+        }
+        catch { return null; }
     }
 
     public async Task<PodInboxIntakeReceipt> SubmitPodInboxIntakeAsync(
@@ -934,7 +976,8 @@ public sealed class ArkStationClient
         string? dataUrl,
         string? customProofOfReceived,
         string? customWorkingState,
-        string? customDeliverable)
+        string? customDeliverable,
+        string? attachmentSha256 = null)
     {
         var detected = AutoDetectOmnitekItem(fileName, text, intent);
         var scroll = BuildPreviewHandoffScroll(
@@ -945,7 +988,8 @@ public sealed class ArkStationClient
             text,
             customProofOfReceived,
             customWorkingState,
-            customDeliverable);
+            customDeliverable,
+            attachmentSha256);
         var pod = PodInboxes.FirstOrDefault(p => p.PodId == targetPodId) ?? PodInboxes[0];
 
         bool spineSaved = false;
@@ -962,6 +1006,8 @@ public sealed class ArkStationClient
                     text,
                     dataUrl,
                     actor = "operator:omniwand",
+                    scrollSha256 = scroll.Sha256,
+                    attachmentSha256,
                     desiredEvidence = new
                     {
                         proofOfReceived = scroll.DesiredEvidence.ProofOfReceived,
@@ -1007,7 +1053,7 @@ public sealed class ArkStationClient
                 var ev = receipt.HandoffScroll.DesiredEvidence;
                 await File.WriteAllTextAsync(mdPath,
                     $"# Handoff scroll: {pod.Label}\n\n" +
-                    $"- Scroll: {receipt.HandoffScroll.ScrollId}\n- Item: {detected.DisplayBadge} ({detected.Confidence} confidence)\n" +
+                    $"- Scroll: {receipt.HandoffScroll.ScrollId}\n- Seal: sha256:{receipt.HandoffScroll.Sha256}\n- Item: {detected.DisplayBadge} ({detected.Confidence} confidence)\n" +
                     (string.IsNullOrWhiteSpace(fileName) ? "" : $"- File: {fileName}\n") +
                     $"- Written: {DateTimeOffset.Now:yyyy-MM-dd HH:mm}\n\n" +
                     $"## Intent\n\n{(string.IsNullOrWhiteSpace(intent) ? "(none)" : intent.Trim())}\n\n" +
