@@ -1,31 +1,48 @@
 using System;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Omniwand;
 
 /// <summary>
 /// Summonable Phosphor Shell HUD (Alt+Space, Actions Ring "Summon HUD", pipe hud:summon). One composer: ask about
-/// what the wand points at, with the screen around the tip attached by a toggle. The model chip is the one place
-/// that says which model answers and whether it is ready. The header's icons open Holodex, Lasso, Wiz and AInbox.
+/// what the wand points at, with the screen around the tip attached by a toggle. The header badge is the wand
+/// status (Online, Ready, No key) beside the icons that open Holodex, Lasso, Wiz and AInbox; the model chip says
+/// which model answers. Under the answer: one telemetry line (gateway, Input Spine 8842, the connected mouse) and
+/// the wand shortcuts behind a collapsed SHORTCUTS row (the answer area is not a help panel, operator 2026-10-18).
 /// </summary>
 public sealed class OmniwandHudForm : Form
 {
     private const int AnswerHeight = 200;
 
+    private const string ShortcutsText =
+        "Actions Ring casts the eight GrimX Spell slots.\n" +
+        "F15 or Ctrl+Shift+Space opens the fallback orb.\n" +
+        "F16 streams the GhostTrailer ribbon (Alt+V for it is planned, not bound yet).\n" +
+        "Alt+W opens Wiz. Alt+I opens AInbox.";
+
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
+    private readonly PhosphorBadge _statusBadge;
     private readonly ComposerSurface _composer;
     private readonly PromptTextBox _promptBox;
     private readonly IconToolButton _visionToggle;
     private readonly DataLabel _visionHint;
     private readonly RichTextBox _responseBox;
     private readonly Panel _responseGap;
+    private readonly DataLabel _telemetryLine;
+    private readonly DisclosureRow _shortcutsRow;
+    private readonly Label _shortcutsBody;
     private readonly ModelChip _modelChip;
     private readonly DataLabel _statusLine;
     private readonly PhosphorButton _askBtn;
     private Point _summonCursorPos;
     private bool _working;
+    private bool _gatewayOnline;
+    private bool? _spineOnline;
+    private string? _mouseModel;
+    private Task? _mouseScan;
 
     public OmniwandHudForm(
         ArkStationClient ark,
@@ -52,20 +69,30 @@ public sealed class OmniwandHudForm : Form
         Size = new Size(560, 300);
         Padding = WidgetChrome.FramePadding();
 
-        // Launchers live in the header as icons, so the body is only the question.
-        var launchers = new FlowLayoutPanel { Size = new Size(4 * 44, 44), WrapContents = false, BackColor = Color.Transparent, Margin = Padding.Empty, Name = "Hud.Launchers" };
+        // Header: the wand status badge, then the launchers as icons.
+        var headerTools = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = false,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty,
+            Name = "Hud.HeaderTools"
+        };
+        _statusBadge = new PhosphorBadge("Checking") { Margin = new Padding(0, 11, 10, 0), Name = "Hud.StatusBadge" };
+        headerTools.Controls.Add(_statusBadge);
         void AddLauncher(string name, PhosphorGlyph glyph, string label, Action<Point>? open)
         {
             if (open == null) return;
             var b = new IconToolButton(name, glyph, label) { Margin = Padding.Empty };
             b.Click += (_, _) => { Hide(); open(_summonCursorPos); };
-            launchers.Controls.Add(b);
+            headerTools.Controls.Add(b);
         }
         AddLauncher("Hud.HolodexButton", PhosphorGlyph.Holodex, "Holodex", openHolodex);
         AddLauncher("Hud.SnipButton", PhosphorGlyph.Lasso, "Lasso", openSnipLasso);
         AddLauncher("Hud.WizButton", PhosphorGlyph.Wiz, "Wiz", openWizCrafting);
         AddLauncher("Hud.AInboxButton", PhosphorGlyph.AInbox, "AInbox", openAInboxIntake);
-        launchers.Width = launchers.Controls.Count * 44;
 
         // Composer: the question, and a bar with the screen toggle.
         _composer = new ComposerSurface { Dock = DockStyle.Top, Name = "Hud.Composer" };
@@ -97,6 +124,35 @@ public sealed class OmniwandHudForm : Form
         };
         _responseGap = WidgetChrome.Spacer(10);
 
+        // Telemetry: gateway state, Input Spine 8842 and the connected mouse, always on one line.
+        _telemetryLine = new DataLabel("GATEWAY // CHECKING") { Dock = DockStyle.Top, Height = 22, ForeColor = PhosphorTheme.Dim, Name = "Hud.Telemetry" };
+
+        // Wand shortcuts: one click away, collapsed by default.
+        _shortcutsRow = new DisclosureRow
+        {
+            Dock = DockStyle.Top,
+            Height = 44,
+            Kicker = "SHORTCUTS",
+            Sentence = "Actions Ring, fallback orb, GhostTrailer, Wiz, AInbox",
+            OpenWord = "SHOW",
+            Name = "Hud.Shortcuts"
+        };
+        _shortcutsRow.Expanded = false;
+        _shortcutsRow.Toggled += (_, _) => { _shortcutsRow.Expanded = !_shortcutsRow.Expanded; FitToAnswer(); };
+        _shortcutsBody = new Label
+        {
+            Dock = DockStyle.Top,
+            Height = 92,
+            AutoSize = false,
+            UseMnemonic = false,
+            BackColor = PhosphorTheme.Surface,
+            ForeColor = PhosphorTheme.Dim,
+            Font = PhosphorFonts.Body(12.5f),
+            Padding = new Padding(14, 8, 0, 0),
+            Text = ShortcutsText,
+            Name = "Hud.ShortcutsBody"
+        };
+
         // Footer: which model answers, what is happening, and the one primary.
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Hud.Footer" };
         _modelChip = new ModelChip(_ark) { Dock = DockStyle.Left, Name = "Hud.ModelPicker" };
@@ -110,14 +166,21 @@ public sealed class OmniwandHudForm : Form
         footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
         footer.Controls.Add(_askBtn);
 
+        // Top stack (the first added sits lowest): composer, answer, telemetry, shortcuts.
+        Controls.Add(_shortcutsBody);
+        Controls.Add(_shortcutsRow);
+        Controls.Add(WidgetChrome.Spacer(6));
+        Controls.Add(_telemetryLine);
+        Controls.Add(WidgetChrome.Spacer(8));
         Controls.Add(_responseBox);
         Controls.Add(_responseGap);
         Controls.Add(_composer);
         Controls.Add(WidgetChrome.Spacer(2));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, "ARK // WAND", "Omniwand", PhosphorTheme.Patina, launchers);
+        WidgetChrome.Attach(this, "ARK // WAND", "Omniwand", PhosphorTheme.Patina, headerTools);
         WidgetDrag.Enable(this);
+        ShowWandStatus(gatewayOnline: false, keyed: !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
         SyncVisionHint();
         SyncAskLabel();
         FitToAnswer();
@@ -126,7 +189,10 @@ public sealed class OmniwandHudForm : Form
     private bool HasAnswer => !string.IsNullOrEmpty(_responseBox.Text);
 
     /// <summary>No answer yet: no answer box. An answer (or the asking state) opens it under the question.</summary>
-    private void FitToAnswer() => FitToContent.Apply(this, c => c == _responseBox || c == _responseGap ? HasAnswer : true);
+    private void FitToAnswer() => FitToContent.Apply(this, c =>
+        c == _responseBox || c == _responseGap ? HasAnswer
+        : c == _shortcutsBody ? _shortcutsRow.Expanded
+        : true);
 
     /// <summary>
     /// The model that actually answers: on the Nebius path a text-only Nemotron hands an attached screen to
@@ -170,9 +236,55 @@ public sealed class OmniwandHudForm : Form
         _promptBox.Focus();
         _promptBox.SelectAll();
 
-        await _ark.CheckStatusAsync();
+        // The local key state is instant, so the badge never sits on "Checking"; the probe below upgrades it.
+        if (!_ark.LastGatewayOnline) ShowWandStatus(false, !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
+        _ = DetectMouseOnceAsync();
+
+        var status = await _ark.CheckStatusAsync();
+        _spineOnline = status.InputSpineOnline;
+        ShowWandStatus(status.GatewayOnline, status.NebiusKeyLoaded);
         await _modelChip.RefreshAsync();
         ShowKeyState();
+    }
+
+    /// <summary>The mouse scan shells out to PowerShell for a second or two, so it runs off the UI thread, once.</summary>
+    private Task DetectMouseOnceAsync() => _mouseScan ??= DetectMouseAsync();
+
+    private async Task DetectMouseAsync()
+    {
+        try
+        {
+            var mouse = await Task.Run(MouseHardwareAndWandEngine.DetectConnectedMouse);
+            _mouseModel = mouse.Model;
+        }
+        catch
+        {
+            _mouseModel = "";
+        }
+        if (!IsDisposed) SyncTelemetry();
+    }
+
+    /// <summary>Online when the ArkStation gateway answers, Ready when Nebius is direct with a key, No key otherwise.</summary>
+    private void ShowWandStatus(bool gatewayOnline, bool keyed)
+    {
+        _gatewayOnline = gatewayOnline;
+        _statusBadge.Text = gatewayOnline ? "Online" : keyed ? "Ready" : "No key";
+        _statusBadge.State = gatewayOnline || keyed ? PhosphorBadgeState.Validated : PhosphorBadgeState.Blocked;
+        _statusBadge.FitToText();
+        _statusBadge.AccessibleName = $"Wand status: {_statusBadge.Text}";
+        SyncTelemetry();
+    }
+
+    private void SyncTelemetry()
+    {
+        bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
+        string gateway = _gatewayOnline ? "GATEWAY ONLINE"
+            : keyed ? "GATEWAY STANDBY // NEBIUS DIRECT"
+            : "GATEWAY STANDBY // NO KEY";
+        string spine = _spineOnline switch { true => "SPINE 8842 UP", false => "SPINE 8842 DOWN", null => "SPINE 8842 CHECKING" };
+        string mouse = _mouseModel == null ? "MOUSE DETECTING" : _mouseModel.Length == 0 ? "NO MOUSE DETECTED" : _mouseModel.ToUpperInvariant();
+        _telemetryLine.Text = $"{gateway} // {spine} // {mouse}";
+        _telemetryLine.ForeColor = keyed ? PhosphorTheme.Dim : PhosphorTheme.Ember;
     }
 
     private void ShowKeyState()
@@ -196,7 +308,7 @@ public sealed class OmniwandHudForm : Form
         await AskAsync();
     }
 
-    private async System.Threading.Tasks.Task AskAsync()
+    private async Task AskAsync()
     {
         string prompt = _promptBox.Text.Trim();
         if (_working) return;

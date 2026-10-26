@@ -6,31 +6,39 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>
-/// Wiz: the GrimX Spell crafting thread (Alt+W, Actions Ring slot 7, pipe wiz:summon). One composer for the goal,
-/// with the screen toggle and three starters; the Spell type is a chip Omnitek fills from the goal's words, the
-/// model chip says which model plans it, and the thread opens above once there is one. Zone CREATE.
+/// Wiz: the GrimX Spell crafting thread (Alt+W, Actions Ring slot 7, pipe wiz:summon). The thread is the body and
+/// shows its intro at rest; one composer under it takes the goal, with the screen toggle and three starters. The
+/// Spell type chip (Omnitek fills it from the goal's words, its description beside it) and the model chip sit
+/// above the host line, which names the runtime and model that actually answered. The header badge names the
+/// runtime model. Zone CREATE.
 /// </summary>
 public sealed class WizCraftingWidgetForm : Form
 {
     private const int ThreadHeight = 260;
 
+    private const string ThreadIntro =
+        "Wiz turns a goal into a Combo: an ordered chain of steps you can follow, refine or hand off.\n\n" +
+        "Pick a starter below, or describe what you want done. Turn on the screen icon when the goal is about what you are looking at.";
+
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
 
+    private readonly PhosphorBadge _runtimeBadge;
     private readonly RichTextBox _threadBox;
-    private readonly Panel _threadGap;
     private readonly ComposerSurface _composer;
     private readonly PromptTextBox _promptBox;
     private readonly IconToolButton _attachScreenToggle;
     private readonly FlowLayoutPanel _starterRow;
     private readonly SuggestionChip _lensChip;
     private readonly ModelChip _modelChip;
+    private readonly DataLabel _hostLine;
     private readonly PhosphorButton _sendBtn;
 
     private Point _summonPos;
     private string _activeFlowLens = "flow";
     private bool _lensChosenByHand;
     private bool _working;
+    private bool _threadStarted;
 
     private static readonly (string Id, string Title, string Verb)[] FlowLenses =
     {
@@ -44,7 +52,8 @@ public sealed class WizCraftingWidgetForm : Form
         ("summon",   "Summon",     "automaton")
     };
 
-    private string ActiveLensTitle => FlowLenses.FirstOrDefault(l => l.Id == _activeFlowLens).Title ?? "Spell";
+    private (string Id, string Title, string Verb) ActiveLens => FlowLenses.FirstOrDefault(l => l.Id == _activeFlowLens) is var l && l.Id != null ? l : FlowLenses[0];
+    private string ActiveLensTitle => ActiveLens.Title;
 
     public WizCraftingWidgetForm(ArkStationClient ark, Action<bool> setThinkingState)
     {
@@ -62,23 +71,25 @@ public sealed class WizCraftingWidgetForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "Wiz";
-        Size = new Size(620, 320);
+        Size = new Size(620, 560);
         Padding = WidgetChrome.FramePadding();
 
+        _runtimeBadge = new PhosphorBadge("Nemotron", PhosphorBadgeState.Accent) { AccentColor = PhosphorTheme.Coral, Name = "Wiz.RuntimeBadge" };
+
+        // The thread is the body: its intro at rest, the crafts after.
         _threadBox = new RichTextBox
         {
             Dock = DockStyle.Top,
             Height = ThreadHeight,
             ReadOnly = true,
             BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Bone,
+            ForeColor = PhosphorTheme.Dim,
             BorderStyle = BorderStyle.None,
             Font = PhosphorFonts.Body(13f),
             Name = "Wiz.ThreadBox",
-            Text = string.Empty
+            Text = ThreadIntro
         };
         PhosphorPaint.UseDarkScrollbars(_threadBox);
-        _threadGap = WidgetChrome.Spacer(10);
 
         // Composer: the goal, then a bar with the screen toggle and the starters.
         _composer = new ComposerSurface { Dock = DockStyle.Top, Name = "Wiz.Composer" };
@@ -90,7 +101,7 @@ public sealed class WizCraftingWidgetForm : Form
             Name = "Wiz.PromptField"
         };
         _promptBox.KeyDown += OnPromptKeyDown;
-        _promptBox.TextChanged += (_, _) => { SuggestLens(); _starterRow!.Visible = _promptBox.TextLength == 0 && _threadBox.TextLength == 0; };
+        _promptBox.TextChanged += (_, _) => { SuggestLens(); _starterRow!.Visible = _promptBox.TextLength == 0 && !_threadStarted; };
 
         var bar = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "Wiz.ComposerBar" };
         _attachScreenToggle = new IconToolButton("Wiz.AttachScreenToggle", PhosphorGlyph.Screen, "Attach the screen") { Dock = DockStyle.Left };
@@ -118,36 +129,44 @@ public sealed class WizCraftingWidgetForm : Form
         _composer.Content.Controls.Add(_promptBox);
         _composer.Height = _composer.HeightFor(_promptBox.Height + bar.Height);
 
-        // Footer: what kind of Spell, which model, and the one primary.
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Wiz.Footer" };
+        // Chips: what kind of Spell (with its description) and which model.
+        var chipRow = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Wiz.ChipRow" };
         _lensChip = new SuggestionChip { Dock = DockStyle.Left, ShowArrow = false, Accent = PhosphorTheme.Coral, Name = "Wiz.FlowLensSelect" };
         _lensChip.Click += (_, _) => _lensChip.ShowChoices(FlowLenses.Select(l => new ChipChoice(
             l.Title, l.Verb, l.Id == _activeFlowLens, () => { _lensChosenByHand = true; SetLens(l.Id, confident: false); })));
         _modelChip = new ModelChip(_ark) { Dock = DockStyle.Left, Name = "Wiz.ModelPicker" };
-        _sendBtn = new PhosphorButton("Craft Spell", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Wiz.CraftButton" };
+        _modelChip.ModelChanged += (_, _) => ShowRuntime(null, null);
+        chipRow.Controls.Add(_modelChip);
+        chipRow.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
+        chipRow.Controls.Add(_lensChip);
+
+        // Under the chips: the host line, and the one primary.
+        var hostRow = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Wiz.HostRow" };
+        _hostLine = new DataLabel("") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "Wiz.RuntimeLine" };
+        _sendBtn = new PhosphorButton("Send to Wiz", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Wiz.CraftButton" };
         _sendBtn.Click += async (_, _) => await SubmitCraftingPromptAsync();
-        footer.Controls.Add(_modelChip);
-        footer.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
-        footer.Controls.Add(_lensChip);
-        footer.Controls.Add(_sendBtn);
+        hostRow.Controls.Add(_hostLine);
+        hostRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
+        hostRow.Controls.Add(_sendBtn);
 
         Controls.Add(_composer);
-        Controls.Add(_threadGap);
+        Controls.Add(WidgetChrome.Spacer(10));
         Controls.Add(_threadBox);
         Controls.Add(WidgetChrome.Spacer(2));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
-        Controls.Add(footer);
-        WidgetChrome.Attach(this, "4GE // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, null);
+        Controls.Add(chipRow);
+        Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = Color.Transparent });
+        Controls.Add(hostRow);
+        WidgetChrome.Attach(this, "4GE // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, _runtimeBadge);
         WidgetDrag.Enable(this);
 
         SetLens("flow", confident: false);
+        ShowRuntime(null, null);
         FitToThread();
     }
 
-    private bool HasThread => _threadBox.TextLength > 0;
-
-    /// <summary>No thread yet: the composer is the whole widget. The thread opens above it after the first craft.</summary>
-    private void FitToThread() => FitToContent.Apply(this, c => c == _threadBox || c == _threadGap ? HasThread : true);
+    /// <summary>The thread shows at rest, so the widget is always its full stack.</summary>
+    private void FitToThread() => FitToContent.Apply(this, _ => true);
 
     /// <summary>Omnitek reads the goal: Spell-type words (ritual, schedule, combo, summon...) pick the chip unless chosen by hand.</summary>
     private void SuggestLens()
@@ -161,10 +180,36 @@ public sealed class WizCraftingWidgetForm : Form
     private void SetLens(string id, bool confident)
     {
         _activeFlowLens = id;
-        _lensChip.Label = ActiveLensTitle;
+        _lensChip.Label = ActiveLens.Title;
+        _lensChip.Detail = ActiveLens.Verb;
         _lensChip.Confident = confident;
         _lensChip.Fit();
-        if (!_working) _sendBtn.Text = $"Craft {ActiveLensTitle}";
+    }
+
+    /// <summary>
+    /// Badge and host line. Before a run they name the runtime the chip's model will use; after one, the runtime
+    /// and model that actually answered.
+    /// </summary>
+    private void ShowRuntime(string? runtime, string? model)
+    {
+        model ??= _ark.SelectedModel;
+        string host = runtime != null
+            ? HostName(runtime)
+            : ArkStationClient.IsNemotronModel(model) || !_ark.LastGatewayOnline ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
+        string shortModel = ModelChip.ShortName(model);
+        _runtimeBadge.Text = shortModel;
+        _runtimeBadge.FitToText();
+        _hostLine.Text = $"HOST // {host} // MODEL // {shortModel.ToUpperInvariant()}";
+    }
+
+    /// <summary>Runtime ids from AskWizGeminiArgonAsync ("nebius-token-factory", "subscription-gemini (agy)", "ark-model-gateway") as hosts.</summary>
+    private static string HostName(string runtime)
+    {
+        string r = runtime.ToLowerInvariant();
+        if (r.Contains("nebius") || r.Contains("token-factory")) return "NEBIUS TOKEN FACTORY";
+        if (r.Contains("gateway")) return "ARK MODEL GATEWAY";
+        if (r.Contains("gemini") || r.Contains("agy") || r.Contains("antigravity")) return "ANTIGRAVITY CLI";
+        return runtime.Replace('-', ' ').ToUpperInvariant();
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -220,11 +265,17 @@ public sealed class WizCraftingWidgetForm : Form
         Invalidate();
         _setThinkingState(true);
 
+        // The first craft replaces the intro.
+        bool first = !_threadStarted;
+        if (first)
+        {
+            _threadStarted = true;
+            _threadBox.Clear();
+        }
         _threadBox.ForeColor = PhosphorTheme.Bone;
-        _threadBox.AppendText($"{(HasThread ? "\n\n" : "")}YOU // {lensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // crafting");
+        _threadBox.AppendText($"{(first ? "" : "\n\n")}YOU // {lensTitle.ToUpperInvariant()}\n{prompt}\n\nWIZ // crafting");
         _threadBox.SelectionStart = _threadBox.TextLength;
         _threadBox.ScrollToCaret();
-        FitToThread();
 
         string? snapshot = _attachScreenToggle.Selected
             ? ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y)
@@ -234,7 +285,8 @@ public sealed class WizCraftingWidgetForm : Form
         {
             var (ok, runtime, model, output) = await _ark.AskWizGeminiArgonAsync(prompt, lens, snapshot);
             _modelChip.ShowRuntime(runtime);
-            _threadBox.AppendText($"\n\nWIZ // {ModelChip.ShortName(model).ToUpperInvariant()}\n{output}");
+            ShowRuntime(runtime, model);
+            _threadBox.AppendText($"\n\nWIZ // {lensTitle.ToUpperInvariant()} DRAFT // {ModelChip.ShortName(model).ToUpperInvariant()}\n{output}");
             _threadBox.SelectionStart = _threadBox.TextLength;
             _threadBox.ScrollToCaret();
         }

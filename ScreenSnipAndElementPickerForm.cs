@@ -78,6 +78,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     private readonly DataLabel _telemetryLabel;
     private readonly PhosphorButton _analyzeBtn;
     private readonly IconToolButton _inkBtn;
+    private bool _hasAnswer;
+
+    /// <summary>The output area's empty state: what the overlay does, visible until there is an answer.</summary>
+    private const string GuidanceText =
+        "Draw a free-form lasso or rectangle snip, add Phosphor annotations, or switch to Point at UI (Alt+E) to inspect any desktop window's HWND, geometry, and live pixel palette.";
     private string _visionModel;
 
     /// <summary>For the as-built render: draw the lasso and the element card together, as the board shows them.</summary>
@@ -153,8 +158,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         AddToolBtn("Snip.Tool.Box", PhosphorGlyph.Box, "Box", WandCaptureTool.AnnotateBox);
         bx += 8;
 
-        // Ink: a swatch of the current ink; each press cycles coral, patina, seal.
-        _inkBtn = new IconToolButton("Snip.InkButton", (g, r, _, _) =>
+        // Ink: a swatch of the current ink; each press cycles coral, patina, seal. Its name and tip say the color.
+        _inkBtn = new IconToolButton("Snip.InkButton.Coral", (g, r, _, _) =>
         {
             using var b = new SolidBrush(_activeInk);
             float d = r.Width * 0.8f;
@@ -163,8 +168,10 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _inkBtn.Click += (_, _) =>
         {
             _activeInk = _activeInk == PhosphorTheme.Coral ? PhosphorTheme.Patina : _activeInk == PhosphorTheme.Patina ? PhosphorTheme.Seal : PhosphorTheme.Coral;
+            SyncInkName();
             _inkBtn.Invalidate();
         };
+        SyncInkName();
         _topToolbar.Controls.Add(_inkBtn);
 
         var closeBtn = new PhosphorButton("×")
@@ -177,7 +184,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         closeBtn.Click += (_, _) => Hide();
         _topToolbar.Controls.Add(closeBtn);
 
-        // Bottom drawer: the answer once there is one, the question, and model plus Ask.
+        // Bottom drawer: the output (guidance at rest, the answer after), the question, telemetry, model plus Ask.
         _actionDrawer = new Panel
         {
             Size = new Size(640, 200),
@@ -204,11 +211,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             Height = 120,
             ReadOnly = true,
             BackColor = PhosphorTheme.Surface,
-            ForeColor = PhosphorTheme.Bone,
+            ForeColor = PhosphorTheme.Dim,
             BorderStyle = BorderStyle.None,
             Font = PhosphorFonts.Body(12.5f),
             Name = "Snip.VisionOutputBox",
-            Text = string.Empty
+            Text = GuidanceText
         };
         PhosphorPaint.UseDarkScrollbars(_visionOutputBox);
         _outputGap = WidgetChrome.Spacer(8);
@@ -229,9 +236,6 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         toAInboxBtn.Click += (_, _) => SendCurrentCaptureToAInbox();
         var saveCodexBtn = new IconToolButton("Snip.SaveCodexButton", PhosphorGlyph.Codex, "Save to Codex") { Dock = DockStyle.Left };
         saveCodexBtn.Click += (_, _) => SaveCurrentCaptureToCodex();
-        _telemetryLabel = new DataLabel("") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "Snip.Telemetry" };
-        bar.Controls.Add(_telemetryLabel);
-        bar.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
         bar.Controls.Add(saveCodexBtn);
         bar.Controls.Add(toAInboxBtn);
         _composer.Content.Controls.Add(bar);
@@ -247,8 +251,13 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         footer.Controls.Add(_visionModelChip);
         footer.Controls.Add(_analyzeBtn);
 
+        // Full-width telemetry: class, palette hex, size, position and process of what the wand holds.
+        _telemetryLabel = new DataLabel("WAND // LASSO + ANNOTATE + ELEMENT PICKER // SELECT REGION OR HOVER UI") { Dock = DockStyle.Top, Height = 20, ForeColor = PhosphorTheme.Dim, Name = "Snip.Telemetry" };
+
         _actionDrawer.Controls.Add(footer);
-        _actionDrawer.Controls.Add(WidgetChrome.Spacer(10));
+        _actionDrawer.Controls.Add(WidgetChrome.Spacer(8));
+        _actionDrawer.Controls.Add(_telemetryLabel);
+        _actionDrawer.Controls.Add(WidgetChrome.Spacer(6));
         _actionDrawer.Controls.Add(_composer);
         _actionDrawer.Controls.Add(_outputGap);
         _actionDrawer.Controls.Add(_visionOutputBox);
@@ -287,13 +296,13 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             if (ctrl.Tag is WandCaptureTool t) ctrl.Selected = t == tool;
         _telemetryLabel.Text = tool switch
         {
-            WandCaptureTool.FreeformLasso => "LASSO // DRAG AROUND ANY SHAPE",
-            WandCaptureTool.RectangleSnip => "RECTANGLE // DRAG A FRAME",
-            WandCaptureTool.ElementPicker => "POINT // HOVER, CLICK TO LOCK",
-            WandCaptureTool.AnnotatePen   => "DRAW // FREEHAND",
-            WandCaptureTool.AnnotateArrow => "ARROW // DRAG TO THE TARGET",
-            WandCaptureTool.AnnotateBox   => "BOX // DRAG TO HIGHLIGHT",
-            _ => ""
+            WandCaptureTool.FreeformLasso => "WAND // FREE-FORM LASSO // DRAG TO LASSO ANY SCREEN SHAPE",
+            WandCaptureTool.RectangleSnip => "WAND // RECTANGLE SNIP // DRAG TO FRAME CAPTURE REGION",
+            WandCaptureTool.ElementPicker => "WAND // POINT + PALETTE + ARCHITECT // HOVER & CLICK ANY WINDOW",
+            WandCaptureTool.AnnotatePen   => "WAND // ANNOTATE PEN // DRAW FREEHAND CALLOUTS",
+            WandCaptureTool.AnnotateArrow => "WAND // ANNOTATE ARROW // DRAG TO POINT AT TARGET",
+            WandCaptureTool.AnnotateBox   => "WAND // ANNOTATE BOX // DRAG TO HIGHLIGHT TARGET",
+            _ => "WAND // READY"
         };
         _visionPromptBox.Prompt = tool == WandCaptureTool.ElementPicker
             ? "Ask about the element. Empty asks for Phosphor improvements."
@@ -314,14 +323,15 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _analyzeBtn.Text = first.Length > 0 ? $"Ask {first}" : "Ask";
     }
 
-    /// <summary>The drawer is as tall as what it holds; the answer opens above the question once there is one.</summary>
+    /// <summary>
+    /// The drawer is as tall as what it holds. The output area is always there: a short guidance block at rest,
+    /// the full answer height once there is one.
+    /// </summary>
     private void FitDrawer()
     {
-        bool hasAnswer = _visionOutputBox.TextLength > 0;
-        _visionOutputBox.Visible = _outputGap.Visible = hasAnswer;
+        _visionOutputBox.Height = _hasAnswer ? 120 : 44;
         int h = _actionDrawer.Padding.Vertical;
-        foreach (Control c in _actionDrawer.Controls)
-            if (c != _visionOutputBox && c != _outputGap || hasAnswer) h += c.Height;
+        foreach (Control c in _actionDrawer.Controls) h += c.Height;
         int bottom = _actionDrawer.Bottom;
         _actionDrawer.Height = h;
         if (Visible) _actionDrawer.Top = bottom - h;
@@ -330,9 +340,27 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
     private void ShowAnswer(string text, Color color)
     {
+        _hasAnswer = true;
         _visionOutputBox.ForeColor = color;
         _visionOutputBox.Text = text;
         FitDrawer();
+    }
+
+    private void ShowGuidance()
+    {
+        _hasAnswer = false;
+        _visionOutputBox.ForeColor = PhosphorTheme.Dim;
+        _visionOutputBox.Text = GuidanceText;
+    }
+
+    private static string InkColorName(Color ink) => ink == PhosphorTheme.Patina ? "patina" : ink == PhosphorTheme.Seal ? "seal" : "coral";
+
+    /// <summary>The ink swatch says its color: accessible name "Ink color: coral" and a tip entry per color (PhosphorTips).</summary>
+    private void SyncInkName()
+    {
+        string color = InkColorName(_activeInk);
+        _inkBtn.AccessibleName = $"Ink color: {color}";
+        _inkBtn.Name = $"Snip.InkButton.{char.ToUpperInvariant(color[0])}{color[1..]}";
     }
 
     private static void LogSnapshot(string line)
@@ -376,7 +404,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         Bounds = screen;
         _topToolbar.Location = new Point(Math.Max(16, (screen.Width - _topToolbar.Width) / 2), 18);
-        _visionOutputBox.Text = string.Empty;
+        ShowGuidance();
         FitDrawer();
         _actionDrawer.Location = new Point(Math.Max(16, (screen.Width - _actionDrawer.Width) / 2), screen.Height - _actionDrawer.Height - 24);
 
@@ -424,7 +452,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         else if (_activeTool == WandCaptureTool.ElementPicker)
         {
             _selectionRect = _hoveredElementRect;
-            _telemetryLabel.Text = $"LOCKED // {_hoveredClass.ToUpperInvariant()} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height}";
+            _telemetryLabel.Text = $"LOCKED // {_hoveredClass.ToUpperInvariant()} // {_hoveredHex} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height} AT ({_hoveredElementRect.X},{_hoveredElementRect.Y})";
             _visionPromptBox.Text = $"Inspect UI target '{_hoveredTitle}' ({_hoveredClass}, {_hoveredElementRect.Width}x{_hoveredElementRect.Height}, color {_hoveredHex}): suggest Phosphor improvements or automation.";
         }
         else
@@ -489,11 +517,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         if (_activeTool == WandCaptureTool.FreeformLasso && _lassoPoints.Count > 2)
         {
             UpdateLassoBoundingBox();
-            _telemetryLabel.Text = $"LASSO // {_lassoPoints.Count} PTS // {_selectionRect.Width}x{_selectionRect.Height}";
+            _telemetryLabel.Text = $"LASSO READY // {_lassoPoints.Count} PTS // {_selectionRect.Width}x{_selectionRect.Height} PX";
         }
         else if (_activeTool == WandCaptureTool.RectangleSnip)
         {
-            _telemetryLabel.Text = $"RECTANGLE // {_selectionRect.Width}x{_selectionRect.Height}";
+            _telemetryLabel.Text = $"SNIP READY // {_selectionRect.Width}x{_selectionRect.Height} PX AT ({_selectionRect.X},{_selectionRect.Y})";
         }
         Invalidate();
     }
@@ -555,7 +583,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
                 }
             }
             if (_activeTool == WandCaptureTool.ElementPicker)
-                _telemetryLabel.Text = $"POINT // {_hoveredProcess.ToUpperInvariant()} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height}";
+                _telemetryLabel.Text = $"POINT // {_hoveredProcess.ToUpperInvariant()} · {_hoveredClass} // PALETTE {_hoveredHex} // {_hoveredElementRect.Width}x{_hoveredElementRect.Height}";
         }
         catch { }
     }
@@ -696,7 +724,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             $"codex:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds():x}",
             kind,
             _activeTool == WandCaptureTool.ElementPicker ? $"{_hoveredProcess}: {_hoveredTitle}" : $"Screen {kind.Split('.')[1].ToUpperInvariant()} ({_selectionRect.Width}x{_selectionRect.Height})",
-            string.IsNullOrWhiteSpace(_visionOutputBox.Text) ? "Captured via Omniwand Screen Snip & Element Inspector." : _visionOutputBox.Text,
+            !_hasAnswer || string.IsNullOrWhiteSpace(_visionOutputBox.Text) ? "Captured via Omniwand Screen Snip & Element Inspector." : _visionOutputBox.Text,
             _hoveredClass,
             $"{_selectionRect.Width}x{_selectionRect.Height} @ ({_selectionRect.X},{_selectionRect.Y})",
             _hoveredHex,
