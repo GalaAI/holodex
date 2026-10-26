@@ -18,7 +18,7 @@ namespace Omniwand;
 internal enum PhosphorGlyph
 {
     File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, Plus,
-    Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex
+    Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault
 }
 
 internal static class PhosphorIcons
@@ -107,6 +107,15 @@ internal static class PhosphorIcons
             case PhosphorGlyph.AInbox:
                 using (var tray = PhosphorTheme.CreateRoundedRect(new RectangleF(3.5f, 5, 17, 14), 2.5f)) g.DrawPath(pen, tray);
                 g.DrawLines(pen, new[] { new PointF(3.5f, 13), new PointF(8, 13), new PointF(9.5f, 15.5f), new PointF(14.5f, 15.5f), new PointF(16, 13), new PointF(20.5f, 13) });
+                break;
+            case PhosphorGlyph.Window:
+                using (var frame = PhosphorTheme.CreateRoundedRect(new RectangleF(3, 4.5f, 18, 15), 2)) g.DrawPath(pen, frame);
+                g.DrawLine(pen, 3, 9, 21, 9);
+                break;
+            case PhosphorGlyph.Vault:
+                using (var body = PhosphorTheme.CreateRoundedRect(new RectangleF(4, 10, 16, 11), 2)) g.DrawPath(pen, body);
+                g.DrawArc(pen, 7.5f, 3, 9, 12, 180, 180);
+                g.DrawLine(pen, 12, 14, 12, 17);
                 break;
             case PhosphorGlyph.Codex:
                 g.DrawPolygon(pen, new[] { new PointF(6, 3), new PointF(18, 3), new PointF(18, 21), new PointF(12, 16.5f), new PointF(6, 21) });
@@ -246,6 +255,9 @@ internal sealed class IconToolButton : Control
         AccessibleRole = AccessibleRole.PushButton;
     }
 
+    /// <summary>A capability that is designed but not built: drawn dimmed, still focusable and tooltipped.</summary>
+    public bool Planned { get; set; }
+
     /// <summary>On state for toggles (attach screen, the active snip tool).</summary>
     public bool Selected
     {
@@ -284,8 +296,15 @@ internal sealed class IconToolButton : Control
         }
         if (Focused) PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Patina, 2f * s);
         float icon = 18f * s;
-        Color ink = _selected ? PhosphorTheme.Patina : _hover ? PhosphorTheme.Bone : PhosphorTheme.Dim;
+        Color ink = Planned ? Color.FromArgb(_hover ? 150 : 90, PhosphorTheme.Dim) : _selected ? PhosphorTheme.Patina : _hover ? PhosphorTheme.Bone : PhosphorTheme.Dim;
         _drawIcon(g, new RectangleF((Width - icon) / 2f, (Height - icon) / 2f, icon, icon), ink, 1.7f * s);
+        if (Planned)
+        {
+            // A small dashed ring marks planned tools.
+            using var dash = new Pen(Color.FromArgb(110, PhosphorTheme.Ghost), 1f) { DashPattern = new[] { 2f, 2f } };
+            using var ring = PhosphorTheme.CreateRoundedRect(rect, r);
+            g.DrawPath(dash, ring);
+        }
     }
 }
 

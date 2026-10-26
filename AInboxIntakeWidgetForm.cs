@@ -1,19 +1,23 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Drawing.Text;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace Omniwand;
 
 /// <summary>
-/// AInbox intake (Alt+I, Actions Ring slot 8, pipe ainbox:summon). One composer: what should happen, plus
-/// whatever you drop, paste or pick, with a capture bar under it. Omnitek proposes the pod (a route chip you can
-/// steer) and Scribe drafts the handoff scroll, shown as one line that opens into the CP-20 SpecCard ticket for
-/// review. Send waits five seconds so it can be undone, then writes the scroll and pulses the pod orchestrator.
+/// AInbox intake (Alt+I, Actions Ring slot 8, pipe ainbox:summon), built to the design targets "Capture tools" and
+/// "Stack, predict, review". One composer takes any number of captures (file, screen, window, pick, lasso, snippet,
+/// link; record and whisper planned), each scanned for its origin and stacked into context groups. For each group
+/// Omnitek ranks what it should become, with the target pod and orchestrator, and Nemotron 3 Nano on Nebius Token
+/// Factory re-ranks it, says why and synthesizes it. The Handoff Scroll's fields adapt to the chosen intent and are
+/// sealed with SHA-256. Aegis redacts secrets before anything leaves. Send waits five seconds so it can be undone,
+/// then queues the handoff for the AInbox service (:8840), which retries until it is delivered.
 /// </summary>
 public sealed class AInboxIntakeWidgetForm : Form
 {
@@ -21,47 +25,41 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
+    private readonly OutboundQueue _queue = new();
 
+    private readonly FlowLayoutPanel _body;
     private readonly CaptureWellControl _composer;
-    private readonly CapturedRow _captureRow;
-    private readonly Panel _captureGap;
-    private readonly CapturedRow _contentRow;
-    private readonly Panel _contentGap;
+    private readonly Panel _stackHost;
+    private readonly Panel _stackGap;
     private readonly PromptTextBox _intentBox;
     private readonly Panel _captureBar;
     private readonly DataLabel _suggestionHint;
     private readonly DisclosureRow _summary;
-    private readonly Panel _scrollGap;
     private readonly SpecCardPanel _scroll;
-    private readonly PhosphorField _scrollContextField;
-    private readonly PhosphorField _scrollGoalField;
-    private readonly PhosphorField _evidenceReceivedField;
-    private readonly PhosphorField _evidenceWorkingField;
-    private readonly PhosphorField _evidenceDeliverableField;
-    private readonly SuggestionChip _route;
     private readonly DataLabel _statusLabel;
+    private readonly SyncStatus _sync;
     private readonly PhosphorButton _sendBtn;
+    private readonly List<Control> _cards = new();
+    private readonly List<ScrollFieldRow> _fieldRows = new();
 
-    private string? _selectedFilePath;
-    private string? _capturedDataUrl;
-    private CaptureKind _captureKind = CaptureKind.File;
-    private string? _content;
-    private string? _attachmentSha;
-    private System.Threading.Tasks.Task<string?>? _hashTask;
-    private OmnitekAutoDetectInfo? _detected;
-    private CaptureKind _contentKind = CaptureKind.Snippet;
+    private readonly List<StackItem> _items = new();
+    private List<StackGroup> _groups = new();
+    private StackGroup? _virtualAsk;
+    private int _active;
+    private string _scrollShape = "";
     private string _suggestion = "";
-    private int _podIndex = 0;
+    private CaptureOrigin _summonOrigin = new("Desktop", "Desktop");
     private Point _summonPos;
-    private bool _userChosePodManually;
     private bool _scrollOpen;
     private bool _working;
+    private bool _preview;
     private System.Windows.Forms.Timer? _undoTimer;
     private int _undoLeft;
-    private bool _evidenceEdited;
-    private bool _settingScroll;
     private long _lastDragMs;
     private readonly System.Windows.Forms.Timer _dragLeaveTimer = new() { Interval = 150 };
+    private readonly System.Windows.Forms.Timer _refineTimer = new() { Interval = 1200 };
+    private readonly Dictionary<string, string> _refinedSig = new();
+    private CancellationTokenSource? _refineCts;
 
     /// <summary>Opens the snip tools (Pick, Lasso); their Send to AInbox comes back through SummonAt.</summary>
     internal Action<WandCaptureTool>? RequestCapture { get; set; }
@@ -82,134 +80,92 @@ public sealed class AInboxIntakeWidgetForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "AInbox";
-        Size = new Size(640, 420);
+        Size = new Size(680, 420);
         Padding = WidgetChrome.FramePadding();
 
-        // Composer (CP-27 well at rest, the whole drop target while a drag is over the widget).
-        _composer = new CaptureWellControl { Dock = DockStyle.Top, Name = "AInbox.Well" };
+        // Composer: the stack, the ask, and the capture bar.
+        _composer = new CaptureWellControl { Name = "AInbox.Well", Margin = new Padding(0, 0, 0, 8) };
         var stack = _composer.Content;
+        _stackHost = new Panel { Dock = DockStyle.Top, BackColor = Color.Transparent, Name = "AInbox.Stack" };
+        _stackGap = WidgetChrome.Spacer(8);
+        _intentBox = new PromptTextBox { Dock = DockStyle.Top, Height = 60, Name = "AInbox.IntentField" };
+        _intentBox.TextChanged += (_, _) => OnAskChanged();
 
-        _captureRow = new CapturedRow("AInbox.CapturedRow") { Dock = DockStyle.Top, Height = 48, Visible = false };
-        _captureRow.RemoveClicked += (_, _) => ClearCapture();
-        _captureGap = WidgetChrome.Spacer(6);
-        _contentRow = new CapturedRow("AInbox.ContentRow") { Dock = DockStyle.Top, Height = 48, Visible = false };
-        _contentRow.RemoveClicked += (_, _) => ClearContent();
-        _contentGap = WidgetChrome.Spacer(6);
-
-        _intentBox = new PromptTextBox { Dock = DockStyle.Top, Height = 64, Name = "AInbox.IntentField" };
-        _intentBox.TextChanged += (_, _) => RefreshAutoDetectionAndScroll();
-
-        // Capture bar: the live kinds as icons; the right side offers Omnitek's suggested intent.
         _captureBar = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "AInbox.CaptureBar" };
         _suggestionHint = new DataLabel("") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "AInbox.SuggestionHint" };
         _captureBar.Controls.Add(_suggestionHint);
-        _captureBar.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 10, BackColor = Color.Transparent });
-        foreach (var info in CaptureKinds.All.Where(k => !k.Planned).Reverse())
+        _captureBar.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
+        foreach (var info in CaptureKinds.All.Reverse())
         {
-            var tool = new IconToolButton("AInbox.Kind." + CaptureKinds.Name(info.Kind), CaptureKinds.Glyph(info.Kind), CaptureKinds.Name(info.Kind)) { Dock = DockStyle.Left };
-            tool.Click += (_, _) => OnCaptureTool(info.Kind);
+            var tool = new IconToolButton("AInbox.Kind." + CaptureKinds.Name(info.Kind), CaptureKinds.Glyph(info.Kind),
+                CaptureKinds.Name(info.Kind) + (info.Planned ? " (planned)" : "")) { Dock = DockStyle.Left, Planned = info.Planned };
+            tool.Click += (_, _) => OnCaptureTool(info);
             _captureBar.Controls.Add(tool);
         }
-
         stack.Controls.Add(_captureBar);
         stack.Controls.Add(_intentBox);
-        stack.Controls.Add(_contentGap);
-        stack.Controls.Add(_contentRow);
-        stack.Controls.Add(_captureGap);
-        stack.Controls.Add(_captureRow);
+        stack.Controls.Add(_stackGap);
+        stack.Controls.Add(_stackHost);
 
-        // Scroll summary: one line, opens into the full ticket.
-        _summary = new DisclosureRow { Dock = DockStyle.Top, Height = 44, Name = "AInbox.ScrollSummary" };
-        _summary.Toggled += (_, _) => SetScrollOpen(!_scrollOpen);
+        // The Handoff Scroll: one line that opens into the CP-20 ticket with the intent's fields.
+        _summary = new DisclosureRow { Height = 44, Name = "AInbox.ScrollSummary", Margin = new Padding(0, 0, 0, 8) };
+        _summary.Toggled += (_, _) => { _scrollOpen = !_scrollOpen; _summary.Expanded = _scrollOpen; Relayout(); };
+        _scroll = new SpecCardPanel { Name = "AInbox.HandoffScroll", Margin = new Padding(0, 0, 0, 8), Visible = false };
 
-        // Handoff scroll as a SpecCard ticket (CP-20), closed until reviewed.
-        _scroll = new SpecCardPanel { Dock = DockStyle.Top, Visible = false, Name = "AInbox.HandoffScroll" };
-        _scrollContextField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ScrollContextField" };
-        _scrollContextField.Box.Name = "AInbox.ScrollContextBox";
-        _scrollGoalField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.ScrollGoalField" };
-        _scrollGoalField.Box.Name = "AInbox.ScrollGoalBox";
-        _evidenceReceivedField = new PhosphorField("", false, 36, mono: true) { Name = "AInbox.ProofOfReceivedField" };
-        _evidenceReceivedField.Box.Name = "AInbox.ProofOfReceivedBox";
-        _evidenceWorkingField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.WorkingStateField" };
-        _evidenceWorkingField.Box.Name = "AInbox.WorkingStateBox";
-        _evidenceDeliverableField = new PhosphorField("", true, 48, mono: true) { Name = "AInbox.DeliverableEvidenceField" };
-        _evidenceDeliverableField.Box.Name = "AInbox.DeliverableEvidenceBox";
-        // Context and Goal are drafted from the intent and are what the scroll states, so they are read-only here;
-        // the three evidence lines are the operator's to edit, and an edit sticks and re-seals.
-        _scrollContextField.Box.ReadOnly = true;
-        _scrollGoalField.Box.ReadOnly = true;
-        foreach (var field in new[] { _evidenceReceivedField, _evidenceWorkingField, _evidenceDeliverableField })
-            field.Box.TextChanged += (_, _) =>
-            {
-                if (!_settingScroll) _evidenceEdited = true;
-                UpdateSeal();
-            };
+        // The body scrolls when a big stack outgrows the screen; header and footer stay put.
+        _body = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoScroll = true,
+            BackColor = Color.Transparent,
+            Name = "AInbox.Body"
+        };
+        _body.Controls.Add(_composer);
+        _body.Controls.Add(_summary);
+        _body.Controls.Add(_scroll);
+        _body.Resize += (_, _) => SizeBodyChildren();
+        PhosphorPaint.UseDarkScrollbars(_body);
 
-        var rowContext = WidgetChrome.Labeled("1 // Context", _scrollContextField, 48);
-        ((Control)rowContext.Tag!).Name = "AInbox.ScrollContextLabel";
-        var rowGoal = WidgetChrome.Labeled("2 // Goal", _scrollGoalField, 48);
-        ((Control)rowGoal.Tag!).Name = "AInbox.ScrollGoalLabel";
-        var rowProof = WidgetChrome.Labeled("3A // Proof of received", _evidenceReceivedField, 36);
-        ((Control)rowProof.Tag!).Name = "AInbox.ProofOfReceivedLabel";
-        var rowWorking = WidgetChrome.Labeled("3B // Working state", _evidenceWorkingField, 48);
-        ((Control)rowWorking.Tag!).Name = "AInbox.WorkingStateLabel";
-        var rowDeliverable = WidgetChrome.Labeled("3C // Deliverable evidence", _evidenceDeliverableField, 48);
-        ((Control)rowDeliverable.Tag!).Name = "AInbox.DeliverableEvidenceLabel";
-
-        _scroll.Controls.Add(rowDeliverable);
-        _scroll.Controls.Add(WidgetChrome.Spacer(8));
-        _scroll.Controls.Add(rowWorking);
-        _scroll.Controls.Add(WidgetChrome.Spacer(8));
-        _scroll.Controls.Add(rowProof);
-        _scroll.Controls.Add(WidgetChrome.Spacer(8));
-        _scroll.Controls.Add(rowGoal);
-        _scroll.Controls.Add(WidgetChrome.Spacer(8));
-        _scroll.Controls.Add(rowContext);
-        _scrollGap = WidgetChrome.Spacer(10);
-        _scrollGap.Visible = false;
-
-        // Footer: where it goes, what is happening, and the one primary.
+        // Footer: what is happening and the queue's state on the left, the one primary on the right.
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "AInbox.Footer" };
-        _route = new SuggestionChip { Dock = DockStyle.Left, Name = "AInbox.RouteChip" };
-        _route.Click += (_, _) => ShowRouteMenu();
-        _statusLabel = new DataLabel("CTRL+ENTER SENDS") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "AInbox.ReceiptStatus" };
-        _sendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 196, Name = "AInbox.SubmitButton" };
+        var lines = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+        _statusLabel = new DataLabel("CTRL+ENTER SENDS") { Dock = DockStyle.Top, Height = 22, ForeColor = PhosphorTheme.Ghost, Name = "AInbox.ReceiptStatus" };
+        _sync = new SyncStatus { Dock = DockStyle.Top, Height = 22 };
+        lines.Controls.Add(_sync);
+        lines.Controls.Add(_statusLabel);
+        _sendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 210, Name = "AInbox.SubmitButton" };
         _sendBtn.Click += (_, _) => OnSendClicked();
-        footer.Controls.Add(_statusLabel);
-        footer.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 12, BackColor = Color.Transparent });
-        footer.Controls.Add(_route);
+        footer.Controls.Add(lines);
         footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
         footer.Controls.Add(_sendBtn);
 
-        Controls.Add(_scroll);
-        Controls.Add(_scrollGap);
-        Controls.Add(_summary);
-        Controls.Add(WidgetChrome.Spacer(8));
-        Controls.Add(_composer);
-        Controls.Add(WidgetChrome.Spacer(2));
-        Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
+        Controls.Add(_body);
+        Controls.Add(WidgetChrome.Spacer(6));
+        Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, "AINBOX // INTAKE", "AInbox", PhosphorTheme.Seal, null);
+        WidgetChrome.Attach(this, "AINBOX // INTAKE // 7 PODS", "AInbox", PhosphorTheme.Seal, null);
         WidgetDrag.Enable(this);
 
-        // A drop anywhere on the widget lands in the composer, and the well shows it while it is over. A leave settles
-        // after a beat: moving onto another of the widget's targets keeps the well, a cancel (Esc) or real leave resets it.
+        // Drops land anywhere; a leave settles after a beat so moving between targets does not flicker.
         _dragLeaveTimer.Tick += (_, _) =>
         {
             _dragLeaveTimer.Stop();
             if (_composer.Mode == CaptureWellMode.DragOver && Environment.TickCount64 - _lastDragMs > 120) _composer.SetMode(_composer.RestMode);
         };
-        WireDrop(this);
-        WireDrop(_composer);
-        WireDrop(_intentBox);
+        foreach (var c in new Control[] { this, _composer, _intentBox, _body }) WireDrop(c);
 
-        RefreshAutoDetectionAndScroll();
-        Relayout();
+        _refineTimer.Tick += async (_, _) => { _refineTimer.Stop(); await RefineAsync(); };
+        _queue.Changed += (_, _) => { if (InvokeRequired) BeginInvoke(new Action(SyncQueueStatus)); else SyncQueueStatus(); };
+        SyncQueueStatus();
+        Rebuild();
     }
 
-    private bool HasCapture => _selectedFilePath != null;
-    private bool HasContent => !string.IsNullOrEmpty(_content);
-    private bool HasAnything => HasCapture || HasContent || !string.IsNullOrWhiteSpace(_intentBox.Text);
+    private StackGroup? Active => _groups.Count == 0 ? null : _groups[Math.Clamp(_active, 0, _groups.Count - 1)];
+    private bool HasAnything => _items.Count > 0 || !string.IsNullOrWhiteSpace(_intentBox.Text);
+
+    // ---- Keys and summon ---------------------------------------------------------------------------------------
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
@@ -226,90 +182,33 @@ public sealed class AInboxIntakeWidgetForm : Form
             _intentBox.SelectionStart = _intentBox.TextLength;
             return true;
         }
-        if (keyData == (Keys.Control | Keys.V) && _intentBox.Focused && PasteAsAttachment()) return true;
+        if (keyData == (Keys.Control | Keys.V) && _intentBox.Focused && PasteAsCapture()) return true;
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
-    /// <summary>Opens the widget at the cursor. A capture handed over from the snip tools is attached.</summary>
+    /// <summary>Opens the widget at the cursor, scanning the app under it as the origin of what follows.</summary>
     public void SummonAt(Point cursorPos, string? preCapturedDataUrl = null, string? captureName = null)
     {
         _summonPos = cursorPos;
+        if (_preview) PreviewState("reset");
+        if (!Visible) _summonOrigin = OriginScanner.AtPoint(cursorPos);
         if (_composer.Mode == CaptureWellMode.DragOver) _composer.SetMode(_composer.RestMode);
         if (!string.IsNullOrEmpty(preCapturedDataUrl))
         {
-            _capturedDataUrl = preCapturedDataUrl;
             string name = captureName ?? "lasso-capture.png";
             bool pick = name.StartsWith("element", StringComparison.OrdinalIgnoreCase);
-            SetCaptured(pick ? CaptureKind.Pick : CaptureKind.Lasso, name, pick ? "PICK // element + origin" : "LASSO // region", keepDataUrl: true);
+            AddImage(preCapturedDataUrl, name, pick ? CaptureKind.Pick : CaptureKind.Lasso, OriginScanner.AtPoint(cursorPos), pick ? "PICK // element + origin" : "LASSO // region");
         }
-
-        RefreshAutoDetectionAndScroll();
-        Relayout();
-
+        Rebuild();
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
         Location = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 20, cursorPos.Y - Height / 3);
-
         Show();
         Activate();
         _intentBox.Focus();
+        _ = _queue.DrainAsync();
     }
 
-    /// <summary>For the as-built capture: "drag", "captured" (a sample file), "review" (that file, scroll open), "reset".</summary>
-    internal void PreviewState(string state)
-    {
-        switch (state)
-        {
-            case "drag":
-                _composer.SetMode(CaptureWellMode.DragOver, CaptureKind.File);
-                _composer.FreezeForCapture(0.18f);
-                break;
-            case "captured":
-                _composer.Unfreeze();
-                SetCaptured(CaptureKind.File, "report.pdf", "FILE // 1.4 MB");
-                _composer.FreezeForCapture(0f);
-                break;
-            case "review":
-                _composer.Unfreeze();
-                SetCaptured(CaptureKind.File, "report.pdf", "FILE // 1.4 MB");
-                _composer.FreezeForCapture(0f);
-                SetScrollOpen(true);
-                break;
-            default:
-                _composer.Unfreeze();
-                ResetComposer();
-                break;
-        }
-        Refresh();
-    }
-
-    // ---- Layout ----------------------------------------------------------------------------------------
-
-    /// <summary>The widget is as tall as what it holds: the composer grows with attachments, the scroll opens below.</summary>
-    private void Relayout()
-    {
-        _captureRow.Visible = _captureGap.Visible = HasCapture;
-        _contentRow.Visible = _contentGap.Visible = HasContent;
-        _scroll.Visible = _scrollGap.Visible = _scrollOpen;
-
-        int content = _intentBox.Height + _captureBar.Height
-            + (HasCapture ? _captureRow.Height + _captureGap.Height : 0)
-            + (HasContent ? _contentRow.Height + _contentGap.Height : 0);
-        _composer.Height = _composer.HeightFor(content);
-
-        int scrollHeight = _scroll.Padding.Vertical + _scroll.Controls.Cast<Control>().Sum(c => c.Height);
-        _scroll.Height = scrollHeight;
-
-        FitToContent.Apply(this, c => c == _scroll || c == _scrollGap ? _scrollOpen : true);
-    }
-
-    private void SetScrollOpen(bool open)
-    {
-        _scrollOpen = open;
-        _summary.Expanded = open;
-        Relayout();
-    }
-
-    // ---- Capture ---------------------------------------------------------------------------------------
+    // ---- Captures ----------------------------------------------------------------------------------------------
 
     private void WireDrop(Control c)
     {
@@ -333,33 +232,41 @@ public sealed class AInboxIntakeWidgetForm : Form
         c.DragDrop += OnDragDrop;
     }
 
-    private void OnCaptureTool(CaptureKind kind)
+    private void OnCaptureTool(CaptureKindInfo info)
     {
-        switch (kind)
+        if (info.Planned)
         {
-            case CaptureKind.File: ChooseFile(); break;
-            case CaptureKind.Screen: AttachScreen(); break;
-            case CaptureKind.Pick: OpenSnipTool(WandCaptureTool.ElementPicker); break;
-            case CaptureKind.Lasso: OpenSnipTool(WandCaptureTool.FreeformLasso); break;
+            PhosphorToast.Show($"{CaptureKinds.Name(info.Kind)} is planned", info.Kind == CaptureKind.Record
+                ? "Region recording with marks lands in the stack once the recorder ships."
+                : "Ghost Whisper voice notes, pinned to a capture, are designed but not wired yet.", "AINBOX // CAPTURE", 2800, ToastTone.Info);
+            return;
+        }
+        switch (info.Kind)
+        {
+            case CaptureKind.File: ChooseFiles(); break;
+            case CaptureKind.Screen:
+                if (ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y, 640, 420) is { } shot)
+                    AddImage(shot, "cursor-capture.png", CaptureKind.Screen, _summonOrigin, "SCREEN // 640x420");
+                break;
+            case CaptureKind.Window:
+                var (win, size) = OriginScanner.WindowShotAt(_summonPos);
+                if (win != null) AddImage(win, $"{Slug(CaptureOrigin.CoreTitle(_summonOrigin.Window))}.png", CaptureKind.Window, _summonOrigin, $"WINDOW // {size.Width}x{size.Height}");
+                break;
+            case CaptureKind.Pick: OpenSnipTool(WandCaptureTool.ElementPicker); return;
+            case CaptureKind.Lasso: OpenSnipTool(WandCaptureTool.FreeformLasso); return;
             case CaptureKind.Snippet: AttachClipboardText(link: false); break;
             case CaptureKind.Link: AttachClipboardText(link: true); break;
         }
+        Rebuild();
     }
 
     private void OpenSnipTool(WandCaptureTool tool)
     {
         if (RequestCapture == null) return;
-        // Hide first so the frozen desktop the snip tool captures does not include this widget.
-        Hide();
+        Hide(); // the snip tool freezes the desktop; this widget must not be in it
         var delay = new System.Windows.Forms.Timer { Interval = 150 };
         delay.Tick += (_, _) => { delay.Stop(); delay.Dispose(); RequestCapture(tool); };
         delay.Start();
-    }
-
-    private void AttachScreen()
-    {
-        _capturedDataUrl = ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y, 640, 420);
-        SetCaptured(CaptureKind.Screen, "cursor-capture.png", "SCREEN // 640x420", keepDataUrl: true);
     }
 
     private void AttachClipboardText(bool link)
@@ -372,20 +279,22 @@ public sealed class AInboxIntakeWidgetForm : Form
                 "AINBOX // CAPTURE", 2400, ToastTone.Warning);
             return;
         }
-        SetContent(text);
+        AddText(text);
     }
 
-    /// <summary>Ctrl+V in the composer: files, images, links and long or multi-line text become attachments.</summary>
-    private bool PasteAsAttachment()
+    /// <summary>Ctrl+V in the composer: files, images, links and long or multi-line text join the stack.</summary>
+    private bool PasteAsCapture()
     {
         if (Clipboard.ContainsFileDropList() && Clipboard.GetFileDropList() is { Count: > 0 } files)
         {
-            SetCaptured(CaptureKind.File, files[0]!, FileMeta(files[0]!) + (files.Count > 1 ? $" // {files.Count - 1} more not sent" : ""));
+            foreach (string? f in files) if (f != null) AddFile(f);
+            Rebuild();
             return true;
         }
         if (Clipboard.ContainsImage() && Clipboard.GetImage() is Image img)
         {
-            AttachImage(img, "pasted-image.png");
+            AddImage(ToDataUrl(img), "pasted-image.png", CaptureKind.Screen, _summonOrigin, $"IMAGE // {img.Width}x{img.Height}");
+            Rebuild();
             return true;
         }
         if (Clipboard.ContainsText())
@@ -393,350 +302,465 @@ public sealed class AInboxIntakeWidgetForm : Form
             string text = Clipboard.GetText().Trim();
             if (CaptureKinds.IsLink(text) || text.Contains('\n') || text.Length > 160)
             {
-                SetContent(text);
+                AddText(text);
+                Rebuild();
                 return true;
             }
         }
         return false;
     }
 
-    private void ChooseFile()
+    private void ChooseFiles()
     {
-        using var dlg = new OpenFileDialog
-        {
-            Title = "Select a file or artifact for AInbox intake",
-            Filter = "All Files (*.*)|*.*"
-        };
-        if (dlg.ShowDialog(this) == DialogResult.OK) SetCaptured(CaptureKind.File, dlg.FileName, FileMeta(dlg.FileName));
+        using var dlg = new OpenFileDialog { Title = "Add files to the AInbox stack", Filter = "All Files (*.*)|*.*", Multiselect = true };
+        if (dlg.ShowDialog(this) == DialogResult.OK) foreach (string f in dlg.FileNames) AddFile(f);
     }
 
     private void OnDragDrop(object? sender, DragEventArgs e)
     {
-        if (e.Data == null) { _composer.SetMode(_composer.RestMode); return; }
-        if (e.Data.GetDataPresent(DataFormats.FileDrop) &&
-            e.Data.GetData(DataFormats.FileDrop) is string[] files &&
-            files.Length > 0)
-        {
-            // One capture travels with a handoff today; extra files are named so nothing is dropped silently.
-            SetCaptured(CaptureKind.File, files[0], FileMeta(files[0]) + (files.Length > 1 ? $" // {files.Length - 1} more not sent" : ""));
-        }
+        _composer.SetMode(_composer.RestMode);
+        if (e.Data == null) return;
+        if (e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] files)
+            foreach (string f in files) AddFile(f);
         else if (e.Data.GetDataPresent(DataFormats.Bitmap) && e.Data.GetData(DataFormats.Bitmap) is Image img)
-        {
-            AttachImage(img, "dropped-image.png");
-        }
+            AddImage(ToDataUrl(img), "dropped-image.png", CaptureKind.Screen, _summonOrigin, $"IMAGE // {img.Width}x{img.Height}");
         else if (e.Data.GetDataPresent(DataFormats.Text) && e.Data.GetData(DataFormats.Text) is string text && text.Trim().Length > 0)
-        {
-            _composer.SetMode(_composer.RestMode);
-            SetContent(text.Trim());
-        }
-        else _composer.SetMode(_composer.RestMode);
+            AddText(text.Trim());
+        Rebuild();
         _intentBox.Focus();
     }
 
-    private void AttachImage(Image img, string name)
+    private void AddFile(string path)
     {
-        using var ms = new MemoryStream();
-        img.Save(ms, ImageFormat.Png);
-        _capturedDataUrl = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
-        SetCaptured(CaptureKind.Screen, name, $"IMAGE // {img.Width}x{img.Height}", keepDataUrl: true);
+        if (Directory.Exists(path)) return;
+        var item = new StackItem { Kind = CaptureKind.File, Name = Path.GetFileName(path), Path = path, Meta = FileMeta(path), Origin = OriginScanner.ForFile(path) };
+        Scan(item);
+        if (item.Secrets.Count == 0 && File.Exists(path))
+        {
+            // Hash off the UI thread; the seal waits for it.
+            System.Threading.Tasks.Task.Run(() => ArkStationClient.Sha256File(path)).ContinueWith(t =>
+            {
+                if (IsDisposed || !IsHandleCreated) return;
+                BeginInvoke(new Action(() => { item.Sha256 = t.Result; RefreshScroll(); }));
+            }, System.Threading.Tasks.TaskScheduler.Default);
+        }
+        _items.Add(item);
     }
 
-    private void SetCaptured(CaptureKind kind, string path, string meta, bool keepDataUrl = false)
+    private void AddImage(string dataUrl, string name, CaptureKind kind, CaptureOrigin origin, string meta)
     {
-        if (!keepDataUrl) _capturedDataUrl = null;
-        _selectedFilePath = path;
-        _captureKind = kind;
-        HashAttachment();
-        _userChosePodManually = false;
-        _captureRow.Kind = kind;
-        _captureRow.ItemName = Path.GetFileName(path);
-        _captureRow.Meta = meta;
-        _composer.RestMode = CaptureWellMode.Captured;
-        _composer.SetMode(CaptureWellMode.Captured);
-        RefreshAutoDetectionAndScroll();
-        Relayout();
+        var item = new StackItem { Kind = kind, Name = name, DataUrl = dataUrl, Meta = meta, Origin = origin };
+        try { item.Sha256 = ArkStationClient.Sha256Hex(DecodeDataUrl(dataUrl)); } catch (FormatException) { }
+        _items.Add(item);
     }
 
-    private void ClearCapture()
+    private void AddText(string text)
     {
-        _selectedFilePath = null;
-        _capturedDataUrl = null;
-        _attachmentSha = null;
-        _hashTask = null;
-        _composer.RestMode = HasContent ? CaptureWellMode.Captured : CaptureWellMode.Idle;
-        _composer.SetMode(_composer.RestMode);
-        RefreshAutoDetectionAndScroll();
-        Relayout();
-    }
-
-    private void SetContent(string text)
-    {
-        _content = text;
-        _contentKind = CaptureKinds.IsLink(text) ? CaptureKind.Link : CaptureKind.Snippet;
-        _userChosePodManually = false;
-        _contentRow.Kind = _contentKind;
+        bool link = CaptureKinds.IsLink(text);
         string first = text.Split('\n')[0].Trim();
         int lines = text.Split('\n').Length;
-        _contentRow.ItemName = first;
-        _contentRow.Meta = _contentKind == CaptureKind.Link ? "LINK" : lines > 1 ? $"SNIPPET // {lines} lines" : $"SNIPPET // {text.Length} chars";
-        _composer.RestMode = CaptureWellMode.Captured;
-        _composer.SetMode(CaptureWellMode.Captured);
-        RefreshAutoDetectionAndScroll();
-        Relayout();
-    }
-
-    private void ClearContent()
-    {
-        _content = null;
-        _composer.RestMode = HasCapture ? CaptureWellMode.Captured : CaptureWellMode.Idle;
-        _composer.SetMode(_composer.RestMode);
-        RefreshAutoDetectionAndScroll();
-        Relayout();
-    }
-
-    private void ResetComposer()
-    {
-        _evidenceEdited = false;
-        _selectedFilePath = null;
-        _capturedDataUrl = null;
-        _attachmentSha = null;
-        _hashTask = null;
-        _content = null;
-        _userChosePodManually = false;
-        _intentBox.Text = "";
-        _composer.RestMode = CaptureWellMode.Idle;
-        _composer.SetMode(CaptureWellMode.Idle);
-        _scrollOpen = false;
-        _summary.Expanded = false;
-        RefreshAutoDetectionAndScroll();
-        Relayout();
-    }
-
-    /// <summary>
-    /// The attachment's SHA-256 for the seal: the captured image's data URL when there is one, else the file's
-    /// bytes, streamed off the UI thread. A path with nothing readable behind it (the as-built sample) has none.
-    /// </summary>
-    private void HashAttachment()
-    {
-        _attachmentSha = null;
-        _hashTask = null;
-        if (!string.IsNullOrEmpty(_capturedDataUrl))
+        var item = new StackItem
         {
-            // Hash the image bytes, not the data URL text, so a receiver hashing the PNG gets the same value.
-            int comma = _capturedDataUrl.IndexOf(',');
-            try { _attachmentSha = ArkStationClient.Sha256Hex(Convert.FromBase64String(_capturedDataUrl[(comma + 1)..])); }
-            catch (FormatException) { _attachmentSha = ArkStationClient.Sha256Hex(System.Text.Encoding.UTF8.GetBytes(_capturedDataUrl)); }
+            Kind = link ? CaptureKind.Link : CaptureKind.Snippet,
+            Name = first.Length > 80 ? first[..80] + "..." : first,
+            Text = link ? null : text,
+            Url = link ? text : null,
+            Meta = link ? "LINK" : lines > 1 ? $"SNIPPET // {lines} LINES" : $"SNIPPET // {text.Length} CHARS",
+            Origin = link ? OriginScanner.ForLink(text, _summonOrigin) : _summonOrigin
+        };
+        Scan(item);
+        _items.Add(item);
+    }
+
+    /// <summary>Aegis scan plus the hash of exactly what will be sent (the redacted text when a secret was found).</summary>
+    private static void Scan(StackItem item)
+    {
+        string? text = item.TextForAnalysis();
+        item.Scanned = text != null;
+        if (text == null) return;
+        item.Secrets.AddRange(AegisScanner.Scan(text));
+        if (item.Kind is CaptureKind.Snippet or CaptureKind.Link || item.Secrets.Count > 0)
+            item.Sha256 = ArkStationClient.Sha256Hex(Encoding.UTF8.GetBytes(AegisScanner.Redact(text)));
+    }
+
+    private void RemoveItem(StackItem item)
+    {
+        _items.Remove(item);
+        Rebuild();
+    }
+
+    // ---- Grouping, ranking and the views -----------------------------------------------------------------------
+
+    /// <summary>Regroups the stack by origin, keeping each group's steering, fields and synthesis across rebuilds.</summary>
+    private void Regroup()
+    {
+        var old = _groups.Where(g => g.Key != "ask").ToDictionary(g => g.Key);
+        var groups = new List<StackGroup>();
+        foreach (var it in _items)
+        {
+            var g = groups.FirstOrDefault(x => x.Key == it.Origin.ContextKey);
+            if (g == null)
+            {
+                g = old.TryGetValue(it.Origin.ContextKey, out var prev) ? prev : new StackGroup { Key = it.Origin.ContextKey };
+                g.Items.Clear();
+                g.Label = it.Origin.ContextLabel;
+                groups.Add(g);
+            }
+            g.Items.Add(it);
+        }
+        if (groups.Count == 0 && !string.IsNullOrWhiteSpace(_intentBox.Text))
+        {
+            _virtualAsk ??= new StackGroup { Key = "ask", Label = "YOUR ASK" };
+            groups.Add(_virtualAsk);
+        }
+        for (int i = 0; i < groups.Count; i++) groups[i].Letter = ((char)('A' + i)).ToString();
+        _groups = groups;
+        _active = Math.Clamp(_active, 0, Math.Max(0, groups.Count - 1));
+    }
+
+    private string AskFor(StackGroup g) => g == Active ? _intentBox.Text : "";
+
+    private void Rank()
+    {
+        foreach (var g in _groups)
+        {
+            // A Nemotron ranking stands until the group's captures or ask change.
+            if (_refinedSig.TryGetValue(g.Key, out var sig) && sig == Signature(g)) continue;
+            IntentRanker.Rank(g, AskFor(g), _ark);
+            ScrollPredictor.Fill(g, AskFor(g));
+        }
+    }
+
+    /// <summary>Rebuilds everything that depends on the stack's shape: groups, ranking, cards, the scroll.</summary>
+    private void Rebuild()
+    {
+        Regroup();
+        Rank();
+        _composer.RestMode = _items.Count > 0 ? CaptureWellMode.Captured : CaptureWellMode.Idle;
+        if (_composer.Mode != CaptureWellMode.DragOver) _composer.SetMode(_composer.RestMode);
+        BuildStackViews();
+        BuildCards();
+        RefreshScroll();
+        ScheduleRefine();
+    }
+
+    private void BuildStackViews()
+    {
+        foreach (Control c in _stackHost.Controls.Cast<Control>().ToList()) { _stackHost.Controls.Remove(c); c.Dispose(); }
+        int h = 0;
+        for (int i = _groups.Count - 1; i >= 0; i--)
+        {
+            var g = _groups[i];
+            if (g.Items.Count == 0) continue;
+            int index = i;
+            var view = new StackGroupView(g, i == _active, RemoveItem, () => SetActive(index)) { Dock = DockStyle.Top };
+            if (h > 0) _stackHost.Controls.Add(WidgetChrome.Spacer(8));
+            _stackHost.Controls.Add(view);
+            h += view.Height + (h > 0 ? 8 : 0);
+        }
+        _stackHost.Height = h;
+        _stackHost.Visible = _stackGap.Visible = h > 0;
+    }
+
+    /// <summary>One prediction card per group, then the Aegis gate when the stack has text to scan.</summary>
+    private void BuildCards()
+    {
+        _body.SuspendLayout();
+        foreach (var c in _cards) { _body.Controls.Remove(c); c.Dispose(); }
+        _cards.Clear();
+        for (int i = 0; i < _groups.Count; i++)
+        {
+            int index = i;
+            var g = _groups[i];
+            _cards.Add(new PredictionCard(g, OmnitekLine(g), id => ChooseIntent(g, id), () => SetActive(index)) { Active = i == _active, Margin = new Padding(0, 0, 0, 8) });
+        }
+        var findings = _items.SelectMany(it => it.Secrets.Select(f => (Where: $"{GroupOf(it)?.Letter} {it.Name}", Finding: f))).ToList();
+        if (_items.Any(it => it.Scanned))
+            _cards.Add(new AegisCard(findings, _items.Any(it => it.DataUrl != null), StowSecrets) { Margin = new Padding(0, 0, 0, 8) });
+        int at = _body.Controls.IndexOf(_composer) + 1;
+        foreach (var c in _cards) { _body.Controls.Add(c); _body.Controls.SetChildIndex(c, at++); }
+        _body.ResumeLayout();
+        Relayout();
+    }
+
+    private StackGroup? GroupOf(StackItem it) => _groups.FirstOrDefault(g => g.Items.Contains(it));
+
+    private string OmnitekLine(StackGroup g)
+    {
+        var d = _ark.AutoDetectOmnitekItem(g.Items.FirstOrDefault(i => i.Path != null)?.Path ?? g.Items.FirstOrDefault()?.Name,
+            string.Join("\n", g.Items.Select(i => i.Text ?? i.Url ?? "")), AskFor(g));
+        string item = string.IsNullOrEmpty(d.ItemSubtype) ? d.ItemType : $"{d.ItemType} // {d.ItemSubtype.Replace('-', ' ')}";
+        return $"OMNITEK // {g.Label} // {item} // {d.Confidence}".ToUpperInvariant();
+    }
+
+    private void SetActive(int index)
+    {
+        if (index == _active || index >= _groups.Count) return;
+        _active = index;
+        Rebuild();
+    }
+
+    private void ChooseIntent(StackGroup g, string id)
+    {
+        g.ChosenIntent = id;
+        g.ChosenByHand = true;
+        ScrollPredictor.Fill(g, AskFor(g));
+        foreach (var c in _cards) c.Invalidate();
+        RefreshScroll();
+        ScheduleRefine();
+    }
+
+    private void OnAskChanged()
+    {
+        bool hasVirtual = _virtualAsk != null && _groups.Contains(_virtualAsk);
+        bool needVirtual = _items.Count == 0 && !string.IsNullOrWhiteSpace(_intentBox.Text);
+        if (hasVirtual != needVirtual) { Rebuild(); return; }
+        if (Active is { } g)
+        {
+            IntentRanker.Rank(g, _intentBox.Text, _ark);
+            ScrollPredictor.Fill(g, _intentBox.Text);
+            foreach (var c in _cards) c.Invalidate();
+            ScheduleRefine();
+        }
+        RefreshScroll();
+    }
+
+    private void SizeBodyChildren()
+    {
+        int w = _body.ClientSize.Width;
+        foreach (Control c in _body.Controls) if (c.Width != w) c.Width = w;
+    }
+
+    /// <summary>The widget is as tall as what it holds, up to the screen; past that the body scrolls.</summary>
+    private void Relayout()
+    {
+        int content = _intentBox.Height + _captureBar.Height + (_stackHost.Visible ? _stackHost.Height + _stackGap.Height : 0);
+        _composer.Height = _composer.HeightFor(content);
+        _scroll.Visible = _scrollOpen;
+        _summary.Visible = _groups.Count > 0;
+        if (_scrollOpen) _scroll.Height = _scroll.Padding.Vertical + _scroll.Controls.Cast<Control>().Sum(c => c.Height);
+
+        SizeBodyChildren();
+        int w = _body.ClientSize.Width;
+        foreach (var c in _cards)
+        {
+            if (c is PredictionCard p) p.Height = p.HeightFor(w);
+            else if (c is AegisCard a) a.Height = a.HeightFor(w);
+        }
+
+        int body = 0;
+        foreach (Control c in _body.Controls)
+            if (c == _scroll ? _scrollOpen : c == _summary ? _groups.Count > 0 : true) body += c.Height + c.Margin.Vertical;
+        int chrome = Padding.Vertical;
+        foreach (Control c in Controls) if (c != _body && c.Dock is DockStyle.Top or DockStyle.Bottom) chrome += c.Height;
+        var area = (Visible ? Screen.FromControl(this) : Screen.FromPoint(Location)).WorkingArea;
+        int height = Math.Min(chrome + body + 4, area.Height - 24);
+        if (height != Height)
+        {
+            var top = Location;
+            Height = height;
+            if (Visible) Location = new Point(top.X, WidgetChrome.SafeClamp(top.Y, area.Top + 12, area.Bottom - Height - 12));
+        }
+        Invalidate(true);
+    }
+
+    // ---- The scroll --------------------------------------------------------------------------------------------
+
+    private static List<ScrollField> FieldsOf(StackGroup g) => IntentCatalog.Shape(g.ChosenIntent).Fields
+        .Select(l => g.Fields.TryGetValue(l, out var f) ? f : new ScrollField(l, "", "PREDICTED")).ToList();
+
+    private string SealOf(StackGroup g) => HandoffSeal.Seal(g.Chosen.PodId, g.ChosenIntent, AskFor(g), FieldsOf(g), g.Items.Select(i => i.Sha256 ?? i.Name));
+
+    private void RefreshScroll()
+    {
+        var g = Active;
+        string ask = _intentBox.Text.Trim();
+        _suggestion = g == null ? "" : Suggestion(g);
+        _intentBox.Prompt = _suggestion.Length > 0 ? _suggestion : "What should happen? Drop, paste or pick anything; it stacks by where it came from.";
+        _suggestionHint.Text = _suggestion.Length > 0 && ask.Length == 0 ? "TAB // USE THE SUGGESTION"
+            : _items.Count > 0 ? $"{_items.Count} IN THE STACK // {_groups.Count} CONTEXT{(_groups.Count == 1 ? "" : "S")}" : "";
+
+        if (g == null)
+        {
+            if (_undoTimer == null && !_working) _sendBtn.Text = "Send";
+            Relayout();
             return;
         }
-        string? path = _selectedFilePath;
-        if (path == null || !File.Exists(path)) return;
-        var task = System.Threading.Tasks.Task.Run(() => ArkStationClient.Sha256File(path));
-        _hashTask = task;
-        task.ContinueWith(t =>
-        {
-            if (IsDisposed || !IsHandleCreated) return;
-            BeginInvoke(new Action(() =>
-            {
-                if (_hashTask != task) return;
-                _attachmentSha = t.Result;
-                _hashTask = null;
-                UpdateSeal();
-            }));
-        }, System.Threading.Tasks.TaskScheduler.Default);
-    }
+        var shape = IntentCatalog.Shape(g.ChosenIntent);
+        var pod = g.Chosen.Pod;
+        string orch = ShortName(pod.OrchestratorLabel);
+        if (_undoTimer == null && !_working) _sendBtn.Text = $"Send {g.Letter} to {pod.Label}";
 
-    private static string FileMeta(string path)
-    {
-        try
-        {
-            long bytes = new FileInfo(path).Length;
-            string size = bytes >= 1 << 20 ? $"{bytes / 1048576.0:0.0} MB" : bytes >= 1024 ? $"{bytes / 1024.0:0.0} KB" : $"{bytes} B";
-            return $"FILE // {size}";
-        }
-        catch { return "FILE"; }
-    }
-
-    // ---- Routing and the scroll ------------------------------------------------------------------------
-
-    /// <summary>Omnitek's prediction as TYPE // SUBTYPE, for example ARTIFACT // DELIVERABLE.</summary>
-    private static string ItemLabel(OmnitekAutoDetectInfo d) => string.IsNullOrEmpty(d.ItemSubtype)
-        ? d.ItemType.ToUpperInvariant()
-        : $"{d.ItemType.ToUpperInvariant()} // {d.ItemSubtype.Replace('-', ' ').ToUpperInvariant()}";
-
-    private ArkPodInboxInfo SelectedPod => ArkStationClient.PodInboxes[Math.Clamp(_podIndex, 0, ArkStationClient.PodInboxes.Count - 1)];
-
-    /// <summary>The orchestrator's short name: "Gala" from "Gala (Co-op Orchestrator)".</summary>
-    private static string ShortName(string label)
-    {
-        int paren = label.IndexOf(" (", StringComparison.Ordinal);
-        return paren > 0 ? label[..paren] : label;
-    }
-
-    /// <summary>A one-line intent Omnitek offers for what is attached; Tab takes it.</summary>
-    private string SuggestIntent(OmnitekAutoDetectInfo d)
-    {
-        if (HasCapture)
-        {
-            string name = Path.GetFileName(_selectedFilePath!);
-            switch (_captureKind)
-            {
-                case CaptureKind.Pick: return "Look at this element and say what should change";
-                case CaptureKind.Lasso: return "Read this region and file what matters";
-                case CaptureKind.Screen: return "Read this capture and file what matters";
-            }
-            return (d.ItemType, d.ItemSubtype) switch
-            {
-                ("artifact", "deliverable") => $"File {name} as a deliverable and confirm it landed",
-                ("artifact", "desktop-app") => $"Register {name} as a desktop app",
-                ("scroll", "dataset") => $"Index {name} as a dataset",
-                ("scroll", "skrypt") => $"Review {name} and stage it as a Skrypt",
-                ("augment", _) => $"Add {name} to the Augment inventory",
-                _ => $"Ingest {name} and route it"
-            };
-        }
-        if (HasContent) return _contentKind == CaptureKind.Link ? "Read this link and summarize what matters" : "Review this snippet and act on it";
-        return "";
-    }
-
-    private void ShowRouteMenu() => _route.ShowChoices(ArkStationClient.PodInboxes.Select((pod, i) => new ChipChoice(
-        $"{pod.Label}  ·  {ShortName(pod.OrchestratorLabel)}",
-        pod.InboxChannel,
-        i == _podIndex,
-        () =>
-        {
-            _podIndex = i;
-            _userChosePodManually = true;
-            RefreshAutoDetectionAndScroll();
-        },
-        pod.Description)));
-
-    private void RefreshAutoDetectionAndScroll()
-    {
-        string intent = _intentBox.Text;
-        var detected = _ark.AutoDetectOmnitekItem(_selectedFilePath, _content, intent);
-        bool high = string.Equals(detected.Confidence, "high", StringComparison.OrdinalIgnoreCase);
-
-        if (!_userChosePodManually)
-        {
-            int found = ArkStationClient.PodInboxes.ToList().FindIndex(p => p.PodId == detected.RecommendedPodId);
-            if (found >= 0) _podIndex = found;
-        }
-        var pod = SelectedPod;
-        Color podAccent = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
-        string orchestrator = ShortName(pod.OrchestratorLabel);
-
-        // The classification shows once: on the primary attachment, or in the scroll line when nothing is attached.
-        string item = ItemLabel(detected);
-        _captureRow.Prediction = HasCapture ? item : "";
-        _contentRow.Prediction = !HasCapture && HasContent ? item : "";
-        _captureRow.Invalidate();
-        _contentRow.Invalidate();
-
-        _suggestion = SuggestIntent(detected);
-        _intentBox.Prompt = _suggestion.Length > 0 ? _suggestion : "What should happen? Drop, paste or pick something to send with it.";
-        _suggestionHint.Text = _suggestion.Length > 0 && intent.Length == 0 ? "TAB // USE THE SUGGESTION" : "";
-
-        _route.Label = pod.Label;
-        _route.Detail = orchestrator;
-        _route.Accent = podAccent;
-        _route.Confident = high && !_userChosePodManually;
-        _route.Fit();
-        if (_undoTimer == null && !_working) _sendBtn.Text = $"Send to {pod.Label}";
-
-        _detected = detected;
-        var previewScroll = _ark.BuildPreviewHandoffScroll(pod.PodId, detected, intent, _selectedFilePath, _content);
-
-        string what = intent.Trim().Length > 0 ? intent.Trim().Split('\n')[0]
-            : _suggestion.Length > 0 ? _suggestion
-            : "Nothing to send yet";
-        _summary.Kicker = HasAnything && !HasCapture && !HasContent ? $"SCROLL // {item}" : "SCROLL";
-        _summary.Sentence = HasAnything ? $"{what}. Receipt from {orchestrator}." : what;
+        var fields = FieldsOf(g);
+        _summary.Kicker = $"SCROLL {g.Letter} // {shape.Kicker}";
+        _summary.Sentence = $"{fields.FirstOrDefault(f => f.Value.Length > 0)?.Value ?? shape.Label} Receipt from {orch}.";
+        _summary.Accent = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _summary.Muted = !HasAnything;
-        _summary.Accent = podAccent;
         _summary.Invalidate();
 
-        _settingScroll = true;
-        _scrollContextField.Box.Text = previewScroll.Context;
-        _scrollGoalField.Box.Text = previewScroll.Goal;
-        if (!_evidenceEdited)
+        // Rebuild the field rows only when the shape changes, so typing in a field keeps its caret.
+        if (_scrollShape != g.Key + "|" + shape.Id)
         {
-            _evidenceReceivedField.Box.Text = previewScroll.DesiredEvidence.ProofOfReceived;
-            _evidenceWorkingField.Box.Text = previewScroll.DesiredEvidence.WorkingState;
-            _evidenceDeliverableField.Box.Text = previewScroll.DesiredEvidence.DeliverableEvidence;
+            foreach (Control c in _scroll.Controls.Cast<Control>().ToList()) { _scroll.Controls.Remove(c); c.Dispose(); }
+            _fieldRows.Clear();
+            for (int i = fields.Count - 1; i >= 0; i--)
+            {
+                var f = fields[i];
+                var group = g;
+                var row = new ScrollFieldRow(i + 1, f, v =>
+                {
+                    group.Fields[f.Label] = new ScrollField(f.Label, v, "YOU EDITED");
+                    UpdateSeal(group);
+                }) { Dock = DockStyle.Top };
+                _fieldRows.Insert(0, row);
+                _scroll.Controls.Add(row);
+                if (i > 0) _scroll.Controls.Add(WidgetChrome.Spacer(8));
+            }
+            _scrollShape = g.Key + "|" + shape.Id;
         }
-        _settingScroll = false;
+        else
+        {
+            for (int i = 0; i < fields.Count && i < _fieldRows.Count; i++) _fieldRows[i].Set(fields[i]);
+        }
 
         _scroll.Code = pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
-        _scroll.Title = "Handoff Scroll";
-        _scroll.Eyebrow = "Scroll // Handoff // Drafted by Scribe";
+        _scroll.Title = shape.Label;
+        _scroll.Eyebrow = $"Scroll // Handoff // Stack {g.Letter} // Drafted by Scribe";
         _scroll.Alt = $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
         _scroll.Board = "";
-        _scroll.Edge = podAccent;
+        _scroll.Edge = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _scroll.Specs = new[]
         {
-            ("To", orchestrator),
-            ("Item", detected.DisplayBadge),
-            ("Confidence", detected.Confidence)
+            ("To", $"{pod.Label} · {orch}"),
+            ("Intent", shape.Kicker),
+            ("Confidence", $"{Math.Round(g.Chosen.Score * 100)}% {g.WhySource.ToLowerInvariant()}"),
+            ("Captures", g.Items.Count.ToString())
         };
         _scroll.Status = "Draft";
         _scroll.StatusState = PhosphorBadgeState.Unstated;
-        UpdateSeal();
+        UpdateSeal(g);
+        Relayout();
     }
 
-    /// <summary>
-    /// Seals the scroll as it would be sent (the evidence as edited, the attachment's hash) so the barcode and the
-    /// seal line always match the receipt. The client owns the canonical form; this only asks it.
-    /// </summary>
-    private void UpdateSeal()
+    private void UpdateSeal(StackGroup g)
     {
-        if (_detected == null) return;
-        if (_hashTask != null)
+        if (g.Items.Any(i => i.Sha256 == null && i.Path != null && File.Exists(i.Path) && i.Secrets.Count == 0))
         {
             _scroll.Seal = "";
-            _scroll.Receipt = "SEAL // hashing the attachment";
-            _scroll.Invalidate();
-            return;
+            _scroll.Receipt = "SEAL // hashing the captures";
         }
-        string seal = _ark.BuildPreviewHandoffScroll(SelectedPod.PodId, _detected, _intentBox.Text, _selectedFilePath, _content,
-            _evidenceReceivedField.Box.Text, _evidenceWorkingField.Box.Text, _evidenceDeliverableField.Box.Text, _attachmentSha).Sha256;
-        _scroll.Seal = seal;
-        _scroll.Receipt = $"SEAL // SHA-256 // {ShortSeal(seal)} // CLICK BARS TO COPY";
+        else
+        {
+            string seal = SealOf(g);
+            _scroll.Seal = seal;
+            _scroll.Receipt = $"SEAL // SHA-256 // {seal[..12]}...{seal[^8..]} // CLICK BARS TO COPY";
+        }
         _scroll.Invalidate();
     }
 
-    private static string ShortSeal(string sha) => sha.Length < 20 ? sha : $"{sha[..12]}...{sha[^8..]}";
+    private static string Suggestion(StackGroup g)
+    {
+        var first = g.Items.FirstOrDefault();
+        if (first == null) return "";
+        return g.ChosenIntent switch
+        {
+            "fix" => first.Kind == CaptureKind.Pick ? "Look at this element and say what should change" : $"Find out why {first.Name} breaks and fix it",
+            "flow" => $"Turn {first.Name} into a Spell I can rerun",
+            "research" => $"Read {first.Name} and give me a one-page digest",
+            "absorb" => $"Import {first.Name} into the library as a dataset",
+            _ => $"Draft a post around {first.Name}"
+        };
+    }
 
-    // ---- Send with undo --------------------------------------------------------------------------------
+    // ---- Nemotron refinement -----------------------------------------------------------------------------------
+
+    private bool CanRefine => !_preview && (_ark.LastGatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
+
+    private string Signature(StackGroup g) => string.Join("|", g.Items.Select(i => i.Id)) + "|" + AskFor(g).Trim() + "|" + (g.ChosenByHand ? g.ChosenIntent : "");
+
+    private void ScheduleRefine()
+    {
+        if (!CanRefine) return;
+        _refineTimer.Stop();
+        _refineTimer.Start();
+    }
+
+    /// <summary>Asks Nemotron to re-rank, explain and synthesize each group whose captures or ask changed.</summary>
+    private async System.Threading.Tasks.Task RefineAsync()
+    {
+        if (!CanRefine) return;
+        _refineCts?.Cancel();
+        var cts = _refineCts = new CancellationTokenSource();
+        foreach (var g in _groups.ToList())
+        {
+            if (g.Items.Count == 0 && AskFor(g).Trim().Length == 0) continue;
+            string sig = Signature(g);
+            if (_refinedSig.TryGetValue(g.Key, out var done) && done == sig) continue;
+            g.Refining = true;
+            foreach (var c in _cards) c.Invalidate();
+            BuildCards();
+            bool ok = false;
+            try { ok = await StackRefiner.RefineAsync(g, AskFor(g), _ark, cts.Token); }
+            catch (OperationCanceledException) { }
+            catch (TimeoutException) { }
+            g.Refining = false;
+            if (cts.IsCancellationRequested || IsDisposed) return;
+            if (ok)
+            {
+                _refinedSig[g.Key] = Signature(g);
+                ScrollPredictor.Fill(g, AskFor(g));
+            }
+            BuildCards();
+            RefreshScroll();
+        }
+    }
+
+    // ---- Aegis -------------------------------------------------------------------------------------------------
+
+    /// <summary>Keeps each found secret in Windows Credential Manager (VaultStow) under an Omniwand:Aegis target.</summary>
+    private void StowSecrets()
+    {
+        var found = _items.SelectMany(i => i.Secrets).GroupBy(f => f.Secret).Select(x => x.First()).ToList();
+        int stowed = 0;
+        foreach (var f in found)
+        {
+            string target = $"Omniwand:Aegis:{f.Kind.Replace(' ', '-')}:{ArkStationClient.Sha256Hex(Encoding.UTF8.GetBytes(f.Secret))[..8]}";
+            if (ArkStationClient.TryWriteWindowsCredential(target, f.Secret)) stowed++;
+        }
+        PhosphorToast.Show(stowed == found.Count ? $"Stowed {stowed} in the vault" : $"Stowed {stowed} of {found.Count}",
+            "Windows Credential Manager, targets Omniwand:Aegis:*. The handoff still carries them redacted.", "AEGIS // VAULTSTOW", 3600,
+            stowed == found.Count ? ToastTone.Success : ToastTone.Warning);
+    }
+
+    // ---- Send with undo ----------------------------------------------------------------------------------------
 
     private void OnSendClicked()
     {
         if (_undoTimer != null) { CancelPendingSend(); return; }
         if (_working) return;
-        if (!HasAnything)
+        var g = Active;
+        if (g == null || !HasAnything)
         {
-            SetStatus("NOTHING TO SEND // type, drop or paste something first", PhosphorTheme.Dim);
+            SetStatus("NOTHING TO SEND // drop, paste, pick or type something first", PhosphorTheme.Dim);
             _intentBox.Focus();
             return;
         }
-
         _undoLeft = UndoSeconds;
         _sendBtn.Text = "Undo";
         _sendBtn.Variant = PhosphorButtonVariant.Default;
         _sendBtn.Invalidate();
-        SetStatus($"SENDING TO {SelectedPod.Label.ToUpperInvariant()} IN {_undoLeft}S", PhosphorTheme.Patina);
+        void Countdown() => SetStatus($"SENDING {g.Letter} TO {g.Chosen.Pod.Label.ToUpperInvariant()} IN {_undoLeft}S // ESC UNDOES", PhosphorTheme.Patina);
+        Countdown();
         _undoTimer = new System.Windows.Forms.Timer { Interval = 1000 };
         _undoTimer.Tick += async (_, _) =>
         {
             _undoLeft--;
-            if (_undoLeft > 0)
-            {
-                SetStatus($"SENDING TO {SelectedPod.Label.ToUpperInvariant()} IN {_undoLeft}S", PhosphorTheme.Patina);
-                return;
-            }
+            if (_undoLeft > 0) { Countdown(); return; }
             StopUndoTimer();
-            await SubmitIntakeAsync();
+            await SendAsync(g);
         };
         _undoTimer.Start();
+        Invalidate();
     }
 
     private void CancelPendingSend()
@@ -751,8 +775,9 @@ public sealed class AInboxIntakeWidgetForm : Form
         _undoTimer?.Dispose();
         _undoTimer = null;
         _sendBtn.Variant = PhosphorButtonVariant.Primary;
-        _sendBtn.Text = $"Send to {SelectedPod.Label}";
         _sendBtn.Invalidate();
+        RefreshScroll();
+        Invalidate();
     }
 
     private void SetStatus(string text, Color color)
@@ -761,38 +786,37 @@ public sealed class AInboxIntakeWidgetForm : Form
         _statusLabel.Text = text;
     }
 
-    private async System.Threading.Tasks.Task SubmitIntakeAsync()
+    /// <summary>Writes the handoff (the scroll plus each capture, redacted) to the outbound queue and drains it.</summary>
+    private async System.Threading.Tasks.Task SendAsync(StackGroup g)
     {
-        var pod = SelectedPod;
+        var pod = g.Chosen.Pod;
         _sendBtn.Enabled = false;
         _working = true;
         _setThinkingState(true);
-        SetStatus($"WRITING SCROLL // pulsing {pod.OrchestratorAgentId}", PhosphorTheme.Patina);
-        Invalidate();
-
+        SetStatus($"WRITING SCROLL {g.Letter} // QUEUEING FOR AINBOX", PhosphorTheme.Patina);
         try
         {
-            // A large file may still be hashing; the seal waits for it so the receipt matches the bytes sent.
-            if (_hashTask != null) { _attachmentSha = await _hashTask; _hashTask = null; }
-            var receipt = await _ark.SubmitPodInboxIntakeAsync(
-                pod.PodId,
-                _intentBox.Text,
-                _selectedFilePath,
-                _content,
-                _capturedDataUrl,
-                _evidenceReceivedField.Box.Text,
-                _evidenceWorkingField.Box.Text,
-                _evidenceDeliverableField.Box.Text,
-                _attachmentSha);
-
-            bool pulsed = receipt.PulseStatus == "pulsed";
+            string ask = AskFor(g).Trim();
+            var fields = FieldsOf(g);
+            string seal = SealOf(g);
+            string scrollId = $"scroll:handoff:{pod.PodId}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds():x}";
+            var items = new List<QueuedItem>();
+            var draft = new StackHandoff(scrollId, g.Letter, g.Label, pod.PodId, g.ChosenIntent, IntentCatalog.Shape(g.ChosenIntent).Label, ask, fields, items, seal, DateTime.UtcNow.ToString("O"));
+            items.Add(new QueuedItem("scroll", "handoff-scroll.md", "Scroll", "text", "text/markdown", null, HandoffSeal.Markdown(draft, pod), null, null, new()));
+            foreach (var it in g.Items) items.Add(ToQueued(it));
+            var sent = await _queue.EnqueueAsync(draft);
+            bool delivered = sent.Items.All(i => i.AInboxItemId != null);
+            string head = delivered ? $"SENT {g.Letter} // {items.Count} TO AINBOX // {pod.Label.ToUpperInvariant()}" : $"QUEUED {g.Letter} // AINBOX NOT READY, RETRYING";
+            SetStatus($"{head} // sha256:{seal[..12]}", delivered ? PhosphorTheme.Moss : PhosphorTheme.Seal);
             if (!Visible)
-                PhosphorToast.Show(pulsed ? $"Sent to {receipt.PodLabel}" : "Handoff saved locally",
-                    $"sha256:{receipt.HandoffScroll.Sha256[..12]}", "AINBOX // HANDOFF", 3200, ToastTone.Success);
-            ResetComposer();
-            SetStatus(pulsed
-                ? $"SENT // {receipt.OrchestratorAgentId} @ {receipt.PodInboxChannel} // sha256:{receipt.HandoffScroll.Sha256[..12]}"
-                : $"SAVED LOCALLY // ArkStation not running // sha256:{receipt.HandoffScroll.Sha256[..12]}", PhosphorTheme.Moss);
+                PhosphorToast.Show(delivered ? $"Sent to {pod.Label}" : "Handoff queued", $"sha256:{seal[..12]}", "AINBOX // HANDOFF", 3200, delivered ? ToastTone.Success : ToastTone.Info);
+            foreach (var it in g.Items.ToList()) _items.Remove(it);
+            _refinedSig.Remove(g.Key);
+            if (g == _virtualAsk) _virtualAsk = null;
+            _intentBox.Text = "";
+            _scrollOpen = false;
+            _summary.Expanded = false;
+            Rebuild();
         }
         catch (Exception ex)
         {
@@ -804,18 +828,38 @@ public sealed class AInboxIntakeWidgetForm : Form
             _working = false;
             _setThinkingState(false);
             _sendBtn.Enabled = true;
-            _sendBtn.Text = $"Send to {SelectedPod.Label}";
+            RefreshScroll();
             Invalidate();
         }
+    }
+
+    /// <summary>A capture as it leaves: secrets redacted, images decoded to PNG bytes, origin attached.</summary>
+    private static QueuedItem ToQueued(StackItem it)
+    {
+        var origin = it.Origin.Rows().ToDictionary(r => r.Key.ToLowerInvariant().Replace(' ', '-'), r => r.Value);
+        string? path = it.Path, text = null, url = null;
+        if (it.Url != null) url = AegisScanner.Redact(it.Url);
+        else if (it.Text != null) text = AegisScanner.Redact(it.Text);
+        else if (it.DataUrl != null) path = OutboundQueue.StoreBlob(it.Name, DecodeDataUrl(it.DataUrl));
+        else if (it.Secrets.Count > 0 && it.TextForAnalysis() is { } body) path = OutboundQueue.StoreBlob(it.Name, Encoding.UTF8.GetBytes(AegisScanner.Redact(body)));
+        return new QueuedItem(it.Id, it.Name, it.Kind.ToString(), it.Channel, it.MediaType, path, text, url, it.Sha256, origin);
+    }
+
+    private void SyncQueueStatus()
+    {
+        _sync.Pending = _queue.Pending;
+        _sync.SentToday = _queue.SentToday;
+        _sync.Online = _queue.ServiceOnline;
+        _sync.Invalidate();
     }
 
     /// <summary>Closing the widget while a send is pending sends it now; the result comes back as a toast.</summary>
     protected override void OnVisibleChanged(EventArgs e)
     {
         base.OnVisibleChanged(e);
-        if (Visible || _undoTimer == null) return;
+        if (Visible || _undoTimer == null || Active is not { } g) return;
         StopUndoTimer();
-        _ = SubmitIntakeAsync();
+        _ = SendAsync(g);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -823,4 +867,93 @@ public sealed class AInboxIntakeWidgetForm : Form
         base.OnPaint(e);
         WidgetChrome.PaintFrame(this, e.Graphics, _working || _undoTimer != null ? Color.FromArgb(200, PhosphorTheme.Patina) : PhosphorTheme.Line2);
     }
+
+    // ---- As-built states ---------------------------------------------------------------------------------------
+
+    /// <summary>For the as-built capture: "drag", "captured", "stack" (two contexts, a secret), "review", "reset".</summary>
+    internal void PreviewState(string state)
+    {
+        _preview = state != "reset";
+        _composer.Unfreeze();
+        _items.Clear();
+        _groups.Clear();
+        _virtualAsk = null;
+        _refinedSig.Clear();
+        _active = 0;
+        _intentBox.Text = "";
+        _scrollOpen = false;
+        _summary.Expanded = false;
+        switch (state)
+        {
+            case "drag":
+                Rebuild();
+                _composer.SetMode(CaptureWellMode.DragOver, CaptureKind.File);
+                _composer.FreezeForCapture(0.18f);
+                break;
+            case "captured":
+                _items.Add(new StackItem { Kind = CaptureKind.File, Name = "report.pdf", Path = "report.pdf", Meta = "FILE // 1.4 MB", Origin = new CaptureOrigin("File", "Downloads", Element: "PDF") });
+                Rebuild();
+                break;
+            case "stack":
+            case "review":
+                var chrome = new CaptureOrigin("Google Chrome", "Pull Request #1068 · GalaAI/ark - Google Chrome", "https://github.com/GalaAI/ark/pull/1068/files", "div.diff-file", "GalaAI/ark", "GalaAI repository");
+                var exports = new CaptureOrigin("File", "exports", Element: "CSV");
+                _items.Add(new StackItem { Kind = CaptureKind.Pick, Name = "div.diff-file, line 42", DataUrl = SampleShot(), Meta = "PICK // CHROME // 540x92", Origin = chrome });
+                var snippet = new StackItem { Kind = CaptureKind.Snippet, Name = "if (verdict.paused) return hold(pr);", Text = "if (verdict.paused) return hold(pr);\nconst token = \"ghp_4f2c91d0aa7e93b1c6d2e8f0\";\nreturn report(pr, verdict);", Meta = "SNIPPET // 3 LINES", Origin = chrome };
+                Scan(snippet);
+                _items.Add(snippet);
+                var link = new StackItem { Kind = CaptureKind.Link, Name = "github.com/GalaAI/ark/pull/1068", Url = "https://github.com/GalaAI/ark/pull/1068", Meta = "LINK", Origin = chrome };
+                Scan(link);
+                _items.Add(link);
+                _items.Add(new StackItem { Kind = CaptureKind.File, Name = "bookings-oct.csv", Path = "bookings-oct.csv", Meta = "FILE // 48.2 KB // 1,204 ROWS", Origin = exports });
+                var sql = new StackItem { Kind = CaptureKind.Snippet, Name = "select * from bookings where month = 10", Text = "select * from bookings where month = 10", Meta = "SNIPPET // 39 CHARS", Origin = exports };
+                Scan(sql);
+                _items.Add(sql);
+                _intentBox.Text = "Why does Navigate hold this PR without saying why?";
+                Rebuild();
+                if (state == "review") { _scrollOpen = true; _summary.Expanded = true; Relayout(); }
+                break;
+            default:
+                Rebuild();
+                break;
+        }
+        Refresh();
+    }
+
+    private static string SampleShot()
+    {
+        using var bmp = new Bitmap(540, 92);
+        using (var g = Graphics.FromImage(bmp)) g.Clear(Color.FromArgb(22, 27, 34));
+        return ToDataUrl(bmp);
+    }
+
+    // ---- Helpers -----------------------------------------------------------------------------------------------
+
+    private static string ToDataUrl(Image img)
+    {
+        using var ms = new MemoryStream();
+        img.Save(ms, ImageFormat.Png);
+        return "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+    }
+
+    private static byte[] DecodeDataUrl(string dataUrl) => Convert.FromBase64String(dataUrl[(dataUrl.IndexOf(',') + 1)..]);
+
+    private static string FileMeta(string path)
+    {
+        try
+        {
+            long bytes = new FileInfo(path).Length;
+            string size = bytes >= 1 << 20 ? $"{bytes / 1048576.0:0.0} MB" : bytes >= 1024 ? $"{bytes / 1024.0:0.0} KB" : $"{bytes} B";
+            return $"FILE // {size}";
+        }
+        catch { return "FILE"; }
+    }
+
+    private static string ShortName(string label)
+    {
+        int paren = label.IndexOf(" (", StringComparison.Ordinal);
+        return paren > 0 ? label[..paren] : label;
+    }
+
+    private static string Slug(string s) => System.Text.RegularExpressions.Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-') is { Length: > 0 } x ? x : "window";
 }

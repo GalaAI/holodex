@@ -49,37 +49,6 @@ public sealed record OmnitekAutoDetectInfo(
         : $"{ItemType.ToUpperInvariant()} / {ItemSubtype.ToUpperInvariant()}";
 }
 
-public sealed record HandoffScrollDesiredEvidenceInfo(
-    string ProofOfReceived,
-    string WorkingState,
-    string DeliverableEvidence);
-
-public sealed record HandoffScrollInfo(
-    string ScrollId,
-    string ItemType,
-    string ItemSubtype,
-    string DraftedBy,
-    string TargetPodId,
-    string DetectedItemType,
-    string? DetectedItemSubtype,
-    string Context,
-    string Goal,
-    HandoffScrollDesiredEvidenceInfo DesiredEvidence,
-    string CreatedAt,
-    string Sha256);
-
-public sealed record PodInboxIntakeReceipt(
-    string IntakeItemId,
-    string PodId,
-    string PodLabel,
-    string PodInboxChannel,
-    string OrchestratorAgentId,
-    string OrchestratorLabel,
-    string PulseId,
-    string PulseStatus,
-    OmnitekAutoDetectInfo AutoDetected,
-    HandoffScrollInfo HandoffScroll);
-
 /// <summary>
 /// Connects Omniwand to ArkStation Model Gateway (:8788), Input Studio / Spine (:8842),
 /// PC-Modz (:8830), Antigravity CLI (Wiz), and AInbox Pod Inboxes when available, or
@@ -238,7 +207,7 @@ public sealed class ArkStationClient
         }
     }
 
-    private static bool TryWriteWindowsCredential(string targetName, string secret)
+    internal static bool TryWriteWindowsCredential(string targetName, string secret)
     {
         IntPtr targetPtr = IntPtr.Zero;
         IntPtr userPtr = IntPtr.Zero;
@@ -877,84 +846,6 @@ public sealed class ArkStationClient
         return new("scroll", "brief", "medium", "Classified as operational Scroll Brief.", "nexus");
     }
 
-    public HandoffScrollInfo BuildPreviewHandoffScroll(
-        string targetPodId,
-        OmnitekAutoDetectInfo detected,
-        string intent,
-        string? fileName,
-        string? text,
-        string? customProofOfReceived = null,
-        string? customWorkingState = null,
-        string? customDeliverable = null,
-        string? attachmentSha256 = null)
-    {
-        var pod = PodInboxes.FirstOrDefault(p => p.PodId == targetPodId) ?? PodInboxes[0];
-        string subtypeLabel = string.IsNullOrEmpty(detected.ItemSubtype)
-            ? detected.ItemType
-            : $"{detected.ItemType}/{detected.ItemSubtype}";
-
-        string sourcePart = !string.IsNullOrWhiteSpace(fileName)
-            ? $"file=\"{Path.GetFileName(fileName)}\""
-            : (!string.IsNullOrWhiteSpace(text) ? $"snippet=\"{(text.Length > 72 ? text[..72] + "..." : text)}\"" : "direct Omniwand capture");
-
-        string context = $"[Scribe Digest -> {pod.Label} ({pod.InboxChannel})] Classified incoming Omnitek item as [{subtypeLabel}] ({sourcePart}).";
-        string goal = !string.IsNullOrWhiteSpace(intent)
-            ? $"{intent.Trim()} (Assigned to {pod.OrchestratorLabel} in {pod.Label} Pod)"
-            : $"Ingest, validate, and route [{subtypeLabel}] within {pod.Label} Pod under {pod.OrchestratorLabel}.";
-
-        var evidence = new HandoffScrollDesiredEvidenceInfo(
-            !string.IsNullOrWhiteSpace(customProofOfReceived)
-                ? customProofOfReceived.Trim()
-                : $"Expect an AInbox receipt in {pod.InboxChannel}, acknowledged by {pod.OrchestratorAgentId}.",
-            !string.IsNullOrWhiteSpace(customWorkingState)
-                ? customWorkingState.Trim()
-                : $"Expect the {pod.Label} Pod workspace staged with the [{subtypeLabel}] dependencies and an active {pod.OrchestratorAgentId} session.",
-            !string.IsNullOrWhiteSpace(customDeliverable)
-                ? customDeliverable.Trim()
-                : $"Expect a verified {subtypeLabel} artifact, a test or validation receipt, and a lineage record from {pod.Label}.");
-
-        string stamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("x");
-        return new HandoffScrollInfo(
-            $"scroll:handoff:{pod.PodId}-{stamp}",
-            "scroll",
-            "handoff",
-            "scribe",
-            pod.PodId,
-            detected.ItemType,
-            detected.ItemSubtype,
-            context,
-            goal,
-            evidence,
-            DateTime.UtcNow.ToString("O"),
-            SealHandoffScroll(pod.PodId, detected, intent, context, goal, evidence, attachmentSha256, text));
-    }
-
-    /// <summary>
-    /// The handoff scroll's seal: SHA-256 (lowercase hex) of what the receiving agent is asked to act on, so a
-    /// receipt can be checked against the scroll that was sent. Canonical form, UTF-8, fields joined by LF:
-    /// "ark.handoff-scroll.v1", pod id, item type, item subtype, intent, context, goal, proof of received,
-    /// working state, deliverable evidence, attachment SHA-256, content SHA-256 (empty when absent).
-    /// Scroll id and timestamps are left out, so the draft and the sent scroll seal the same when unchanged.
-    /// </summary>
-    public static string SealHandoffScroll(string podId, OmnitekAutoDetectInfo detected, string? intent, string context, string goal,
-        HandoffScrollDesiredEvidenceInfo evidence, string? attachmentSha256, string? text)
-    {
-        string canonical = string.Join("\n",
-            "ark.handoff-scroll.v1",
-            podId,
-            detected.ItemType,
-            detected.ItemSubtype ?? "",
-            (intent ?? "").Trim(),
-            context,
-            goal,
-            evidence.ProofOfReceived,
-            evidence.WorkingState,
-            evidence.DeliverableEvidence,
-            attachmentSha256 ?? "",
-            string.IsNullOrEmpty(text) ? "" : Sha256Hex(Encoding.UTF8.GetBytes(text)));
-        return Sha256Hex(Encoding.UTF8.GetBytes(canonical));
-    }
-
     public static string Sha256Hex(byte[] bytes) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
 
     /// <summary>SHA-256 of a file's bytes, streamed. Null when the file cannot be read.</summary>
@@ -966,114 +857,6 @@ public sealed class ArkStationClient
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(fs)).ToLowerInvariant();
         }
         catch { return null; }
-    }
-
-    public async Task<PodInboxIntakeReceipt> SubmitPodInboxIntakeAsync(
-        string targetPodId,
-        string intent,
-        string? fileName,
-        string? text,
-        string? dataUrl,
-        string? customProofOfReceived,
-        string? customWorkingState,
-        string? customDeliverable,
-        string? attachmentSha256 = null)
-    {
-        var detected = AutoDetectOmnitekItem(fileName, text, intent);
-        var scroll = BuildPreviewHandoffScroll(
-            targetPodId,
-            detected,
-            intent,
-            fileName,
-            text,
-            customProofOfReceived,
-            customWorkingState,
-            customDeliverable,
-            attachmentSha256);
-        var pod = PodInboxes.FirstOrDefault(p => p.PodId == targetPodId) ?? PodInboxes[0];
-
-        bool spineSaved = false;
-        if (!ForceStandaloneMode)
-        {
-            // 1. Try posting to Input Studio / Spine (:8842/api/omniwand/ainbox/intake)
-            try
-            {
-                var reqBody = new
-                {
-                    podId = pod.PodId,
-                    intent,
-                    fileName,
-                    text,
-                    dataUrl,
-                    actor = "operator:omniwand",
-                    scrollSha256 = scroll.Sha256,
-                    attachmentSha256,
-                    desiredEvidence = new
-                    {
-                        proofOfReceived = scroll.DesiredEvidence.ProofOfReceived,
-                        workingState = scroll.DesiredEvidence.WorkingState,
-                        deliverableEvidence = scroll.DesiredEvidence.DeliverableEvidence
-                    }
-                };
-                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(3));
-                var content = new StringContent(JsonSerializer.Serialize(reqBody), Encoding.UTF8, "application/json");
-                using var resp = await _http.PostAsync($"{DefaultInputSpineUrl}/api/omniwand/ainbox/intake", content, cts.Token);
-                spineSaved = resp.IsSuccessStatusCode;
-            }
-            catch
-            {
-                // Fall back to local receipt log
-            }
-        }
-
-        string stamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString("x");
-        var receipt = new PodInboxIntakeReceipt(
-            $"ainbox:item:{pod.PodId}:{stamp}",
-            pod.PodId,
-            pod.Label,
-            pod.InboxChannel,
-            pod.OrchestratorAgentId,
-            pod.OrchestratorLabel,
-            $"pulse:{pod.PodId}:{pod.OrchestratorAgentId}:{stamp}",
-            spineSaved ? "pulsed" : "saved-local",
-            detected,
-            scroll);
-
-        try
-        {
-            string stateDir = Directory.Exists(Path.GetDirectoryName(DefaultInputStudioStateDir) ?? "")
-                ? DefaultInputStudioStateDir
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "intake");
-            Directory.CreateDirectory(stateDir);
-            string logPath = Path.Combine(stateDir, "ainbox-pod-intake-omniwand.jsonl");
-            await File.AppendAllTextAsync(logPath, JsonSerializer.Serialize(receipt) + Environment.NewLine);
-            if (!spineSaved)
-            {
-                string mdPath = Path.Combine(stateDir, $"handoff-{pod.PodId}-{stamp}.md");
-                var ev = receipt.HandoffScroll.DesiredEvidence;
-                await File.WriteAllTextAsync(mdPath,
-                    $"# Handoff scroll: {pod.Label}\n\n" +
-                    $"- Scroll: {receipt.HandoffScroll.ScrollId}\n- Seal: sha256:{receipt.HandoffScroll.Sha256}\n- Item: {detected.DisplayBadge} ({detected.Confidence} confidence)\n" +
-                    (string.IsNullOrWhiteSpace(fileName) ? "" : $"- File: {fileName}\n") +
-                    $"- Written: {DateTimeOffset.Now:yyyy-MM-dd HH:mm}\n\n" +
-                    $"## Intent\n\n{(string.IsNullOrWhiteSpace(intent) ? "(none)" : intent.Trim())}\n\n" +
-                    (string.IsNullOrWhiteSpace(text) ? "" : $"## Content\n\n{text.Trim()}\n\n") +
-                    $"## Context\n\n{receipt.HandoffScroll.Context}\n\n## Goal\n\n{receipt.HandoffScroll.Goal}\n\n" +
-                    $"## Desired evidence\n\n- Proof of received: {ev.ProofOfReceived}\n- Working state: {ev.WorkingState}\n- Deliverable: {ev.DeliverableEvidence}\n");
-                PhosphorToast.Show(
-                    "Handoff saved",
-                    $"ArkStation is not running, so the scroll was saved to {mdPath}.",
-                    "STANDALONE // AINBOX",
-                    5200,
-                    ToastTone.Success);
-            }
-        }
-        catch
-        {
-            // Ignore local log write failure
-        }
-
-        return receipt;
     }
 
     /// <summary>

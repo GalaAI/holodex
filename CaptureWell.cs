@@ -10,17 +10,18 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>The capture kinds AInbox accepts (Augment Inventory CP-27, AInboxUpload).</summary>
-internal enum CaptureKind { File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, More }
+internal enum CaptureKind { File, Screen, Window, Pick, Lasso, Record, Whisper, Snippet, Link, More }
 
 internal sealed record CaptureKindInfo(CaptureKind Kind, string Label, bool Planned);
 
 internal static class CaptureKinds
 {
-    /// <summary>All eight, in capture-bar order. Record and Whisper are not built yet, so the bar leaves them out.</summary>
+    /// <summary>All nine, in capture-bar order (design target "Capture tools"). Record and Whisper are planned: the bar shows them dimmed.</summary>
     public static readonly CaptureKindInfo[] All =
     {
         new(CaptureKind.File, "FILE", false),
         new(CaptureKind.Screen, "SCREEN", false),
+        new(CaptureKind.Window, "WINDOW", false),
         new(CaptureKind.Pick, "PICK", false),
         new(CaptureKind.Lasso, "LASSO", false),
         new(CaptureKind.Record, "RECORD", true),
@@ -36,6 +37,7 @@ internal static class CaptureKinds
     {
         CaptureKind.File => "File",
         CaptureKind.Screen => "Screen",
+        CaptureKind.Window => "Window",
         CaptureKind.Pick => "Pick",
         CaptureKind.Lasso => "Lasso",
         CaptureKind.Record => "Record",
@@ -69,6 +71,7 @@ internal static class CaptureKinds
     {
         CaptureKind.File => PhosphorGlyph.File,
         CaptureKind.Screen => PhosphorGlyph.Screen,
+        CaptureKind.Window => PhosphorGlyph.Window,
         CaptureKind.Pick => PhosphorGlyph.Pick,
         CaptureKind.Lasso => PhosphorGlyph.Lasso,
         CaptureKind.Record => PhosphorGlyph.Record,
