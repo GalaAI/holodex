@@ -303,7 +303,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         PhosphorTips.Install();
         ToolStripManager.Renderer = new PhosphorMenuRenderer();
-        var menu = new ContextMenuStrip
+        // PhosphorTrayMenu owns the geometry: one column width for every panel, submenus always open right, and
+        // the menu shifts left of the tray far enough for them to fit (PhosphorMenuLayout).
+        var menu = new PhosphorTrayMenu
         {
             Renderer = new PhosphorMenuRenderer(),
             ShowImageMargin = false,
@@ -561,6 +563,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorMenuFrame.Apply(pkgMenu, "Mouse package");
         PhosphorMenuFrame.Apply(dpiMenu, "Mouse DPI // speed");
         PhosphorMenuFrame.Apply(vrMenu, "VR streaming");
+        // Size the panels now, so the first open already anchors the finished width to the tray.
+        PhosphorMenuLayout.Apply(menu);
 
         _trayIcon = new NotifyIcon
         {
@@ -588,7 +592,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 {
                     // Fallback to direct ContextMenuStrip.Show below
                 }
-                menu.Show(Cursor.Position);
+                // Same anchor as NotifyIcon's own path: the menu sits above and left of the pointer.
+                menu.Show(Cursor.Position, ToolStripDropDownDirection.AboveLeft);
             }
         };
 

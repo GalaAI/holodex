@@ -64,6 +64,9 @@ internal static class SurfaceCapture
             trayMenu.Close();
         }
 
+        // The menu as it opens from the tray, one sheet per submenu, placed on a 1920x1080 screen.
+        written.AddRange(CaptureTrayComposites(dir, trayMenu));
+
         // Render a composite sheet of the 240Hz ArkApertureMorphEngine states
         Save(RenderCursorMorphSheet(), Path.Combine(dir, "cursor-morph-sheet.png"), written);
 
@@ -237,6 +240,108 @@ internal static class SurfaceCapture
             }
         }
         return bmp;
+    }
+
+    /// <summary>The screen the tray composites are placed on: 1920x1080 with a 48px taskbar along the bottom.</summary>
+    internal static readonly Rectangle TrayScreen = new(0, 0, 1920, 1080);
+    internal static readonly Rectangle TrayWorkArea = new(0, 0, 1920, 1032);
+
+    /// <summary>Pointer on the Omniwand tray icon, near the clock at the bottom-right.</summary>
+    internal static readonly Point TrayAnchor = new(1790, 1056);
+
+    /// <summary>
+    /// <c>menu-tray-*.png</c>: the main menu with each submenu open (and each Settings submenu open under
+    /// Settings), placed where they open from the tray on <see cref="TrayScreen"/>.
+    /// </summary>
+    public static IReadOnlyList<string> CaptureTrayComposites(string dir, ContextMenuStrip trayMenu)
+    {
+        Directory.CreateDirectory(dir);
+        var written = new List<string>();
+        foreach (var root in trayMenu.Items.OfType<ToolStripMenuItem>().Where(i => i.HasDropDownItems))
+        {
+            Save(RenderTrayComposite(trayMenu, new[] { root }, out _), Path.Combine(dir, $"menu-tray-{Slug(root.Text)}.png"), written);
+            foreach (var nested in root.DropDownItems.OfType<ToolStripMenuItem>().Where(i => i.HasDropDownItems))
+                Save(RenderTrayComposite(trayMenu, new[] { root, nested }, out _), Path.Combine(dir, $"menu-tray-{Slug(root.Text)}-{Slug(nested.Text)}.png"), written);
+        }
+        return written;
+    }
+
+    /// <summary>
+    /// Draws <paramref name="trayMenu"/> with the submenus on <paramref name="path"/> open, placed the way the
+    /// app places them: NotifyIcon opens the menu above and left of the pointer, PhosphorTrayMenu moves it left
+    /// until the submenu chain fits (<see cref="PhosphorMenuLayout.PlaceRootLeft"/>), and each submenu opens in
+    /// its row's <see cref="ToolStripDropDownItem.DropDownDirection"/>, kept inside the working area the way
+    /// WinForms keeps it. <paramref name="panels"/> receives each panel's screen rectangle, root first.
+    /// </summary>
+    internal static Bitmap RenderTrayComposite(ContextMenuStrip trayMenu, IReadOnlyList<ToolStripMenuItem> path, out List<Rectangle> panels)
+    {
+        PhosphorMenuLayout.Apply(trayMenu);
+        var chain = new List<ToolStripDropDown> { trayMenu };
+        chain.AddRange(path.Select(i => i.DropDown));
+        foreach (var dd in chain) using (Render(dd)) { }
+
+        var root = new Rectangle(TrayAnchor.X - trayMenu.Width, TrayAnchor.Y - trayMenu.Height, trayMenu.Width, trayMenu.Height);
+        root = Constrain(root, TrayScreen);
+        root.X = PhosphorMenuLayout.PlaceRootLeft(root.X, PhosphorMenuLayout.Reach(trayMenu, root.Width), TrayWorkArea);
+        panels = new List<Rectangle> { root };
+        var parent = root;
+        foreach (var item in path)
+        {
+            var row = item.Bounds;
+            var sub = item.DropDown;
+            int x = item.DropDownDirection == ToolStripDropDownDirection.Left ? parent.X + row.X - sub.Width : parent.X + row.Right;
+            parent = Constrain(new Rectangle(x, parent.Y + row.Y, sub.Width, sub.Height), TrayWorkArea);
+            panels.Add(parent);
+        }
+
+        // Light each open row's parent, as the live menu does while a submenu is open.
+        foreach (var item in path) item.Select();
+        var shots = chain.Select(Render).ToList();
+
+        int left = Math.Max(TrayScreen.Left, panels.Min(r => r.Left) - 48);
+        int top = Math.Max(TrayScreen.Top, panels.Min(r => r.Top) - 48);
+        var origin = new Point(left, top);
+        var bmp = new Bitmap(TrayScreen.Right - left, TrayScreen.Bottom - top, PixelFormat.Format32bppArgb);
+        using (var g = Graphics.FromImage(bmp))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            g.Clear(PhosphorTheme.Ground);
+            using (var bar = new SolidBrush(PhosphorTheme.Surface)) g.FillRectangle(bar, 0, TrayWorkArea.Bottom - top, bmp.Width, TrayScreen.Bottom - TrayWorkArea.Bottom);
+            using (var line = new Pen(PhosphorTheme.Line)) g.DrawLine(line, 0, TrayWorkArea.Bottom - top, bmp.Width, TrayWorkArea.Bottom - top);
+            PhosphorTheme.DrawArkMark(g, new RectangleF(TrayAnchor.X - left - 10, TrayAnchor.Y - top - 10, 20, 20));
+            PhosphorPaint.DrawEyebrow(g, $"Tray menu // {TrayScreen.Width} x {TrayScreen.Height} // screen edge right", PhosphorTheme.Ghost, 16, 14, 1f);
+            for (int i = 0; i < shots.Count; i++)
+                g.DrawImageUnscaled(shots[i], panels[i].X - origin.X, panels[i].Y - origin.Y);
+        }
+        foreach (var shot in shots) shot.Dispose();
+
+        // Put the rows back unlit: the menu was never shown, so nothing else clears the selection, and the next
+        // capture (or the next time the tray opens it) would draw them lit. Hiding an item unselects it.
+        foreach (var item in path)
+        {
+            item.Available = false;
+            item.Available = true;
+        }
+        for (int i = path.Count - 1; i >= 0; i--) path[i].DropDown.Close();
+        trayMenu.Close();
+        return bmp;
+    }
+
+    /// <summary>WinForms' ConstrainToScreenBounds: slides <paramref name="r"/> inside <paramref name="area"/>.</summary>
+    private static Rectangle Constrain(Rectangle r, Rectangle area)
+    {
+        if (r.Right > area.Right) r.X = area.Right - r.Width;
+        if (r.Left < area.Left) r.X = area.Left;
+        if (r.Bottom > area.Bottom) r.Y = area.Bottom - r.Height;
+        if (r.Top < area.Top) r.Y = area.Top;
+        return r;
+    }
+
+    private static string Slug(string? text)
+    {
+        string plain = System.Text.RegularExpressions.Regex.Replace(text ?? string.Empty, @"\(.*?\)", string.Empty);
+        return System.Text.RegularExpressions.Regex.Replace(plain.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
     }
 
     private static Bitmap RenderCursorMorphSheet()
