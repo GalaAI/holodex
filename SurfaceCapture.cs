@@ -309,6 +309,13 @@ internal static class SurfaceCapture
         }
         foreach (var shot in shots) shot.Dispose();
 
+        // Put the rows back unlit: the menu was never shown, so nothing else clears the selection, and the next
+        // capture (or the next time the tray opens it) would draw them lit. Hiding an item unselects it.
+        foreach (var item in path)
+        {
+            item.Available = false;
+            item.Available = true;
+        }
         for (int i = path.Count - 1; i >= 0; i--) path[i].DropDown.Close();
         trayMenu.Close();
         return bmp;
