@@ -56,6 +56,9 @@ public sealed record OmnitekAutoDetectInfo(
 /// PC-Modz (:8830), Antigravity CLI (Wiz), and AInbox Pod Inboxes when available, or
 /// operates in Standalone Mode directly against Nebius Token Factory (NVIDIA Nemotron).
 /// </summary>
+/// <summary>What a GrimX Spell cast through Input Spine did; each outcome has its own toast.</summary>
+public enum SpellCastOutcome { Cast, NoBinding, Refused, Unreachable, Standalone }
+
 public sealed class ArkStationClient
 {
     // Optional ArkStation integration. A public install has no Ark checkout, so these resolve from ARK_ROOT and
@@ -509,7 +512,7 @@ public sealed class ArkStationClient
     /// Spine matched a binding for the gesture; in standalone mode (when Input Studio is absent),
     /// degrades gracefully and reports a clean warning message for the Phosphor toast.
     /// </summary>
-    public async Task<(bool Ok, string Output)> TriggerGrimXFlowAsync(
+    public async Task<(SpellCastOutcome Outcome, string Output)> TriggerGrimXFlowAsync(
         string flowKind,
         string verb,
         Point cursorPos,
@@ -517,7 +520,7 @@ public sealed class ArkStationClient
     {
         if (ForceStandaloneMode)
         {
-            return (false, $"Standalone mode: Input Studio (:8842) is optional and offline. Use Wiz (Alt+W) or HUD (Alt+Space) to craft {flowKind} with Nemotron.");
+            return (SpellCastOutcome.Standalone, $"Standalone mode: Input Studio (:8842) is optional and offline. Use Wiz (Alt+W) or HUD (Alt+Space) to craft {flowKind} with Nemotron.");
         }
 
         try
@@ -544,7 +547,7 @@ public sealed class ArkStationClient
             string body = await resp.Content.ReadAsStringAsync();
             if (!resp.IsSuccessStatusCode)
             {
-                return (false, $"Input Spine refused the {flowKind} cast (HTTP {(int)resp.StatusCode}).");
+                return (SpellCastOutcome.Refused, $"Input Spine refused the {flowKind} cast (HTTP {(int)resp.StatusCode}), so nothing was cast.");
             }
 
             bool matched = false;
@@ -559,14 +562,17 @@ public sealed class ArkStationClient
             }
 
             return matched
-                ? (true, $"{verb} {flowKind} dispatched through Input Spine.")
-                : (false, $"No Input Spine binding for grimx/{flowKind.ToLowerInvariant()}, so nothing was cast. Bind it in Input Studio.");
+                ? (SpellCastOutcome.Cast, $"{verb} {flowKind} dispatched through Input Spine.")
+                : (SpellCastOutcome.NoBinding, $"No Input Spine binding for grimx/{flowKind.ToLowerInvariant()}, so nothing was cast. Bind it in Input Studio.");
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return (false, $"Standalone mode: Input Studio (:8842) is offline. Use Wiz (Alt+W) or HUD (Alt+Space) to craft {flowKind} with Nemotron.");
+            return (SpellCastOutcome.Unreachable, "Input Spine (:8842) is unreachable, so nothing was cast. Start the Ark runtime and cast again.");
         }
     }
+
+    /// <summary>Whether Keymaster holds the inbound key the HUD needs to ask through the Ark gateway.</summary>
+    public bool HasGatewayInboundKey => HasArkGatewayCredentials();
 
     /// <summary>
     /// Invokes Wiz (4GE Workflow-Crafting &amp; GrimX Governance Agent).

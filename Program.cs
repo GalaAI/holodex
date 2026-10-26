@@ -522,13 +522,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         flushCacheItem.Click += (_, _) =>
         {
             NativeCursorManager.HideSystemCursors(force: true);
-            bool flushed = VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
+            VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
             _overlay.PulseCursorHandleForVr(_uiSync);
-            PhosphorToast.Show(
-                "OculusDash Cursor Cache",
-                flushed ? "Flushed ReactSystem HCURSOR map & re-bound transparent cursor." : "No active OculusDash cache required flushing.",
-                "VR CURSOR FIX",
-                3200);
         };
         vrMenu.DropDownItems.Add(flushCacheItem);
         var diagItem = new ToolStripMenuItem("Log pointer state") { CheckOnClick = true, ToolTipText = "Writes %TEMP%\\omniwand-pointer.log" };
@@ -1008,6 +1003,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         if (!_ghostTrailer.IsStreaming)
         {
             _ghostTrailer.BeginStream(pt, _currentRole.ToString(), Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
+            // Alt+V is held back until speech capture lands, so F16 is the one way to stop it.
+            PhosphorToast.Show("GhostTrailer on", "Streaming the ribbon. F16 stops it.", "GHOSTTRAILER // F16", 2400, ToastTone.Info);
         }
         else
         {
@@ -1041,17 +1038,26 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _isAiThinking = true;
             try
             {
-                var (cast, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString());
+                var (outcome, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString());
                 string spell = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
-                if (cast)
+                string eyebrow = $"GRIMX SPELL // {slot.Verb}";
+                switch (outcome)
                 {
-                    PhosphorToast.Show($"Cast: {spell}", message, $"GRIMX SPELL // {slot.Verb}", 2400, ToastTone.Success);
-                }
-                else
-                {
-                    // Standalone build: no local Spell runtime, so Wiz crafts the Spell on Nemotron instead.
-                    PhosphorToast.Show($"{spell} opened in Wiz", "No local Spell runtime found, so Wiz will craft this Spell with Nemotron.", $"GRIMX SPELL // {slot.Verb}", 2600, ToastTone.Info);
-                    _wizWidget.SummonAt(pt, slot.Id);
+                    case SpellCastOutcome.Cast:
+                        PhosphorToast.Show($"Cast: {spell}", message, eyebrow, 2400, ToastTone.Success);
+                        break;
+                    case SpellCastOutcome.NoBinding:
+                    case SpellCastOutcome.Refused:
+                        PhosphorToast.Show($"{spell} not cast", message, eyebrow, 3600, ToastTone.Warning);
+                        break;
+                    case SpellCastOutcome.Unreachable:
+                        PhosphorToast.Show("Input Spine unreachable", message, eyebrow, 4200, ToastTone.Error);
+                        break;
+                    default:
+                        // Standalone build: no local Spell runtime, so Wiz crafts the Spell on Nemotron instead.
+                        PhosphorToast.Show($"{spell} opened in Wiz", "No local Spell runtime found, so Wiz will craft this Spell with Nemotron.", eyebrow, 2600, ToastTone.Info);
+                        _wizWidget.SummonAt(pt, slot.Id);
+                        break;
                 }
             }
             finally
@@ -1122,7 +1128,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
             NativeCursorManager.HideSystemCursors(force: true);
             VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
             _overlay.PulseCursorHandleForVr(_uiSync);
-            PhosphorToast.Show("Arrow slot style", $"{style}: flushed OculusDash cache & re-bound cursor.", "VR CURSOR TEST", 3000);
         };
         parent.DropDownItems.Add(item);
     }
@@ -1154,7 +1159,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 // Diagnostics must never disturb the cursor loop.
             }
         }, null, 0, 150);
-        PhosphorToast.Show("Pointer log on", path, "VR CURSOR TEST", 3500);
     }
 
     /// <summary>
@@ -1205,7 +1209,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 if (_vrStatusItem != null) _vrStatusItem.Text = text;
                 if (stream != null)
-                    PhosphorToast.Show("VR mode", $"{stream} detected. Native cursor hidden, wand enlarged.", "OMNIWAND", 3000);
+                    PhosphorToast.Show("VR mode", $"{stream} detected. Native cursor hidden, wand enlarged.", "OMNIWAND // VR", 3000);
             }, null);
         }
     }
@@ -1286,6 +1290,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             NativeCursorManager.RestoreSystemCursors();
             _hideNativeMenuItem.Checked = false;
+            PhosphorToast.Show("Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "OMNIWAND // CURSOR", 2400, ToastTone.Info);
         }
         else
         {

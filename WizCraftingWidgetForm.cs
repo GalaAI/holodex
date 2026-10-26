@@ -313,7 +313,8 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
                         ? $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(outcome.Model)}"
                         : $"WIZ // STOPPED // {Short(outcome.Model)}",
                     outcome.Text);
-                ToastIfAway(outcome.Ok ? $"Wiz drafted a {lensTitle}" : "Wiz stopped", outcome.Text, outcome.Ok);
+                if (outcome.Ok) ToastCrafted(lensTitle);
+                else ToastIfAway("Wiz stopped", outcome.Text, false);
             }
             else
             {
@@ -324,7 +325,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
                 _modelChip.ShowRuntime(runtime);
                 ShowRuntime(runtime, answered);
                 Say(ThreadTone.Agent, $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output);
-                ToastIfAway($"Wiz drafted a {lensTitle}", output, true);
+                ToastCrafted(lensTitle);
             }
         }
         catch (OperationCanceledException)
@@ -343,6 +344,10 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
             _promptBox.Focus();
         }
     }
+
+    /// <summary>The catalog's Flow crafted toast: the draft is in the thread, and the next step is a ring slot.</summary>
+    private static void ToastCrafted(string lensTitle) =>
+        PhosphorToast.Show($"{lensTitle} crafted", $"{lensTitle} drafted in Wiz. Bind it to a ring slot in Input Studio.", "WIZ // 4GE BENCH", 3200, ToastTone.Success);
 
     /// <summary>A run that ends while Wiz is hidden or behind another window says so with a toast.</summary>
     private void ToastIfAway(string title, string text, bool ok)

@@ -817,8 +817,11 @@ public sealed class AInboxIntakeWidgetForm : Form
             bool delivered = sent.Items.All(i => i.AInboxItemId != null);
             string head = delivered ? $"SENT {g.Letter} // {items.Count} TO AINBOX // {pod.Label.ToUpperInvariant()}" : $"QUEUED {g.Letter} // AINBOX NOT READY, RETRYING";
             SetStatus($"{head} // sha256:{seal[..12]}", delivered ? PhosphorTheme.Moss : PhosphorTheme.Seal);
-            if (!Visible)
-                PhosphorToast.Show(delivered ? $"Sent to {pod.Label}" : "Handoff queued", $"sha256:{seal[..12]}", "AINBOX // HANDOFF", 3200, delivered ? ToastTone.Success : ToastTone.Info);
+            PhosphorToast.Show(delivered ? "Intake submitted" : "Intake queued",
+                delivered
+                    ? $"Handoff Scroll sent to {pod.Label} and its inbox pulsed. Seal sha256:{seal[..12]}."
+                    : $"AInbox is not ready, so the Handoff Scroll waits on disk and retries. Seal sha256:{seal[..12]}.",
+                $"AINBOX // POD {pod.PodId.ToUpperInvariant()}", 3600, delivered ? ToastTone.Success : ToastTone.Info);
             foreach (var it in g.Items.ToList()) _items.Remove(it);
             _refinedSig.Remove(g.Key);
             if (g == _virtualAsk) _virtualAsk = null;

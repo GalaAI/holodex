@@ -33,6 +33,7 @@ public sealed class OmniwandHudForm : Form
     private readonly ThreadView _answers;
     private readonly Panel _responseGap;
     private readonly LedRow _telemetryLine;
+    private static bool _gatewayNoticeShown;
     private readonly DisclosureRow _shortcutsRow;
     private readonly Label _shortcutsBody;
     private readonly ModelChip _modelChip;
@@ -243,6 +244,15 @@ public sealed class OmniwandHudForm : Form
         var status = await _ark.CheckStatusAsync();
         _spineOnline = status.InputSpineOnline;
         ShowWandStatus(status.GatewayOnline, status.NebiusKeyLoaded);
+        if (!_gatewayNoticeShown && !status.GatewayOnline && !_ark.HasGatewayInboundKey && !_ark.ForceStandaloneMode)
+        {
+            _gatewayNoticeShown = true;
+            PhosphorToast.Show("Gateway unavailable",
+                status.NebiusKeyLoaded
+                    ? "No inbound key in Keymaster, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work."
+                    : "The HUD cannot ask the Ark gateway: no inbound key in Keymaster. Wand and ring still work; add a Nebius key in Holodex (Alt+H).",
+                "GATEWAY // KEYMASTER", 4200, status.NebiusKeyLoaded ? ToastTone.Info : ToastTone.Warning);
+        }
         await _modelChip.RefreshAsync();
         ShowKeyState();
     }
