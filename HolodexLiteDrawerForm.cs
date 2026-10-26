@@ -700,14 +700,46 @@ public sealed class HolodexLiteDrawerForm : Form
             PhosphorToast.Show("Work Order", "Type the task in the message box first.", "HOLODEX // WORK ORDERS", 2800, ToastTone.Warning);
             return;
         }
-        string owner = _selectedSyndicateTarget == "all" ? "WIZ" : _selectedSyndicateTarget.ToUpperInvariant();
+        AddWorkOrder(_selectedSyndicateTarget, text);
+        _sessionInputBox.Clear();
+    }
+
+    /// <summary>
+    /// Queues a work order for a Syndicate agent (roster id or name; "all" goes to Wiz), the same way the session
+    /// composer's + does. Returns the order id, or null with the reason when the agent or task is not valid.
+    /// </summary>
+    public string? QueueWorkOrder(string agent, string task, out string error)
+    {
+        string text = task.Trim();
+        string who = agent.Trim();
+        var match = SyndicateRoster.FirstOrDefault(a =>
+            string.Equals(a.Id, who, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(a.Name, who, StringComparison.OrdinalIgnoreCase));
+        if (match == null)
+        {
+            error = $"Unknown agent '{agent}'. Use one of: {string.Join(", ", SyndicateRoster.Select(a => a.Id))}.";
+            return null;
+        }
+        if (string.IsNullOrEmpty(text))
+        {
+            error = "The task is empty.";
+            return null;
+        }
+        error = string.Empty;
+        return AddWorkOrder(match.Id, text).OrderId;
+    }
+
+    private SyndicateWorkOrder AddWorkOrder(string targetId, string text)
+    {
+        string owner = targetId == "all" ? "WIZ" : targetId.ToUpperInvariant();
         string orderId = $"WO-{100 + _workOrders.Count + 1}";
-        _workOrders.Insert(0, new SyndicateWorkOrder(orderId, text, owner, "QUEUED", "Just now"));
+        var order = new SyndicateWorkOrder(orderId, text, owner, "QUEUED", "Just now");
+        _workOrders.Insert(0, order);
         RefreshWorkOrdersText();
         _sessionChatBox.AppendText($"\n\n[WORK ORDER CREATED // {orderId} -> {owner}]\n{text}");
         _sessionChatBox.SelectionStart = _sessionChatBox.TextLength;
         _sessionChatBox.ScrollToCaret();
-        _sessionInputBox.Clear();
+        return order;
     }
 
     private async Task SendSyndicateSessionMessageAsync()

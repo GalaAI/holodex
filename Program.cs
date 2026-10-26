@@ -222,7 +222,25 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _trailX = startPt.X - _dirX * 22.0;
         _trailY = startPt.Y - _dirY * 22.0;
 
-        _wizWidget = new WizCraftingWidgetForm(_ark, thinking => _isAiThinking = thinking);
+        // Wiz acts through the widgets that own each behavior: snip tools, AInbox's composer, Holodex work orders
+        // and Codex. The lambdas read the fields when Wiz calls them, after every widget below exists.
+        _wizWidget = new WizCraftingWidgetForm(_ark, thinking => _isAiThinking = thinking, new WizAgentHost
+        {
+            OpenLasso = pt => _snipWidget?.SummonAt(pt, WandCaptureTool.FreeformLasso),
+            OpenElementPicker = pt => _snipWidget?.SummonAt(pt, WandCaptureTool.ElementPicker),
+            OpenAInboxWithAsk = (pt, ask) =>
+            {
+                _ainboxWidget?.SummonAt(pt);
+                _ainboxWidget?.PrefillAsk(ask);
+            },
+            QueueWorkOrder = (agent, task) =>
+            {
+                if (_holodexDrawer == null) return (null, "Holodex is not ready yet.");
+                string? orderId = _holodexDrawer.QueueWorkOrder(agent, task, out string error);
+                return (orderId, error);
+            },
+            CodexSaved = _ => _holodexDrawer?.RefreshCodexEntries()
+        });
         _ainboxWidget = new AInboxIntakeWidgetForm(_ark, thinking => _isAiThinking = thinking);
         _snipWidget = new ScreenSnipAndElementPickerForm(
             _ark,
