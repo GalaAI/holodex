@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 
 namespace Omniwand;
@@ -306,8 +307,16 @@ internal sealed class PhosphorMenuHeader : ToolStripItem
 
     public override bool CanSelect => false;
 
+    /// <summary>Row width set by <see cref="PhosphorMenuLayout"/> (the panel's label column); null sizes to content.</summary>
+    public int? ColumnWidth { get; set; }
+
     private float Scale => (Owner?.DeviceDpi ?? 96) / 96f;
 
+    /// <summary>
+    /// Sized by the eyebrow and title only. The subline (the detected mouse name, which can run long) never
+    /// widens the menu: inside the column <see cref="PhosphorMenuLayout"/> gives the panel it breaks onto a
+    /// second line at its " · " separator, and ellipsizes only what still does not fit.
+    /// </summary>
     public override Size GetPreferredSize(Size constrainingSize)
     {
         float s = Scale;
@@ -318,9 +327,18 @@ internal sealed class PhosphorMenuHeader : ToolStripItem
         using var g = Graphics.FromImage(probe);
         float tracking = eyebrowFont.Size * 0.16f * g.DpiX / 72f;
         float text = Math.Max(PhosphorPaint.MeasureTracked(g, _eyebrow.ToUpperInvariant(), eyebrowFont, tracking),
-            Math.Max(g.MeasureString(_title, titleFont, PointF.Empty, PhosphorPaint.Typographic).Width,
-                     g.MeasureString(_subline, subFont, PointF.Empty, PhosphorPaint.Typographic).Width));
-        return new Size((int)Math.Ceiling(44 * s + text + 12 * s), (int)(68 * s));
+            g.MeasureString(_title, titleFont, PointF.Empty, PhosphorPaint.Typographic).Width);
+        int width = ColumnWidth ?? (int)Math.Ceiling(44 * s + text + 12 * s);
+        int lines = SublineLines(g, subFont, width - 56 * s).Length;
+        return new Size(width, (int)(68 * s + (lines - 1) * subFont.GetHeight(g)));
+    }
+
+    /// <summary>The subline on one line when it fits in <paramref name="room"/>, else split at its last " · ".</summary>
+    private string[] SublineLines(Graphics g, Font font, float room)
+    {
+        if (g.MeasureString(_subline, font, PointF.Empty, PhosphorPaint.Typographic).Width <= room) return new[] { _subline };
+        int cut = _subline.LastIndexOf(" · ", StringComparison.Ordinal);
+        return cut > 0 ? new[] { _subline[..cut], _subline[(cut + 3)..] } : new[] { _subline };
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -345,7 +363,14 @@ internal sealed class PhosphorMenuHeader : ToolStripItem
         y += eyebrowFont.GetHeight(g) + 3 * s;
         g.DrawString(_title, titleFont, bone, x - 1, y, PhosphorPaint.Typographic);
         y += titleFont.GetHeight(g) + 1 * s;
-        g.DrawString(_subline, subFont, dim, x, y, PhosphorPaint.Typographic);
+        using var trim = new StringFormat(PhosphorPaint.Typographic) { Trimming = StringTrimming.EllipsisCharacter };
+        trim.FormatFlags = (trim.FormatFlags | StringFormatFlags.NoWrap) & ~StringFormatFlags.NoClip;
+        float room = Math.Max(0, Width - x - 12 * s);
+        foreach (string line in SublineLines(g, subFont, room))
+        {
+            g.DrawString(line, subFont, dim, new RectangleF(x, y, room, subFont.GetHeight(g) + 2 * s), trim);
+            y += subFont.GetHeight(g);
+        }
     }
 }
 
@@ -363,15 +388,155 @@ internal static class PhosphorMenuFrame
     }
 }
 
-/// <summary>Bottom margin row for a menu panel (see <see cref="PhosphorMenuFrame"/>).</summary>
+/// <summary>
+/// Bottom margin row for a menu panel (see <see cref="PhosphorMenuFrame"/>). It also carries the panel's column
+/// width: a dropdown sizes its label column to its widest non-menu row, so <see cref="PhosphorMenuLayout"/> sets
+/// <see cref="ColumnWidth"/> to give every panel in a tree the same width.
+/// </summary>
 internal sealed class PhosphorMenuSpacer : ToolStripItem
 {
+    /// <summary>Row width in pixels set by <see cref="PhosphorMenuLayout"/>; null keeps the default 40px.</summary>
+    public int? ColumnWidth { get; set; }
+
     public override bool CanSelect => false;
 
     public override Size GetPreferredSize(Size constrainingSize)
     {
         float s = (Owner?.DeviceDpi ?? 96) / 96f;
-        return new Size((int)(40 * s), (int)(6 * s));
+        return new Size(ColumnWidth ?? (int)(40 * s), (int)(6 * s));
+    }
+}
+
+/// <summary>
+/// Tray menu geometry, one rule for the main menu and every submenu under it:
+/// <list type="number">
+/// <item>Width: every panel in the tree is as wide as the widest panel's content, so labels, shortcut columns and
+/// arrows line up from panel to panel and the reach of a submenu chain is predictable. Decorative rows (the
+/// header, eyebrows) never widen a panel; the header ellipsizes its subline instead.</item>
+/// <item>Direction: every submenu opens to the right (<see cref="ToolStripDropDownDirection.Right"/>). WinForms'
+/// default direction flips a submenu left whenever the screen edge pushes it over its parent row.</item>
+/// <item>Placement: a root menu opened near the right screen edge (the tray) moves left until its deepest
+/// submenu chain fits on the right (<see cref="PlaceRootLeft"/>), so no submenu is pushed back over the menu.</item>
+/// </list>
+/// </summary>
+internal static class PhosphorMenuLayout
+{
+    private const int ProbeWidth = 4096;
+
+    /// <summary>Each fixed-size hosted control's own width, before the column stretched it.</summary>
+    private static readonly ConditionalWeakTable<ToolStripControlHost, StrongBox<int>> HostWidths = new();
+
+    /// <summary>Applies the width and direction rules to <paramref name="root"/> and every submenu under it.</summary>
+    public static void Apply(ToolStripDropDown root)
+    {
+        var panels = new List<ToolStripDropDown>();
+        Collect(root, panels);
+
+        foreach (var panel in panels)
+        {
+            // Submenus inherit only the manager renderer, which never initializes them (fonts, clip); give them
+            // the root's renderer before measuring, as PhosphorMenuRenderer.InitializeItem does when it runs.
+            if (panel != root && panel.RenderMode != ToolStripRenderMode.Custom && root.RenderMode == ToolStripRenderMode.Custom)
+                panel.Renderer = root.Renderer;
+            foreach (var item in panel.Items.OfType<ToolStripDropDownItem>())
+                if (item.HasDropDownItems) item.DropDownDirection = ToolStripDropDownDirection.Right;
+        }
+
+        // The column is the widest panel's natural width (its spacer at zero, so content alone decides).
+        int column = 0;
+        foreach (var panel in panels)
+        {
+            SetStrut(panel, 0, fitHeaders: false);
+            column = Math.Max(column, PreferredWidth(panel));
+        }
+
+        // A panel is its label column plus fixed chrome (check gutter, paddings, arrow column). Probe the chrome
+        // with a wide spacer, then size the spacer, and any header, so the panel lands exactly on the column.
+        foreach (var panel in panels)
+        {
+            SetStrut(panel, ProbeWidth, fitHeaders: false);
+            int chrome = PreferredWidth(panel) - ProbeWidth;
+            SetStrut(panel, Math.Max(0, column - chrome), fitHeaders: true);
+        }
+    }
+
+    /// <summary>
+    /// How far right of <paramref name="panel"/>'s left edge its deepest submenu chain reaches, with every submenu
+    /// opening to the right of its row (a submenu's left edge is its row's right edge).
+    /// </summary>
+    public static int Reach(ToolStripDropDown panel, int? panelWidth = null)
+    {
+        int reach = panelWidth ?? PreferredWidth(panel);
+        foreach (var item in panel.Items.OfType<ToolStripDropDownItem>())
+        {
+            if (!item.Available || !item.HasDropDownItems) continue;
+            reach = Math.Max(reach, item.Bounds.Right + Reach(item.DropDown));
+        }
+        return reach;
+    }
+
+    /// <summary>
+    /// Left edge for a root menu that wants <paramref name="desiredLeft"/>: unchanged when its submenu chain
+    /// (<paramref name="reach"/>) fits inside <paramref name="workArea"/>, otherwise moved left just far enough.
+    /// </summary>
+    public static int PlaceRootLeft(int desiredLeft, int reach, Rectangle workArea) =>
+        Math.Max(workArea.Left, Math.Min(desiredLeft, workArea.Right - reach));
+
+    private static void Collect(ToolStripDropDown panel, List<ToolStripDropDown> into)
+    {
+        into.Add(panel);
+        foreach (var item in panel.Items.OfType<ToolStripDropDownItem>())
+            if (item.HasDropDownItems) Collect(item.DropDown, into);
+    }
+
+    private static int PreferredWidth(ToolStripDropDown panel) =>
+        panel.AutoSize ? panel.GetPreferredSize(Size.Empty).Width : panel.Width;
+
+    private static void SetStrut(ToolStripDropDown panel, int width, bool fitHeaders)
+    {
+        var strut = panel.Items.OfType<PhosphorMenuSpacer>().LastOrDefault();
+        if (strut == null)
+        {
+            strut = new PhosphorMenuSpacer();
+            panel.Items.Add(strut);
+        }
+        strut.ColumnWidth = width;
+        // A header spans the label column so its subline can use it, and a fixed-size hosted control (the DPI
+        // slider) stretches across it; while measuring, both keep their own content width.
+        foreach (var header in panel.Items.OfType<PhosphorMenuHeader>())
+            header.ColumnWidth = fitHeaders ? width : null;
+        foreach (var host in panel.Items.OfType<ToolStripControlHost>().Where(h => !h.AutoSize))
+        {
+            int own = HostWidths.GetValue(host, h => new StrongBox<int>(h.Width)).Value;
+            host.Width = fitHeaders ? Math.Max(own, width - host.Margin.Horizontal) : own;
+        }
+        // A dropdown reads its non-menu rows' widths from their bounds of the previous layout, so lay out twice:
+        // once to size the spacer row, once to size the label column from it.
+        panel.PerformLayout();
+        panel.PerformLayout();
+    }
+}
+
+/// <summary>
+/// The tray's context menu. Applies <see cref="PhosphorMenuLayout"/> each time it opens (row text and checks
+/// change), and keeps itself far enough left of the screen edge that every submenu opens to its right.
+/// </summary>
+internal sealed class PhosphorTrayMenu : ContextMenuStrip
+{
+    protected override void OnOpening(System.ComponentModel.CancelEventArgs e)
+    {
+        PhosphorMenuLayout.Apply(this);
+        base.OnOpening(e);
+    }
+
+    protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified)
+    {
+        if (OwnerItem == null && Items.Count > 0)
+        {
+            var workArea = Screen.FromRectangle(new Rectangle(x, y, Math.Max(1, width), Math.Max(1, height))).WorkingArea;
+            x = PhosphorMenuLayout.PlaceRootLeft(x, PhosphorMenuLayout.Reach(this, width), workArea);
+        }
+        base.SetBoundsCore(x, y, width, height, specified);
     }
 }
 
