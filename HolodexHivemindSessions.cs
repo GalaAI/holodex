@@ -189,7 +189,7 @@ public sealed partial class HolodexLiteDrawerForm
         };
         var leds = new List<(Color, string)> { (status, s.Status.Length > 0 ? s.Status : "open") };
         if (s.Participants.Count > 0) leds.Add((PhosphorTheme.Patina, string.Join(", ", s.Participants)));
-        leds.Add((PhosphorTheme.Ghost, "Replies post as Omniwand"));
+        leds.Add((PhosphorTheme.Ghost, "Replies post as Holodex"));
         _activeRosterLabel.Set(leds.ToArray());
     }
 

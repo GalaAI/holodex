@@ -806,6 +806,12 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 ? $"error:hivemind:agents:state={_ark.Hivemind.State}:{_ark.Hivemind.LastError}"
                 : $"ok:hivemind:agents:{agents.Count}:{string.Join(",", agents.Select(a => a.Id + (a.DispatchReady ? "" : "(not ready)")))}";
         }
+        if (string.Equals(cmd, "hivemind:signout", StringComparison.OrdinalIgnoreCase))
+        {
+            // The Holodex profile's Sign out: drops the saved tokens and client id, so the next Sign in registers again.
+            _ark.Hivemind.SignOutAsync().GetAwaiter().GetResult();
+            return $"ok:hivemind:signout:state={_ark.Hivemind.State}:savedSignIn={HivemindClient.HasSavedSignIn}";
+        }
         if (string.Equals(cmd, "hivemind:probe", StringComparison.OrdinalIgnoreCase))
             return $"ok:hivemind:probe:{_ark.Hivemind.ProbeSignInAsync().GetAwaiter().GetResult()}";
         if (cmd.StartsWith("holodex:order:", StringComparison.OrdinalIgnoreCase))

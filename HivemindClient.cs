@@ -282,14 +282,15 @@ public sealed class HivemindClient : IAsyncDisposable
                 RedirectUri = RedirectUri,
                 ScopeSelector = offered => RequestedScopes.Where(scope => offered?.Contains(scope) ?? true).ToArray(),
                 Scopes = RequestedScopes,
-                DynamicClientRegistration = new DynamicClientRegistrationOptions { ClientName = "Omniwand", ApplicationType = "native" },
+                // Hivemind names the client from this registration: Session posts and connected-client lists show "Holodex".
+                DynamicClientRegistration = new DynamicClientRegistrationOptions { ClientName = "Holodex", ApplicationType = "native" },
                 TokenCache = new WinCredTokenCache(CredentialTarget),
                 AuthorizationCallbackHandler = authorize
             }
         }, _http);
         return McpClient.CreateAsync(transport, new McpClientOptions
         {
-            ClientInfo = new Implementation { Name = "omniwand", Title = "Omniwand", Version = "0.3.0" }
+            ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = "0.3.0" }
         }, cancellationToken: ct);
     }
 
@@ -373,9 +374,9 @@ public sealed class HivemindClient : IAsyncDisposable
         var query = System.Web.HttpUtility.ParseQueryString(http.Request.Url?.Query ?? string.Empty);
         string? error = query["error"];
         string page = error == null
-            ? "Omniwand is signed in to Hivemind. You can close this tab."
+            ? "Holodex is signed in to Hivemind. You can close this tab."
             : $"Hivemind sign-in did not finish: {WebUtility.HtmlEncode(query["error_description"] ?? error)}";
-        byte[] body = Encoding.UTF8.GetBytes($"<!doctype html><meta charset=utf-8><title>Omniwand</title><body style=\"background:#050607;color:#e4d9c0;font:16px sans-serif;padding:40px\">{page}</body>");
+        byte[] body = Encoding.UTF8.GetBytes($"<!doctype html><meta charset=utf-8><title>Holodex</title><body style=\"background:#050607;color:#e4d9c0;font:16px sans-serif;padding:40px\">{page}</body>");
         http.Response.ContentType = "text/html; charset=utf-8";
         await http.Response.OutputStream.WriteAsync(body, ct);
         http.Response.Close();
