@@ -315,7 +315,7 @@ internal sealed class PhosphorMenuHeader : ToolStripItem
     /// <summary>
     /// Sized by the eyebrow and title only. The subline (the detected mouse name, which can run long) never
     /// widens the menu: inside the column <see cref="PhosphorMenuLayout"/> gives the panel it breaks onto a
-    /// second line at its " · " separator, and ellipsizes only what still does not fit.
+    /// second line (at its " · " separator, else between words), and ellipsizes only what still does not fit.
     /// </summary>
     public override Size GetPreferredSize(Size constrainingSize)
     {
@@ -333,12 +333,19 @@ internal sealed class PhosphorMenuHeader : ToolStripItem
         return new Size(width, (int)(68 * s + (lines - 1) * subFont.GetHeight(g)));
     }
 
-    /// <summary>The subline on one line when it fits in <paramref name="room"/>, else split at its last " · ".</summary>
+    /// <summary>
+    /// The subline on one line when it fits in <paramref name="room"/>, else split at its last " · ", else at the
+    /// last space that keeps the first line whole.
+    /// </summary>
     private string[] SublineLines(Graphics g, Font font, float room)
     {
-        if (g.MeasureString(_subline, font, PointF.Empty, PhosphorPaint.Typographic).Width <= room) return new[] { _subline };
+        bool Fits(string text) => g.MeasureString(text, font, PointF.Empty, PhosphorPaint.Typographic).Width <= room;
+        if (Fits(_subline)) return new[] { _subline };
         int cut = _subline.LastIndexOf(" · ", StringComparison.Ordinal);
-        return cut > 0 ? new[] { _subline[..cut], _subline[(cut + 3)..] } : new[] { _subline };
+        if (cut > 0) return new[] { _subline[..cut], _subline[(cut + 3)..] };
+        for (int space = _subline.LastIndexOf(' '); space > 0; space = _subline.LastIndexOf(' ', space - 1))
+            if (Fits(_subline[..space])) return new[] { _subline[..space], _subline[(space + 1)..] };
+        return new[] { _subline };
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -391,7 +398,7 @@ internal static class PhosphorMenuFrame
 /// <summary>
 /// Bottom margin row for a menu panel (see <see cref="PhosphorMenuFrame"/>). It also carries the panel's column
 /// width: a dropdown sizes its label column to its widest non-menu row, so <see cref="PhosphorMenuLayout"/> sets
-/// <see cref="ColumnWidth"/> to give every panel in a tree the same width.
+/// <see cref="ColumnWidth"/> to land each panel on its content width with the header fitted to it.
 /// </summary>
 internal sealed class PhosphorMenuSpacer : ToolStripItem
 {
@@ -410,9 +417,9 @@ internal sealed class PhosphorMenuSpacer : ToolStripItem
 /// <summary>
 /// Tray menu geometry, one rule for the main menu and every submenu under it:
 /// <list type="number">
-/// <item>Width: every panel in the tree is as wide as the widest panel's content, so labels, shortcut columns and
-/// arrows line up from panel to panel and the reach of a submenu chain is predictable. Decorative rows (the
-/// header, eyebrows) never widen a panel; the header ellipsizes its subline instead.</item>
+/// <item>Width: every panel is as wide as its own content and no wider, because the root has to sit left of the
+/// tray by the whole width of its deepest submenu chain: one shared column made every panel in that chain as wide
+/// as the widest. The header never widens a panel; it breaks and ellipsizes its subline instead.</item>
 /// <item>Direction: every submenu opens to the right (<see cref="ToolStripDropDownDirection.Right"/>). WinForms'
 /// default direction flips a submenu left whenever the screen edge pushes it over its parent row.</item>
 /// <item>Placement: a root menu opened near the right screen edge (the tray) moves left until its deepest
@@ -457,21 +464,17 @@ internal static class PhosphorMenuLayout
         foreach (var panel in autoSized) panel.AutoSize = false;
         try
         {
-            // The column is the widest panel's natural width (its spacer at zero, so content alone decides).
-            int column = 0;
             foreach (var panel in panels)
             {
+                // The panel's width is its own content's (its spacer at zero, so content alone decides).
                 SetStrut(panel, 0, fitHeaders: false);
-                column = Math.Max(column, PreferredWidth(panel));
-            }
+                int width = PreferredWidth(panel);
 
-            // A panel is its label column plus fixed chrome (check gutter, paddings, arrow column). Probe the
-            // chrome with a wide spacer, then size the spacer, and any header, so the panel lands on the column.
-            foreach (var panel in panels)
-            {
+                // A panel is its label column plus fixed chrome (check gutter, paddings, arrow column). Probe the
+                // chrome with a wide spacer, then size the spacer, and any header, so the panel lands on its width.
                 SetStrut(panel, ProbeWidth, fitHeaders: false);
                 int chrome = PreferredWidth(panel) - ProbeWidth;
-                SetStrut(panel, Math.Max(0, column - chrome), fitHeaders: true);
+                SetStrut(panel, Math.Max(0, width - chrome), fitHeaders: true);
             }
         }
         finally

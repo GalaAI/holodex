@@ -358,7 +358,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         var settingsMenu = new ToolStripMenuItem("Settings");
 
-        var openSettingsPanelItem = new ToolStripMenuItem("Open Settings && Mods drawer...") { ShortcutKeyDisplayString = "Alt+H" };
+        var openSettingsPanelItem = new ToolStripMenuItem("Mods drawer...") { ShortcutKeyDisplayString = "Alt+H" };
         openSettingsPanelItem.Click += (_, _) => _holodexDrawer.SummonDrawer(GetCursorPoint(), "mods");
         settingsMenu.DropDownItems.Add(openSettingsPanelItem);
         settingsMenu.DropDownItems.Add(new ToolStripSeparator());
@@ -384,38 +384,36 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         // 2. Wand Gestures & Spells (ported from MagiXLab Video Bench)
         var gestureMenu = new ToolStripMenuItem("Wand gestures && spells");
-        var ctrlGestureToggle = new ToolStripMenuItem("Hold Ctrl + gesture casts spell")
+        var ctrlGestureToggle = new ToolStripMenuItem("Ctrl + gesture")
         {
             Checked = OmniwandSpellGestureEngine.HoldCtrlToArm,
-            CheckOnClick = true,
-            ShortcutKeyDisplayString = "CTRL"
+            CheckOnClick = true
         };
         ctrlGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldCtrlToArm = ctrlGestureToggle.Checked;
         gestureMenu.DropDownItems.Add(ctrlGestureToggle);
 
-        var rmbGestureToggle = new ToolStripMenuItem("Hold Right-Click + gesture casts spell")
+        var rmbGestureToggle = new ToolStripMenuItem("Right-click + gesture")
         {
             Checked = OmniwandSpellGestureEngine.HoldRightMouseToArm,
-            CheckOnClick = true,
-            ShortcutKeyDisplayString = "RMB"
+            CheckOnClick = true
         };
         rmbGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldRightMouseToArm = rmbGestureToggle.Checked;
         gestureMenu.DropDownItems.Add(rmbGestureToggle);
         gestureMenu.DropDownItems.Add(new ToolStripSeparator());
 
-        var spell1Item = new ToolStripMenuItem("Shake L-R  ->  Time Splitter (Wiz Inspect)") { ShortcutKeyDisplayString = "SHAKE X" };
+        var spell1Item = new ToolStripMenuItem("Time Splitter (Wiz Inspect)") { ShortcutKeyDisplayString = "SHAKE L-R" };
         spell1Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.ShakeHorizontal, GetCursorPoint());
         gestureMenu.DropDownItems.Add(spell1Item);
 
-        var spell2Item = new ToolStripMenuItem("Shake U-D  ->  Copycat (Lasso Snip)") { ShortcutKeyDisplayString = "SHAKE Y" };
+        var spell2Item = new ToolStripMenuItem("Copycat (Lasso Snip)") { ShortcutKeyDisplayString = "SHAKE U-D" };
         spell2Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.ShakeVertical, GetCursorPoint());
         gestureMenu.DropDownItems.Add(spell2Item);
 
-        var spell3Item = new ToolStripMenuItem("Draw Circle  ->  Mutation (GrimX Spell)") { ShortcutKeyDisplayString = "CIRCLE" };
+        var spell3Item = new ToolStripMenuItem("Mutation (GrimX Spell)") { ShortcutKeyDisplayString = "CIRCLE" };
         spell3Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.CircleLoop, GetCursorPoint());
         gestureMenu.DropDownItems.Add(spell3Item);
 
-        var spell4Item = new ToolStripMenuItem("Sweep Right  ->  Synthesize (Holodex)") { ShortcutKeyDisplayString = "SWEEP R" };
+        var spell4Item = new ToolStripMenuItem("Synthesize (Holodex)") { ShortcutKeyDisplayString = "SWEEP R" };
         spell4Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.SweepRight, GetCursorPoint());
         gestureMenu.DropDownItems.Add(spell4Item);
         settingsMenu.DropDownItems.Add(gestureMenu);
@@ -550,7 +548,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorMenuFrame.Apply(captureMenu, "Capture & intake");
         PhosphorMenuFrame.Apply(orbMenu, "Spell Orb // ring slots");
         PhosphorMenuFrame.Apply(settingsMenu, "Omniwand settings");
-        PhosphorMenuFrame.Apply(gestureMenu, "Spells // Ctrl + gesture");
+        PhosphorMenuFrame.Apply(gestureMenu, "Spells // cast with");
         PhosphorMenuFrame.Apply(iconStyleMenu, "Cursor icon // on-brand");
         PhosphorMenuFrame.Apply(morphMenu, "Aperture morph // 240Hz");
         PhosphorMenuFrame.Apply(modeMenu, "Wand rotation");
