@@ -60,14 +60,30 @@ internal static class TrayProbe
     private static string Shoot(NotifyIcon icon, PhosphorTrayMenu menu, string spec)
     {
         string[] parts = spec.Split('|', 2);
-        var steps = new List<string> { Open(icon, menu) };
-        if (parts.Length > 1 && parts[1].Trim().Length > 0) steps.Add(OpenPath(menu, parts[1]));
-        for (int i = 0; i < 8; i++)
+        // Record why the menu closed if it closes before the capture, so a miss names its cause.
+        string? closedBy = null;
+        ToolStripDropDownClosedEventHandler onClosed = (_, e) => closedBy ??= e.CloseReason.ToString();
+        menu.Closed += onClosed;
+        var steps = new List<string>();
+        // A real click lets the shell hand Omniwand the foreground; the probe's first SetForegroundWindow from a
+        // background process is refused, and the menu closes on AppFocusChange. That first try earns the right, so
+        // one retry opens it the way a click does.
+        for (int attempt = 0; attempt < 2; attempt++)
         {
-            Application.DoEvents();
-            Thread.Sleep(25);
+            closedBy = null;
+            steps.Add(Open(icon, menu));
+            if (parts.Length > 1 && parts[1].Trim().Length > 0) steps.Add(OpenPath(menu, parts[1]));
+            for (int i = 0; i < 8; i++)
+            {
+                Application.DoEvents();
+                Thread.Sleep(25);
+            }
+            if (menu.Visible || closedBy != nameof(ToolStripDropDownCloseReason.AppFocusChange)) break;
+            steps.Add("retry:AppFocusChange");
         }
         steps.Add(Capture(icon, menu, parts[0].Trim()));
+        menu.Closed -= onClosed;
+        if (closedBy != null) steps.Add($"closed-before-capture:{closedBy}");
         menu.Close();
         return string.Join(" || ", steps);
     }

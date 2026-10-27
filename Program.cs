@@ -210,7 +210,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
     {
         _uiSync = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         Win32.timeBeginPeriod(1);
-        StartControlPipeServer();
 
         // Zero-manual Wiz automated onboarding & environment/hardware scan
         bool isFirstRun = !WizOnboardingEngine.HasCompletedOnboarding();
@@ -588,6 +587,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
         }
+
+        // Last: the pipe answers only once every widget, the tray and its menu exist, so a command sent the
+        // moment the pipe is up never meets a half-built app.
+        StartControlPipeServer();
     }
 
     private void StartControlPipeServer()
@@ -819,6 +822,19 @@ internal sealed class OmniwandAppContext : ApplicationContext
             return result;
         }
         // Live capture hooks: the real surfaces driven through their own paths, waited on so a capture can follow.
+        if (cmd.StartsWith("hud:submit:hidden:", StringComparison.OrdinalIgnoreCase))
+        {
+            // The real ask in the HUD without showing it, for offscreen renders.
+            string q = cmd["hud:submit:hidden:".Length..].Trim();
+            RunOnUiAndWait(() => _hud.AskForCaptureAsync(q));
+            return "ok:hud:submit:hidden";
+        }
+        if (string.Equals(cmd, "hud:state", StringComparison.OrdinalIgnoreCase))
+        {
+            string state = "";
+            _uiSync.Send(_ => state = _hud.DescribeAnswers(), null);
+            return $"ok:hud:state:{state}";
+        }
         if (cmd.StartsWith("hud:submit:", StringComparison.OrdinalIgnoreCase))
         {
             string q = cmd["hud:submit:".Length..].Trim();
@@ -891,6 +907,31 @@ internal sealed class OmniwandAppContext : ApplicationContext
             if (t.File == null) return $"error:toast:show:unknown {file}";
             _uiSync.Post(_ => PhosphorToast.Show(t.Title, t.Body, t.Eyebrow, 6000, t.Tone), null);
             return $"ok:toast:show:{t.File}";
+        }
+        // Hivemind Sessions in Holodex: list, open one as the composer's target, reply into it, read the state.
+        if (string.Equals(cmd, "holodex:sessions", StringComparison.OrdinalIgnoreCase))
+        {
+            string list = "";
+            RunOnUiAndWait(async () => list = await _holodexDrawer.DescribeSessionsAsync());
+            return $"ok:holodex:sessions:{list}";
+        }
+        if (cmd.StartsWith("holodex:session:open:", StringComparison.OrdinalIgnoreCase))
+        {
+            string id = cmd["holodex:session:open:".Length..].Trim(), state = "";
+            RunOnUiAndWait(async () => state = await _holodexDrawer.OpenSessionForPipeAsync(id));
+            return $"ok:holodex:session:{state}";
+        }
+        if (cmd.StartsWith("holodex:session:reply:", StringComparison.OrdinalIgnoreCase))
+        {
+            string text = cmd["holodex:session:reply:".Length..].Trim(), state = "";
+            RunOnUiAndWait(async () => state = await _holodexDrawer.ReplyForPipeAsync(text));
+            return $"ok:holodex:session:{state}";
+        }
+        if (string.Equals(cmd, "holodex:session:state", StringComparison.OrdinalIgnoreCase))
+        {
+            string state = "";
+            _uiSync.Send(_ => state = _holodexDrawer.DescribeOpenSession(), null);
+            return $"ok:holodex:session:{state}";
         }
         if (string.Equals(cmd, "mouse:status", StringComparison.OrdinalIgnoreCase))
         {

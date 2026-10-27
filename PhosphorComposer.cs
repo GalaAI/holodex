@@ -20,7 +20,7 @@ internal enum PhosphorGlyph
     File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, Plus,
     Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault,
     // ArkStation's own icons (lucide-react, as the web console's Holodex uses them), drawn from their path data.
-    Chat, Inbox, BookOpen, Sparkles, WandSparkles
+    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink
 }
 
 internal static class PhosphorIcons
@@ -35,6 +35,7 @@ internal static class PhosphorIcons
         [PhosphorGlyph.Inbox] = new[] { "M22 12h-6l-2 3h-4l-2-3H2", "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" },
         [PhosphorGlyph.BookOpen] = new[] { "M12 5v16", "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" },
         [PhosphorGlyph.Sparkles] = new[] { "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z", "M20 2v4", "M22 4h-4", "M6 20a2 2 0 1 1-4 0a2 2 0 1 1 4 0" },
+        [PhosphorGlyph.ExternalLink] = new[] { "M15 3h6v6", "M10 14 21 3", "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
         [PhosphorGlyph.WandSparkles] = new[] { "m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72", "m14 7 3 3", "M5 6v4", "M19 14v4", "M10 2v2", "M7 8H3", "M21 16h-4", "M11 3H9" },
     };
 
@@ -490,7 +491,13 @@ internal sealed class AvatarButton : Control
 }
 
 /// <summary>One choice in a suggestion chip's menu.</summary>
-internal sealed record ChipChoice(string Text, string? Note, bool Selected, Action Pick, string? Tip = null);
+internal sealed record ChipChoice(string Text, string? Note, bool Selected, Action Pick, string? Tip = null)
+{
+    /// <summary>A heading between groups of choices (it picks nothing).</summary>
+    public static ChipChoice Header(string text) => new(text, null, false, null!);
+
+    public bool IsHeader => Pick == null;
+}
 
 /// <summary>
 /// Something the system proposed (a pod, a model, a spell type), as one chip: an optional arrow, LABEL · DETAIL,
@@ -539,6 +546,12 @@ internal class SuggestionChip : Control
         var menu = new ContextMenuStrip { Renderer = new PhosphorMenuRenderer(), ShowImageMargin = false };
         foreach (var c in choices)
         {
+            if (c.IsHeader)
+            {
+                menu.Items.Add(new ToolStripSeparator());
+                menu.Items.Add(new PhosphorMenuEyebrow(c.Text));
+                continue;
+            }
             var item = new ToolStripMenuItem(c.Text) { Checked = c.Selected, ToolTipText = c.Tip };
             if (!string.IsNullOrEmpty(c.Note)) item.ShortcutKeyDisplayString = c.Note;
             var pick = c.Pick;

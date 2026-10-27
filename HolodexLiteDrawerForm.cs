@@ -31,7 +31,7 @@ public sealed record SyndicateWorkOrder(
 /// - Token Login bar (connects Hivemind / Arkhive token or Nebius Token Factory key into Windows Vault)
 /// - 5 Lite Tabs: SESSION (Syndicate Group Chat + Work Orders + Activity), AINBOX, CODEX, GRIMX, MODS.
 /// </summary>
-public sealed class HolodexLiteDrawerForm : Form
+public sealed partial class HolodexLiteDrawerForm : Form
 {
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
@@ -209,6 +209,9 @@ public sealed class HolodexLiteDrawerForm : Form
         hivemindRow.Controls.Add(_hivemindBtn);
         hivemindRow.Controls.Add(_signOutBtn);
         _ark.Hivemind.StateChanged += () => { if (IsHandleCreated) BeginInvoke(new Action(ShowHivemindState)); };
+        // A change before the window had a handle (Holodex drawn offscreen, or first opened after Hivemind connected)
+        // was skipped above; catch up when the handle exists.
+        HandleCreated += (_, _) => ShowHivemindState();
         _connected = hasNebiusKey;
 
         // Who Omniwand runs as on this machine: the Windows account, read from the system, never typed in.
@@ -332,8 +335,8 @@ public sealed class HolodexLiteDrawerForm : Form
 
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionFooter" };
         _rosterChip = new SuggestionChip { Dock = DockStyle.Left, Name = "Holodex.RosterSelect" };
-        _rosterChip.Click += (_, _) => _rosterChip.ShowChoices(_roster.Select(ag => new ChipChoice(
-            $"{ag.Name}  ·  {ag.Role}", ag.Pod, ag.Id == _selectedSyndicateTarget, () => SetSyndicateTarget(ag.Id))));
+        // The chip picks where the message goes: an agent, or one of the owner's Hivemind Sessions.
+        _rosterChip.Click += (_, _) => _rosterChip.ShowChoices(RosterChoices().ToList());
         _sessionSendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 150, Name = "Holodex.SessionSendBtn" };
         _sessionSendBtn.Click += async (_, _) => await SendSyndicateSessionMessageAsync();
         footer.Controls.Add(_rosterChip);
@@ -347,6 +350,7 @@ public sealed class HolodexLiteDrawerForm : Form
         _sessionPanel.Resize += (_, _) => FitRoster();
 
         _sessionPanel.Controls.Add(_sessionThread);
+        BuildHivemindSessions(_sessionPanel, bar);
         _sessionPanel.Controls.Add(ordersGap);
         _sessionPanel.Controls.Add(_workOrdersHost);
         _sessionPanel.Controls.Add(composer);
@@ -363,6 +367,7 @@ public sealed class HolodexLiteDrawerForm : Form
 
     private void SetSyndicateTarget(string id)
     {
+        CloseHivemindSession();
         var agent = _roster.FirstOrDefault(a => a.Id == id) ?? _roster[0];
         _selectedSyndicateTarget = agent.Id;
         _rosterChip.Label = agent.Name;
@@ -1036,6 +1041,7 @@ public sealed class HolodexLiteDrawerForm : Form
             a.DispatchReady ? PhosphorTheme.Patina : PhosphorTheme.Ghost)));
         SetRoster(live);
         _hivemindLine.Set(HivemindLed());
+        await RefreshRecentSessionsAsync();
     }
 
     private async Task SignOutOfHivemindAsync()
@@ -1079,6 +1085,12 @@ public sealed class HolodexLiteDrawerForm : Form
         {
             _sessionInputBox.Text = msg[7..].Trim();
             CreateWorkOrderFromComposer();
+            return;
+        }
+
+        if (_openSession != null)
+        {
+            await ReplyInHivemindSessionAsync(msg);
             return;
         }
 

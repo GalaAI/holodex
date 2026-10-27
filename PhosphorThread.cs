@@ -31,7 +31,8 @@ internal sealed class ThreadCard : Control
     {
         Tone = tone;
         Kicker = kicker;
-        Body = body?.Trim() ?? "";
+        // A model reply arrives as markdown; the card draws plain text, so its markers would show as typed.
+        Body = tone == ThreadTone.Agent ? PlainText(body?.Trim() ?? "") : body?.Trim() ?? "";
         Glyph = glyph;
         Leds = leds ?? Array.Empty<(Color, string)>();
         Name = $"Thread.{tone}Card";
@@ -53,6 +54,24 @@ internal sealed class ThreadCard : Control
     public ThreadTone Tone { get; private set; }
     public string Kicker { get; private set; }
     public string Body { get; private set; }
+
+    /// <summary>
+    /// Model markdown as plain card text: **bold** and __bold__ lose their markers, # headings lose their hashes,
+    /// and "* " or "- " bullets become "• ". Code and anything else stay as written.
+    /// </summary>
+    internal static string PlainText(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = System.Text.RegularExpressions.Regex.Replace(lines[i], @"^(\s*)#{1,6}\s+", "$1");
+            line = System.Text.RegularExpressions.Regex.Replace(line, @"^(\s*)[*-]\s+", "$1• ");
+            line = System.Text.RegularExpressions.Regex.Replace(line, @"\*\*(.+?)\*\*|__(.+?)__", m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value);
+            lines[i] = line;
+        }
+        return string.Join("\n", lines);
+    }
+
     public PhosphorGlyph? Glyph { get; }
     public IReadOnlyList<(Color Led, string Text)> Leds { get; }
 

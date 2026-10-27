@@ -73,6 +73,18 @@ public sealed record HivemindMission(string ExecutionId, string AgentId, string 
 /// <summary>A mission result read as a reply: the answer, the validation verdict, and the constraints note.</summary>
 public sealed record HivemindReply(string Answer, string Validation, string Constraints);
 
+/// <summary>A saved Hivemind Session as <c>list_sessions</c> reports it: the room the web app and Holodex both show.</summary>
+public sealed record HivemindSessionSummary(string Id, string Title, string Status, IReadOnlyList<string> Participants, DateTimeOffset UpdatedAt, string Error);
+
+/// <summary>
+/// One transcript entry from <c>read_session</c>: the owner (<c>user</c>), an agent turn (<c>agent</c>, with its model),
+/// or a connected client's post (<c>client</c>, Holodex's own included) under that client's name.
+/// </summary>
+public sealed record HivemindSessionMessage(string Id, string Role, string AgentId, string Model, string ClientName, string Content, DateTimeOffset CreatedAt);
+
+/// <summary>A Session with its transcript, oldest message first.</summary>
+public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyList<HivemindSessionMessage> Messages);
+
 /// <summary>
 /// Omniwand's connection to the real Hivemind: the remote MCP server at hivemind.arkomnitek.com/mcp, through the
 /// official MCP C# SDK (ModelContextProtocol.Core) and its OAuth 2.1 client. Sign-in is the server's public-client
@@ -87,7 +99,10 @@ public sealed class HivemindClient : IAsyncDisposable
     public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
     public const string CredentialTarget = "Omniwand:HivemindToken";
 
-    /// <summary>Read the roster and mission status; dispatch and cancel missions. Nothing else is requested.</summary>
+    /// <summary>
+    /// Read the roster, mission status and saved Sessions (runtime.read); dispatch missions and post into Sessions
+    /// (runtime.execute). Nothing else is requested.
+    /// </summary>
     private static readonly string[] RequestedScopes = { "runtime.read", "runtime.execute" };
     private static readonly TimeSpan SignInTimeout = TimeSpan.FromMinutes(5);
 
@@ -163,6 +178,66 @@ public sealed class HivemindClient : IAsyncDisposable
         var data = await CallAsync("agent_mission_status", new Dictionary<string, object?> { ["executionId"] = executionId }, ct);
         return data is JsonElement root ? ReadMission(root, string.Empty) : null;
     }
+
+    /// <summary>The owner's saved Sessions, newest first (<c>list_sessions</c>, runtime.read).</summary>
+    public async Task<IReadOnlyList<HivemindSessionSummary>?> ListSessionsAsync(CancellationToken ct = default)
+    {
+        var data = await CallAsync("list_sessions", new Dictionary<string, object?>(), ct);
+        if (data is not JsonElement root) return null;
+        if (FindArray(root, "sessions") is not JsonElement list) return Array.Empty<HivemindSessionSummary>();
+        return list.EnumerateArray()
+            .Where(s => s.ValueKind == JsonValueKind.Object && Str(s, "id").Length > 0)
+            .Select(ReadSessionSummary)
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToList();
+    }
+
+    /// <summary>One Session and its transcript (<c>read_session</c>, runtime.read).</summary>
+    public async Task<HivemindSession?> ReadSessionAsync(string sessionId, CancellationToken ct = default)
+    {
+        var data = await CallAsync("read_session", new Dictionary<string, object?> { ["sessionId"] = sessionId }, ct);
+        if (data is not JsonElement root) return null;
+        var session = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("session", out var s) ? s : root;
+        var messages = new List<HivemindSessionMessage>();
+        if (session.TryGetProperty("messages", out var list) && list.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var m in list.EnumerateArray())
+            {
+                if (m.ValueKind != JsonValueKind.Object) continue;
+                string model = m.TryGetProperty("execution", out var ex) ? Str(ex, "model") : "";
+                string client = m.TryGetProperty("sourceClient", out var sc) ? Str(sc, "name") : "";
+                messages.Add(new HivemindSessionMessage(Str(m, "id"), Str(m, "role"), Str(m, "agentId"), model, client, Str(m, "content"), Date(m, "createdAt")));
+            }
+        }
+        return new HivemindSession(ReadSessionSummary(session), messages.OrderBy(m => m.CreatedAt).ToList());
+    }
+
+    /// <summary>
+    /// Posts <paramref name="content"/> into a Session as Holodex (<c>post_session_message</c>, runtime.execute). Hivemind
+    /// attributes it to this connection's client, not to an agent, and it starts no agent. The submission id makes a
+    /// retry safe: Hivemind keeps one message per id.
+    /// </summary>
+    public async Task<bool> PostSessionMessageAsync(string sessionId, string content, Guid submissionId, CancellationToken ct = default)
+    {
+        var data = await CallAsync("post_session_message", new Dictionary<string, object?>
+        {
+            ["sessionId"] = sessionId,
+            ["submissionId"] = submissionId.ToString(),
+            ["content"] = content
+        }, ct);
+        return data != null;
+    }
+
+    private static HivemindSessionSummary ReadSessionSummary(JsonElement s)
+    {
+        var participants = s.TryGetProperty("participants", out var p) && p.ValueKind == JsonValueKind.Array
+            ? p.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? "").ToList()
+            : new List<string>();
+        return new HivemindSessionSummary(Str(s, "id"), FirstNonEmpty(Str(s, "title"), "Untitled session"), Str(s, "status"), participants, Date(s, "updatedAt"), Str(s, "error"));
+    }
+
+    private static DateTimeOffset Date(JsonElement e, string name) =>
+        DateTimeOffset.TryParse(Str(e, name), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var d) ? d : DateTimeOffset.MinValue;
 
     private async Task<bool> ConnectAsync(bool interactive, CancellationToken ct)
     {

@@ -1,0 +1,29 @@
+Holodex and Hivemind Sessions, 2026-10-27 (all offscreen: nothing was shown on the desktop)
+
+What it is
+- Holodex and Hivemind stay two apps. Hivemind keeps the Sessions (rooms); Holodex reads and writes them through
+  Hivemind's own MCP tools under its existing sign-in (runtime.read lists and reads, runtime.execute posts; no new
+  sign-in was needed).
+- The Session tab's target chip lists the agents, then the six newest Hivemind sessions. Picking a session shows its
+  transcript as cards (you, each agent with its model, each connected client by name), follows new messages every
+  10 s while it is open, and Send becomes "Reply in session". A reply posts as a client message from Omniwand and
+  starts no agent. Picking an agent again returns to the Syndicate thread. "Open in Hivemind" opens the web app's
+  Sessions view (it addresses views, not single rooms).
+
+Live proof against hivemind.arkomnitek.com
+- holodex:sessions listed 6 sessions, newest first (Syndicate seed cards, Ark Eden admission repair, ...).
+- holodex:session:open on "Durable chat verification 2026-10-22" read 6 messages; the chip read SESSION and the
+  status line PAUSED // GALA // Replies post as Omniwand.
+- holodex:session:reply posted one message. Read back from Hivemind (read_session): message 419a1bd4, role client,
+  sourceClient Omniwand (hmc_IpTy...), and the session's connectedClients now list Omniwand beside Google Antigravity.
+
+Gaps fixed in the same change
+- The control pipe started before the app was built; it now starts last in the constructor.
+- The first tray capture after a launch failed: the menu closed with AppFocusChange because a background process
+  cannot take the foreground. TrayProbe records the close reason and retries once, as a real click would succeed.
+- Long HUD answers were capped at 260 device pixels (173 logical at 150%); the cap is now 520 logical, DPI-scaled,
+  at most half the work area, and model markdown (**bold**, # headings, bullets) shows as plain text.
+- Holodex said "Signed out" on its work-orders card when Hivemind connected before its window existed; it now
+  catches up when its handle is created.
+
+sheet.png: session open, after the reply, and a long HUD answer.

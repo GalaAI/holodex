@@ -15,7 +15,8 @@ namespace Omniwand;
 /// </summary>
 public sealed class OmniwandHudForm : Form
 {
-    private const int AnswerMaxHeight = 260;
+    /// <summary>The answer box grows with the answer up to this (logical px, scaled by DPI) or half the work area.</summary>
+    private const int AnswerMaxHeight = 520;
 
     private const string ShortcutsText =
         "Actions Ring casts the eight GrimX Spell slots.\n" +
@@ -184,7 +185,11 @@ public sealed class OmniwandHudForm : Form
 
     private void SizeAnswers()
     {
-        int want = HasAnswer ? Math.Min(_answers.ContentHeight(_answers.CardWidth) + 2, AnswerMaxHeight) : 0;
+        // Card heights are device pixels, so the cap is too; a 96-DPI 260 px cap cut most answers at 150%.
+        float s = DeviceDpi / 96f;
+        int work = Screen.FromControl(this).WorkingArea.Height;
+        int cap = Math.Min((int)Math.Round(AnswerMaxHeight * s), work / 2);
+        int want = HasAnswer ? Math.Min(_answers.ContentHeight(_answers.CardWidth) + 2, cap) : 0;
         if (_answers.Height == want) return;
         _answers.Height = want;
         if (IsHandleCreated) FitToAnswer();
@@ -391,6 +396,12 @@ public sealed class OmniwandHudForm : Form
         try { await AskAsync(); }
         finally { _visionToggle.Selected = screen; }
     }
+
+    /// <summary>The answer box's sizes and scroll state, for the pipe's hud:state.</summary>
+    internal string DescribeAnswers() =>
+        $"dpi={DeviceDpi}:box={_answers.Width}x{_answers.Height}:client={_answers.ClientSize.Width}x{_answers.ClientSize.Height}" +
+        $":content={_answers.ContentHeight(_answers.CardWidth)}:display={_answers.DisplayRectangle.Height}" +
+        $":vscroll={_answers.VerticalScroll.Visible}:cards={_answers.Cards.Count()}:form={Width}x{Height}";
 
     /// <summary>
     /// As-built render states (SurfaceCapture): "answered" shows a question with the screen and its answer as the
