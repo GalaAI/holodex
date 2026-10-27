@@ -966,17 +966,17 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
         if (string.Equals(cmd, "hud:close", StringComparison.OrdinalIgnoreCase))
         {
-            _uiSync.Post(_ => _hud.Hide(), null);
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_hud), null); // as Esc closes it
             return "ok:hud:close";
         }
         if (string.Equals(cmd, "wiz:close", StringComparison.OrdinalIgnoreCase))
         {
-            _uiSync.Post(_ => _wizWidget.Hide(), null);
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_wizWidget), null);
             return "ok:wiz:close";
         }
         if (string.Equals(cmd, "ainbox:close", StringComparison.OrdinalIgnoreCase))
         {
-            _uiSync.Post(_ => _ainboxWidget.Hide(), null);
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_ainboxWidget), null);
             return "ok:ainbox:close";
         }
         if (cmd.StartsWith("wiz:ask:", StringComparison.OrdinalIgnoreCase))
@@ -1040,7 +1040,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
     private void ToggleHolodexDrawer()
     {
-        if (_holodexDrawer.Visible) _holodexDrawer.Hide();
+        if (_holodexDrawer.Visible) SurfaceMotion.Dismiss(_holodexDrawer);
         else _holodexDrawer.SummonDrawer(GetCursorPoint());
     }
 

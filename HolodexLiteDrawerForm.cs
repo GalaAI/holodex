@@ -1120,15 +1120,31 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // Offline: Nemotron answers in the Syndicate's voice, and every card says it is role-play and which model.
         _setThinkingState(true);
+        var pending = _sessionThread.AddPending($"{agent.Name.ToUpperInvariant()} // OFFLINE ROLE-PLAY // ANSWERING");
         try
         {
             var (ok, reply, model) = await _ark.AskOfflineSyndicateAsync(msg, agent.Id, agent.Name, agent.Role);
             string label = $"OFFLINE ROLE-PLAY // {ModelChip.ShortName(model).ToUpperInvariant()}";
-            if (!ok) _sessionThread.Add(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED // {label}", reply);
-            else foreach (var (who, text) in SplitTurns(reply, agent.Name)) _sessionThread.Add(ThreadTone.Agent, $"{who} // {label}", text);
+            if (!ok) pending.Resolve(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED // {label}", reply);
+            else
+            {
+                // The first turn takes the pending card's place; the rest follow it.
+                bool first = true;
+                foreach (var (who, text) in SplitTurns(reply, agent.Name))
+                {
+                    if (first) pending.Resolve(ThreadTone.Agent, $"{who} // {label}", text);
+                    else _sessionThread.Add(ThreadTone.Agent, $"{who} // {label}", text);
+                    first = false;
+                }
+                if (first) pending.Resolve(ThreadTone.Agent, $"{agent.Name.ToUpperInvariant()} // {label}", reply);
+            }
             if (!Visible || !_sessionPanel.Visible)
                 PhosphorToast.Show(ok ? $"{agent.Name} replied (offline role-play)" : $"{agent.Name} did not answer", Clip(reply),
                     "HOLODEX // SESSION // ALT+H", 4200, ok ? ToastTone.Info : ToastTone.Warning);
+        }
+        catch (Exception ex)
+        {
+            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED", ex.Message);
         }
         finally
         {
@@ -1241,7 +1257,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Size = new Size((int)Math.Round(560 * s), h);
         Location = new Point(work.Right - Width - 12, work.Top + (work.Height - h) / 2);
 
-        Show();
+        // The drawer lives on the right edge, so it slides in from there.
+        SurfaceMotion.Present(this, fromRight: true);
         Activate();
         await RefreshConnectionHeaderAsync();
     }

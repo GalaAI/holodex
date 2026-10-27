@@ -89,7 +89,7 @@ public sealed class OmniwandHudForm : Form
         {
             if (open == null) return;
             var b = new IconToolButton(name, glyph, label) { Margin = Padding.Empty };
-            b.Click += (_, _) => { Hide(); open(_summonCursorPos); };
+            b.Click += (_, _) => { SurfaceMotion.Dismiss(this); open(_summonCursorPos); };
             headerTools.Controls.Add(b);
         }
         AddLauncher("Hud.HolodexButton", PhosphorGlyph.Holodex, "Holodex", openHolodex);
@@ -226,7 +226,7 @@ public sealed class OmniwandHudForm : Form
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        if (keyData == Keys.Escape) { Hide(); return true; }
+        if (keyData == Keys.Escape) { SurfaceMotion.Dismiss(this); return true; }
         if (keyData == (Keys.Control | Keys.Enter)) { _ = AskAsync(); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
     }
@@ -238,7 +238,7 @@ public sealed class OmniwandHudForm : Form
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
         Location = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 18, cursorPos.Y + 18);
 
-        Show();
+        SurfaceMotion.Present(this);
         Activate();
         _promptBox.Focus();
         _promptBox.SelectAll();
@@ -351,17 +351,28 @@ public sealed class OmniwandHudForm : Form
         _working = true;
         _promptBox.Enabled = false;
         _askBtn.Enabled = false;
+        string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
         _answers.Add(ThreadTone.You, snapshot != null ? "YOU // WITH THE SCREEN" : "YOU", prompt, snapshot != null ? PhosphorGlyph.Screen : null);
-        SetStatus("ASKING", PhosphorTheme.Patina);
+        // The pending card says who is answering, so the status line is quiet until the answer lands.
+        var pending = _answers.AddPending($"ASKING // {answeredBy}");
+        SetStatus("", PhosphorTheme.Ghost);
         FitToAnswer();
         Invalidate();
         _setThinkingState(true);
 
+        bool ok = false;
+        string output;
         try
         {
-            var (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot);
-            string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
-            _answers.Add(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? $"ANSWERED BY {answeredBy}" : "NOT ANSWERED", output);
+            (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot);
+        }
+        catch (Exception ex)
+        {
+            output = ex.Message;
+        }
+        try
+        {
+            pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? $"ANSWERED BY {answeredBy}" : $"NOT ANSWERED // {answeredBy}", output);
             _promptBox.Clear();
             SetStatus("ENTER ASKS", PhosphorTheme.Ghost);
             if (!Visible)
@@ -404,21 +415,25 @@ public sealed class OmniwandHudForm : Form
         $":vscroll={_answers.VerticalScroll.Visible}:cards={_answers.Cards.Count()}:form={Width}x{Height}";
 
     /// <summary>
-    /// As-built render states (SurfaceCapture): "answered" shows a question with the screen and its answer as the
-    /// cards a live ask adds; "reset" clears them.
+    /// As-built render states (SurfaceCapture): "asking", "answered" and "failed" show a question with the screen and
+    /// the card a live ask holds at that moment (pending, answer, failure); "reset" clears them.
     /// </summary>
     internal void PreviewState(string state)
     {
         if (_working) return; // never draw over a live ask
         _answers.Clear();
-        if (state == "answered")
-        {
-            string model = ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant();
+        string model = ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant();
+        if (state is "asking" or "answered" or "failed")
             _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
+        if (state == "asking")
+            _answers.AddPending($"ASKING // {model}");
+        else if (state == "answered")
             _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model}",
                 "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
-        }
+        else if (state == "failed")
+            _answers.Add(ThreadTone.Fail, $"NOT ANSWERED // {model}", "Vision request to nvidia/Nemotron-3.5-Super-VL returned no answer. Check the Nebius key and try again.");
         ShowKeyState();
+        if (state == "asking") SetStatus("", PhosphorTheme.Ghost);
         SizeAnswers();
         FitToAnswer();
     }

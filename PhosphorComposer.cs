@@ -840,15 +840,7 @@ internal static class FitToContent
             if (on) height += c.Height;
         }
         var area = (form.Visible ? Screen.FromControl(form) : Screen.FromPoint(form.Location)).WorkingArea;
-        height = Math.Min(height, area.Height - 24);
-        if (height == form.Height) return;
-        var top = form.Location;
-        form.Height = height;
-        if (form.Visible)
-        {
-            var work = Screen.FromControl(form).WorkingArea;
-            form.Location = new Point(top.X, WidgetChrome.SafeClamp(top.Y, work.Top + 12, work.Bottom - form.Height - 12));
-        }
-        form.Invalidate();
+        // On screen the height eases (an answer arriving, a disclosure opening); hidden, it is set at once.
+        SurfaceMotion.Height(form, Math.Min(height, area.Height - 24));
     }
 }

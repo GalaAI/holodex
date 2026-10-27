@@ -176,7 +176,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         if (keyData == Keys.Escape)
         {
             if (_undoTimer != null) CancelPendingSend();
-            else Hide();
+            else SurfaceMotion.Dismiss(this);
             return true;
         }
         if (keyData == (Keys.Control | Keys.Enter)) { OnSendClicked(); return true; }
@@ -206,7 +206,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         Rebuild();
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
         Location = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 20, cursorPos.Y - Height / 3);
-        Show();
+        SurfaceMotion.Present(this);
         Activate();
         _intentBox.Focus();
         _ = _queue.DrainAsync();

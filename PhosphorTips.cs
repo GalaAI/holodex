@@ -60,6 +60,215 @@ internal static class PhosphorMotion
     private static float BezD(float t, float p1, float p2) => 3f * (1 - t) * (1 - t) * p1 + 6f * (1 - t) * t * (p2 - p1) + 3f * t * t * (1 - p2);
 }
 
+/// <summary>
+/// How every Phosphor surface opens, closes and changes size, on one clock, so no surface snaps where another eases
+/// and no form runs its own timer. Opening fades in on dur-disclosure with ease-analog while rising 8px (or sliding in
+/// from the screen edge a drawer is docked to); dismissing fades out on dur-disclosure-item with ease-out; a height
+/// change (an answer arriving, a disclosure opening) eases on dur-disclosure-item. Reduced motion, a hidden or
+/// off-screen form, and the as-built render (<see cref="Instant"/>) get the end state at once.
+/// <see cref="Frame"/> is the same clock for things that move while they wait (a pending card).
+/// </summary>
+internal static class SurfaceMotion
+{
+    private sealed class Tween
+    {
+        public required object Key;
+        /// <summary>Set on the first tick, not at the call: a first Show blocks the UI thread for its layout and paint,
+        /// and a clock started before that would spend most of the tween before a frame reached the screen.</summary>
+        public long Start = -1;
+        public required int Ms;
+        public required Action<float> Step;
+        public Action? Done;
+    }
+
+    private static readonly List<Tween> Tweens = new();
+    private static readonly Stopwatch Clock = Stopwatch.StartNew();
+    private static System.Windows.Forms.Timer? _timer;
+    private static int _instant;
+    private static Action? _frame;
+
+    /// <summary>Milliseconds on the shared clock, for phase-driven loops.</summary>
+    public static long Now => Clock.ElapsedMilliseconds;
+
+    /// <summary>Raised on every tick while anything listens; listeners repaint from <see cref="Now"/>.</summary>
+    public static event Action Frame
+    {
+        add { _frame += value; Wake(); }
+        remove { _frame -= value; }
+    }
+
+    /// <summary>End states at once while the scope is open: renders must draw what a surface settles to.</summary>
+    public static IDisposable Instant()
+    {
+        _instant++;
+        foreach (var t in Tweens.ToArray()) Finish(t);
+        return new InstantScope();
+    }
+
+    private sealed class InstantScope : IDisposable
+    {
+        private bool _done;
+        public void Dispose()
+        {
+            if (_done) return;
+            _done = true;
+            _instant--;
+        }
+    }
+
+    private static bool Still => _instant > 0 || PhosphorMotion.ReducedMotion;
+
+    /// <summary>Whether <paramref name="form"/> is on screen and motion is on: a hidden or off-screen form takes the end state.</summary>
+    public static bool Animates(Form form) => !Still && form.Visible && form.Left > -10000;
+
+    /// <summary>
+    /// Shows <paramref name="form"/> where it already sits: fading in and rising 8px, or with
+    /// <paramref name="fromRight"/> sliding 24px in from the right edge it is docked to. A form already open just
+    /// comes forward.
+    /// </summary>
+    public static void Present(Form form, bool fromRight = false)
+    {
+        Cancel(form);
+        if (form.Visible || Still)
+        {
+            form.Opacity = 1;
+            form.Show();
+            return;
+        }
+        var home = form.Location;
+        int d = (int)Math.Round((fromRight ? 24 : 8) * form.DeviceDpi / 96f);
+        void Place(float e)
+        {
+            int off = (int)Math.Round(d * (1f - e));
+            form.Location = fromRight ? new Point(home.X + off, home.Y) : new Point(home.X, home.Y + off);
+        }
+        form.Opacity = 0;
+        Place(0f);
+        form.Show();
+        Run(form, PhosphorMotion.DurDisclosure, t =>
+        {
+            float e = PhosphorMotion.EaseAnalog(t);
+            form.Opacity = e;
+            Place(e);
+        });
+    }
+
+    /// <summary>Hides <paramref name="form"/> the way the operator dismisses it (Esc, a launcher, a toggle): a short fade.</summary>
+    public static void Dismiss(Form form)
+    {
+        Cancel(form);
+        if (!form.Visible) return;
+        if (Still)
+        {
+            form.Hide();
+            return;
+        }
+        float from = (float)form.Opacity;
+        Run(form, PhosphorMotion.DurDisclosureItem, t => form.Opacity = from * (1f - PhosphorMotion.EaseOut(t)), () =>
+        {
+            form.Hide();
+            form.Opacity = 1;
+        });
+    }
+
+    /// <summary>
+    /// Sets <paramref name="form"/>'s height, easing on screen. The form stays inside its work area as it grows, as
+    /// <see cref="FitToContent"/> always kept it.
+    /// </summary>
+    public static void Height(Form form, int height)
+    {
+        var key = (form, "height");
+        Cancel(key, finish: false);
+        int from = form.Height;
+        if (from == height) return;
+        if (!Animates(form))
+        {
+            SetHeight(form, height);
+            return;
+        }
+        Run(key, PhosphorMotion.DurDisclosureItem, t => SetHeight(form, from + (int)Math.Round((height - from) * PhosphorMotion.EaseOut(t))));
+    }
+
+    private static void SetHeight(Form form, int height)
+    {
+        var top = form.Location;
+        form.Height = height;
+        if (form.Visible)
+        {
+            var work = Screen.FromControl(form).WorkingArea;
+            form.Location = new Point(top.X, WidgetChrome.SafeClamp(top.Y, work.Top + 12, work.Bottom - form.Height - 12));
+        }
+        form.Invalidate();
+    }
+
+    /// <summary>Fades a dropdown panel (the tray menu) in on open or after a page turn, from <paramref name="from"/>.</summary>
+    public static void FadeIn(ToolStripDropDown panel, float from = 0f)
+    {
+        Cancel(panel);
+        if (Still)
+        {
+            panel.Opacity = 1;
+            return;
+        }
+        panel.Opacity = from;
+        Run(panel, PhosphorMotion.DurDisclosureItem, t => panel.Opacity = from + (1f - from) * PhosphorMotion.EaseOut(t));
+    }
+
+    private static void Run(object key, int ms, Action<float> step, Action? done = null)
+    {
+        Tweens.Add(new Tween { Key = key, Ms = Math.Max(1, ms), Step = step, Done = done });
+        Wake();
+    }
+
+    /// <summary>Ends <paramref name="key"/>'s tween: at its end state, or with <paramref name="finish"/> false where it stands.</summary>
+    private static void Cancel(object key, bool finish = true)
+    {
+        foreach (var t in Tweens.ToArray())
+        {
+            if (!t.Key.Equals(key)) continue;
+            if (finish) Finish(t);
+            else Tweens.Remove(t);
+        }
+    }
+
+    private static void Finish(Tween t)
+    {
+        Tweens.Remove(t);
+        try
+        {
+            t.Step(1f);
+            t.Done?.Invoke();
+        }
+        catch (ObjectDisposedException) { }
+    }
+
+    private static void Wake()
+    {
+        _timer ??= CreateTimer();
+        if (!_timer.Enabled) _timer.Start();
+    }
+
+    private static System.Windows.Forms.Timer CreateTimer()
+    {
+        var timer = new System.Windows.Forms.Timer { Interval = 15 };
+        timer.Tick += (_, _) =>
+        {
+            long now = Now;
+            foreach (var t in Tweens.ToArray())
+            {
+                if (t.Start < 0) t.Start = now;
+                float p = Math.Clamp((now - t.Start) / (float)t.Ms, 0f, 1f);
+                if (p >= 1f) { Finish(t); continue; }
+                try { t.Step(p); }
+                catch (ObjectDisposedException) { Tweens.Remove(t); }
+            }
+            _frame?.Invoke();
+            if (Tweens.Count == 0 && _frame == null) timer.Stop();
+        };
+        return timer;
+    }
+}
+
 internal sealed record PhosphorTipInfo(string Title, string Body, string? Keys = null);
 
 /// <summary>

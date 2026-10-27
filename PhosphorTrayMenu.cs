@@ -207,7 +207,12 @@ internal sealed class PhosphorTrayMenu : ContextMenuStrip
 
         if (!_measuring && _columns.TryGetValue(page, out int column)) SetStrut(column, fitHeaders: true);
         else PerformLayout();
-        if (turning) page.RaiseShown();
+        if (turning)
+        {
+            // A page turn swaps every row at once; the new page settles in from a dim panel instead of snapping.
+            SurfaceMotion.FadeIn(this, from: 0.45f);
+            page.RaiseShown();
+        }
     }
 
     /// <summary>Rows that can be checked get the 33px check gutter; otherwise labels start 12px in (--aura-lead).</summary>
@@ -296,12 +301,17 @@ internal sealed class PhosphorTrayMenu : ContextMenuStrip
         // Every open starts on the home page.
         ShowPage(Home);
         base.OnOpening(e);
-        if (!e.Cancel) Location = Place(Size);
+        if (e.Cancel) return;
+        Location = Place(Size);
+        // Clear until OnOpened fades it in, so the first frame is not a full-strength flash.
+        if (!PhosphorMotion.ReducedMotion) Opacity = 0;
     }
 
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        // The panel fades in on dur-disclosure-item like every Phosphor surface (SurfaceMotion), not the system's menu fade.
+        SurfaceMotion.FadeIn(this);
         Page.RaiseShown();
     }
 

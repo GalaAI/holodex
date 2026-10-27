@@ -56,6 +56,50 @@ internal sealed class ThreadCard : Control
     public string Body { get; private set; }
 
     /// <summary>
+    /// A card holding the place of an answer still coming (<see cref="ThreadView.AddPending"/>): its kicker says who is
+    /// working on what, three dots step under it on the shared motion clock, and <see cref="Resolve"/> turns it into
+    /// the answer or the failure in place, so the thread grows once instead of jumping.
+    /// </summary>
+    public bool Pending { get; private set; }
+
+    internal void BeginPending()
+    {
+        if (Pending) return;
+        Pending = true;
+        SurfaceMotion.Frame += OnFrame;
+    }
+
+    /// <summary>Settles a pending card to what came back.</summary>
+    public void Resolve(ThreadTone tone, string kicker, string? body)
+    {
+        EndPending();
+        Tone = tone;
+        Kicker = kicker;
+        Body = tone == ThreadTone.Agent ? PlainText(body?.Trim() ?? "") : body?.Trim() ?? "";
+        Name = $"Thread.{tone}Card";
+        (Parent as ThreadView)?.Relayout();
+        Invalidate();
+    }
+
+    private void EndPending()
+    {
+        if (!Pending) return;
+        Pending = false;
+        SurfaceMotion.Frame -= OnFrame;
+    }
+
+    private void OnFrame()
+    {
+        if (IsHandleCreated && Visible) Invalidate();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) EndPending();
+        base.Dispose(disposing);
+    }
+
+    /// <summary>
     /// Model markdown as plain card text: **bold** and __bold__ lose their markers, # headings lose their hashes,
     /// and "* " or "- " bullets become "• ". Code and anything else stay as written.
     /// </summary>
@@ -115,7 +159,8 @@ internal sealed class ThreadCard : Control
         float s = PhosphorPaint.Scale(this);
         float textW = Math.Max(40f, width - TextLeft(s) - Pad * s);
         float h = 12f * s + 16f * s; // kicker line
-        if (Body.Length > 0) h += 4f * s + StackPaint.MeasureWrapped(Body, BodyPx, textW, this);
+        if (Pending) h += 4f * s + PendingDotsHeight * s;
+        else if (Body.Length > 0) h += 4f * s + StackPaint.MeasureWrapped(Body, BodyPx, textW, this);
         if (Leds.Count > 0) h += 6f * s + LedPaint.Measure(Leds, textW, s, wrap: true);
         if (Result is { Length: > 0 }) h += 8f * s + 16f * s + StackPaint.MeasureWrapped(Result, 12f, textW - 14f * s, this);
         h += ButtonsHeight(s) + 12f * s;
@@ -124,6 +169,31 @@ internal sealed class ThreadCard : Control
     }
 
     private float BodyPx => Tone == ThreadTone.Intro ? 12.5f : 13f;
+
+    private const float PendingDotsHeight = 14f;
+
+    /// <summary>Where a pending card is in its pulse, 0 to 1 and back over dur-pulse; held at the middle without motion.</summary>
+    private static float PendingPhase(int periodMs) =>
+        PhosphorMotion.ReducedMotion ? 0.5f : SurfaceMotion.Now % periodMs / (float)periodMs;
+
+    /// <summary>The Patina edge breathes while the card waits (dur-pulse), the one accent that says work is underway.</summary>
+    private static Color PendingEdge()
+    {
+        float wave = 0.5f - 0.5f * MathF.Cos(PendingPhase(Math.Max(1, PhosphorTheme.Px("dur-pulse"))) * MathF.Tau);
+        return Color.FromArgb(110 + (int)(145 * wave), PhosphorTheme.Patina);
+    }
+
+    /// <summary>Three dots that step left to right, one bright at a time, over 1.2s.</summary>
+    private void DrawPendingDots(Graphics g, float x, float y, float s)
+    {
+        float dot = 6f * s, gap = 6f * s, phase = PendingPhase(1200);
+        for (int i = 0; i < 3; i++)
+        {
+            float lit = 1f - Math.Min(1f, Math.Abs(phase * 3f - i - 0.5f));
+            using var b = new SolidBrush(Color.FromArgb(70 + (int)(185 * lit), PhosphorTheme.Patina));
+            g.FillEllipse(b, x + i * (dot + gap), y + (PendingDotsHeight * s - dot) / 2f, dot, dot);
+        }
+    }
 
     protected override void OnLayout(LayoutEventArgs levent)
     {
@@ -164,7 +234,7 @@ internal sealed class ThreadCard : Control
     {
         var g = e.Graphics;
         float s = PhosphorPaint.Scale(this);
-        StackPaint.Card(g, this, EdgeOverride ?? (Tone == ThreadTone.Intro ? null : Edge), active: Waiting);
+        StackPaint.Card(g, this, Pending ? PendingEdge() : EdgeOverride ?? (Tone == ThreadTone.Intro ? null : Edge), active: Waiting);
 
         if (Glyph is PhosphorGlyph glyph)
         {
@@ -183,7 +253,12 @@ internal sealed class ThreadCard : Control
         g.Restore(st);
         y += 16f * s;
 
-        if (Body.Length > 0)
+        if (Pending)
+        {
+            y += 4f * s;
+            DrawPendingDots(g, x, y, s);
+        }
+        else if (Body.Length > 0)
         {
             y += 4f * s;
             Color ink = Tone == ThreadTone.Intro ? PhosphorTheme.Dim : PhosphorTheme.Bone;
@@ -242,6 +317,20 @@ internal sealed class ThreadView : FlowLayoutPanel
     public ThreadCard Add(ThreadTone tone, string kicker, string? body = null, PhosphorGlyph? glyph = null, IReadOnlyList<(Color Led, string Text)>? leds = null)
     {
         var card = new ThreadCard(tone, kicker, body, glyph, leds);
+        Controls.Add(card);
+        Relayout();
+        if (FollowNewest) ScrollControlIntoView(card);
+        return card;
+    }
+
+    /// <summary>
+    /// A card for an answer still coming: <paramref name="kicker"/> says who is working (ASKING // MODEL), and the
+    /// returned card's <see cref="ThreadCard.Resolve"/> settles it to the answer or the failure in place.
+    /// </summary>
+    public ThreadCard AddPending(string kicker, PhosphorGlyph? glyph = null)
+    {
+        var card = new ThreadCard(ThreadTone.Step, kicker, null, glyph);
+        card.BeginPending();
         Controls.Add(card);
         Relayout();
         if (FollowNewest) ScrollControlIntoView(card);

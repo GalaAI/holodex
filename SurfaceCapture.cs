@@ -37,6 +37,8 @@ internal static class SurfaceCapture
     {
         Directory.CreateDirectory(dir);
         var written = new List<string>();
+        // Every state is drawn as it settles: a surface easing open or resizing would be caught mid-tween.
+        using var still = SurfaceMotion.Instant();
 
         // Tray menu: the home page and every page it turns to, each as the panel alone (menu*.png) and as it opens
         // above the tray icon on a 1920x1080 screen (menu-tray*.png).
@@ -73,9 +75,12 @@ internal static class SurfaceCapture
             }
             if (form is OmniwandHudForm hud)
             {
-                // A question with the screen and its answer, as cards.
-                hud.PreviewState("answered");
-                Save(RenderForm(hud), Path.Combine(dir, "hud-answer.png"), written);
+                // A question with the screen, then the card it holds while asking, answered and failed.
+                foreach (var (state, file) in new[] { ("asking", "hud-asking"), ("answered", "hud-answer"), ("failed", "hud-failed") })
+                {
+                    hud.PreviewState(state);
+                    Save(RenderForm(hud), Path.Combine(dir, $"{file}.png"), written);
+                }
                 hud.PreviewState("reset");
             }
             if (form is WizCraftingWidgetForm wiz)

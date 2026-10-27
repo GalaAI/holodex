@@ -237,7 +237,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        if (keyData == Keys.Escape) { Hide(); return true; }
+        if (keyData == Keys.Escape) { SurfaceMotion.Dismiss(this); return true; }
         if (keyData == (Keys.Control | Keys.Enter)) { _ = SubmitCraftingPromptAsync(); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
     }
@@ -255,7 +255,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
         Location = WidgetChrome.PlaceNear(this, screen, cursorPos.X + 20, cursorPos.Y - Height / 3);
 
-        Show();
+        SurfaceMotion.Present(this);
         Activate();
         _promptBox.Focus();
         _ = _modelChip.RefreshAsync();
@@ -319,10 +319,24 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
                 // Plan-only route: tool calls need a Nemotron model on Token Factory.
                 Say(ThreadTone.Step, "WIZ // PLAN ONLY", $"{ModelChip.ShortName(model)} drafts without tools. Pick a Nemotron model on the chip to let Wiz act.");
                 string? snapshot = attachScreen ? ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y) : null;
-                var (_, runtime, answered, output) = await _ark.AskWizGeminiArgonAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
-                _modelChip.ShowRuntime(runtime);
-                ShowRuntime(runtime, answered);
-                Say(ThreadTone.Agent, $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output);
+                var pending = _thread.AddPending($"WIZ // DRAFTING // {Short(model)}");
+                try
+                {
+                    var (_, runtime, answered, output) = await _ark.AskWizGeminiArgonAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
+                    _modelChip.ShowRuntime(runtime);
+                    ShowRuntime(runtime, answered);
+                    pending.Resolve(ThreadTone.Agent, $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output);
+                }
+                catch (OperationCanceledException)
+                {
+                    pending.Resolve(ThreadTone.Fail, "WIZ // STOPPED", "Stopped by the operator.");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    pending.Resolve(ThreadTone.Fail, $"WIZ // NOT DRAFTED // {Short(model)}", ex.Message);
+                    return;
+                }
                 ToastCrafted(lensTitle);
             }
         }
@@ -407,7 +421,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     async Task<bool> IWizThread.ApproveAsync(string call, string effect, CancellationToken ct)
     {
         var pending = BeginApproval(call, effect);
-        if (!Visible) Show();
+        if (!Visible) SurfaceMotion.Present(this);
         try
         {
             bool approved = await pending.Task.WaitAsync(ct);
