@@ -1,0 +1,340 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using ModelContextProtocol.Authentication;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
+
+namespace Omniwand;
+
+public enum HivemindState
+{
+    /// <summary>No saved sign-in; nothing has been tried.</summary>
+    NotSignedIn,
+    /// <summary>The browser sign-in is open and Omniwand is waiting for its redirect.</summary>
+    SigningIn,
+    Connected,
+    /// <summary>Signed in before, but the endpoint or the saved sign-in did not work just now (see LastError).</summary>
+    Unreachable
+}
+
+/// <summary>An agent from Hivemind's live roster (<c>ark_agents</c>, the Runtime Gateway's /v1/agents).</summary>
+public sealed record HivemindAgent(string Id, string Name, string Role, string Provider, bool DispatchReady);
+
+/// <summary>A mission receipt from <c>dispatch_agent_mission</c> or <c>agent_mission_status</c>.</summary>
+public sealed record HivemindMission(string ExecutionId, string AgentId, string Status, string Model, string Result, string Error)
+{
+    public bool Finished => Status is "completed" or "failed" or "cancelled" or "timed_out";
+}
+
+/// <summary>
+/// Omniwand's connection to the real Hivemind: the remote MCP server at hivemind.arkomnitek.com/mcp, through the
+/// official MCP C# SDK (ModelContextProtocol.Core) and its OAuth 2.1 client. Sign-in is the server's public-client
+/// flow: dynamic registration, PKCE S256, and a browser sign-in that redirects to a fixed loopback port
+/// (Hivemind matches redirect URIs exactly, so the port never changes). Tokens and the registered client id live in
+/// the Windows Credential Manager slot <c>Omniwand:HivemindToken</c>; the SDK refreshes them, so the browser opens
+/// only on the sign-in the operator starts (<see cref="SignInAsync"/>), never from a background call.
+/// </summary>
+public sealed class HivemindClient : IAsyncDisposable
+{
+    public static readonly Uri Endpoint = new("https://hivemind.arkomnitek.com/mcp");
+    public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
+    public const string CredentialTarget = "Omniwand:HivemindToken";
+
+    /// <summary>Read the roster and mission status; dispatch and cancel missions. Nothing else is requested.</summary>
+    private static readonly string[] RequestedScopes = { "runtime.read", "runtime.execute" };
+    private static readonly TimeSpan SignInTimeout = TimeSpan.FromMinutes(5);
+
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(60) };
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private McpClient? _client;
+
+    public HivemindState State { get; private set; } = HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn;
+    public string LastError { get; private set; } = string.Empty;
+    public event Action? StateChanged;
+
+    public static bool HasSavedSignIn => !string.IsNullOrWhiteSpace(ArkStationClient.TryReadWindowsCredential(CredentialTarget));
+
+    /// <summary>
+    /// Opens the browser sign-in (Hivemind's /login, then Authorize) and waits for its redirect. Started only by
+    /// the operator: the Holodex "Sign in to Hivemind" button.
+    /// </summary>
+    public Task<bool> SignInAsync(CancellationToken ct = default) => ConnectAsync(interactive: true, ct);
+
+    /// <summary>Connects with the saved sign-in only; false (and no browser) when there is none or it no longer works.</summary>
+    public Task<bool> EnsureConnectedAsync(CancellationToken ct = default) => ConnectAsync(interactive: false, ct);
+
+    public async Task<IReadOnlyList<HivemindAgent>?> ListAgentsAsync(CancellationToken ct = default)
+    {
+        var data = await CallAsync("ark_agents", new Dictionary<string, object?>(), ct);
+        if (data is not JsonElement root) return null;
+        var agents = FindArray(root, "agents");
+        if (agents is not JsonElement list) return Array.Empty<HivemindAgent>();
+        return list.EnumerateArray()
+            .Where(a => a.ValueKind == JsonValueKind.Object && Str(a, "id").Length > 0)
+            .Select(a => new HivemindAgent(
+                Str(a, "id"),
+                FirstNonEmpty(Str(a, "displayName"), Str(a, "name"), Str(a, "id")),
+                Str(a, "role"),
+                Str(a, "provider"),
+                !a.TryGetProperty("dispatchReady", out var ready) || ready.ValueKind != JsonValueKind.False))
+            .ToList();
+    }
+
+    /// <summary>Dispatches a mission to <paramref name="agentId"/> (Hivemind's default execution mode, discussion).</summary>
+    public async Task<HivemindMission?> DispatchAsync(string agentId, string objective, CancellationToken ct = default)
+    {
+        var data = await CallAsync("dispatch_agent_mission", new Dictionary<string, object?>
+        {
+            ["objective"] = objective,
+            ["targetAgentId"] = agentId,
+            ["submissionId"] = Guid.NewGuid().ToString()
+        }, ct);
+        return data is JsonElement root ? ReadMission(root, agentId) : null;
+    }
+
+    public async Task<HivemindMission?> MissionStatusAsync(string executionId, CancellationToken ct = default)
+    {
+        var data = await CallAsync("agent_mission_status", new Dictionary<string, object?> { ["executionId"] = executionId }, ct);
+        return data is JsonElement root ? ReadMission(root, string.Empty) : null;
+    }
+
+    private async Task<bool> ConnectAsync(bool interactive, CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct);
+        try
+        {
+            if (_client != null) return true;
+            if (!interactive && !HasSavedSignIn)
+            {
+                SetState(HivemindState.NotSignedIn, string.Empty);
+                return false;
+            }
+            if (interactive) SetState(HivemindState.SigningIn, string.Empty);
+
+            _client = await CreateClientAsync(interactive
+                ? BrowserSignInAsync
+                : (_, _) => throw new InvalidOperationException("Hivemind needs a new sign-in. Use Sign in to Hivemind in Holodex."), ct);
+            SetState(HivemindState.Connected, string.Empty);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _client = null;
+            SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
+            return false;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private Task<McpClient> CreateClientAsync(Func<AuthorizationCallbackContext, CancellationToken, Task<AuthorizationResult?>> authorize, CancellationToken ct)
+    {
+        var transport = new HttpClientTransport(new HttpClientTransportOptions
+        {
+            Endpoint = Endpoint,
+            TransportMode = HttpTransportMode.StreamableHttp,
+            Name = "Hivemind",
+            OAuth = new ClientOAuthOptions
+            {
+                RedirectUri = RedirectUri,
+                ScopeSelector = offered => RequestedScopes.Where(scope => offered?.Contains(scope) ?? true).ToArray(),
+                Scopes = RequestedScopes,
+                DynamicClientRegistration = new DynamicClientRegistrationOptions { ClientName = "Omniwand", ApplicationType = "native" },
+                TokenCache = new WinCredTokenCache(CredentialTarget),
+                AuthorizationCallbackHandler = authorize
+            }
+        }, _http);
+        return McpClient.CreateAsync(transport, new McpClientOptions
+        {
+            ClientInfo = new Implementation { Name = "omniwand", Title = "Omniwand", Version = "0.3.0" }
+        }, cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Runs the sign-in up to the browser and stops there (pipe <c>hivemind:probe</c>): discovery, dynamic
+    /// registration, PKCE and scope selection all happen against the live server, and the authorization URL the
+    /// browser would open comes back with its state and challenge redacted. Nothing is saved and no browser opens.
+    /// </summary>
+    public async Task<string> ProbeSignInAsync(CancellationToken ct = default)
+    {
+        if (HasSavedSignIn) return "saved sign-in present; probe skipped";
+        Uri? seen = null;
+        try
+        {
+            await using var client = await CreateClientAsync((context, _) =>
+            {
+                seen = context.AuthorizationUri;
+                throw new OperationCanceledException("probe stops before the browser");
+            }, ct);
+            return "connected without a sign-in (unexpected)";
+        }
+        catch (Exception ex)
+        {
+            if (seen == null) return $"stopped before authorization: {Describe(ex)}";
+            var q = System.Web.HttpUtility.ParseQueryString(seen.Query);
+            foreach (string key in new[] { "state", "code_challenge" })
+                if (q[key] != null) q[key] = $"<{q[key]!.Length} chars>";
+            return $"{seen.GetLeftPart(UriPartial.Path)}?{q}";
+        }
+    }
+
+    /// <summary>
+    /// Calls a Hivemind tool and returns the envelope's <c>data</c> (Hivemind answers with one text block holding
+    /// <c>{ok, data, error, message}</c>), or null with <see cref="LastError"/> set.
+    /// </summary>
+    private async Task<JsonElement?> CallAsync(string tool, IReadOnlyDictionary<string, object?> args, CancellationToken ct)
+    {
+        if (!await EnsureConnectedAsync(ct)) return null;
+        try
+        {
+            var result = await _client!.CallToolAsync(tool, args, cancellationToken: ct);
+            string text = string.Concat(result.Content.OfType<TextContentBlock>().Select(b => b.Text));
+            using var doc = JsonDocument.Parse(text.Length > 0 ? text : "{}");
+            var root = doc.RootElement;
+            bool ok = root.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
+            if (result.IsError == true || !ok)
+            {
+                LastError = FirstNonEmpty(Str(root, "message"), Str(root, "error"), text.Length > 0 ? text : $"{tool} failed");
+                return null;
+            }
+            LastError = string.Empty;
+            return root.TryGetProperty("data", out var data) ? data.Clone() : root.Clone();
+        }
+        catch (Exception ex)
+        {
+            // A dropped session or an expired sign-in: the next call reconnects (silently, with the saved tokens).
+            await DropClientAsync();
+            SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The SDK hands over the authorization URL; this opens it in the default browser and catches the redirect on
+    /// the fixed loopback port, then answers the browser with a short page.
+    /// </summary>
+    private static async Task<AuthorizationResult?> BrowserSignInAsync(AuthorizationCallbackContext context, CancellationToken ct)
+    {
+        using var listener = new HttpListener();
+        listener.Prefixes.Add(RedirectUri.GetLeftPart(UriPartial.Path));
+        listener.Start();
+        Process.Start(new ProcessStartInfo(context.AuthorizationUri.ToString()) { UseShellExecute = true });
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(SignInTimeout);
+        var pending = listener.GetContextAsync();
+        await Task.WhenAny(pending, Task.Delay(Timeout.Infinite, timeout.Token)).ConfigureAwait(false);
+        if (!pending.IsCompleted) throw new TimeoutException("The Hivemind sign-in was not finished in the browser within 5 minutes.");
+
+        var http = await pending;
+        var query = System.Web.HttpUtility.ParseQueryString(http.Request.Url?.Query ?? string.Empty);
+        string? error = query["error"];
+        string page = error == null
+            ? "Omniwand is signed in to Hivemind. You can close this tab."
+            : $"Hivemind sign-in did not finish: {WebUtility.HtmlEncode(query["error_description"] ?? error)}";
+        byte[] body = Encoding.UTF8.GetBytes($"<!doctype html><meta charset=utf-8><title>Omniwand</title><body style=\"background:#050607;color:#e4d9c0;font:16px sans-serif;padding:40px\">{page}</body>");
+        http.Response.ContentType = "text/html; charset=utf-8";
+        await http.Response.OutputStream.WriteAsync(body, ct);
+        http.Response.Close();
+
+        if (error != null) throw new InvalidOperationException($"Hivemind sign-in: {query["error_description"] ?? error}");
+        return new AuthorizationResult { Code = query["code"], State = query["state"], Iss = query["iss"] };
+    }
+
+    private static HivemindMission? ReadMission(JsonElement root, string agentFallback)
+    {
+        var receipt = FindObjectWith(root, "executionId");
+        if (receipt is not JsonElement r) return null;
+        string model = r.TryGetProperty("model", out var m)
+            ? m.ValueKind == JsonValueKind.String ? m.GetString() ?? "" : FirstNonEmpty(Str(m, "id"), Str(m, "model"), Str(m, "name"))
+            : string.Empty;
+        string result = r.TryGetProperty("result", out var res)
+            ? res.ValueKind == JsonValueKind.String ? res.GetString() ?? "" : FirstNonEmpty(Str(res, "text"), Str(res, "output"), Str(res, "summary"), res.ValueKind == JsonValueKind.Null ? "" : res.GetRawText())
+            : string.Empty;
+        string error = r.TryGetProperty("error", out var err)
+            ? err.ValueKind == JsonValueKind.String ? err.GetString() ?? "" : FirstNonEmpty(Str(err, "message"), err.ValueKind == JsonValueKind.Null ? "" : err.GetRawText())
+            : string.Empty;
+        return new HivemindMission(Str(r, "executionId"), FirstNonEmpty(Str(r, "targetAgentId"), agentFallback), Str(r, "status"), model, result, error);
+    }
+
+    private static JsonElement? FindArray(JsonElement e, string name)
+    {
+        if (e.ValueKind != JsonValueKind.Object) return null;
+        if (e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Array) return v;
+        foreach (var p in e.EnumerateObject())
+            if (FindArray(p.Value, name) is JsonElement found) return found;
+        return null;
+    }
+
+    private static JsonElement? FindObjectWith(JsonElement e, string property)
+    {
+        if (e.ValueKind != JsonValueKind.Object) return null;
+        if (e.TryGetProperty(property, out _)) return e;
+        foreach (var p in e.EnumerateObject())
+            if (FindObjectWith(p.Value, property) is JsonElement found) return found;
+        return null;
+    }
+
+    private static string Str(JsonElement e, string name) =>
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
+
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? "";
+
+    private static string Describe(Exception ex) => (ex is AggregateException agg ? agg.InnerException ?? ex : ex).Message;
+
+    private void SetState(HivemindState state, string error)
+    {
+        LastError = error;
+        if (State == state) return;
+        State = state;
+        StateChanged?.Invoke();
+    }
+
+    private async Task DropClientAsync()
+    {
+        var client = _client;
+        _client = null;
+        if (client != null)
+        {
+            try { await client.DisposeAsync(); } catch { }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DropClientAsync();
+        _http.Dispose();
+        _gate.Dispose();
+    }
+
+    /// <summary>
+    /// The SDK's token cache, kept in Windows Credential Manager. The container carries the access and refresh
+    /// tokens plus the registered client id and issuer, so a restart refreshes without registering again.
+    /// </summary>
+    private sealed class WinCredTokenCache(string target) : ITokenCache
+    {
+        public ValueTask<TokenContainer?> GetTokensAsync(CancellationToken cancellationToken)
+        {
+            string? json = ArkStationClient.TryReadWindowsCredential(target);
+            if (string.IsNullOrWhiteSpace(json)) return ValueTask.FromResult<TokenContainer?>(null);
+            try { return ValueTask.FromResult(JsonSerializer.Deserialize<TokenContainer>(json)); }
+            catch (JsonException) { return ValueTask.FromResult<TokenContainer?>(null); }
+        }
+
+        public ValueTask StoreTokensAsync(TokenContainer tokens, CancellationToken cancellationToken)
+        {
+            ArkStationClient.TryWriteWindowsCredential(target, JsonSerializer.Serialize(tokens));
+            return ValueTask.CompletedTask;
+        }
+    }
+}

@@ -190,20 +190,22 @@ public sealed class ArkStationClient
         !string.IsNullOrWhiteSpace(TryReadWindowsCredential("ArkKeymaster:VaultBundle:Manifest")) ||
         !string.IsNullOrWhiteSpace(TryReadWindowsCredential("Omniwand:NebiusTokenFactory"));
 
+    private const string GatewayInboundKeyTarget = "Omniwand:GatewayInboundKey";
+
     public bool SaveTokenToWindowsVault(string rawToken)
     {
         string trimmed = rawToken.Trim();
         if (string.IsNullOrEmpty(trimmed)) return false;
 
-        // If it looks like an Ark gateway / Hivemind token (starts with ark_ or short bearer), store in Omniwand:HivemindToken;
-        // otherwise store as Omniwand:NebiusTokenFactory and set session environment variable.
+        // An Ark gateway key (ark_ or hm_) goes to Omniwand:GatewayInboundKey; anything else is a Nebius Token Factory
+        // key (Omniwand:NebiusTokenFactory). Omniwand:HivemindToken belongs to the Hivemind OAuth sign-in (HivemindClient).
         bool isArkToken = trimmed.StartsWith("ark_", StringComparison.OrdinalIgnoreCase) ||
                           trimmed.StartsWith("hm_", StringComparison.OrdinalIgnoreCase);
 
         if (isArkToken)
         {
             Environment.SetEnvironmentVariable("ARK_MODEL_GATEWAY_INBOUND_KEY", trimmed);
-            return TryWriteWindowsCredential("Omniwand:HivemindToken", trimmed);
+            return TryWriteWindowsCredential(GatewayInboundKeyTarget, trimmed);
         }
         else
         {
@@ -255,7 +257,7 @@ public sealed class ArkStationClient
 
     private bool HasArkGatewayCredentials() => !string.IsNullOrEmpty(ReadInboundKey());
 
-    private static string? TryReadWindowsCredential(string targetName)
+    internal static string? TryReadWindowsCredential(string targetName)
     {
         if (!CredReadW(targetName, 1 /* CRED_TYPE_GENERIC */, 0, out IntPtr credPtr) || credPtr == IntPtr.Zero)
             return null;
@@ -388,7 +390,7 @@ public sealed class ArkStationClient
                          Environment.GetEnvironmentVariable("ARK_HIVEMIND_TOKEN");
         if (!string.IsNullOrWhiteSpace(envKey)) return envKey.Trim();
 
-        string? winCredToken = TryReadWindowsCredential("Omniwand:HivemindToken");
+        string? winCredToken = TryReadWindowsCredential(GatewayInboundKeyTarget);
         if (!string.IsNullOrWhiteSpace(winCredToken)) return winCredToken.Trim();
 
         try
@@ -691,6 +693,9 @@ public sealed class ArkStationClient
 
     /// <summary>Model chosen in the HUD and other chat pickers; shared by those surfaces. Defaults to NVIDIA Nemotron fast tier. Wiz keeps its own agent model (WizAgent.DefaultReasoningModel).</summary>
     public string SelectedModel { get; set; } = DefaultNemotronFastModel;
+
+    /// <summary>The real Hivemind (remote MCP and its OAuth sign-in); the Holodex session and work orders use it.</summary>
+    public HivemindClient Hivemind { get; } = new();
 
     /// <summary>CLI form of the selection (no "ark/" route prefix).</summary>
     private static string CliModelSlug(string model) =>
@@ -1251,24 +1256,24 @@ public sealed class ArkStationClient
     }
 
     /// <summary>
-    /// Routes a Syndicate Group Chat Session message in Holodex Lite.
-    /// Connects to ArkStation Hivemind / Gateway when online or orchestrates a multi-voice Syndicate response
-    /// via Nebius Token Factory (NVIDIA Nemotron) + ArkHive.
+    /// The Holodex session's offline fallback, used only while <see cref="Hivemind"/> is not connected: Nemotron
+    /// answers in the Syndicate's voice. It is role-play, not Hivemind, and returns the model so every card can say so.
     /// </summary>
-    public async Task<(bool Ok, string Output)> AskSyndicateSessionAsync(
+    public async Task<(bool Ok, string Output, string Model)> AskOfflineSyndicateAsync(
         string message,
         string targetAgentId,
         string targetAgentName,
         string targetAgentRole)
     {
         string syndicatePrompt = targetAgentId == "all"
-            ? "You are the ArkStation Syndicate in a live Hivemind Lite group chat session inside Omniwand. " +
+            ? "You are role-playing the ArkStation Syndicate in Omniwand's offline Holodex session (Hivemind is not connected). " +
               "Reply with 2 concise, distinct in-character turns from the most relevant Syndicate conductors " +
               "(choose from GALA // Co-op Orchestrator, WIZ // GrimX & Mouse Macro Conductor, SMITH // Architecture & Code Authority, ARBITER // Eden & SolaTree Conductor, SCHOLAR // Cortex Research, MUSE // MagiXLab Visuals). " +
               $"Format each turn as 'AGENT_NAME // ROLE:\\n<concise actionable response>'.\n\nOperator message: {message}"
-            : $"You are {targetAgentName} ({targetAgentRole}), a member of the ArkStation Syndicate inside Omniwand's Hivemind Lite Session. " +
+            : $"You are {targetAgentName} ({targetAgentRole}), role-played in Omniwand's offline Holodex session (Hivemind is not connected). " +
               $"Reply in character as '{targetAgentName} // {targetAgentRole.ToUpperInvariant()}:' with a concise, high-signal operational response.\n\nOperator message: {message}";
 
-        return await AskArkGatewayAsync(syndicatePrompt);
+        var (ok, output) = await AskArkGatewayAsync(syndicatePrompt);
+        return (ok, output, ResolveNemotronModel(SelectedModel));
     }
 }

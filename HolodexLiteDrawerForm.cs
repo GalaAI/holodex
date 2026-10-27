@@ -21,7 +21,8 @@ public sealed record SyndicateWorkOrder(
     string Title,
     string OwnerAgent,
     string Status,
-    string CreatedAt);
+    string CreatedAt,
+    string ExecutionId = "");
 
 /// <summary>
 /// Holodex Lite Dashboard Drawer (Alt+H, Mouse5, HUD button, pipe holodex:summon).
@@ -47,6 +48,8 @@ public sealed class HolodexLiteDrawerForm : Form
     private readonly Panel _tokenGap;
     private readonly LedRow _connectionTelemetry;
     private readonly PhosphorButton _replaceKeyBtn;
+    private readonly PhosphorButton _hivemindBtn;
+    private readonly LedRow _hivemindLine;
     private bool _connected;
     private bool _tokenBarOpen;
 
@@ -81,13 +84,22 @@ public sealed class HolodexLiteDrawerForm : Form
 
     private readonly List<SyndicateWorkOrder> _workOrders = new();
 
+    // Who the session reaches: Hivemind's live roster once signed in, the offline roster until then.
+    private IReadOnlyList<SyndicateAgentInfo> _roster = OfflineRoster;
+    private HivemindState? _shownHivemindState;
+
     // Mouse detection launches PowerShell, so it runs once and the result is reused.
     private MouseHardwareReport? _cachedMouse;
     private MouseHardwareReport ConnectedMouse => _cachedMouse ??= MouseHardwareAndWandEngine.DetectConnectedMouse();
 
     private bool HasNebiusKey => !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
 
-    public static readonly SyndicateAgentInfo[] SyndicateRoster =
+    /// <summary>
+    /// The roster shown while Hivemind is not reachable. Replies to it are Nemotron role-play and say so
+    /// (<see cref="ArkStationClient.AskOfflineSyndicateAsync"/>); once signed in, <see cref="LoadLiveRosterAsync"/>
+    /// replaces it with Hivemind's ark_agents.
+    /// </summary>
+    public static readonly SyndicateAgentInfo[] OfflineRoster =
     {
         new("all",     "ALL SYNDICATE", "Co-op Group Session",          "Nexus",    PhosphorTheme.Patina),
         new("gala",    "GALA",          "Co-op Orchestrator",           "Nexus",    PhosphorTheme.Patina),
@@ -168,6 +180,16 @@ public sealed class HolodexLiteDrawerForm : Form
         connectionRow.Controls.Add(_connectionTelemetry);
         connectionRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
         connectionRow.Controls.Add(_replaceKeyBtn);
+
+        // Hivemind: whether the session reaches the real agents, and the way in (the browser sign-in).
+        var hivemindRow = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = PhosphorTheme.Surface, Name = "Holodex.HivemindRow" };
+        _hivemindLine = new LedRow { Dock = DockStyle.Fill, Height = 36, Name = "Holodex.HivemindLine" };
+        _hivemindBtn = new PhosphorButton("Sign in", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.HivemindSignInButton" };
+        _hivemindBtn.Click += async (_, _) => await SignInToHivemindAsync();
+        hivemindRow.Controls.Add(_hivemindLine);
+        hivemindRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
+        hivemindRow.Controls.Add(_hivemindBtn);
+        _ark.Hivemind.StateChanged += () => { if (IsHandleCreated) BeginInvoke(new Action(ShowHivemindState)); };
         _connected = hasNebiusKey;
 
         // 2. 5-Tab Bar: SESSION | AINBOX | CODEX | GRIMX | MODS
@@ -200,7 +222,7 @@ public sealed class HolodexLiteDrawerForm : Form
 
         // 3. Content Host for the 5 tabs
         _contentHost = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.ContentHost" };
-        BuildSessionTab(hasNebiusKey);
+        BuildSessionTab();
         BuildAInboxTab();
         BuildCodexTab();
         BuildGrimXTab();
@@ -212,6 +234,8 @@ public sealed class HolodexLiteDrawerForm : Form
         Controls.Add(_tokenGap);
         Controls.Add(_tokenBar);
         Controls.Add(WidgetChrome.Spacer(6));
+        Controls.Add(hivemindRow);
+        Controls.Add(WidgetChrome.Spacer(4));
         Controls.Add(connectionRow);
         Controls.Add(WidgetChrome.Spacer(4));
         WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null);
@@ -222,7 +246,7 @@ public sealed class HolodexLiteDrawerForm : Form
         ResumeLayout(false);
     }
 
-    private void BuildSessionTab(bool hasNebiusKey)
+    private void BuildSessionTab()
     {
         _sessionPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionPanel" };
 
@@ -233,12 +257,8 @@ public sealed class HolodexLiteDrawerForm : Form
         var ordersGap = WidgetChrome.Spacer(8);
 
         // The session: a card per message, in the same card language as Wiz and the AInbox stack.
+        // What the session reaches is said by an intro card each time the Hivemind state changes (ShowHivemindState).
         _sessionThread = new ThreadView("Holodex.SessionChatBox") { Dock = DockStyle.Fill };
-        _sessionThread.Add(ThreadTone.Agent, "GALA // NEXUS ORCHESTRATOR", hasNebiusKey
-            ? "Welcome. Your Nebius key is linked and Nemotron is ready to chat."
-            : "Welcome. Paste a Nebius Token Factory key above to turn on Nemotron.");
-        _sessionThread.Add(ThreadTone.Agent, "WIZ // 4GE CONDUCTOR",
-            "Your mouse hardware profile, DPI controls, Free-Form Lasso (Alt+S), and Element Picker (Alt+E) are online. Message the Syndicate below or prefix with /order to dispatch a Work Order.");
 
         // Composer: the message, a bar with + work order, then who it goes to and Send.
         var composer = new ComposerSurface { Dock = DockStyle.Bottom, Name = "Holodex.SessionComposer" };
@@ -262,7 +282,7 @@ public sealed class HolodexLiteDrawerForm : Form
 
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionFooter" };
         _rosterChip = new SuggestionChip { Dock = DockStyle.Left, Name = "Holodex.RosterSelect" };
-        _rosterChip.Click += (_, _) => _rosterChip.ShowChoices(SyndicateRoster.Select(ag => new ChipChoice(
+        _rosterChip.Click += (_, _) => _rosterChip.ShowChoices(_roster.Select(ag => new ChipChoice(
             $"{ag.Name}  ·  {ag.Role}", ag.Pod, ag.Id == _selectedSyndicateTarget, () => SetSyndicateTarget(ag.Id))));
         _sessionSendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 150, Name = "Holodex.SessionSendBtn" };
         _sessionSendBtn.Click += async (_, _) => await SendSyndicateSessionMessageAsync();
@@ -287,12 +307,13 @@ public sealed class HolodexLiteDrawerForm : Form
 
         SetSyndicateTarget("all");
         RefreshWorkOrdersText();
+        ShowHivemindState();
         _contentHost.Controls.Add(_sessionPanel);
     }
 
     private void SetSyndicateTarget(string id)
     {
-        var agent = SyndicateRoster.FirstOrDefault(a => a.Id == id) ?? SyndicateRoster[0];
+        var agent = _roster.FirstOrDefault(a => a.Id == id) ?? _roster[0];
         _selectedSyndicateTarget = agent.Id;
         _rosterChip.Label = agent.Name;
         _rosterChip.Detail = agent.Id == "all" ? "" : agent.Pod;
@@ -303,7 +324,7 @@ public sealed class HolodexLiteDrawerForm : Form
         _sessionSendBtn.Text = $"Send to {who}";
         // The chip names the agent and its pod; the line says who else that reaches (everyone) or the agent's role.
         _activeRosterLabel.Set(agent.Id == "all"
-            ? SyndicateRoster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)).ToArray()
+            ? _roster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)).ToArray()
             : new[] { (agent.Accent, agent.Role) });
     }
 
@@ -544,7 +565,7 @@ public sealed class HolodexLiteDrawerForm : Form
             ("Ark Aperture morph engine", "Solid patina I-beam, coral hover and the Wiz globe.", new[] { (PhosphorTheme.Moss, "240 Hz") }),
             ("Mouse hardware intelligence", "Reads the brand and VID/PID over USB/HID and drives the DPI slider.", new[] { (PhosphorTheme.Moss, "100 to 4000 DPI") }),
             ("KeyMaster local vault sync", "Keeps the model key in Windows Credential Manager, synced with ArkHive.", new[] { (PhosphorTheme.Patina, "wincred:// to ArkHive") }),
-            ("Hivemind Lite session bridge", "The Syndicate group chat on Nemotron.", new[] { (PhosphorTheme.Patina, "Nemotron 3 Nano"), (PhosphorTheme.Patina, "Nemotron 3 Super") })
+            ("Hivemind session bridge", "Messages and work orders become real Hivemind missions over MCP. Signed out or offline, replies are Nemotron role-play and are labelled so.", new[] { (PhosphorTheme.Patina, "hivemind.arkomnitek.com/mcp"), (PhosphorTheme.Ghost, "Offline: Nemotron 3 Nano") })
         })
             modsInfoBox.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
 
@@ -655,9 +676,12 @@ public sealed class HolodexLiteDrawerForm : Form
         // The panel stays: one empty-state card, or a card per order, two tall before it scrolls.
         _workOrdersList.Clear();
         if (_workOrders.Count == 0)
-            _workOrdersList.Add(ThreadTone.Intro, "NONE YET", "Add one with + or /order, or ask in the session.");
+            _workOrdersList.Add(ThreadTone.Intro, "NONE YET", _ark.Hivemind.State == HivemindState.Connected
+                ? "Add one with + or /order. Each one becomes a Hivemind mission."
+                : "Add one with + or /order. Signed out, orders stay here and are not sent.");
         foreach (var wo in _workOrders)
-            _workOrdersList.Add(ThreadTone.Action, $"{wo.OrderId} // {wo.Status} // {wo.OwnerAgent} // {wo.CreatedAt}", wo.Title, PhosphorGlyph.Holodex);
+            _workOrdersList.Add(ThreadTone.Action, $"{wo.OrderId} // {wo.Status} // {wo.OwnerAgent} // {wo.CreatedAt}", wo.Title, PhosphorGlyph.Holodex,
+                wo.ExecutionId.Length > 0 ? new[] { (PhosphorTheme.Patina, $"Mission {ShortId(wo.ExecutionId)}") } : null);
         SizeWorkOrders();
     }
 
@@ -708,12 +732,12 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         string text = task.Trim();
         string who = agent.Trim();
-        var match = SyndicateRoster.FirstOrDefault(a =>
+        var match = _roster.FirstOrDefault(a =>
             string.Equals(a.Id, who, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(a.Name, who, StringComparison.OrdinalIgnoreCase));
         if (match == null)
         {
-            error = $"Unknown agent '{agent}'. Use one of: {string.Join(", ", SyndicateRoster.Select(a => a.Id))}.";
+            error = $"Unknown agent '{agent}'. Use one of: {string.Join(", ", _roster.Select(a => a.Id))}.";
             return null;
         }
         if (string.IsNullOrEmpty(text))
@@ -725,16 +749,185 @@ public sealed class HolodexLiteDrawerForm : Form
         return AddWorkOrder(match.Id, text).OrderId;
     }
 
+    /// <summary>
+    /// Adds a work order. Signed in to Hivemind it is dispatched as a real mission and its status follows the
+    /// mission's; signed out it stays in this list, marked as not sent.
+    /// </summary>
     private SyndicateWorkOrder AddWorkOrder(string targetId, string text)
     {
-        string owner = targetId == "all" ? "WIZ" : targetId.ToUpperInvariant();
+        bool live = _ark.Hivemind.State == HivemindState.Connected;
+        var agent = _roster.FirstOrDefault(a => a.Id == targetId) ?? _roster[0];
+        string missionTarget = MissionTarget(agent);
+        string owner = missionTarget.ToUpperInvariant();
         string orderId = $"WO-{100 + _workOrders.Count + 1}";
-        var order = new SyndicateWorkOrder(orderId, text, owner, "QUEUED", "Just now");
+        var order = new SyndicateWorkOrder(orderId, text, owner, live ? "DISPATCHING" : "NOT SENT // SIGNED OUT", "Just now");
         _workOrders.Insert(0, order);
         RefreshWorkOrdersText();
-        _sessionThread.Add(ThreadTone.Action, $"WORK ORDER // {orderId} // TO {owner}", text, PhosphorGlyph.Holodex);
-        PhosphorToast.Show($"Work order {orderId} queued", $"{owner} has it: {text}", "HOLODEX // WORK ORDERS", 2600, ToastTone.Success);
+        if (live)
+        {
+            _ = RunMissionAsync(missionTarget, text, $"WORK ORDER {orderId}", mission => UpdateWorkOrder(orderId, mission));
+        }
+        else
+        {
+            _sessionThread.Add(ThreadTone.Action, $"WORK ORDER // {orderId} // TO {owner} // NOT SENT", text, PhosphorGlyph.Holodex)
+                .SetResult("Signed out of Hivemind, so this order was not sent. Sign in to Hivemind to dispatch work orders.", false);
+            PhosphorToast.Show($"Work order {orderId} kept here", "Not sent: Omniwand is not signed in to Hivemind.", "HOLODEX // WORK ORDERS", 3200, ToastTone.Warning);
+        }
         return order;
+    }
+
+    private void UpdateWorkOrder(string orderId, HivemindMission mission)
+    {
+        int i = _workOrders.FindIndex(w => w.OrderId == orderId);
+        if (i < 0) return;
+        _workOrders[i] = _workOrders[i] with { Status = mission.Status.ToUpperInvariant(), ExecutionId = mission.ExecutionId };
+        RefreshWorkOrdersText();
+    }
+
+    /// <summary>The Hivemind agent a roster entry dispatches to: "all" goes to Gala, the co-op orchestrator.</summary>
+    private string MissionTarget(SyndicateAgentInfo agent)
+    {
+        if (agent.Id != "all") return agent.Id;
+        return _roster.FirstOrDefault(a => a.Id == "gala")?.Id ?? _roster.FirstOrDefault(a => a.Id != "all")?.Id ?? "gala";
+    }
+
+    private static string ShortId(string executionId) => executionId.Length > 8 ? executionId[..8] : executionId;
+
+    private static string Clip(string text) => text.Length > 140 ? text[..140] + "..." : text;
+
+    /// <summary>
+    /// Dispatches a real Hivemind mission and follows it: one action card whose result line tracks the mission's
+    /// status, then the agent's answer as its own card, named by agent and model. <paramref name="onStatus"/> hears
+    /// every status change (work orders use it).
+    /// </summary>
+    private async Task RunMissionAsync(string agentId, string objective, string what, Action<HivemindMission>? onStatus)
+    {
+        _setThinkingState(true);
+        try
+        {
+            var card = _sessionThread.Add(ThreadTone.Action, $"{what} // HIVEMIND MISSION // TO {agentId.ToUpperInvariant()}", objective, PhosphorGlyph.Holodex);
+            var mission = await _ark.Hivemind.DispatchAsync(agentId, objective);
+            if (mission == null)
+            {
+                card.SetResult($"Not dispatched: {_ark.Hivemind.LastError}", false);
+                return;
+            }
+            onStatus?.Invoke(mission);
+            card.SetResult($"Mission {ShortId(mission.ExecutionId)} // {mission.Status}", true);
+
+            // Hivemind's missions time out at 10 minutes by default (30 at most); five failed polls in a row stop it.
+            int misses = 0;
+            var deadline = DateTime.UtcNow.AddMinutes(31);
+            while (!mission.Finished && DateTime.UtcNow < deadline && misses < 5)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                var next = await _ark.Hivemind.MissionStatusAsync(mission.ExecutionId);
+                if (next == null) { misses++; continue; }
+                misses = 0;
+                next = next with { AgentId = mission.AgentId };
+                if (next.Status != mission.Status)
+                {
+                    onStatus?.Invoke(next);
+                    card.SetResult($"Mission {ShortId(next.ExecutionId)} // {next.Status}", next.Status != "failed");
+                }
+                mission = next;
+            }
+
+            string model = mission.Model.Length > 0 ? ModelChip.ShortName(mission.Model).ToUpperInvariant() : "MODEL NOT REPORTED";
+            if (mission.Status == "completed")
+                _sessionThread.Add(ThreadTone.Agent, $"{mission.AgentId.ToUpperInvariant()} // {model} // HIVEMIND",
+                    mission.Result.Length > 0 ? mission.Result : "Completed with no text result.");
+            else if (mission.Finished)
+                _sessionThread.Add(ThreadTone.Fail, $"{mission.AgentId.ToUpperInvariant()} // {mission.Status.ToUpperInvariant()} // {model}",
+                    mission.Error.Length > 0 ? mission.Error : $"The mission ended {mission.Status}.");
+            else
+                card.SetResult($"Mission {ShortId(mission.ExecutionId)} // still {mission.Status}; stopped following it ({(misses >= 5 ? _ark.Hivemind.LastError : "after 31 minutes")})", false);
+            if (!Visible || !_sessionPanel.Visible)
+                PhosphorToast.Show($"{mission.AgentId} // {mission.Status}", Clip(mission.Status == "completed" ? mission.Result : mission.Error),
+                    "HOLODEX // HIVEMIND // ALT+H", 4200, mission.Status == "completed" ? ToastTone.Success : ToastTone.Warning);
+        }
+        finally
+        {
+            _setThinkingState(false);
+        }
+    }
+
+    /// <summary>The Hivemind row's LED: whether the session reaches the real agents (the intro card says the rest).</summary>
+    private (Color, string) HivemindLed() => _ark.Hivemind.State switch
+    {
+        HivemindState.Connected => (PhosphorTheme.Moss, _roster == OfflineRoster ? "HIVEMIND // LIVE" : $"HIVEMIND // LIVE // {_roster.Count - 1} AGENTS"),
+        HivemindState.SigningIn => (PhosphorTheme.Seal, "HIVEMIND // FINISH IN THE BROWSER"),
+        HivemindState.Unreachable => (PhosphorTheme.Rust, "HIVEMIND // UNREACHABLE"),
+        _ => (PhosphorTheme.Ember, "HIVEMIND // SIGNED OUT")
+    };
+
+    /// <summary>
+    /// Reflects the Hivemind state: the sign-in button, the connection LED, the roster, and one intro card in the
+    /// session saying what a message reaches now.
+    /// </summary>
+    private void ShowHivemindState()
+    {
+        var state = _ark.Hivemind.State;
+        _hivemindBtn.Visible = state is HivemindState.NotSignedIn or HivemindState.Unreachable;
+        _hivemindBtn.Text = state == HivemindState.Unreachable ? "Reconnect" : "Sign in";
+        _hivemindBtn.Enabled = state != HivemindState.SigningIn;
+        if (state != HivemindState.Connected && _roster != OfflineRoster) SetRoster(OfflineRoster);
+        _hivemindLine.Set(HivemindLed());
+        if (state == _shownHivemindState) return;
+        _shownHivemindState = state;
+        string error = _ark.Hivemind.LastError;
+        _sessionThread.Add(ThreadTone.Intro, state switch
+        {
+            HivemindState.Connected => "HIVEMIND // LIVE",
+            HivemindState.SigningIn => "HIVEMIND // SIGNING IN",
+            HivemindState.Unreachable => "HIVEMIND // UNREACHABLE",
+            _ => "HIVEMIND // SIGNED OUT"
+        }, state switch
+        {
+            HivemindState.Connected => "Messages and work orders go to the agents as real Hivemind missions. Each reply names its agent and model.",
+            HivemindState.SigningIn => "Finish in the browser: sign in with the Hivemind owner key, then Authorize. Omniwand picks it up on its own.",
+            HivemindState.Unreachable => $"Hivemind did not answer ({(error.Length > 0 ? error : "no reason given")}). Until it does, replies are Nemotron role-play and work orders are not sent.",
+            _ => "Sign in (above) to reach the real Hivemind agents. Until then replies are Nemotron role-play, labelled as such, and work orders are not sent."
+        });
+        RefreshWorkOrdersText();
+    }
+
+    private void SetRoster(IReadOnlyList<SyndicateAgentInfo> roster)
+    {
+        _roster = roster;
+        SetSyndicateTarget(_roster.Any(a => a.Id == _selectedSyndicateTarget) ? _selectedSyndicateTarget : _roster[0].Id);
+    }
+
+    /// <summary>Replaces the roster with Hivemind's live ark_agents (dispatch-ready agents first).</summary>
+    private async Task LoadLiveRosterAsync()
+    {
+        var agents = await _ark.Hivemind.ListAgentsAsync();
+        if (agents == null || agents.Count == 0) return;
+        var live = new List<SyndicateAgentInfo> { new("all", "ALL SYNDICATE", "Gala orchestrates the group", "Hivemind", PhosphorTheme.Patina) };
+        live.AddRange(agents.OrderByDescending(a => a.DispatchReady).ThenBy(a => a.Id).Select(a => new SyndicateAgentInfo(
+            a.Id,
+            a.Name.ToUpperInvariant(),
+            a.Role.Length > 0 ? a.Role : (a.DispatchReady ? "Ready for missions" : "Not ready for missions"),
+            a.Provider.Length > 0 ? a.Provider : "Hivemind",
+            a.DispatchReady ? PhosphorTheme.Patina : PhosphorTheme.Ghost)));
+        SetRoster(live);
+        _hivemindLine.Set(HivemindLed());
+    }
+
+    private async Task SignInToHivemindAsync()
+    {
+        bool ok = await _ark.Hivemind.SignInAsync();
+        if (!ok)
+            PhosphorToast.Show("Hivemind sign-in did not finish", _ark.Hivemind.LastError, "HOLODEX // HIVEMIND", 5200, ToastTone.Warning);
+        await RefreshConnectionHeaderAsync();
+    }
+
+    /// <summary>Sends <paramref name="message"/> to <paramref name="agentId"/> exactly as the session's Send button does.</summary>
+    public async void SendSessionMessage(string agentId, string message)
+    {
+        if (_roster.Any(a => a.Id == agentId.Trim())) SetSyndicateTarget(agentId.Trim());
+        _sessionInputBox.Text = message;
+        await SendSyndicateSessionMessageAsync();
     }
 
     private async Task SendSyndicateSessionMessageAsync()
@@ -750,17 +943,25 @@ public sealed class HolodexLiteDrawerForm : Form
             return;
         }
 
-        var agent = SyndicateRoster.FirstOrDefault(a => a.Id == _selectedSyndicateTarget) ?? SyndicateRoster[0];
+        var agent = _roster.FirstOrDefault(a => a.Id == _selectedSyndicateTarget) ?? _roster[0];
         _sessionThread.Add(ThreadTone.You, $"YOU // TO {agent.Name}", msg);
 
+        if (_ark.Hivemind.State == HivemindState.Connected)
+        {
+            await RunMissionAsync(MissionTarget(agent), msg, "MESSAGE", null);
+            return;
+        }
+
+        // Offline: Nemotron answers in the Syndicate's voice, and every card says it is role-play and which model.
         _setThinkingState(true);
         try
         {
-            var (ok, reply) = await _ark.AskSyndicateSessionAsync(msg, agent.Id, agent.Name, agent.Role);
-            if (!ok) _sessionThread.Add(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED", reply);
-            else foreach (var (who, text) in SplitTurns(reply, agent.Name)) _sessionThread.Add(ThreadTone.Agent, who, text);
+            var (ok, reply, model) = await _ark.AskOfflineSyndicateAsync(msg, agent.Id, agent.Name, agent.Role);
+            string label = $"OFFLINE ROLE-PLAY // {ModelChip.ShortName(model).ToUpperInvariant()}";
+            if (!ok) _sessionThread.Add(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED // {label}", reply);
+            else foreach (var (who, text) in SplitTurns(reply, agent.Name)) _sessionThread.Add(ThreadTone.Agent, $"{who} // {label}", text);
             if (!Visible || !_sessionPanel.Visible)
-                PhosphorToast.Show(ok ? $"{agent.Name} replied" : $"{agent.Name} did not answer", reply.Length > 140 ? reply[..140] + "..." : reply,
+                PhosphorToast.Show(ok ? $"{agent.Name} replied (offline role-play)" : $"{agent.Name} did not answer", Clip(reply),
                     "HOLODEX // SESSION // ALT+H", 4200, ok ? ToastTone.Info : ToastTone.Warning);
         }
         finally
@@ -837,6 +1038,8 @@ public sealed class HolodexLiteDrawerForm : Form
 
     public async Task RefreshConnectionHeaderAsync()
     {
+        // The saved Hivemind sign-in only: this never opens the browser.
+        if (await _ark.Hivemind.EnsureConnectedAsync()) await LoadLiveRosterAsync();
         var st = await _ark.CheckStatusAsync();
         bool bundle = ArkStationClient.HasWinCredVaultBundle();
         _connected = st.GatewayOnline || st.NebiusKeyLoaded;
@@ -855,6 +1058,7 @@ public sealed class HolodexLiteDrawerForm : Form
             ShowConnection(gatewayOnline: false, keyed: false, bundle: false);
             ShowTokenBar(true);
         }
+        ShowHivemindState();
     }
 
     public async void SummonDrawer(Point cursorPos, string? tab = null)
@@ -864,9 +1068,11 @@ public sealed class HolodexLiteDrawerForm : Form
             SwitchTab(tab);
         }
 
+        // The drawer's 500 x 820 is logical: at 150% it is 750 x 1230 device pixels, capped by the work area.
         var work = Screen.FromPoint(cursorPos).WorkingArea;
-        int h = Math.Min(820, work.Height - 24);
-        Size = new Size(500, h);
+        float s = DeviceDpi / 96f; // the monitor's DPI even before the first Show (PhosphorPaint.Scale is 1 until then)
+        int h = Math.Min((int)Math.Round(820 * s), work.Height - (int)Math.Round(24 * s));
+        Size = new Size((int)Math.Round(500 * s), h);
         Location = new Point(work.Right - Width - 12, work.Top + (work.Height - h) / 2);
 
         Show();

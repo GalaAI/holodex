@@ -1,0 +1,32 @@
+Hivemind integration, verified live on gala (144 DPI) before Justin's first sign-in. Nothing below needed a browser.
+
+Endpoint and auth (live server, unauthenticated):
+  POST https://hivemind.arkomnitek.com/mcp without a token
+    -> 401, WWW-Authenticate: Bearer resource_metadata="https://hivemind.arkomnitek.com/.well-known/oauth-protected-resource"
+  /.well-known/oauth-authorization-server: issuer https://hivemind.arkomnitek.com, grants authorization_code and
+    refresh_token, PKCE S256, token_endpoint_auth_methods none, registration /register.
+
+Pipe hivemind:probe (the real sign-in, stopped where the browser would open; state and challenge redacted):
+  https://hivemind.arkomnitek.com/authorize?client_id=hmc_IpTyDPO-XNgbI8Fh6OF07rH1YAcXLwUSj_afZ2sxfto
+    &redirect_uri=http://127.0.0.1:47613/hivemind/callback/&response_type=code&code_challenge=<43 chars>
+    &code_challenge_method=S256&state=<43 chars>&resource=https://hivemind.arkomnitek.com/mcp
+    &scope=runtime.read runtime.execute
+  So the SDK did discovery, dynamic registration (public client hmc_IpTy..., client name Omniwand), PKCE and scope
+  selection (only runtime.read and runtime.execute) against the live server.
+  The same authorize request sent by curl (fresh challenge, redirect not followed):
+    HTTP 302 -> https://hivemind.arkomnitek.com/login?request_id=<redacted>, Hivemind's sign-in page.
+  The loopback callback http://127.0.0.1:47613/hivemind/callback/ starts as GALA\justi without elevation.
+
+Pipe hivemind:status before and after the probe:
+  ok:hivemind:status:state=NotSignedIn:connected=False:savedSignIn=False:error=
+  (the probe saved nothing; WinCred Omniwand:HivemindToken stays empty until the sign-in finishes)
+
+Holodex, live window captures (capwin, DPI-aware CopyFromScreen of the Holodex window):
+  holodex-signed-out.png   Hivemind row "HIVEMIND // SIGNED OUT" with Sign in; the session's intro card says replies
+                           are Nemotron role-play and work orders are not sent; work order WO-101 (pipe
+                           holodex:order:gala|..., the + button's path) kept as "NOT SENT // SIGNED OUT".
+  holodex-offline-reply.png  pipe holodex:say:gala|... (the Send button's path): the reply card reads
+                           "GALA // OFFLINE ROLE-PLAY // NEMOTRON 3 NANO".
+
+Not verified yet (needs Justin's sign-in): token exchange and refresh, ark_agents roster, dispatch_agent_mission,
+agent_mission_status polling, the reply card's model as Hivemind reports it.

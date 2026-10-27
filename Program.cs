@@ -805,6 +805,42 @@ internal sealed class OmniwandAppContext : ApplicationContext
             CursorFilm.Begin(parts[0].Trim(), seconds);
             return $"ok:cursor:film:{seconds}s:style={MouseHardwareAndWandEngine.ActiveCursorStyle}:morph={ArkApertureMorphEngine.ActiveMorphMode}";
         }
+        if (string.Equals(cmd, "hivemind:status", StringComparison.OrdinalIgnoreCase))
+        {
+            var hive = _ark.Hivemind;
+            bool connected = hive.EnsureConnectedAsync().GetAwaiter().GetResult();
+            return $"ok:hivemind:status:state={hive.State}:connected={connected}:savedSignIn={HivemindClient.HasSavedSignIn}:error={hive.LastError}";
+        }
+        if (string.Equals(cmd, "hivemind:agents", StringComparison.OrdinalIgnoreCase))
+        {
+            var agents = _ark.Hivemind.ListAgentsAsync().GetAwaiter().GetResult();
+            return agents == null
+                ? $"error:hivemind:agents:state={_ark.Hivemind.State}:{_ark.Hivemind.LastError}"
+                : $"ok:hivemind:agents:{agents.Count}:{string.Join(",", agents.Select(a => a.Id + (a.DispatchReady ? "" : "(not ready)")))}";
+        }
+        if (string.Equals(cmd, "hivemind:probe", StringComparison.OrdinalIgnoreCase))
+            return $"ok:hivemind:probe:{_ark.Hivemind.ProbeSignInAsync().GetAwaiter().GetResult()}";
+        if (cmd.StartsWith("holodex:order:", StringComparison.OrdinalIgnoreCase))
+        {
+            // The same path as the session's + button and Wiz's queue_work_order: dispatched when signed in.
+            string[] parts = cmd["holodex:order:".Length..].Split('|', 2);
+            if (parts.Length < 2) return "error:holodex:order:use holodex:order:<agent>|<task>";
+            string result = "error:holodex:order:not run";
+            _uiSync.Send(_ =>
+            {
+                string? orderId = _holodexDrawer.QueueWorkOrder(parts[0], parts[1], out string error);
+                result = orderId != null ? $"ok:holodex:order:{orderId}:hivemind={_ark.Hivemind.State}" : $"error:holodex:order:{error}";
+            }, null);
+            return result;
+        }
+        if (cmd.StartsWith("holodex:say:", StringComparison.OrdinalIgnoreCase))
+        {
+            // The session's Send button: a Hivemind mission when signed in, labelled Nemotron role-play when not.
+            string[] parts = cmd["holodex:say:".Length..].Split('|', 2);
+            if (parts.Length < 2) return "error:holodex:say:use holodex:say:<agent>|<message>";
+            _uiSync.Post(_ => _holodexDrawer.SendSessionMessage(parts[0], parts[1]), null);
+            return $"ok:holodex:say:hivemind={_ark.Hivemind.State}";
+        }
         if (cmd.StartsWith("tray:", StringComparison.OrdinalIgnoreCase))
         {
             string result = "error:tray:not run";

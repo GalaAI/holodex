@@ -94,7 +94,7 @@ internal sealed class WizAgent
         new("queue_work_order",
             "Queue a Holodex work order for a Syndicate agent. Needs the operator's approval.",
             WizToolEffect.Persistent, "queues a Holodex work order",
-            new[] { ("agent", "Syndicate agent id.", (string[]?)HolodexLiteDrawerForm.SyndicateRoster.Select(a => a.Id).ToArray()), ("task", "The work order, one or two sentences.", (string[]?)null) }),
+            new[] { ("agent", "Syndicate agent id from the Holodex roster (Hivemind's live agents once signed in, for example gala, wiz, smith).", (string[]?)null), ("task", "The work order, one or two sentences.", (string[]?)null) }),
         new("list_spell_slots",
             "List the eight Spell Orb slots: number, title, verb and what each does.",
             WizToolEffect.ReadOnly, "", Array.Empty<(string, string, string[]?)>())

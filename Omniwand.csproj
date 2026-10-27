@@ -29,6 +29,11 @@
     <None Include="assets\fonts\Inter-SemiBold.ttf;assets\fonts\Inter-ExtraBold.ttf;assets\fonts\SpaceGrotesk-Regular.ttf;assets\fonts\OFL-Inter.txt;assets\fonts\OFL-SpaceGrotesk.txt" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Official MCP C# SDK, client only (no ASP.NET hosting): Hivemind's remote MCP endpoint and its OAuth 2.1 sign-in. -->
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.Core" Version="2.3.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Remove="logi-mx4-plugin\**" />
     <EmbeddedResource Remove="logi-mx4-plugin\**" />
