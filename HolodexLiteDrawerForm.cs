@@ -322,10 +322,14 @@ public sealed class HolodexLiteDrawerForm : Form
         _rosterChip.Fit();
         string who = agent.Id == "all" ? "all" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(agent.Name.ToLowerInvariant());
         _sessionSendBtn.Text = $"Send to {who}";
-        // The chip names the agent and its pod; the line says who else that reaches (everyone) or the agent's role.
-        _activeRosterLabel.Set(agent.Id == "all"
-            ? _roster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)).ToArray()
-            : new[] { (agent.Accent, agent.Role) });
+        // The chip names the agent and its pod; the line says who else that reaches or the agent's role. The offline
+        // roster lists everyone; Hivemind's live roster (36 agents) would bury the session, so All says where it goes
+        // and the chip's menu lists the agents.
+        _activeRosterLabel.Set(agent.Id != "all"
+            ? new[] { (agent.Accent, agent.Role) }
+            : _roster == OfflineRoster
+                ? _roster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)).ToArray()
+                : new[] { (PhosphorTheme.Patina, $"Sent to {MissionTarget(agent)}, who orchestrates the group. The chip lists every agent.") });
     }
 
     private void ShowTokenBar(bool show)
@@ -833,13 +837,15 @@ public sealed class HolodexLiteDrawerForm : Form
                 mission = next;
             }
 
-            string model = mission.Model.Length > 0 ? ModelChip.ShortName(mission.Model).ToUpperInvariant() : "MODEL NOT REPORTED";
+            // The model exactly as Hivemind's receipt names it, in the body (kickers are drawn uppercase), so the id can
+            // be checked against Hivemind; it is the receipt's claim, not Omniwand's.
+            string model = $"\n\nModel (Hivemind receipt): {(mission.Model.Length > 0 ? mission.Model : "not reported")}";
             if (mission.Status == "completed")
-                _sessionThread.Add(ThreadTone.Agent, $"{mission.AgentId.ToUpperInvariant()} // {model} // HIVEMIND",
-                    mission.Result.Length > 0 ? mission.Result : "Completed with no text result.");
+                _sessionThread.Add(ThreadTone.Agent, $"{mission.AgentId.ToUpperInvariant()} // HIVEMIND",
+                    (mission.Result.Length > 0 ? mission.Result : "Completed with no text result.") + model);
             else if (mission.Finished)
-                _sessionThread.Add(ThreadTone.Fail, $"{mission.AgentId.ToUpperInvariant()} // {mission.Status.ToUpperInvariant()} // {model}",
-                    mission.Error.Length > 0 ? mission.Error : $"The mission ended {mission.Status}.");
+                _sessionThread.Add(ThreadTone.Fail, $"{mission.AgentId.ToUpperInvariant()} // {mission.Status.ToUpperInvariant()} // HIVEMIND",
+                    (mission.Error.Length > 0 ? mission.Error : $"The mission ended {mission.Status}.") + model);
             else
                 card.SetResult($"Mission {ShortId(mission.ExecutionId)} // still {mission.Status}; stopped following it ({(misses >= 5 ? _ark.Hivemind.LastError : "after 31 minutes")})", false);
             if (!Visible || !_sessionPanel.Visible)
@@ -857,6 +863,7 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         HivemindState.Connected => (PhosphorTheme.Moss, _roster == OfflineRoster ? "HIVEMIND // LIVE" : $"HIVEMIND // LIVE // {_roster.Count - 1} AGENTS"),
         HivemindState.SigningIn => (PhosphorTheme.Seal, "HIVEMIND // FINISH IN THE BROWSER"),
+        HivemindState.Connecting => (PhosphorTheme.Ghost, "HIVEMIND // CONNECTING"),
         HivemindState.Unreachable => (PhosphorTheme.Rust, "HIVEMIND // UNREACHABLE"),
         _ => (PhosphorTheme.Ember, "HIVEMIND // SIGNED OUT")
     };
@@ -873,7 +880,8 @@ public sealed class HolodexLiteDrawerForm : Form
         _hivemindBtn.Enabled = state != HivemindState.SigningIn;
         if (state != HivemindState.Connected && _roster != OfflineRoster) SetRoster(OfflineRoster);
         _hivemindLine.Set(HivemindLed());
-        if (state == _shownHivemindState) return;
+        // Connecting is the moment before the saved sign-in is tried: no card until it succeeds or fails.
+        if (state == _shownHivemindState || state == HivemindState.Connecting) return;
         _shownHivemindState = state;
         string error = _ark.Hivemind.LastError;
         _sessionThread.Add(ThreadTone.Intro, state switch
@@ -921,6 +929,13 @@ public sealed class HolodexLiteDrawerForm : Form
             PhosphorToast.Show("Hivemind sign-in did not finish", _ark.Hivemind.LastError, "HOLODEX // HIVEMIND", 5200, ToastTone.Warning);
         await RefreshConnectionHeaderAsync();
     }
+
+    /// <summary>The work orders with each one's full Hivemind execution id, for pipe holodex:orders.</summary>
+    public string DescribeWorkOrders() => string.Join(" || ", _workOrders.Select(w => $"{w.OrderId}|{w.Status}|{w.OwnerAgent}|{w.ExecutionId}"));
+
+    /// <summary>The session's newest cards as they read (kicker, body, result), newest last, for pipe holodex:thread.</summary>
+    public string DescribeSessionThread(int count) => string.Join(" || ", _sessionThread.Cards.TakeLast(Math.Max(1, count))
+        .Select(c => $"[{c.Kicker}] {c.Body}{(c.Result != null ? $" => {c.Result}" : "")}".Replace("\r", " ").Replace("\n", " ")));
 
     /// <summary>Sends <paramref name="message"/> to <paramref name="agentId"/> exactly as the session's Send button does.</summary>
     public async void SendSessionMessage(string agentId, string message)

@@ -841,6 +841,19 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ => _holodexDrawer.SendSessionMessage(parts[0], parts[1]), null);
             return $"ok:holodex:say:hivemind={_ark.Hivemind.State}";
         }
+        if (string.Equals(cmd, "holodex:orders", StringComparison.OrdinalIgnoreCase))
+        {
+            string result = "error:holodex:orders:not run";
+            _uiSync.Send(_ => result = $"ok:holodex:orders:{_holodexDrawer.DescribeWorkOrders()}", null);
+            return result;
+        }
+        if (cmd.StartsWith("holodex:thread", StringComparison.OrdinalIgnoreCase))
+        {
+            int count = int.TryParse(cmd["holodex:thread".Length..].TrimStart(':'), out int n) ? n : 3;
+            string result = "error:holodex:thread:not run";
+            _uiSync.Send(_ => result = $"ok:holodex:thread:{_holodexDrawer.DescribeSessionThread(count)}", null);
+            return result;
+        }
         if (cmd.StartsWith("tray:", StringComparison.OrdinalIgnoreCase))
         {
             string result = "error:tray:not run";

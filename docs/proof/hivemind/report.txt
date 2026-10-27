@@ -47,3 +47,25 @@ After Justin signed in from Holodex (2026-10-27):
                    "Agent `gala` running on Codex (subscription-codex runtime). No changes made."
                    Card kicker "GALA // GGUF DEFAULT // HIVEMIND": the receipt's model field, shortened by
                    ModelChip.ShortName. It disagrees with the agent's own answer (Codex); the receipt is Hivemind's.
+
+Second pass (2026-10-27), after the reply cards started showing the receipt's model verbatim:
+  Sign-in saved: WinCred Omniwand:HivemindToken exists and holds a TokenContainer with fields TokenType,
+    AccessToken, RefreshToken, ExpiresIn, Scope, ObtainedAt, ClientId, ClientSecret, TokenEndpointAuthMethod,
+    AuthorizationServer. RefreshToken present (value not read), ClientId hmc_IpTy... (public),
+    AuthorizationServer https://hivemind.arkomnitek.com, Scope "runtime.read runtime.execute", obtained 00:02:40.
+    Omniwand restarted five times since and reconnected each time with no browser (hivemind:status Connected).
+  Roster: holodex-live-roster-all.png, "HIVEMIND // LIVE // 36 AGENTS"; ALL now reads "Sent to gala, who
+    orchestrates the group" instead of 36 wrapped names that pushed the session off the pane.
+  Real dispatch and polling, work order to scout (holodex:order, the + button's path), sampled every 20 s with
+    holodex:orders (mission-a47f5893-polling.log):
+      executionId a47f5893-ee74-4e9c-9a2a-df17d239959e
+      BOOTSTRAPPING (20 s, 40 s) -> RUNNING (60 s) -> COMPLETED (80 s)
+    holodex:thread: "[SCOUT // HIVEMIND] objective agent:scout inputs Owner-submitted read-only runtime mission.
+      constraints No changes made. validation PASS: one-sentence agent identity returned.
+      Model (Hivemind receipt): not reported"
+    holodex-live-mission5.png: WO-101 COMPLETED, mission A47F5893, Scout's reply card.
+  Earlier missions in this pass: fdec2c3a (scout, "scout running on GPT-5."), 5d54b220 (scout, completed;
+    holodex-live-mission-running.png shows it RUNNING, holodex-live-mission-completed.png COMPLETED). Every scout
+    receipt left model empty ("not reported"); gala's d50cc2db receipt said gguf default while gala answered Codex.
+  Startup: a saved sign-in now starts as HIVEMIND // CONNECTING with no card, instead of a false
+    "HIVEMIND // UNREACHABLE (no reason given)" card before the first connect (holodex-live-startup.png).

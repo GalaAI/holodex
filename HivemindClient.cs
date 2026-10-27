@@ -18,6 +18,8 @@ public enum HivemindState
 {
     /// <summary>No saved sign-in; nothing has been tried.</summary>
     NotSignedIn,
+    /// <summary>A saved sign-in that has not been tried yet (startup, before the first call).</summary>
+    Connecting,
     /// <summary>The browser sign-in is open and Omniwand is waiting for its redirect.</summary>
     SigningIn,
     Connected,
@@ -56,7 +58,7 @@ public sealed class HivemindClient : IAsyncDisposable
     private readonly SemaphoreSlim _gate = new(1, 1);
     private McpClient? _client;
 
-    public HivemindState State { get; private set; } = HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn;
+    public HivemindState State { get; private set; } = HasSavedSignIn ? HivemindState.Connecting : HivemindState.NotSignedIn;
     public string LastError { get; private set; } = string.Empty;
     public event Action? StateChanged;
 
