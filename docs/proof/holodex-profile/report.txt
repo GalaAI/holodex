@@ -15,3 +15,15 @@ holodex:profile:open|close). Hivemind was signed in (hivemind:status Connected) 
 Not captured: the signed-out profile (Sign in, ember ring, opening by itself) because that needs signing Justin out
 of Hivemind; it is the same panel with the Sign in button shown, as in the earlier docs/proof/hivemind captures of
 the HIVEMIND // SIGNED OUT row. Hover and keyboard focus on the rail were not exercised (no input on gala).
+
+Item 5 (2026-10-27): profile at the foot of the rail, tab icons centred. Same capture method, Hivemind signed in.
+  rail-foot-session.png       No avatar in the header (title and close only). The rail's five icons centred in its
+                              height, Session the active pill; the profile avatar (32 px aperture, moss ring) at the
+                              rail's foot, as station-shell Rail anchors its last item.
+  rail-foot-profile-open.png  The profile opened from the foot: a panel beside the rail, bottom level with the avatar,
+                              in the ArkStation popover look (surface, line-2 border, 14 px corners). The gateway and
+                              key line now wraps, which shows NEMOTRON READY and WINDOWS VAULT; the fixed 36 px row
+                              had been clipping them. Replace key keeps its height at the top of that row.
+  rail-foot-mods.png          Mods from the rail with the profile closed.
+  Justin's live Omniwand cursor appears in two captures (it was over the drawer); it is screen content, not part
+  of Holodex.

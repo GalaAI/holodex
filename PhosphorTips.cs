@@ -126,7 +126,7 @@ internal static class PhosphorTips
         ["Holodex.Tab.codex"] = new("Codex", "What you saved from the lasso and the element picker."),
         ["Holodex.Tab.grimx"] = new("GrimX", "Mouse bindings and the eight Spell Orb slots."),
         ["Holodex.Tab.mods"] = new("Mods", "Mouse, pointer speed, cursor style, the spellbook and the equipped mods."),
-        ["Holodex.ProfileButton"] = new("Profile", "Your account: the Hivemind sign-in, the Nebius key and the gateway. Its ring is green while Hivemind is live."),
+        ["Holodex.ProfileButton"] = new("Profile", "Your account, at the foot of the rail: the Hivemind sign-in, the Nebius key and the gateway. Its ring is green while Hivemind is live."),
         ["Holodex.ProfileIdentity"] = new("Signed in as", "The Windows account Omniwand runs as on this machine."),
         ["Holodex.HivemindSignOutButton"] = new("Sign out of Hivemind", "Removes the saved Hivemind sign-in from Windows Credential Manager. Sign in again opens the browser."),
         ["Holodex.ConnectionLine"] = new("Connection", "The gateway or Nebius key state in full, and whether the key is saved in the Windows vault."),

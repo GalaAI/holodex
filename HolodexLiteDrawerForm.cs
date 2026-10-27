@@ -53,9 +53,11 @@ public sealed class HolodexLiteDrawerForm : Form
     private readonly PhosphorButton _signOutBtn;
     private readonly LedRow _hivemindLine;
 
-    // Profile: the avatar in the header opens the panel that holds the account, the key and the gateway.
+    // Profile: the avatar at the foot of the rail opens the panel beside it (the account, the key and the gateway).
     private readonly AvatarButton _profileBtn;
     private readonly Panel _profilePanel;
+    private readonly Panel _rail;
+    private readonly Panel _railTabs;
     private bool _profileOpen;
     private bool _connected;
     private bool _tokenBarOpen;
@@ -179,14 +181,19 @@ public sealed class HolodexLiteDrawerForm : Form
         // 1. Connection telemetry, always visible, with the visible way back to the key row.
         bool bundle = hasNebiusKey && ArkStationClient.HasWinCredVaultBundle();
         var connectionRow = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = PhosphorTheme.Surface, Name = "Holodex.ConnectionRow" };
-        // One LED per fact, the AInbox footer's status style.
-        _connectionTelemetry = new LedRow { Dock = DockStyle.Fill, Height = 36, Name = "Holodex.ConnectionLine" };
+        // One LED per fact, the AInbox footer's status style; it wraps whole LEDs, and FitProfile grows its row.
+        _connectionTelemetry = new LedRow { Dock = DockStyle.Fill, Height = 36, Wrap = true, Name = "Holodex.ConnectionLine" };
+        _connectionTelemetry.LedsChanged += (_, _) => FitProfile();
         ShowConnection(gatewayOnline: false, hasNebiusKey, bundle);
         _replaceKeyBtn = new PhosphorButton("Replace key") { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.ReplaceKeyButton" };
         _replaceKeyBtn.Click += (_, _) => ShowTokenBar(!_tokenBarOpen);
         connectionRow.Controls.Add(_connectionTelemetry);
         connectionRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
-        connectionRow.Controls.Add(_replaceKeyBtn);
+        // Replace key keeps its 36px height at the top of the row when the LEDs wrap onto more lines.
+        _replaceKeyBtn.Dock = DockStyle.Top;
+        var replaceKeyHost = new Panel { Dock = DockStyle.Right, Width = 128, BackColor = PhosphorTheme.Surface };
+        replaceKeyHost.Controls.Add(_replaceKeyBtn);
+        connectionRow.Controls.Add(replaceKeyHost);
 
         // Hivemind: whether the session reaches the real agents, and the way in (the browser sign-in).
         var hivemindRow = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = PhosphorTheme.Surface, Name = "Holodex.HivemindRow" };
@@ -207,14 +214,15 @@ public sealed class HolodexLiteDrawerForm : Form
         identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, "OMNIWAND v0.3"));
 
         // The profile panel, top to bottom: identity, Hivemind (sign in or out), the gateway and key, the key row.
-        // Docked children stack from the last added, so they are added bottom first.
-        _profilePanel = new Panel { Dock = DockStyle.Top, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ProfilePanel" };
+        // It floats beside the rail, bottom-aligned with the avatar, in the ArkStation popover look (surface, line-2
+        // border, 14px corners, the AnimatedTooltip surface). Docked rows stack from the last added, so bottom first.
+        _profilePanel = new Panel { BackColor = PhosphorTheme.Surface, Visible = false, Width = 440, Padding = new Padding(14, 12, 14, 8), Name = "Holodex.ProfilePanel" };
         _profilePanel.Paint += (_, e) =>
         {
-            using var line = new Pen(PhosphorTheme.Line);
-            e.Graphics.DrawLine(line, 0, _profilePanel.Height - 1, _profilePanel.Width, _profilePanel.Height - 1);
+            float ps = PhosphorPaint.Scale(_profilePanel);
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            PhosphorPaint.StrokeRounded(e.Graphics, new RectangleF(0.5f, 0.5f, _profilePanel.Width - 1f, _profilePanel.Height - 1f), 14f * ps, PhosphorTheme.Line2);
         };
-        _profilePanel.Controls.Add(WidgetChrome.Spacer(10));
         _profilePanel.Controls.Add(_tokenBar);
         _profilePanel.Controls.Add(_tokenGap);
         _profilePanel.Controls.Add(connectionRow);
@@ -222,17 +230,19 @@ public sealed class HolodexLiteDrawerForm : Form
         _profilePanel.Controls.Add(hivemindRow);
         _profilePanel.Controls.Add(WidgetChrome.Spacer(4));
         _profilePanel.Controls.Add(identityLine);
-        _profileBtn = new AvatarButton("Holodex.ProfileButton", "Profile") { Size = new Size(36, 36) };
-        _profileBtn.Click += (_, _) => ShowProfile(!_profileOpen);
-
-        // The tabs, as the ArkStation rail draws its zones (station-shell Rail, collapsed): an icon per tab, the
-        // label in its tooltip, the active tab as the neutral pill. Icons are the web console Holodex's lucide set.
+        // The rail, as the ArkStation rail draws its zones (station-shell Rail, collapsed): the tabs as icons centred
+        // in its height, the label in each tooltip, the active tab as the neutral pill; the profile avatar anchored at
+        // its foot. Icons are the web console Holodex's lucide set.
         var rail = new Panel { Dock = DockStyle.Left, Width = 60, BackColor = PhosphorTheme.Surface, Padding = new Padding(4, 8, 4, 8), Name = "Holodex.Rail" };
+        _rail = rail;
         rail.Paint += (_, e) =>
         {
             using var line = new Pen(PhosphorTheme.Line);
             e.Graphics.DrawLine(line, rail.Width - 1, 0, rail.Width - 1, rail.Height);
         };
+        _profileBtn = new AvatarButton("Holodex.ProfileButton", "Profile") { Dock = DockStyle.Bottom, Height = 44 };
+        _profileBtn.Click += (_, _) => ShowProfile(!_profileOpen);
+        _railTabs = new Panel { Width = 52, Height = 5 * 44, BackColor = Color.Transparent, Name = "Holodex.RailTabs" };
         var tabs = new (string Id, string Label, PhosphorGlyph Glyph)[]
         {
             ("session", "Session", PhosphorGlyph.Chat),
@@ -247,8 +257,11 @@ public sealed class HolodexLiteDrawerForm : Form
             var btn = new RailButton($"Holodex.Tab.{id}", glyph, label) { Dock = DockStyle.Top, Height = 44, Selected = id == _activeTab };
             btn.Click += (_, _) => SwitchTab(capturedId);
             _tabButtons[id] = btn;
-            rail.Controls.Add(btn);
+            _railTabs.Controls.Add(btn);
         }
+        rail.Controls.Add(_railTabs);
+        rail.Controls.Add(_profileBtn);
+        rail.Resize += (_, _) => CenterRailTabs();
 
         // 3. Content Host for the 5 tabs
         _contentHost = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.ContentHost" };
@@ -263,12 +276,22 @@ public sealed class HolodexLiteDrawerForm : Form
         Controls.Add(rail);
         Controls.Add(WidgetChrome.Spacer(8));
         Controls.Add(_profilePanel);
-        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, _profileBtn);
+        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null);
         WidgetDrag.Enable(this);
+        Resize += (_, _) => PlaceProfile();
 
         ShowTokenBar(!hasNebiusKey);
         SwitchTab("session");
         ResumeLayout(false);
+        CenterRailTabs();
+    }
+
+    /// <summary>Centres the tab icons in the rail's height (the avatar keeps the foot).</summary>
+    private void CenterRailTabs()
+    {
+        int inner = _rail.ClientSize.Width - _rail.Padding.Horizontal;
+        _railTabs.Width = inner;
+        _railTabs.Location = new Point(_rail.Padding.Left, Math.Max(_rail.Padding.Top, (_rail.ClientSize.Height - _railTabs.Height) / 2));
     }
 
     private void BuildSessionTab()
@@ -372,7 +395,7 @@ public sealed class HolodexLiteDrawerForm : Form
     /// <summary>The avatar's click, for pipe holodex:profile:open|close.</summary>
     public void SetProfileOpen(bool open) => ShowProfile(open);
 
-    /// <summary>Opens or closes the profile panel under the header; the avatar is lit while it is open.</summary>
+    /// <summary>Opens or closes the profile panel beside the rail; the avatar is lit while it is open.</summary>
     private void ShowProfile(bool open)
     {
         _profileOpen = open;
@@ -380,13 +403,36 @@ public sealed class HolodexLiteDrawerForm : Form
         _profileBtn.Open = open;
         _profileBtn.Invalidate();
         FitProfile();
+        if (open) _profilePanel.BringToFront();
     }
 
-    /// <summary>Sizes the profile panel to its visible rows.</summary>
+    /// <summary>Sizes the profile panel to its visible rows, then places it.</summary>
     private void FitProfile()
     {
-        int h = _profilePanel.Controls.Cast<Control>().Where(c => c.Visible).Sum(c => c.Height);
+        if (_profilePanel == null) return;
+        // Width first (it follows the drawer), so the docked rows have their real width before measuring.
+        PlaceProfile();
+        _profilePanel.PerformLayout();
+        // The gateway and key line wraps in the panel's width; its row (and the Replace key beside it) grows to fit.
+        if (_connectionTelemetry.Parent is Control connectionRow && _connectionTelemetry.Width > 0)
+        {
+            int want = Math.Max((int)Math.Round(36 * PhosphorPaint.Scale(this)), _connectionTelemetry.HeightFor(_connectionTelemetry.Width));
+            if (connectionRow.Height != want) connectionRow.Height = want;
+        }
+        int h = _profilePanel.Controls.Cast<Control>().Where(c => c.Visible).Sum(c => c.Height) + _profilePanel.Padding.Vertical;
         if (_profilePanel.Height != h) _profilePanel.Height = h;
+        PlaceProfile();
+    }
+
+    /// <summary>Beside the rail, its bottom level with the avatar's, as wide as the content to the right.</summary>
+    private void PlaceProfile()
+    {
+        if (_rail == null) return;
+        int gap = (int)Math.Round(8 * PhosphorPaint.Scale(this));
+        int x = _rail.Right + gap;
+        int bottom = _rail.Top + _profileBtn.Bottom;
+        _profilePanel.Width = Math.Max(_profilePanel.Width / 2, ClientSize.Width - Padding.Right - x);
+        _profilePanel.Location = new Point(x, Math.Max(_rail.Top, bottom - _profilePanel.Height));
     }
 
     private static Color PodAccent(string token) => token switch

@@ -448,7 +448,8 @@ internal sealed class AvatarButton : Control
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         float s = PhosphorPaint.Scale(this);
-        float d = Math.Min(Width, Height) - 4f * s;
+        // 32px like the Holodex vitals avatar in drawer mode, smaller only if the control is.
+        float d = Math.Min(32f * s, Math.Min(Width, Height) - 4f * s);
         var circle = new RectangleF((Width - d) / 2f, (Height - d) / 2f, d, d);
         using (var fill = new SolidBrush(Open || _hover ? PhosphorTheme.Surface2 : PhosphorTheme.Surface)) g.FillEllipse(fill, circle);
         using (var ring = new Pen(_status, 1.5f * s)) g.DrawEllipse(ring, circle);
