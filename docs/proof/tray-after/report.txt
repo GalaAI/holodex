@@ -1,0 +1,24 @@
+root                     open   18ms                               pass
+    region=2473,509,1030x571  work=0,0,3840x1008  root=2505,541,417x467
+capture                  open   15ms  Capture=13ms                 pass
+    region=2473,509,1030x571  work=0,0,3840x1008  root=2505,541,417x467  Capture & intake=2921,804,374x194
+spell-orb                open   22ms  Spell Orb=14ms               pass
+    region=2473,509,1030x571  work=0,0,3840x1008  root=2505,541,417x467  Spell Orb=2921,593,335x414
+settings                 open   14ms  Settings=11ms                pass
+    region=2473,417,1030x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558
+settings-mouse-dpi       open   15ms  Settings=9ms,Mouse DPI=11ms  pass
+    region=2473,417,1292x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Mouse DPI (Logitech)=3360,545,373x386
+settings-wand-gestures   open   17ms  Settings=16ms,Wand gestures=16ms pass
+    region=2473,417,1367x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Wand gestures & spells=3360,589,480x332
+settings-cursor-icon     open   15ms  Settings=18ms,Cursor icon=21ms pass
+    region=2473,417,1291x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Cursor icon style=3360,633,372x238
+settings-aperture        open   13ms  Settings=10ms,Aperture=11ms  pass
+    region=2473,417,1326x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Aperture morph mode=3360,675,407x332
+settings-rotation        open   17ms  Settings=12ms,Rotation=13ms  pass
+    region=2473,417,1317x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Rotation mode=3360,721,398x194
+settings-cursor-size     open   16ms  Settings=12ms,Cursor size=14ms pass
+    region=2473,417,1190x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Cursor size=3360,765,271x194
+settings-mouse-package   open   15ms  Settings=13ms,Mouse package=13ms pass
+    region=2473,417,1204x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  Mouse package=3360,857,285x150
+settings-vr              open   16ms  Settings=12ms,VR=11ms        pass
+    region=2473,417,1293x663  work=0,0,3840x1008  root=2505,541,417x467  Settings=2921,449,440x558  VR streaming=3360,499,374x508

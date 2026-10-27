@@ -786,6 +786,16 @@ internal sealed class OmniwandAppContext : ApplicationContext
             }, null);
             return result;
         }
+        if (cmd.StartsWith("tray:", StringComparison.OrdinalIgnoreCase))
+        {
+            string result = "error:tray:not run";
+            _uiSync.Send(_ =>
+            {
+                try { result = TrayProbe.Run(_trayIcon, (PhosphorTrayMenu)_trayIcon.ContextMenuStrip!, cmd["tray:".Length..].Trim()); }
+                catch (Exception ex) { result = $"error:tray:{ex.Message}"; }
+            }, null);
+            return result;
+        }
         if (string.Equals(cmd, "widgets:close", StringComparison.OrdinalIgnoreCase))
         {
             _uiSync.Post(_ =>

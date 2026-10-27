@@ -294,7 +294,7 @@ internal static class SurfaceCapture
     /// <summary>
     /// Draws <paramref name="trayMenu"/> with the submenus on <paramref name="path"/> open, placed the way the
     /// app places them: NotifyIcon opens the menu above and left of the pointer, PhosphorTrayMenu moves it left
-    /// until the submenu chain fits (<see cref="PhosphorMenuLayout.PlaceRootLeft"/>), and each submenu opens in
+    /// until the submenu chain fits and up out of the taskbar (<see cref="PhosphorMenuLayout.PlaceRoot"/>), and each submenu opens in
     /// its row's <see cref="ToolStripDropDownItem.DropDownDirection"/>, kept inside the working area the way
     /// WinForms keeps it. <paramref name="panels"/> receives each panel's screen rectangle, root first.
     /// </summary>
@@ -306,8 +306,7 @@ internal static class SurfaceCapture
         foreach (var dd in chain) using (Render(dd)) { }
 
         var root = new Rectangle(TrayAnchor.X - trayMenu.Width, TrayAnchor.Y - trayMenu.Height, trayMenu.Width, trayMenu.Height);
-        root = Constrain(root, TrayScreen);
-        root.X = PhosphorMenuLayout.PlaceRootLeft(root.X, PhosphorMenuLayout.Reach(trayMenu, root.Width), TrayWorkArea);
+        root.Location = PhosphorMenuLayout.PlaceRoot(root, PhosphorMenuLayout.Reach(trayMenu, root.Width), TrayWorkArea);
         panels = new List<Rectangle> { root };
         var parent = root;
         foreach (var item in path)

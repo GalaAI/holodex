@@ -423,7 +423,8 @@ internal sealed class PhosphorMenuSpacer : ToolStripItem
 /// <item>Direction: every submenu opens to the right (<see cref="ToolStripDropDownDirection.Right"/>). WinForms'
 /// default direction flips a submenu left whenever the screen edge pushes it over its parent row.</item>
 /// <item>Placement: a root menu opened near the right screen edge (the tray) moves left until its deepest
-/// submenu chain fits on the right (<see cref="PlaceRootLeft"/>), so no submenu is pushed back over the menu.</item>
+/// submenu chain fits on the right, and up out of the taskbar (<see cref="PlaceRoot"/>), so no submenu is pushed
+/// back over the menu and no panel covers the taskbar.</item>
 /// </list>
 /// </summary>
 internal static class PhosphorMenuLayout
@@ -518,11 +519,14 @@ internal static class PhosphorMenuLayout
     }
 
     /// <summary>
-    /// Left edge for a root menu that wants <paramref name="desiredLeft"/>: unchanged when its submenu chain
-    /// (<paramref name="reach"/>) fits inside <paramref name="workArea"/>, otherwise moved left just far enough.
+    /// Top-left corner for a root menu that wants <paramref name="desired"/>: moved left just far enough for its
+    /// submenu chain (<paramref name="reach"/>) to fit inside <paramref name="workArea"/>, and up out of the taskbar.
+    /// The tray opens the menu above the pointer, and the pointer sits on the taskbar, so the bottom edge has to
+    /// be pulled back to the work area.
     /// </summary>
-    public static int PlaceRootLeft(int desiredLeft, int reach, Rectangle workArea) =>
-        Math.Max(workArea.Left, Math.Min(desiredLeft, workArea.Right - reach));
+    public static Point PlaceRoot(Rectangle desired, int reach, Rectangle workArea) => new(
+        Math.Max(workArea.Left, Math.Min(desired.X, workArea.Right - reach)),
+        Math.Max(workArea.Top, Math.Min(desired.Y, workArea.Bottom - desired.Height)));
 
     private static void Collect(ToolStripDropDown panel, List<ToolStripDropDown> into)
     {
@@ -560,7 +564,8 @@ internal static class PhosphorMenuLayout
 
 /// <summary>
 /// The tray's context menu. Applies <see cref="PhosphorMenuLayout"/> each time it opens (row text and checks
-/// change), and keeps itself far enough left of the screen edge that every submenu opens to its right.
+/// change), and keeps itself inside the work area, far enough left of the screen edge that every submenu opens to
+/// its right.
 /// </summary>
 internal sealed class PhosphorTrayMenu : ContextMenuStrip
 {
@@ -586,8 +591,10 @@ internal sealed class PhosphorTrayMenu : ContextMenuStrip
         if (OwnerItem == null && Items.Count > 0 && !_applying)
         {
             if ((specified & BoundsSpecified.Location) != 0) _anchor = new Point(x + width, y + height);
-            var workArea = Screen.FromRectangle(new Rectangle(x, y, Math.Max(1, width), Math.Max(1, height))).WorkingArea;
-            x = PhosphorMenuLayout.PlaceRootLeft(x, PhosphorMenuLayout.Reach(this, width), workArea);
+            var desired = new Rectangle(x, y, Math.Max(1, width), Math.Max(1, height));
+            var placed = PhosphorMenuLayout.PlaceRoot(desired, PhosphorMenuLayout.Reach(this, width), Screen.FromRectangle(desired).WorkingArea);
+            x = placed.X;
+            y = placed.Y;
         }
         base.SetBoundsCore(x, y, width, height, specified);
     }

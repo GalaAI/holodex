@@ -1,0 +1,15 @@
+Live tray menu, gala DISPLAY37 3840x1080 at 144 DPI, work area 0,0,3840x1008, icon 3423,1008,48x72.
+Build: b718daf with PhosphorTrayMenu's vertical clamp absent (the shipped behavior). Captured with tray:shoot.
+Every panel: root=2505,577,417x467, bottom 1044, 36px inside the taskbar. Submenus all right of their parents, no overlap.
+root                     open   23ms  FAIL[root leaves the work area]
+capture                  open   25ms  Capture=20ms                     FAIL[root leaves the work area]
+spell-orb                open   19ms  Spell Orb=20ms                   FAIL[root leaves the work area]
+settings                 open   21ms  Settings=17ms                    FAIL[root leaves the work area]
+settings-mouse-dpi       open   22ms  Settings=22ms,Mouse DPI=21ms     FAIL[root leaves the work area]
+settings-wand-gestures   open   21ms  Settings=17ms,Wand gestures=20ms FAIL[root leaves the work area]
+settings-cursor-icon     open   20ms  Settings=18ms,Cursor icon=18ms   FAIL[root leaves the work area]
+settings-aperture        open   18ms  Settings=16ms,Aperture=18ms      FAIL[root leaves the work area]
+settings-rotation        open   22ms  Settings=18ms,Rotation=24ms      FAIL[root leaves the work area]
+settings-cursor-size     open   23ms  Settings=19ms,Cursor size=18ms   FAIL[root leaves the work area]
+settings-mouse-package   open   20ms  Settings=21ms,Mouse package=18ms FAIL[root leaves the work area]
+settings-vr              open   20ms  Settings=16ms,VR=17ms            FAIL[root leaves the work area]
