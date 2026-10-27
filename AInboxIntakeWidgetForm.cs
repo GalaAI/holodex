@@ -568,8 +568,9 @@ public sealed class AInboxIntakeWidgetForm : Form
         int chrome = Padding.Vertical;
         foreach (Control c in Controls) if (c != _body && c.Dock is DockStyle.Top or DockStyle.Bottom) chrome += c.Height;
         var area = (Visible ? Screen.FromControl(this) : Screen.FromPoint(Location)).WorkingArea;
-        // The as-built render shows the whole stack; live, the body scrolls past the working area.
-        int height = _preview ? chrome + body + 4 : Math.Min(chrome + body + 4, area.Height - 24);
+        // The offscreen as-built render shows the whole stack. A visible window, sample states included, never
+        // runs past the working area (its footer went under the taskbar); its body scrolls instead.
+        int height = _preview && !Visible ? chrome + body + 4 : Math.Min(chrome + body + 4, area.Height - 24);
         if (height != Height)
         {
             var top = Location;
