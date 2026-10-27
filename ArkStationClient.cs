@@ -566,7 +566,7 @@ public sealed class ArkStationClient
         bool isNemotronSelected = IsNemotronModel(selected);
 
         string wizSystem =
-            "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance Agent inside Omniwand. " +
+            "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance Agent inside Holodex. " +
             "Focus strictly on GrimX Spells. Spell kinds: Quick Cast (Cast), Combo (Chain), Ritual (Perform, scheduled or long-running), Symphony (Conduct), Ultima (Pursue), Charm (Bind), and Summon (Summon). " +
             $"Active Spell type: {SpellTypeName(flowKind)}.\n\nOperator Request: {prompt}";
 
@@ -892,7 +892,7 @@ public sealed class ArkStationClient
                     new
                     {
                         role = "system",
-                        content = "You are Omniwand, the desktop AI cursor and wand interface for ArkStation. Focus on GrimX Spells and Phosphor Shell. Answer concisely and directly."
+                        content = "You are Holodex, the desktop companion for ArkStation. Focus on GrimX Spells and Phosphor Shell. Answer concisely and directly."
                     },
                     new
                     {
@@ -992,7 +992,7 @@ public sealed class ArkStationClient
                         new
                         {
                             role = "system",
-                            content = "You are Omniwand, a native Windows desktop AI cursor and GrimX Spell wand powered by NVIDIA Nemotron on Nebius Token Factory. Answer concisely, accurately, and directly."
+                            content = "You are Holodex, a native Windows desktop companion and GrimX Spell wand powered by NVIDIA Nemotron on Nebius Token Factory. Answer concisely, accurately, and directly."
                         },
                         new
                         {
@@ -1193,7 +1193,7 @@ public sealed class ArkStationClient
                     model = preferredVisionModel,
                     messages = new object[]
                     {
-                        new { role = "system", content = "You are Omniwand Vision & Desktop UI Inspector. Analyze the screen capture, annotations, and element telemetry concisely." },
+                        new { role = "system", content = "You are Holodex Vision & Desktop UI Inspector. Analyze the screen capture, annotations, and element telemetry concisely." },
                         new { role = "user", content = userContent }
                     },
                     max_tokens = 800,
@@ -1239,11 +1239,11 @@ public sealed class ArkStationClient
         string targetAgentRole)
     {
         string syndicatePrompt = targetAgentId == "all"
-            ? "You are role-playing the ArkStation Syndicate in Omniwand's offline Holodex session (Hivemind is not connected). " +
+            ? "You are role-playing the ArkStation Syndicate in Holodex's offline session (Hivemind is not connected). " +
               "Reply with 2 concise, distinct in-character turns from the most relevant Syndicate conductors " +
               "(choose from GALA // Co-op Orchestrator, WIZ // GrimX & Mouse Macro Conductor, SMITH // Architecture & Code Authority, ARBITER // Eden & SolaTree Conductor, SCHOLAR // Cortex Research, MUSE // MagiXLab Visuals). " +
               $"Format each turn as 'AGENT_NAME // ROLE:\\n<concise actionable response>'.\n\nOperator message: {message}"
-            : $"You are {targetAgentName} ({targetAgentRole}), role-played in Omniwand's offline Holodex session (Hivemind is not connected). " +
+            : $"You are {targetAgentName} ({targetAgentRole}), role-played in Holodex's offline session (Hivemind is not connected). " +
               $"Reply in character as '{targetAgentName} // {targetAgentRole.ToUpperInvariant()}:' with a concise, high-signal operational response.\n\nOperator message: {message}";
 
         var (ok, output) = await AskArkGatewayAsync(syndicatePrompt);

@@ -72,7 +72,7 @@ public static class WizOnboardingEngine
         {
             schema = "ark.bamf.agent/v1",
             id = "agent:omniwand:wiz-conductor",
-            title = "Omniwand Desktop Augment & Wiz Conductor",
+            title = "Holodex Desktop Augment & Wiz Conductor",
             owner = "wiz",
             faction = "syndicate",
             provisionedAt = DateTime.UtcNow.ToString("O"),
@@ -108,10 +108,10 @@ public static class WizOnboardingEngine
         {
             File.WriteAllText(skillMdPath,
                 "---\nname: wiz-omniwand\ndescription: Wiz 4GE Workflow-Crafting, Mouse Macro Intelligence, and GrimX Governance Agent\n---\n\n" +
-                "# Wiz // Omniwand Desktop Conductor\n\n" +
+                "# Wiz // Holodex Desktop Conductor\n\n" +
                 $"Auto-provisioned for **{mouse.Brand} {mouse.Model}** (`{mouse.VidPid}`).\n" +
-                "- **Alt+Space**: Summon Omniwand HUD\n" +
-                "- **Alt+H**: Open Holodex Lite Drawer (Session, AInbox, Codex, GrimX, Mods)\n" +
+                "- **Alt+Space**: Summon Holodex HUD\n" +
+                "- **Alt+H**: Open the Holodex drawer (Session, AInbox, Codex, GrimX, Mods)\n" +
                 "- **Alt+S**: Free-Form Lasso & Live Vision Annotator\n" +
                 "- **Alt+E**: Desktop Element Picker (`wand.point` / `wand.palette` / `wand.architect`)\n" +
                 "- **Alt+W**: Wiz Crafting Thread\n");
@@ -227,9 +227,9 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         _steps = new List<TutorialStepInfo>
         {
             new(1,
-                "WELCOME // OMNIWAND",
+                "WELCOME // HOLODEX",
                 "Your cursor is now a wand",
-                $"Omniwand lives in the tray and draws the Ark Aperture cursor. It found your {report.MouseHardware.Brand} {report.MouseHardware.Model} and {report.DisplaySummary}. {vaultState}",
+                $"Holodex lives in the tray and draws the Ark Aperture cursor. It found your {report.MouseHardware.Brand} {report.MouseHardware.Model} and {report.DisplaySummary}. {vaultState}",
                 "Cycle cursor style",
                 PhosphorTheme.Patina,
                 cycleCursorStyle,
@@ -253,7 +253,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
             new(4,
                 "ELEMENT PICKER // POINT",
                 "Inspect any window or pixel",
-                "Press Alt+E and hover. Omniwand reads the window class, its bounds and the exact hex color under the wand, ready to copy or hand to Wiz.",
+                "Press Alt+E and hover. Holodex reads the window class, its bounds and the exact hex color under the wand, ready to copy or hand to Wiz.",
                 "Try the picker",
                 PhosphorTheme.Patina,
                 openElementPicker,
@@ -269,13 +269,13 @@ public sealed class PhosphorAnimatedTooltipForm : Form
             new(6,
                 "AINBOX // HAND OFF",
                 "Drop it, say what you want, send it",
-                "Press Alt+I. Drag in files, paste a snippet or capture the screen, add one line of intent, and Omniwand writes the handoff for you.",
+                "Press Alt+I. Drag in files, paste a snippet or capture the screen, add one line of intent, and Holodex writes the handoff for you.",
                 "Open AInbox",
                 PhosphorTheme.Patina,
                 openAInbox,
                 "Alt+I"),
             new(7,
-                "HOLODEX LITE // YOUR DRAWER",
+                "HOLODEX // YOUR DRAWER",
                 "Everything else lives here",
                 "Press Alt+H for session chat, saved captures, Spells and mouse DPI. Replay this tour any time with Alt+T. Ctrl+Alt+Q quits and restores the normal cursor.",
                 "Open Holodex",

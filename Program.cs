@@ -50,7 +50,7 @@ internal static class Program
                 if (!fromToast && DateTime.Now - lastErrorToast > TimeSpan.FromSeconds(15))
                 {
                     lastErrorToast = DateTime.Now;
-                    PhosphorToast.Show("Something went wrong", e.Exception.Message, "OMNIWAND // RECOVERED", 5200, ToastTone.Error);
+                    PhosphorToast.Show("Something went wrong", e.Exception.Message, "HOLODEX // RECOVERED", 5200, ToastTone.Error);
                 }
             }
             catch { }
@@ -307,7 +307,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // the tray icon and stays open until a click outside it, Esc, a click on the icon, or a row that does
         // something (PhosphorTrayMenu). Add closes after the row runs; AddSetting keeps the menu open.
         var home = new TrayPage();
-        var titleItem = new PhosphorMenuHeader("Omniwand // v0.3", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
+        var titleItem = new PhosphorMenuHeader("DESKTOP COMPANION // v0.3", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
         _trayTitle = titleItem;
         home.Add(titleItem);
 
@@ -439,7 +439,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         _hideNativeMenuItem = settingsPage.AddSetting(new ToolStripMenuItem("Hide the normal pointer")
         {
-            ToolTipText = "Shows only the Omniwand pointer.",
+            ToolTipText = "Shows only the wand pointer.",
             ShortcutKeyDisplayString = "Ctrl+Alt+C",
             Checked = NativeCursorManager.IsHidden,
             CheckOnClick = false
@@ -451,7 +451,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // Your mouse: every mouse found, the one in use checked. It follows the mouse you move unless you pick one.
         _yourMousePage = new TrayPage("Your mouse");
         FillYourMouseMenu();
-        settingsPage.AddPage("Your mouse", _yourMousePage, "Omniwand uses the mouse you are moving. Pick one to keep it.");
+        settingsPage.AddPage("Your mouse", _yourMousePage, "Holodex uses the mouse you are moving. Pick one to keep it.");
 
         var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Alt+T" });
         tutorialItem.Click += (_, _) => SummonTutorialTooltips();
@@ -487,7 +487,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _vrTimer = new System.Threading.Timer(_ => VrTick(), null, 600, 1500);
 
         home.Add(new ToolStripSeparator());
-        var exitItem = home.Add(new ToolStripMenuItem("Quit Omniwand") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
+        var exitItem = home.Add(new ToolStripMenuItem("Quit Holodex") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
         exitItem.Click += (_, _) => ExitApp();
 
         var menu = new PhosphorTrayMenu(home)
@@ -502,7 +502,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _trayIcon = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
-            Text = "Holodex · Omniwand v0.3 (Alt+Space ask | Alt+H Holodex | Alt+S cut out | Alt+E point)",
+            Text = "Holodex v0.3 (Alt+Space ask | Alt+H Holodex | Alt+S cut out | Alt+E point)",
             ContextMenuStrip = menu,
             Visible = true
         };
@@ -551,8 +551,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(
-            $"Omniwand v0.3 · {MouseHardwareAndWandEngine.ActiveMouse.Name}",
-            "Alt+H  Holodex Lite & Syndicate Session\nAlt+S  Free-Form Lasso   Alt+E  Element Picker\nAlt+W  Wiz Crafting      Alt+T  Animated Tooltips",
+            $"Holodex v0.3 · {MouseHardwareAndWandEngine.ActiveMouse.Name}",
+            "Alt+H  Holodex & Syndicate Session\nAlt+S  Free-Form Lasso   Alt+E  Element Picker\nAlt+W  Wiz Crafting      Alt+T  Animated Tooltips",
             "PHOSPHOR SHELL // WIZ PROVISIONED",
             5400);
 
@@ -1055,7 +1055,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorToast.Show(
             "Cursor Icon Updated",
             $"Active on-brand cursor style: {MouseHardwareAndWandEngine.ActiveCursorStyle}",
-            "OMNIWAND // CURSOR ENGINE",
+            "HOLODEX // CURSOR ENGINE",
             2200);
     }
 
@@ -1069,7 +1069,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                     PhosphorToast.Show(
                         "TIME SPLITTER · WIZ INSPECT",
                         "Horizontal shake spell cast — summoning Wiz Crafting on active target.",
-                        "OMNIWAND SPELL // SHAKE L-R",
+                        "WAND SPELL // SHAKE L-R",
                         2800,
                         ToastTone.Success);
                     SummonWizCrafting("flow");
@@ -1079,7 +1079,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                     PhosphorToast.Show(
                         "COPYCAT · LASSO CAPTURE",
                         "Vertical shake spell cast — arming Free-Form Lasso & Vision Annotator.",
-                        "OMNIWAND SPELL // SHAKE U-D",
+                        "WAND SPELL // SHAKE U-D",
                         2800,
                         ToastTone.Success);
                     _snipWidget.SummonAt(cursorPt, WandCaptureTool.FreeformLasso);
@@ -1089,7 +1089,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                     PhosphorToast.Show(
                         "MUTATION · GRIMX SPELL CAST",
                         "Circle gesture recognized — casting GrimX Spell on target under cursor.",
-                        "OMNIWAND SPELL // CIRCLE LOOP",
+                        "WAND SPELL // CIRCLE LOOP",
                         2800,
                         ToastTone.Success);
                     ExecuteOrbSlotOnUiThread(GrimXFlowOrb.Slots[0], cursorPt);
@@ -1099,7 +1099,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                     PhosphorToast.Show(
                         "SYNTHESIZE · HOLODEX BRIDGE",
                         "Rightward sweep recognized — opening Holodex Syndicate Session.",
-                        "OMNIWAND SPELL // SWEEP RIGHT",
+                        "WAND SPELL // SWEEP RIGHT",
                         2800,
                         ToastTone.Success);
                     _holodexDrawer.SummonDrawer(cursorPt, "session");
@@ -1178,7 +1178,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private void CycleProfileFromHotkey()
     {
         string next = _ark.CycleCursorProfile();
-        PhosphorToast.Show("Cursor profile", $"Active Input Studio profile: {next}", "OMNIWAND", 1800);
+        PhosphorToast.Show("Cursor profile", $"Active Input Studio profile: {next}", "HOLODEX", 1800);
     }
 
     private void ExecuteOrbSlotOnUiThread(GrimXOrbSlot slot, Point pt)
@@ -1372,7 +1372,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 if (_vrStatusItem != null) _vrStatusItem.Text = text;
                 if (stream != null)
-                    PhosphorToast.Show("VR mode", $"{stream} detected. Native cursor hidden, wand enlarged.", "OMNIWAND // VR", 3000);
+                    PhosphorToast.Show("VR mode", $"{stream} detected. Native cursor hidden, wand enlarged.", "HOLODEX // VR", 3000);
             }, null);
         }
     }
@@ -1503,7 +1503,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             NativeCursorManager.RestoreSystemCursors();
             _hideNativeMenuItem.Checked = false;
-            PhosphorToast.Show("Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "OMNIWAND // CURSOR", 2400, ToastTone.Info);
+            PhosphorToast.Show("Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "HOLODEX // CURSOR", 2400, ToastTone.Info);
         }
         else
         {
@@ -2204,7 +2204,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
             PhosphorToast.Show(
                 "Some shortcuts are taken",
                 $"Another app already uses {string.Join(", ", taken)}. Those tools are still in the tray menu.",
-                "OMNIWAND // SHORTCUTS",
+                "HOLODEX // SHORTCUTS",
                 7000,
                 ToastTone.Warning);
     }

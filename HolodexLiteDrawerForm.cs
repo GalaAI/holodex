@@ -218,7 +218,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // Who Omniwand runs as on this machine: the Windows account, read from the system, never typed in.
         var identityLine = new LedRow { Dock = DockStyle.Top, Height = 28, Name = "Holodex.ProfileIdentity" };
-        identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, "OMNIWAND v0.3"));
+        identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, "HOLODEX v0.3"));
 
         // The profile panel, top to bottom: identity, Hivemind (sign in or out), the gateway and key, the key row.
         // It floats beside the rail, bottom-aligned with the avatar, in the ArkStation popover look (surface, line-2
@@ -907,7 +907,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             _sessionThread.Add(ThreadTone.Action, $"WORK ORDER // {orderId} // TO {owner} // NOT SENT", text, PhosphorGlyph.Holodex)
                 .SetResult("Signed out of Hivemind, so this order was not sent. Sign in to Hivemind to dispatch work orders.", false);
-            PhosphorToast.Show($"Work order {orderId} kept here", "Not sent: Omniwand is not signed in to Hivemind.", "HOLODEX // WORK ORDERS", 3200, ToastTone.Warning);
+            PhosphorToast.Show($"Work order {orderId} kept here", "Not sent: Holodex is not signed in to Hivemind.", "HOLODEX // WORK ORDERS", 3200, ToastTone.Warning);
         }
         return order;
     }
@@ -1195,7 +1195,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             PhosphorToast.Show(
                 "Token Applied for Session Only",
-                "Could not write to Windows Credential Manager. The token works until Omniwand closes.",
+                "Could not write to Windows Credential Manager. The token works until Holodex closes.",
                 "KEYMASTER // WINCRED VAULT",
                 4200,
                 ToastTone.Warning);

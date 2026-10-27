@@ -981,8 +981,8 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             // Element facts only for a picked element; a lasso or snip has none, and the hover card's last
             // window is not what was captured.
             string header = pick != null
-                ? $"[Omniwand Vision & Element Inspector | Tool={_activeTool} | Element={pick.Title} ({pick.Class}, {pick.Process}) | Geometry={pick.Rect.Width}x{pick.Rect.Height} | Palette={pick.Hex}]"
-                : $"[Omniwand Vision | Tool={_activeTool} | Region={capture.Width}x{capture.Height} | Marks={_annotations.Count}]";
+                ? $"[Holodex Vision & Element Inspector | Tool={_activeTool} | Element={pick.Title} ({pick.Class}, {pick.Process}) | Geometry={pick.Rect.Width}x{pick.Rect.Height} | Palette={pick.Hex}]"
+                : $"[Holodex Vision | Tool={_activeTool} | Region={capture.Width}x{capture.Height} | Marks={_annotations.Count}]";
             var (ok, output) = await _ark.AskVisionModelAsync($"{header}\n{prompt}", dataUrl, chosenVisionModel);
             if (session == _session) ShowAnswer(ok ? ThreadTone.Agent : ThreadTone.Fail, AnswerKicker(chosenVisionModel, ok ? "" : " // not answered"), output);
         }
@@ -1031,7 +1031,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             $"codex:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds():x}",
             kind,
             pick != null ? $"{pick.Process}: {pick.Title}" : $"Screen {kind.Split('.')[1].ToUpperInvariant()} ({capture.Width}x{capture.Height})",
-            string.IsNullOrWhiteSpace(_answerText) ? "Captured via Omniwand Screen Snip & Element Inspector." : _answerText,
+            string.IsNullOrWhiteSpace(_answerText) ? "Captured via Holodex Screen Snip & Element Inspector." : _answerText,
             pick?.Class ?? "Screen.Region",
             $"{capture.Width}x{capture.Height} @ ({capture.X},{capture.Y})",
             pick?.Hex ?? "n/a",

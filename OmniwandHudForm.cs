@@ -172,7 +172,7 @@ public sealed class OmniwandHudForm : Form
         Controls.Add(WidgetChrome.Spacer(2));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, "ARK // WAND", "Omniwand", PhosphorTheme.Patina, headerTools);
+        WidgetChrome.Attach(this, "ARK // WAND", "Holodex", PhosphorTheme.Patina, headerTools);
         WidgetDrag.Enable(this);
         ShowWandStatus(gatewayOnline: false);
         SyncVisionHint();

@@ -186,7 +186,7 @@ internal sealed class WizAgent
     }
 
     private static string SystemPrompt(string spellTypeId) =>
-        "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance agent inside Omniwand, running on NVIDIA Nemotron through Nebius Token Factory. " +
+        "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance agent inside Holodex, running on NVIDIA Nemotron through Nebius Token Factory. " +
         "You turn the operator's goal into a GrimX Spell and act through your tools when acting moves the goal forward. " +
         "Spell kinds: Quick Cast (Cast), Combo (Chain), Ritual (Perform, scheduled or long-running), Symphony (Conduct), Ultima (Pursue), Charm (Bind), Summon (Summon). " +
         $"Active Spell type: {ArkStationClient.SpellTypeName(spellTypeId)}.\n\n" +

@@ -1,8 +1,10 @@
-# Omniwand v0.3: Phosphor Shell, Holodex Lite & GrimX Spell Desktop AI Wand
+# Holodex v0.3: your desktop companion for Ark Omnitek products
 
-**Omniwand** is a native Windows desktop AI cursor, radial workflow wand, screen lasso & element inspector, and **Holodex Lite** control deck built on .NET 10 (`net10.0-windows`), WinForms, and Win32/GDI+ (`UpdateLayeredWindow` + `DwmFlush`).
+**Holodex** is the standalone desktop extension of the Holodex in Ark and Ryozan: a native Windows AI cursor, radial workflow wand, screen lasso & element inspector, and control drawer built on .NET 10 (`net10.0-windows`), WinForms, and Win32/GDI+ (`UpdateLayeredWindow` + `DwmFlush`).
 
-It replaces or overlays the system cursor with a critically-damped Phosphor wand supporting 4 on-brand cursor styles (**Relic Wand**, **Ark Aperture**, **Phosphor Arrow**, and **Viewfinder Reticle**), directional **Right-Hold Gesture Flicks**, intelligent mouse hardware & live DPI speed control, **Zero-Manual Wiz Onboarding** with animated Phosphor tooltip tutorials, **Free-Form Lasso / Phosphor Annotator / Desktop Element Picker**, and a docked **Holodex Lite Drawer** with **Hivemind Lite Token Login** (`wincred://` Windows Credential Manager vault) and 5 operational tabs (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`).
+**Names.** The product is Holodex (renamed from Omniwand on 2026-10-27). Omniwand stays as the codename in the repo, the project and exe (`Omniwand.csproj`, `Omniwand.exe`), the control pipe `ArkStation.Omniwand.Control`, the Windows Credential Manager targets (`Omniwand:*`), the `OMNIWAND_*` environment variables and the `%LOCALAPPDATA%\Omniwand` data folder, because launchers, the Logi plugin and saved keys depend on them.
+
+It replaces or overlays the system cursor with a critically-damped Phosphor wand supporting 4 on-brand cursor styles (**Relic Wand**, **Ark Aperture**, **Phosphor Arrow**, and **Viewfinder Reticle**), directional **Right-Hold Gesture Flicks**, intelligent mouse hardware & live DPI speed control, **Zero-Manual Wiz Onboarding** with animated Phosphor tooltip tutorials, **Free-Form Lasso / Phosphor Annotator / Desktop Element Picker**, and a docked **Holodex drawer** with **Hivemind Lite Token Login** (`wincred://` Windows Credential Manager vault) and 5 operational tabs (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`).
 
 More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https://arkomnitek.com)**
 
@@ -10,7 +12,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 
 ## Screenshots
 
-| Phosphor HUD (`Alt+Space`) | Holodex Lite Drawer (`Alt+H`) | Wiz Crafting (`Alt+W`) |
+| Phosphor HUD (`Alt+Space`) | Holodex drawer (`Alt+H`) | Wiz Crafting (`Alt+W`) |
 | --- | --- | --- |
 | ![HUD](docs/shots/as-built/hud.png) | ![Holodex](docs/shots/as-built/holodex.png) | ![Wiz](docs/shots/as-built/wiz.png) |
 
@@ -18,7 +20,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 | --- | --- | --- |
 | ![Snip](docs/shots/as-built/snip.png) | ![Tutorial](docs/shots/as-built/tutorial.png) | ![AInbox](docs/shots/as-built/ainbox.png) |
 
-| Tray Menu (`Omniwand // v0.3`) | Settings page | 240Hz Aperture Morph States |
+| Tray Menu (`Holodex`) | Settings page | 240Hz Aperture Morph States |
 | --- | --- | --- |
 | ![Menu](docs/shots/as-built/menu.png) | ![Settings](docs/shots/as-built/menu-settings.png) | ![Morph Sheet](docs/shots/as-built/cursor-morph-sheet.png) |
 
@@ -34,12 +36,12 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
     - `IBeam` (Text Cursor): Smoothly folds the 3 wings inward into a **solid, basic vertical beam bar glowing Patina (`#69A389`)** (steady, non-pulsing).
     - `Crosshair`, `SizeWE/NS/NWSE/NESW`, `SizeAll`, `Wait` (3-Wing Orbital Turbine), `No` (Rust `#D96857` prohibition slash), and `Help` / `UpArrow` (Seal Amber `#D4A359`).
   - Also includes 4 creative morph formations (**Holoscope Iris**, **Syndicate Compass Rose**, **Wiz Wand Star**, **Aegis Shield**) and 3 additional cursor styles (**Relic Wand**, **Phosphor Arrow**, **Viewfinder Reticle**).
-- **MagiXLab Video Bench `Omniwand` Spell Gesture Engine (`Ctrl` Hold + Gesture)**:
+- **MagiXLab Video Bench wand Spell Gesture Engine (`Ctrl` Hold + Gesture)**:
   - Ported from the original `Ark Shell S4` MagiXLab Video Bench concept (`ad2b6a14-756e-440d-b3fa-65db8e365c20`): hold `Ctrl` to arm the spell recognizer (right-click arming is opt-in under Settings), rendering a **0.85s tapering Bone/White Ghost Ribbon** + **stochastic 4-point twinkling star dust (`sparks`)** keyed to pointer speed & acceleration + **42-spark omnidirectional starburst** on spell cast:
     1. **Shake Left-Right (`4 swings ≥ 44px in 900ms`)**: Casts `TIME SPLITTER · WIZ INSPECT` (summons Wiz Crafting).
     2. **Shake Up-Down (`4 swings ≥ 44px in 900ms`)**: Casts `COPYCAT · LASSO CAPTURE` (arms Free-Form Lasso & Vision Annotator).
     3. **Draw a Circle (`≥ 300° signed turn + ≥ 210px travel in 1400ms`)**: Casts `MUTATION · GRIMX SPELL CAST` (casts GrimX Slot 1 Spell).
-    4. **Unbroken Sweep Right (`≥ 280px`)**: Casts `SYNTHESIZE · HOLODEX BRIDGE` (opens Holodex Lite Syndicate Session).
+    4. **Unbroken Sweep Right (`≥ 280px`)**: Casts `SYNTHESIZE · HOLODEX BRIDGE` (opens Holodex Syndicate Session).
 - **Tray Menu That Turns Pages**:
   - Clicking the tray icon opens one panel centered above the icon. The home page holds the primary surfaces (`Ask a question`, `Open Holodex`, `Make a spell with Wiz`, `Grab from the screen >`, `Spell Orb >`, `Settings >`); a `>` row turns the same panel to its page, and `Back` (or Esc, Backspace, Left) returns. Choices and toggles keep the panel open so the change shows; it closes on a click outside it, Esc on the home page, another click on the icon, or a row that opens something.
 - **Zero-Manual Wiz Environment Onboarding & Animated Phosphor Tooltips (`Alt+T`)**:
@@ -51,7 +53,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
   - Full-desktop capture overlay implementing the original Ark Wand toolset (`wand.point`, `wand.annotate`, `wand.capture`, `wand.palette`, `wand.architect`).
   - Draw a **Free-Form Lasso** or **Rectangle Snip**, annotate with Coral/Patina/Amber pens, arrows, or boxes, or inspect any desktop window (`WindowFromPoint` HWND class, title, bounding rect, and live 6x pixel magnifier with click-to-copy HEX).
   - Route any capture to **Multi-Model Vision** (`nvidia/Nemotron-3.5-Super-VL`, `openbmb/MiniCPM-V-4_5`, `google/gemma-3-27b-it`, or `ark/kimi`) or save directly into the **Holodex Codex**.
-- **Holodex Lite Drawer (`Alt+H`) & Token Vault Login**:
+- **Holodex drawer (`Alt+H`) & Token Vault Login**:
   - Right-edge Relic Phosphor dashboard drawer with one-click **Token Login** (stores your Nebius Token Factory API key directly in Windows Credential Manager `wincred://` under `Omniwand:NebiusTokenFactory`).
   - Includes 5 lite tabs:
     1. **Session**: Syndicate Group Chat (`@Gala`, `@Wiz`, `@Smith`, `@Arbiter`, `@Scholar`, `@Muse`, `@Fabrix`, `@Herald`) with live **Work Orders** and **Activity Feed**.
@@ -64,7 +66,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 
 ## How NVIDIA Nemotron & Nebius Token Factory Are Used
 
-In **Standalone Mode** (default when running standalone or when `OMNIWAND_STANDALONE=1` is set), Omniwand routes all AI completions directly to **Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1/chat/completions` and `/v1/models`) using **NVIDIA Nemotron** open models:
+In **Standalone Mode** (default when running standalone or when `OMNIWAND_STANDALONE=1` is set), Holodex routes all AI completions directly to **Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1/chat/completions` and `/v1/models`) using **NVIDIA Nemotron** open models:
 
 1. **Fast Tier Cursor Calls (`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` / `nvidia/Nemotron-3_5-Lightning`)**:
    - Used as the default model in `ModelPicker` for low-latency pointed HUD queries (`Alt+Space`).
@@ -99,7 +101,7 @@ dotnet publish Omniwand.csproj -c Release -r win-x64 --self-contained true -o pu
 
 ## Setting Your Nebius Token Factory Key
 
-Omniwand never stores API keys in source code, config files, logs, or screenshots. Provide your Nebius Token Factory API key using either an environment variable or **Windows Credential Manager**:
+Holodex never stores API keys in source code, config files, logs, or screenshots. Provide your Nebius Token Factory API key using either an environment variable or **Windows Credential Manager**:
 
 ### 1. Environment Variable (PowerShell)
 
@@ -116,15 +118,15 @@ $env:NEBIUS_API_KEY = "your-nebius-token-factory-key"
 $env:NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 ```
 
-### 2. Holodex Lite Token Login (`Alt+H`) or Windows Credential Manager (`wincred://`)
+### 2. Holodex Token Login (`Alt+H`) or Windows Credential Manager (`wincred://`)
 
-Paste your Nebius Token Factory API key directly into the **Holodex Lite Drawer (`Alt+H`)** header and click **Connect Vault**, Omniwand stores it securely in Windows Credential Manager (`wincred://` target `Omniwand:NebiusTokenFactory`). Or set it from PowerShell:
+Paste your Nebius Token Factory API key directly into the **Holodex drawer (`Alt+H`)** header and click **Connect Vault**, Holodex stores it securely in Windows Credential Manager (`wincred://` target `Omniwand:NebiusTokenFactory`). Or set it from PowerShell:
 
 ```powershell
 cmdkey /generic:Omniwand:NebiusTokenFactory /user:nebius /pass:your-nebius-token-factory-key
 ```
 
-If no key is configured, Omniwand still launches normally, runs all cursor physics and overlays without hanging, and displays a Phosphor toast explaining how to set `NEBIUS_API_KEY` when you send a prompt.
+If no key is configured, Holodex still launches normally, runs all cursor physics and overlays without hanging, and displays a Phosphor toast explaining how to set `NEBIUS_API_KEY` when you send a prompt.
 
 ---
 
@@ -133,7 +135,7 @@ If no key is configured, Omniwand still launches normally, runs all cursor physi
 | Action | Shortcut |
 | --- | --- |
 | Summon **Phosphor HUD** | `Alt+Space` (or double-click tray icon) |
-| Toggle **Holodex Lite Drawer** (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`) | `Alt+H` or **Ctrl + Sweep Right** |
+| Toggle **Holodex drawer** (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`) | `Alt+H` or **Ctrl + Sweep Right** |
 | **Free-Form Lasso & Phosphor Annotator** (`wand.capture` / `wand.annotate`) | `Alt+S` or **Ctrl + Shake Up and Down** |
 | **Desktop Element & Pixel Palette Picker** (`wand.point` / `wand.palette`) | `Alt+E` or **Right-Hold + Flick West** |
 | Summon **Wiz Crafting** | `Alt+W` or **Right-Hold + Flick East** |
@@ -149,16 +151,16 @@ If no key is configured, Omniwand still launches normally, runs all cursor physi
 
 ### Optional mouse side-button macros
 
-Mouse4 and Mouse5 are browser Back and Forward, so Omniwand leaves them alone by default. To bind them (and right-drag flicks) to Lasso and Holodex, set `OMNIWAND_MOUSE_MACROS=1` before launching.
+Mouse4 and Mouse5 are browser Back and Forward, so Holodex leaves them alone by default. To bind them (and right-drag flicks) to Lasso and Holodex, set `OMNIWAND_MOUSE_MACROS=1` before launching.
 
 ### Hover tooltips
 
-Every Omniwand control explains itself on hover: a short dwell, then a tip that rises and fades in on the Ark disclosure timing (180ms, ease-analog), with the keyboard shortcut drawn as keycaps. Windows "Show animations" off turns the motion off.
+Every Holodex control explains itself on hover: a short dwell, then a tip that rises and fades in on the Ark disclosure timing (180ms, ease-analog), with the keyboard shortcut drawn as keycaps. Windows "Show animations" off turns the motion off.
 
 ## Tips
 
-- **Optional ArkStation Integration**: When running on a host with an active ArkStation instance, Omniwand automatically detects the local integration and enables live gesture bindings alongside Nebius Token Factory.
-- **Optional Logitech MX Master 4 Support**: Omniwand automatically detects a connected Logitech MX Master 4 (`VID_046D&PID_B042`) for Actions Ring bindings (`F15` / `F16` / named pipe `ArkStation.Omniwand.Control`), and falls back cleanly to Universal Mouse mode on any standard mouse.
+- **Optional ArkStation Integration**: When running on a host with an active ArkStation instance, Holodex automatically detects the local integration and enables live gesture bindings alongside Nebius Token Factory.
+- **Optional Logitech MX Master 4 Support**: Holodex automatically detects a connected Logitech MX Master 4 (`VID_046D&PID_B042`) for Actions Ring bindings (`F15` / `F16` / named pipe `ArkStation.Omniwand.Control`), and falls back cleanly to Universal Mouse mode on any standard mouse.
 
 ---
 
@@ -168,7 +170,7 @@ Every Omniwand control explains itself on hover: a short dwell, then a tip that 
 - **On-Brand Cursor Styles, Hardware Detection, Live DPI & Gesture Engine (`MouseHardwareAndWandEngine.cs`)**: Added 4 custom GDI+ cursor geometries (`RelicWand`, `ArkAperture`, `PhosphorArrow`, `ViewfinderReticle`), USB VID/PID mouse brand & model recognition, live `SystemParametersInfo` pointer speed/DPI control (`1-20`), `Mouse4`/`Mouse5` macro binder, and `Right-Hold` directional gesture flicks.
 - **Zero-Manual Wiz Onboarding & Animated Phosphor Tooltips (`WizOnboardingAndTooltips.cs`)**: Automatic environment scanner and `~/.ark/agents/omniwand` `.bamf` agent provisioner paired with a 60fps floating Phosphor tooltip tutorial walkthrough.
 - **Free-Form Lasso, Phosphor Annotator & Desktop Element Picker (`ScreenSnipAndElementPickerForm.cs`)**: Full-screen interactive capture and HWND element/pixel inspector with multi-model vision routing (`nvidia/Nemotron-3.5-Super-VL`, `openbmb/MiniCPM-V-4_5`, `google/gemma-3-27b-it`) and Codex persistence.
-- **Holodex Lite Drawer & Hivemind Lite Token Login (`HolodexLiteDrawerForm.cs`, `ArkStationClient.cs`)**: Docked right-edge dashboard drawer with `wincred://` Token Login and 5 tabs (`Session` Syndicate group chat & work orders, `AInbox`, `Codex`, `GrimX`, `Mods`).
+- **Holodex drawer & Hivemind Lite Token Login (`HolodexLiteDrawerForm.cs`, `ArkStationClient.cs`)**: Docked right-edge dashboard drawer with `wincred://` Token Login and 5 tabs (`Session` Syndicate group chat & work orders, `AInbox`, `Codex`, `GrimX`, `Mods`).
 - **Standalone Nebius Token Factory & NVIDIA Nemotron Provider (`ArkStationClient.cs`, `ModelPicker.cs`, `OmniwandHudForm.cs`, `WizCraftingWidgetForm.cs`)**: Direct OpenAI-compatible runtime integration with Nebius Token Factory (`https://api.tokenfactory.nebius.com/v1/chat/completions` & `/v1/models`) defaulting to NVIDIA Nemotron models (`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`, `nvidia/Nemotron-3_5-Lightning`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/Nemotron-3.5-Super-VL`, `nvidia/Nemotron-3-Ultra-550b-a55b`), with Windows Credential Manager (`CredReadW`/`CredWriteW`) and environment variable key resolution plus graceful standalone degradation.
 - **Kinematics, VR Cursor Cache Guard & As-Built Surface Capture (`Program.cs`, `RotationPreview.cs`, `VrStreamDetector.cs`, `SurfaceCapture.cs`)**: Animated tray rotation previews, headset stream auto-detection, and offscreen `render:<folder>` PNG capture pipeline.
 

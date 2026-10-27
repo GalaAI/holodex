@@ -140,7 +140,7 @@ internal sealed class PhosphorToast : Form
         return SurfaceCapture.Render(toast);
     }
 
-    public static void Show(string title, string body, string eyebrow = "OMNIWAND", int durationMs = 4200, ToastTone tone = ToastTone.Info)
+    public static void Show(string title, string body, string eyebrow = "HOLODEX", int durationMs = 4200, ToastTone tone = ToastTone.Info)
     {
         void Create()
         {
