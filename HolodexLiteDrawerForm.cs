@@ -57,7 +57,6 @@ public sealed class HolodexLiteDrawerForm : Form
     private readonly AvatarButton _profileBtn;
     private readonly Panel _profilePanel;
     private readonly Panel _rail;
-    private readonly Panel _railTabs;
     private bool _profileOpen;
     private bool _connected;
     private bool _tokenBarOpen;
@@ -230,10 +229,11 @@ public sealed class HolodexLiteDrawerForm : Form
         _profilePanel.Controls.Add(hivemindRow);
         _profilePanel.Controls.Add(WidgetChrome.Spacer(4));
         _profilePanel.Controls.Add(identityLine);
-        // The rail, as the ArkStation rail draws its zones (station-shell Rail, collapsed): the tabs as icons centred
-        // in its height, the label in each tooltip, the active tab as the neutral pill; the profile avatar anchored at
-        // its foot. Icons are the web console Holodex's lucide set.
-        var rail = new Panel { Dock = DockStyle.Left, Width = 60, BackColor = PhosphorTheme.Surface, Padding = new Padding(4, 8, 4, 8), Name = "Holodex.Rail" };
+        // The rail is the toolbar, the full height of the drawer, as the ArkStation rail (station-shell Rail,
+        // collapsed): the ArkMark on top, the tabs stacked under it (the label in each tooltip, the active tab as the
+        // neutral pill), the profile avatar at its foot, every item centred on the rail's one vertical axis. Icons
+        // are the web console Holodex's lucide set.
+        var rail = new Panel { Dock = DockStyle.Left, Width = 60, BackColor = PhosphorTheme.Surface, Padding = new Padding(4, 0, 4, 4), Name = "Holodex.Rail" };
         _rail = rail;
         rail.Paint += (_, e) =>
         {
@@ -242,7 +242,6 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         _profileBtn = new AvatarButton("Holodex.ProfileButton", "Profile") { Dock = DockStyle.Bottom, Height = 44 };
         _profileBtn.Click += (_, _) => ShowProfile(!_profileOpen);
-        _railTabs = new Panel { Width = 52, Height = 5 * 44, BackColor = Color.Transparent, Name = "Holodex.RailTabs" };
         var tabs = new (string Id, string Label, PhosphorGlyph Glyph)[]
         {
             ("session", "Session", PhosphorGlyph.Chat),
@@ -257,11 +256,11 @@ public sealed class HolodexLiteDrawerForm : Form
             var btn = new RailButton($"Holodex.Tab.{id}", glyph, label) { Dock = DockStyle.Top, Height = 44, Selected = id == _activeTab };
             btn.Click += (_, _) => SwitchTab(capturedId);
             _tabButtons[id] = btn;
-            _railTabs.Controls.Add(btn);
+            rail.Controls.Add(btn);
         }
-        rail.Controls.Add(_railTabs);
+        rail.Controls.Add(WidgetChrome.Spacer(Gutter));
+        rail.Controls.Add(new RailMark("Holodex.RailMark") { Dock = DockStyle.Top, Height = 52 });
         rail.Controls.Add(_profileBtn);
-        rail.Resize += (_, _) => CenterRailTabs();
 
         // 3. Content Host for the 5 tabs
         _contentHost = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.ContentHost" };
@@ -271,42 +270,39 @@ public sealed class HolodexLiteDrawerForm : Form
         BuildGrimXTab();
         BuildModsTab();
 
+        // Docking runs from the last control added: the rail first (the full height), then the gutter beside it, then
+        // the header across the content column, then one gutter under it, then the content fills the rest.
         Controls.Add(_contentHost);
-        Controls.Add(new Panel { Dock = DockStyle.Left, Width = 12, BackColor = Color.Transparent });
-        Controls.Add(rail);
-        Controls.Add(WidgetChrome.Spacer(8));
+        Controls.Add(WidgetChrome.Spacer(Gutter));
         Controls.Add(_profilePanel);
-        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null);
+        var header = WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null, mark: false);
+        header.Height = 48;
+        Controls.Add(new Panel { Dock = DockStyle.Left, Width = Gutter, BackColor = Color.Transparent });
+        Controls.Add(rail);
         WidgetDrag.Enable(this);
         Resize += (_, _) => PlaceProfile();
 
         ShowTokenBar(!hasNebiusKey);
         SwitchTab("session");
         ResumeLayout(false);
-        CenterRailTabs();
     }
 
-    /// <summary>Centres the tab icons in the rail's height (the avatar keeps the foot).</summary>
-    private void CenterRailTabs()
-    {
-        int inner = _rail.ClientSize.Width - _rail.Padding.Horizontal;
-        _railTabs.Width = inner;
-        _railTabs.Location = new Point(_rail.Padding.Left, Math.Max(_rail.Padding.Top, (_rail.ClientSize.Height - _railTabs.Height) / 2));
-    }
+    /// <summary>The one gutter between the rail, the header and the content, and between stacked blocks.</summary>
+    private const int Gutter = 12;
 
     private void BuildSessionTab()
     {
         _sessionPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionPanel" };
 
         // Work orders: always visible, a card per order (its empty state is a card too), like the AInbox stack.
-        _workOrdersList = new ThreadView("Holodex.WorkOrdersBox") { Dock = DockStyle.Top, Height = 60 };
+        _workOrdersList = new ThreadView("Holodex.WorkOrdersBox") { Dock = DockStyle.Top, Height = 60, ReserveScrollbar = false };
         _workOrdersHost = WidgetChrome.Labeled("Work orders", _workOrdersList, 60);
         _workOrdersList.ContentChanged += (_, _) => SizeWorkOrders();
-        var ordersGap = WidgetChrome.Spacer(8);
+        var ordersGap = WidgetChrome.Spacer(Gutter);
 
         // The session: a card per message, in the same card language as Wiz and the AInbox stack.
         // What the session reaches is said by an intro card each time the Hivemind state changes (ShowHivemindState).
-        _sessionThread = new ThreadView("Holodex.SessionChatBox") { Dock = DockStyle.Fill };
+        _sessionThread = new ThreadView("Holodex.SessionChatBox") { Dock = DockStyle.Fill, ReserveScrollbar = false };
 
         // Composer: the message, a bar with + work order, then who it goes to and Send.
         var composer = new ComposerSurface { Dock = DockStyle.Bottom, Name = "Holodex.SessionComposer" };
@@ -443,7 +439,7 @@ public sealed class HolodexLiteDrawerForm : Form
     };
 
     /// <summary>A list of cards that stays at its top, for the tabs that show records rather than a conversation.</summary>
-    private static ThreadView CardList(string name) => new(name) { Dock = DockStyle.Fill, FollowNewest = false };
+    private static ThreadView CardList(string name) => new(name) { Dock = DockStyle.Fill, FollowNewest = false, ReserveScrollbar = false };
 
     private void BuildAInboxTab()
     {
@@ -472,7 +468,7 @@ public sealed class HolodexLiteDrawerForm : Form
         }
 
         _ainboxPanel.Controls.Add(podBox);
-        _ainboxPanel.Controls.Add(WidgetChrome.Spacer(10));
+        _ainboxPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _ainboxPanel.Controls.Add(openFullBtn);
         _contentHost.Controls.Add(_ainboxPanel);
     }
@@ -504,7 +500,7 @@ public sealed class HolodexLiteDrawerForm : Form
         RefreshCodexEntries();
 
         _codexPanel.Controls.Add(_codexList);
-        _codexPanel.Controls.Add(WidgetChrome.Spacer(10));
+        _codexPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _codexPanel.Controls.Add(btnRow);
         _contentHost.Controls.Add(_codexPanel);
     }
@@ -561,7 +557,7 @@ public sealed class HolodexLiteDrawerForm : Form
         RefreshGrimXMacroReadout();
 
         _grimxPanel.Controls.Add(_macroList);
-        _grimxPanel.Controls.Add(WidgetChrome.Spacer(10));
+        _grimxPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _grimxPanel.Controls.Add(wizBtnRow);
         _contentHost.Controls.Add(_grimxPanel);
     }
@@ -667,11 +663,11 @@ public sealed class HolodexLiteDrawerForm : Form
             modsInfoBox.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
 
         _modsPanel.Controls.Add(modsInfoBox);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(10));
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(onboardBtn);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(10));
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(styleLabeled);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(10));
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(dpiLabeled);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
         _modsPanel.Controls.Add(_dpiValueLabel);
@@ -785,7 +781,8 @@ public sealed class HolodexLiteDrawerForm : Form
     /// <summary>Fits the list to two cards, then it scrolls; reruns when its width or content changes.</summary>
     private void SizeWorkOrders()
     {
-        int width = _workOrdersList.CardWidth;
+        // Measured at the full width, as the cards are laid out while two or fewer fit (ReserveScrollbar off).
+        int width = Math.Max(80, _workOrdersList.ClientSize.Width - 2);
         int content = _workOrdersList.ContentHeight(width) + 2;
         int cap = _workOrdersList.Cards.Take(2).Sum(c => c.HeightFor(width) + c.Margin.Vertical) + 2;
         int want = Math.Min(content, cap);

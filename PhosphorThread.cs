@@ -246,9 +246,25 @@ internal sealed class ThreadView : FlowLayoutPanel
     /// <summary>Card width: the client width less a scrollbar's, always reserved so text never rewraps under it.</summary>
     public int CardWidth => Math.Max(80, ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 2);
 
+    /// <summary>
+    /// True (the default) keeps a scrollbar's width free even when nothing scrolls, for threads that size their
+    /// form to the content (HUD, Wiz, Snip). A fixed-height list (Holodex) sets false: its cards span the full
+    /// width and give the scrollbar room only when they overflow.
+    /// </summary>
+    public bool ReserveScrollbar { get; set; } = true;
+
+    private int LayoutWidth()
+    {
+        if (ReserveScrollbar) return CardWidth;
+        int full = Math.Max(80, ClientSize.Width - 2);
+        // A shown scrollbar already narrows the client area; one about to show needs its width kept free.
+        if (VerticalScroll.Visible) return full;
+        return ContentHeight(full) > ClientSize.Height ? CardWidth : full;
+    }
+
     public void Relayout()
     {
-        int w = CardWidth;
+        int w = LayoutWidth();
         SuspendLayout();
         foreach (var card in Cards) card.Size = new Size(w, card.HeightFor(w));
         foreach (var label in Controls.OfType<EyebrowLabel>()) label.Width = w;

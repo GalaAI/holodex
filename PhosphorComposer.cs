@@ -401,6 +401,31 @@ internal sealed class RailButton : Control
 }
 
 /// <summary>
+/// The rail's first item: the ArkMark at 32px, centred on the rail's axis like every item under it (the
+/// station-shell Rail header carries the mark the same way). It names the place, so it is not a button.
+/// </summary>
+internal sealed class RailMark : Control
+{
+    public RailMark(string name)
+    {
+        Name = name;
+        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
+        BackColor = Color.Transparent;
+        TabStop = false;
+        Size = new Size(52, 52);
+        AccessibleName = "ArkStation";
+        AccessibleRole = AccessibleRole.Graphic;
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        float s = PhosphorPaint.Scale(this);
+        float d = 32f * s;
+        PhosphorTheme.DrawArkMark(e.Graphics, new RectangleF((Width - d) / 2f, (Height - d) / 2f, d, d));
+    }
+}
+
+/// <summary>
 /// The profile button: a 32px circle holding the aperture emblem (the brand's profile picture, DESIGN.md), on the
 /// surface fill with a line ring like the Holodex vitals avatar in drawer mode. The ring takes
 /// <see cref="Status"/>, so whether Hivemind is live shows without opening the profile.

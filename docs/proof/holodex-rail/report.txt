@@ -1,0 +1,15 @@
+Holodex rail as the toolbar (item 6, 2026-10-27), live on gala (DISPLAY37, 144 DPI), captured from the running app
+with capwin (DPI-aware CopyFromScreen of the Holodex window), driven only over the pipe (holodex:tab:<id>,
+holodex:profile:open|close). Hivemind signed in for every capture.
+
+  session.png       The rail runs the drawer's full height as one surface with its divider. Top to bottom on the
+                    rail's one vertical axis: the ArkMark globe, then the five tabs stacked from the top (Session the
+                    active neutral pill), then the profile avatar at the foot. The header (ARK // HOLODEX, Holodex,
+                    close) starts at the content column, not the window edge. One 12 px gutter between rail, header
+                    and content. The work order and session cards span the full content width, flush with the
+                    composer (lists stop reserving a scrollbar's width until they overflow).
+  profile-open.png  The profile from the avatar at the foot, beside the rail.
+  ainbox.png, codex.png, grimx.png, mods.png
+                    Each tab fills the content column; lists that overflow (AInbox, GrimX, the Mods spellbook)
+                    take room for their scrollbar, the rest span the full width (Codex's empty card).
+Not exercised: hover and keyboard focus on the rail (no input on gala).
