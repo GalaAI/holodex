@@ -8,7 +8,9 @@ namespace Omniwand;
 
 /// <summary>
 /// Summonable Phosphor Shell HUD (Alt+Space, Actions Ring "Summon HUD", pipe hud:summon). One composer: ask about
-/// what the wand points at, with the screen around the tip attached by a toggle. The header badge is the wand
+/// what the wand points at, with the screen around the tip attached by a toggle. The question goes to Gala in the
+/// operator's Hivemind when Gala can take the turn (a Hivemind Session, opened once and continued, with Open in
+/// Hivemind beside it); otherwise Nemotron answers directly and the answer card says why Gala did not. The header badge is the wand
 /// status (Online, Ready, No key) beside the icons that open Holodex, Lasso, Wiz and AInbox; the model chip says
 /// which model answers. Under the answer: one telemetry line (gateway, Input Spine 8842, the connected mouse) and
 /// the wand shortcuts behind a collapsed SHORTCUTS row (the answer area is not a help panel, operator 2026-10-18).
@@ -39,6 +41,13 @@ public sealed class OmniwandHudForm : Form
     private readonly ModelChip _modelChip;
     private readonly DataLabel _statusLine;
     private readonly PhosphorButton _askBtn;
+    private readonly IconToolButton _openInHivemindBtn;
+    /// <summary>The Hivemind Session Gala answers in: opened by the first ask, continued by the rest.</summary>
+    private string? _galaSessionId;
+    /// <summary>Whether Gala can take a turn, as the telemetry line's first LED says it.</summary>
+    private (Color Led, string Text) _galaLed = (PhosphorTheme.Ghost, "GALA");
+    private static readonly TimeSpan GalaReplyTimeout = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan GalaPollInterval = TimeSpan.FromSeconds(2);
     private Point _summonCursorPos;
     private bool _working;
     private bool _gatewayOnline;
@@ -96,6 +105,10 @@ public sealed class OmniwandHudForm : Form
         AddLauncher("Hud.SnipButton", PhosphorGlyph.Lasso, "Lasso", openSnipLasso);
         AddLauncher("Hud.WizButton", PhosphorGlyph.Wiz, "Wiz", openWizCrafting);
         AddLauncher("Hud.AInboxButton", PhosphorGlyph.AInbox, "AInbox", openAInboxIntake);
+        // Shown once Gala has a Session to open.
+        _openInHivemindBtn = new IconToolButton("Hud.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind") { Margin = Padding.Empty, Visible = false };
+        _openInHivemindBtn.Click += (_, _) => HivemindClient.OpenWebSessions();
+        headerTools.Controls.Add(_openInHivemindBtn);
 
         // Composer: the question, and a bar with the screen toggle.
         _composer = new ComposerSurface { Dock = DockStyle.Top, Name = "Hud.Composer" };
@@ -221,7 +234,7 @@ public sealed class OmniwandHudForm : Form
     {
         if (_working) return;
         string first = _modelChip.Label.Split(' ')[0];
-        _askBtn.Text = first.Length > 0 ? $"Ask {first}" : "Ask";
+        _askBtn.Text = _galaLed.Text == "GALA LIVE" ? "Ask Gala" : first.Length > 0 ? $"Ask {first}" : "Ask";
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -261,6 +274,10 @@ public sealed class OmniwandHudForm : Form
         }
         await _modelChip.RefreshAsync();
         ShowKeyState();
+        // Who answers the next ask: Gala when Hivemind has it ready, said by the LED and the button.
+        if (!_working) await GalaUnavailableReasonAsync();
+        SyncTelemetry();
+        SyncAskLabel();
     }
 
     /// <summary>The mouse scan shells out to PowerShell for a second or two, so it runs off the UI thread, once.</summary>
@@ -302,7 +319,7 @@ public sealed class OmniwandHudForm : Form
         var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
             : _mouseModel.Length == 0 ? (PhosphorTheme.Ember, "NO MOUSE")
             : (PhosphorTheme.Moss, ShortMouse(_mouseModel));
-        _telemetryLine.Set(gateway, spine, mouse);
+        _telemetryLine.Set(_galaLed, gateway, spine, mouse);
     }
 
     /// <summary>"Logitech G PRO X Superlight 2 (Lightspeed)" as "G PRO X SUPERLIGHT 2": the LED row has one line.</summary>
@@ -351,36 +368,41 @@ public sealed class OmniwandHudForm : Form
         _working = true;
         _promptBox.Enabled = false;
         _askBtn.Enabled = false;
-        string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
         _answers.Add(ThreadTone.You, snapshot != null ? "YOU // WITH THE SCREEN" : "YOU", prompt, snapshot != null ? PhosphorGlyph.Screen : null);
         // The pending card says who is answering, so the status line is quiet until the answer lands.
-        var pending = _answers.AddPending($"ASKING // {answeredBy}");
         SetStatus("", PhosphorTheme.Ghost);
         FitToAnswer();
         Invalidate();
         _setThinkingState(true);
 
-        bool ok = false;
-        string output;
+        (bool Ok, string Text, string Kicker) answer;
         try
         {
-            (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot);
+            // Gala in the operator's Hivemind answers when it can take the turn; otherwise Nemotron answers directly
+            // and its card says why Gala did not. A Gala card is only ever Gala's own reply.
+            string? galaReason = await GalaUnavailableReasonAsync();
+            SyncTelemetry();
+            answer = galaReason == null ? await AskGalaAsync(prompt, snapshot) : (false, "", galaReason);
+            if (!answer.Ok && answer.Text.Length == 0)
+                answer = await AskNemotronAsync(prompt, snapshot, because: answer.Kicker);
         }
         catch (Exception ex)
         {
-            output = ex.Message;
+            answer = (false, ex.Message, "NOT ANSWERED");
+            _answers.Add(ThreadTone.Fail, answer.Kicker, answer.Text);
         }
         try
         {
-            pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? $"ANSWERED BY {answeredBy}" : $"NOT ANSWERED // {answeredBy}", output);
             _promptBox.Clear();
             SetStatus("ENTER ASKS", PhosphorTheme.Ghost);
+            SyncTelemetry();
+            SyncAskLabel();
             if (!Visible)
             {
                 // Esc hid the HUD mid-ask: the answer still arrives, so say where it is.
-                string first = output.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
-                PhosphorToast.Show(ok ? $"Answered by {answeredBy}" : "Not answered", first.Length > 140 ? first[..140] + "..." : first,
-                    "WAND // ALT+SPACE OPENS IT", 4200, ok ? ToastTone.Success : ToastTone.Warning);
+                string first = answer.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
+                PhosphorToast.Show(answer.Ok ? TitleCase(answer.Kicker) : "Not answered", first.Length > 140 ? first[..140] + "..." : first,
+                    "WAND // ALT+SPACE OPENS IT", 4200, answer.Ok ? ToastTone.Success : ToastTone.Warning);
             }
             FitToAnswer();
         }
@@ -393,6 +415,102 @@ public sealed class OmniwandHudForm : Form
             _promptBox.Focus();
             Invalidate();
         }
+    }
+
+    /// <summary>"GALA // QWEN3-8B // HIVEMIND" as a toast title: "Gala // Qwen3-8b // Hivemind".</summary>
+    private static string TitleCase(string kicker) =>
+        System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(kicker.ToLowerInvariant());
+
+    /// <summary>
+    /// Why Gala cannot take this turn, in the words its LED and the answer card carry, or null when it can: Hivemind
+    /// is signed out or did not answer, it lists no Gala, or Gala is registered but not ready for a turn.
+    /// </summary>
+    private async Task<string?> GalaUnavailableReasonAsync()
+    {
+        (Color Led, string Text)? state = null;
+        if (!HivemindClient.HasSavedSignIn) state = (PhosphorTheme.Ghost, "HIVEMIND SIGNED OUT");
+        else if (await _ark.Hivemind.ListAgentsAsync() is not { } agents) state = (PhosphorTheme.Rust, "HIVEMIND UNREACHABLE");
+        else if (agents.FirstOrDefault(a => a.Id == "gala") is not { } gala) state = (PhosphorTheme.Ember, "NO GALA IN HIVEMIND");
+        else if (!gala.DispatchReady) state = (PhosphorTheme.Ember, "GALA NOT READY");
+        _galaLed = state ?? (PhosphorTheme.Moss, "GALA LIVE");
+        return state?.Text;
+    }
+
+    /// <summary>
+    /// Asks Gala in the operator's Hivemind (ask_agent): the first ask opens a Session with Gala, later ones continue
+    /// it, and Hivemind runs Gala's turn with its receipt. An attached screen is read first by the vision model and its
+    /// words go with the question, so Gala answers about the screen without receiving pixels. The reply card names the
+    /// model Gala's receipt reports. When Gala does not answer, the result carries the reason and no text, so the
+    /// caller answers on Nemotron instead.
+    /// </summary>
+    private async Task<(bool Ok, string Text, string Kicker)> AskGalaAsync(string prompt, string? snapshot)
+    {
+        string content = prompt;
+        if (snapshot != null)
+        {
+            string readerId = AnsweringModel(true);
+            string reader = ModelChip.ShortName(readerId).ToUpperInvariant();
+            var reading = _answers.AddPending($"READING THE SCREEN // {reader}");
+            var (seen, description) = await _ark.AskArkGatewayAsync(
+                $"Describe, in a few plain sentences, what on this screen bears on the question below. Do not answer it.\n\nQuestion: {prompt}", snapshot);
+            reading.Resolve(seen ? ThreadTone.Action : ThreadTone.Fail, seen ? $"SCREEN READ BY {reader}" : $"SCREEN NOT READ // {reader}", description);
+            if (seen) content = $"{prompt}\n\nWhat is on my screen, as {ModelChip.ShortName(readerId)} read it:\n{description}";
+        }
+
+        var pending = _answers.AddPending("ASKING GALA // HIVEMIND");
+        var ask = await _ark.Hivemind.AskAgentAsync(_galaSessionId, "gala", content, Guid.NewGuid(),
+            title: $"Holodex: {(prompt.Length > 60 ? prompt[..60] : prompt)}");
+        if (ask == null)
+        {
+            pending.Resolve(ThreadTone.Fail, "GALA // NOT ASKED // HIVEMIND", _ark.Hivemind.LastError);
+            return (false, "", "GALA NOT ASKED");
+        }
+        _galaSessionId = ask.SessionId;
+        _openInHivemindBtn.Visible = true;
+
+        // Hivemind runs the turn on its own schedule; the Session is read until Gala's reply to this ask lands.
+        var deadline = DateTime.UtcNow + GalaReplyTimeout;
+        string failure = "";
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(GalaPollInterval);
+            var session = await _ark.Hivemind.ReadSessionAsync(ask.SessionId);
+            if (session == null) continue;
+            int asked = session.Messages.ToList().FindIndex(m => m.Id == ask.MessageId);
+            var reply = asked < 0 ? null : session.Messages.Skip(asked + 1).FirstOrDefault(m => m.Role == "agent" && m.AgentId == "gala");
+            if (reply != null)
+            {
+                string model = reply.Model.Length > 0 ? ModelChip.ShortName(reply.Model).ToUpperInvariant() : "MODEL NOT REPORTED";
+                string kicker = $"GALA // {model} // HIVEMIND";
+                pending.Resolve(ThreadTone.Agent, kicker, reply.Content);
+                return (true, reply.Content, kicker);
+            }
+            if (session.Summary.Status is "failed" or "completed" || (session.Summary.Status == "paused" && session.Summary.Error.Length > 0))
+            {
+                failure = session.Summary.Error.Length > 0 ? session.Summary.Error : $"The Session is {session.Summary.Status} with no reply from Gala.";
+                break;
+            }
+        }
+        if (failure.Length == 0) failure = $"Gala did not reply within {GalaReplyTimeout.TotalMinutes:0} minutes. The Session stays open in Hivemind.";
+        pending.Resolve(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", failure);
+        return (false, "", "GALA DID NOT ANSWER");
+    }
+
+    /// <summary>
+    /// Nemotron through Token Factory (or the Ark gateway), as the HUD always asked. <paramref name="because"/> is why
+    /// Gala is not answering, and the card's kicker carries it beside the model that did.
+    /// </summary>
+    private async Task<(bool Ok, string Text, string Kicker)> AskNemotronAsync(string prompt, string? snapshot, string because)
+    {
+        string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
+        var pending = _answers.AddPending($"ASKING {answeredBy} // {because}");
+        bool ok = false;
+        string output;
+        try { (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot); }
+        catch (Exception ex) { output = ex.Message; }
+        string kicker = ok ? $"ANSWERED BY {answeredBy} // {because}" : $"NOT ANSWERED // {answeredBy}";
+        pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, kicker, output);
+        return (ok, output, kicker);
     }
 
     /// <summary>
@@ -416,7 +534,8 @@ public sealed class OmniwandHudForm : Form
 
     /// <summary>
     /// As-built render states (SurfaceCapture): "asking", "answered" and "failed" show a question with the screen and
-    /// the card a live ask holds at that moment (pending, answer, failure); "reset" clears them.
+    /// the card a live ask holds at that moment (pending, answer, failure) on the path a live ask takes today, Nemotron
+    /// with Gala not ready; "reset" clears them. No state draws a Gala reply: only Gala's own reply is ever shown as one.
     /// </summary>
     internal void PreviewState(string state)
     {
@@ -426,9 +545,9 @@ public sealed class OmniwandHudForm : Form
         if (state is "asking" or "answered" or "failed")
             _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
         if (state == "asking")
-            _answers.AddPending($"ASKING // {model}");
+            _answers.AddPending($"ASKING {model} // GALA NOT READY");
         else if (state == "answered")
-            _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model}",
+            _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA NOT READY",
                 "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
         else if (state == "failed")
             _answers.Add(ThreadTone.Fail, $"NOT ANSWERED // {model}", "Vision request to nvidia/Nemotron-3.5-Super-VL returned no answer. Check the Nebius key and try again.");

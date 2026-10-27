@@ -17,9 +17,6 @@ namespace Omniwand;
 /// </summary>
 public sealed partial class HolodexLiteDrawerForm
 {
-    /// <summary>The Hivemind web app's Sessions view (it addresses views, not single rooms).</summary>
-    private static readonly Uri HivemindSessionsView = new("https://hivemind.arkomnitek.com/?view=sessions");
-
     /// <summary>How many Sessions the chip offers, newest first; the rest stay one click away in Hivemind.</summary>
     private const int ChipSessionCount = 6;
 
@@ -41,7 +38,7 @@ public sealed partial class HolodexLiteDrawerForm
         sessionPanel.Controls.Add(_hivemindThread);
 
         _openInHivemindBtn = new IconToolButton("Holodex.OpenInHivemindBtn", PhosphorGlyph.ExternalLink, "Open in Hivemind") { Dock = DockStyle.Right, Visible = false };
-        _openInHivemindBtn.Click += (_, _) => OpenHivemindWebApp();
+        _openInHivemindBtn.Click += (_, _) => HivemindClient.OpenWebSessions();
         composerBar.Controls.Add(_openInHivemindBtn);
 
         _sessionFollow.Tick += async (_, _) =>
@@ -227,12 +224,6 @@ public sealed partial class HolodexLiteDrawerForm
     }
 
     /// <summary>Hands over to the Hivemind web app's Sessions view in the default browser.</summary>
-    private static void OpenHivemindWebApp()
-    {
-        try { Process.Start(new ProcessStartInfo(HivemindSessionsView.ToString()) { UseShellExecute = true }); }
-        catch (Exception ex) { PhosphorToast.Show("Hivemind did not open", ex.Message, "HOLODEX // HIVEMIND", 3600, ToastTone.Warning); }
-    }
-
     private static string Clip(string text, int max) => text.Length <= max ? text : text[..(max - 1)].TrimEnd() + "…";
 
     // ---- Pipe (holodex:sessions, holodex:session:open:, holodex:session:reply:, holodex:session:state) ----------

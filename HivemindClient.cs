@@ -82,6 +82,9 @@ public sealed record HivemindSessionSummary(string Id, string Title, string Stat
 /// </summary>
 public sealed record HivemindSessionMessage(string Id, string Role, string AgentId, string Model, string ClientName, string Content, DateTimeOffset CreatedAt);
 
+/// <summary>An <c>ask_agent</c> receipt: the Session asked in, the owner message it holds, and the room's status then.</summary>
+public sealed record HivemindAsk(string SessionId, string MessageId, string Status);
+
 /// <summary>A Session with its transcript, oldest message first.</summary>
 public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyList<HivemindSessionMessage> Messages);
 
@@ -98,6 +101,16 @@ public sealed class HivemindClient : IAsyncDisposable
     public static readonly Uri Endpoint = new("https://hivemind.arkomnitek.com/mcp");
     public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
     public const string CredentialTarget = "Omniwand:HivemindToken";
+
+    /// <summary>The Hivemind web app's Sessions view (it addresses views, not single rooms).</summary>
+    public static readonly Uri WebSessionsView = new("https://hivemind.arkomnitek.com/?view=sessions");
+
+    /// <summary>"Open in Hivemind": hands over to the web app's Sessions, where every Holodex Session lives too.</summary>
+    public static void OpenWebSessions()
+    {
+        try { Process.Start(new ProcessStartInfo(WebSessionsView.ToString()) { UseShellExecute = true }); }
+        catch (Exception ex) { PhosphorToast.Show("Hivemind did not open", ex.Message, "HOLODEX // HIVEMIND", 3600, ToastTone.Warning); }
+    }
 
     /// <summary>
     /// Read the roster, mission status and saved Sessions (runtime.read); dispatch missions and post into Sessions
@@ -226,6 +239,27 @@ public sealed class HivemindClient : IAsyncDisposable
             ["content"] = content
         }, ct);
         return data != null;
+    }
+
+    /// <summary>
+    /// Asks <paramref name="agentId"/> in a Hivemind Session (<c>ask_agent</c>, runtime.execute): the owner's message,
+    /// addressed to that agent, which takes the next turn with its receipt; the Session pauses after the reply. Without
+    /// <paramref name="sessionId"/> Hivemind opens a Session with that agent; with one it continues it. The reply is
+    /// read with <see cref="ReadSessionAsync"/>. The submission id makes a retry return the first ask.
+    /// </summary>
+    public async Task<HivemindAsk?> AskAgentAsync(string? sessionId, string agentId, string content, Guid submissionId, string? title = null, CancellationToken ct = default)
+    {
+        var args = new Dictionary<string, object?>
+        {
+            ["submissionId"] = submissionId.ToString(),
+            ["content"] = content,
+            ["agentId"] = agentId
+        };
+        if (!string.IsNullOrEmpty(sessionId)) args["sessionId"] = sessionId;
+        if (!string.IsNullOrEmpty(title)) args["title"] = title;
+        var data = await CallAsync("ask_agent", args, ct);
+        if (data is not JsonElement root || Str(root, "sessionId").Length == 0) return null;
+        return new HivemindAsk(Str(root, "sessionId"), Str(root, "messageId"), Str(root, "status"));
     }
 
     private static HivemindSessionSummary ReadSessionSummary(JsonElement s)
