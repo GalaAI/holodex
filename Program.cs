@@ -181,7 +181,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly CriticallyDampedSpring _cursorX = new(0, stiffness: 900);
     private readonly CriticallyDampedSpring _cursorY = new(0, stiffness: 900);
     private readonly CriticallyDampedSpring _scale = new(1.0, stiffness: 650);
-    private readonly CriticallyDampedSpring _roleMorph = new(0.0, stiffness: 580);
 
     // Kinematic trailer state for poll-rate-independent, spinout-free orientation
     private double _trailX;
@@ -204,6 +203,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private double _rightDownStartSec = -1;
     private double _middleMouseDownStartSec = -1;
     private int _rolePollCounter;
+    private volatile int _forcedRole; // a WindowsCursorRole set over the pipe (cursor:role:), 0 = detect
     private float _spinAngleDeg;
 
     public OmniwandAppContext()
@@ -785,6 +785,25 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 catch (Exception ex) { result = $"error:render:{ex.Message}"; }
             }, null);
             return result;
+        }
+        if (cmd.StartsWith("cursor:role:", StringComparison.OrdinalIgnoreCase))
+        {
+            string arg = cmd["cursor:role:".Length..].Trim();
+            if (arg.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            {
+                _forcedRole = 0;
+                return "ok:cursor:role:auto";
+            }
+            if (!Enum.TryParse<WindowsCursorRole>(arg, true, out var forced)) return "error:cursor:role:invalid";
+            _forcedRole = (int)forced;
+            return $"ok:cursor:role:{forced}";
+        }
+        if (cmd.StartsWith("cursor:film:", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] parts = cmd["cursor:film:".Length..].Split('|', 2);
+            double seconds = parts.Length > 1 && double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s) ? s : 10;
+            CursorFilm.Begin(parts[0].Trim(), seconds);
+            return $"ok:cursor:film:{seconds}s:style={MouseHardwareAndWandEngine.ActiveCursorStyle}:morph={ArkApertureMorphEngine.ActiveMorphMode}";
         }
         if (cmd.StartsWith("tray:", StringComparison.OrdinalIgnoreCase))
         {
@@ -1380,8 +1399,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 // Thinking reaches the morph separately (coral globe) and switches rotation to True path below.
                 // Forcing AppStarting here tripped the role rotation lock, so Wiz never got True path.
                 var detectedRole = DetectContextualCursorRole(cursorPt);
-                _currentRole = detectedRole;
-                _roleMorph.Target = detectedRole == WindowsCursorRole.Arrow ? 0.0 : 1.0;
+                if (CursorFilm.Active) CursorFilm.Detection = detectedRole.ToString();
+                _currentRole = _forcedRole != 0 ? (WindowsCursorRole)_forcedRole : detectedRole;
             }
 
             // Check hardware / mouse triggers for the Spell Orb (F15 = 0x7E or Middle Mouse Hold > 180ms)
@@ -1471,7 +1490,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
             _cursorX.Step(dtSec);
             _cursorY.Step(dtSec);
-            _roleMorph.Step(dtSec);
 
             double tipX = _cursorX.Current;
             double tipY = _cursorY.Current;
@@ -1486,9 +1504,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
             double dy = tipY - _trailY;
             double dist = Math.Sqrt(dx * dx + dy * dy);
 
-            // Lock rotation automatically on non-Arrow / non-Hand roles so IBeam, Crosshair, and Resize never tilt.
-            // Keep operator cursor on SubtleBank by default, and switch to TruePathTrailer when Wiz / AI is active (_isAiThinking).
-            bool lockRoleRotation = _currentRole != WindowsCursorRole.Arrow && _currentRole != WindowsCursorRole.Hand;
+            // Upright roles (IBeam, Crosshair, Resize...) hold the travel direction; ArkApertureMorphEngine.Banks owns
+            // which roles tilt, so the direction and the drawn tilt agree. SubtleBank by default, TruePathTrailer
+            // while Wiz / AI is active (_isAiThinking).
+            bool lockRoleRotation = !ArkApertureMorphEngine.Banks(_currentRole);
             RotationMode activeRotation = _isAiThinking ? RotationMode.TruePathTrailer : _rotationMode;
 
             if (!lockRoleRotation && activeRotation == RotationMode.TruePathTrailer)
@@ -1530,9 +1549,16 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _trailX = tipX;
                 _trailY = tipY;
             }
+            else if (lockRoleRotation)
+            {
+                // Hold the direction: the morph engine eases the drawn tilt to zero (MorphState.BankWeight), and
+                // easing the angle here as well would double the rate and drop the tilt in one frame.
+                _trailX = tipX;
+                _trailY = tipY;
+            }
             else
             {
-                double lockedAngle = lockRoleRotation ? 0.0 : -22.5;
+                const double lockedAngle = -22.5;
                 double lockedRad = (lockedAngle - 90.0) * (Math.PI / 180.0);
                 _targetDirX = Math.Cos(lockedRad);
                 _targetDirY = Math.Sin(lockedRad);
@@ -1587,7 +1613,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 (float)(_scale.Current * _baseScaleMultiplier),
                 _isAiThinking,
                 _currentRole,
-                (float)_roleMorph.Current,
                 _spinAngleDeg,
                 nowSec);
         }
@@ -2025,7 +2050,6 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
         float scaleMultiplier,
         bool isAiThinking,
         WindowsCursorRole role,
-        float roleMorph,
         float spinAngleDeg,
         double loopNowSec)
     {
@@ -2057,6 +2081,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 
         if (!posChanged && !shapeChanged)
         {
+            if (CursorFilm.Active) CursorFilm.Record(loopNowSec, role, angleDeg, false, _dibWrapper);
             return;
         }
 
@@ -2142,7 +2167,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                                 MouseHardwareAndWandEngine.ActiveCursorStyle,
                                 cx,
                                 cy,
-                                angleDeg,
+                                ArkApertureMorphEngine.Banks(role) ? angleDeg : 0f,
                                 _cachedDpiScale * scaleMultiplier,
                                 isAiThinking,
                                 role,
@@ -2152,7 +2177,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                         {
                             var cursorState = g.Save();
                             g.TranslateTransform(cx, cy);
-                            g.RotateTransform(angleDeg);
+                            if (ArkApertureMorphEngine.Banks(role)) g.RotateTransform(angleDeg);
                             float handScale = role == WindowsCursorRole.Hand ? finalScale * 1.06f : finalScale;
                             g.ScaleTransform(handScale, handScale);
                             g.TranslateTransform(-25.45f, -4.35f);
@@ -2203,6 +2228,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 
         _lastPixelX = targetLeft;
         _lastPixelY = targetTop;
+        if (CursorFilm.Active) CursorFilm.Record(loopNowSec, role, angleDeg, shapeChanged, _dibWrapper);
     }
 
     private static float GetDpiScaleAtPoint(int x, int y)

@@ -1,0 +1,44 @@
+Live Omniwand on gala (144 DPI), ArkAperture style, AutoContextual morph. Build 3b2503e + CursorFilm logging.
+frames.tsv: forced role sequence over the pipe (cursor:role). auto/frames.tsv: 25 s of normal use, roles detected from the real cursor.
+f*.png: the overlay bitmap as drawn (centre 200x200), at most one per 1/60 s.
+
+cursor-before/frames.tsv: 664 loop frames, 664 redraws
+  largest one-frame change in drawn tilt: 7.8 deg
+        IBeam -> Wait        tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled not within the hold
+         Wait -> Crosshair   tilt by frame [-0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+    Crosshair -> UpArrow     tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+      UpArrow -> SizeNWSE    tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+     SizeNWSE -> SizeNESW    tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+     SizeNESW -> SizeWE      tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+       SizeWE -> SizeNS      tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+       SizeNS -> SizeAll     tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+      SizeAll -> No          tilt by frame [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  settled not within the hold
+           No -> Hand        tilt by frame [0.0, -7.2, -12.0, -15.3, -17.5, -18.8, -20.0]  settled not within the hold
+         Hand -> AppStarting tilt by frame [-22.5, -15.8, -11.0, -7.6, -5.2, -3.8, -2.6]  settled not within the hold
+  AppStarting -> Help        tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled not within the hold
+         Help -> Arrow       tilt by frame [-0.0, -7.8, -12.5, -14.9, -17.5, -19.1, -20.8]  settled not within the hold
+
+cursor-before/auto/frames.tsv: 1081 loop frames, 1080 redraws
+  largest one-frame change in drawn tilt: 40.8 deg
+        IBeam -> Arrow       tilt by frame [0.0, -1.9, -5.3, -8.6, -11.6, -13.2, -15.0]  settled 13869 ms
+        Arrow -> Hand        tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.5]  settled not within the hold
+         Hand -> Arrow       tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.5]  settled 8654 ms
+        Arrow -> IBeam       tilt by frame [-22.5, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled not within the hold
+        IBeam -> Arrow       tilt by frame [-0.0, -2.3, -9.5, -17.2, -25.4, -32.6, -37.9]  settled 4186 ms
+        Arrow -> Hand        tilt by frame [-25.4, -32.6, -37.9, -37.9, -36.9, -35.0, -33.6]  settled not within the hold
+         Hand -> Arrow       tilt by frame [-22.7, -23.0, -23.6, -24.1, -25.6, -27.0, -28.6]  settled 3770 ms
+        Arrow -> IBeam       tilt by frame [-40.8, -0.0, -0.0, -0.0, -0.0, -7.3, -11.7]  settled not within the hold
+        IBeam -> Arrow       tilt by frame [-0.0, -7.3, -11.7, -15.8, -17.9, -20.3, -21.5]  settled 3502 ms
+        Arrow -> IBeam       tilt by frame [2.7, 0.0, 0.0, 0.0, 0.0, -0.5, -2.0]  settled not within the hold
+        IBeam -> Hand        tilt by frame [0.0, -0.5, -2.0, -4.2, -6.3, -0.0, -0.0]  settled not within the hold
+         Hand -> IBeam       tilt by frame [-6.3, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled not within the hold
+        IBeam -> Arrow       tilt by frame [-0.0, -2.2, -4.9, -8.9, -12.4, -15.2, -17.1]  settled 2750 ms
+        Arrow -> IBeam       tilt by frame [-19.5, -0.0, -0.0, -0.0, -0.0, -5.1, -9.1]  settled not within the hold
+        IBeam -> Hand        tilt by frame [-0.0, -5.1, -9.1, -11.6, -14.7, -17.0, -18.5]  settled not within the hold
+         Hand -> IBeam       tilt by frame [-22.5, -0.0, -0.0, -0.0, -0.0, -1.0, -0.5]  settled not within the hold
+        IBeam -> Hand        tilt by frame [-0.0, -1.0, -0.5, 0.7, 2.1, 2.8, 3.6]  settled not within the hold
+         Hand -> Arrow       tilt by frame [2.1, 2.8, 3.6, 4.2, 4.6, 4.8, 5.0]  settled 552 ms
+        Arrow -> Hand        tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.4]  settled not within the hold
+         Hand -> Arrow       tilt by frame [-24.1, -23.9, -23.7, -23.5, -23.3, -23.2, -23.1]  settled not within the hold
+        Arrow -> Hand        tilt by frame [-22.5, -22.2, -21.9, -21.5, -20.9, -20.4, -20.0]  settled not within the hold
+

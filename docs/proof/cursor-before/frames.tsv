@@ -1,0 +1,665 @@
+t_ms	role	detection	angle	redrew	frame	engine
+0.0	IBeam	Arrow	-15.7	1	f0000.png	target=IBeam top=0.0,0.9,0,0.72 left=-6.0,13.9,37,0.72 caret=0.28 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=6AF0C7 bank=0.00 anim=1
+19.1	IBeam	Arrow	-10.3	1	f0001.png	target=IBeam top=0.0,-1.5,0,0.49 left=-4.1,11.6,67,0.49 caret=0.51 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=6EE4C3 bank=0.00 anim=1
+36.8	IBeam	Arrow	-7.0	1	f0002.png	target=IBeam top=0.0,-3.0,0,0.34 left=-2.9,10.1,87,0.34 caret=0.66 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=71DCC0 bank=0.00 anim=1
+52.5	IBeam	Arrow	-5.0	1		target=IBeam top=0.0,-3.9,0,0.25 left=-2.1,9.1,99,0.25 caret=0.75 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=72D6BE bank=0.00 anim=1
+69.0	IBeam	Arrow	-3.4	1	f0003.png	target=IBeam top=0.0,-4.6,0,0.18 left=-1.5,8.4,108,0.18 caret=0.82 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=74D2BC bank=0.00 anim=1
+86.8	IBeam	Arrow	-2.3	1	f0004.png	target=IBeam top=0.0,-5.2,0,0.13 left=-1.1,7.8,115,0.13 caret=0.87 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=75CEBA bank=0.00 anim=1
+101.0	IBeam	Arrow	-1.7	1		target=IBeam top=0.0,-5.5,0,0.10 left=-0.8,7.5,119,0.10 caret=0.90 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=76CCBA bank=0.00 anim=1
+118.5	IBeam	Arrow	-1.2	1	f0005.png	target=IBeam top=0.0,-5.8,0,0.07 left=-0.6,7.2,123,0.07 caret=0.93 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=76CAB9 bank=0.00 anim=1
+135.4	IBeam	Arrow	-0.8	1	f0006.png	target=IBeam top=0.0,-6.0,0,0.05 left=-0.4,7.0,126,0.05 caret=0.95 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=77C8B8 bank=0.00 anim=1
+153.1	IBeam	Arrow	-0.5	1	f0007.png	target=IBeam top=0.0,-6.2,0,0.03 left=-0.3,6.8,128,0.03 caret=0.97 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=77C7B8 bank=0.00 anim=1
+171.3	IBeam	Arrow	-0.4	1	f0008.png	target=IBeam top=0.0,-6.3,0,0.02 left=-0.2,6.7,129,0.02 caret=0.98 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C6B7 bank=0.00 anim=1
+188.6	IBeam	Arrow	-0.2	1	f0009.png	target=IBeam top=0.0,-6.3,0,0.02 left=-0.1,6.7,130,0.02 caret=0.98 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C5B7 bank=0.00 anim=1
+202.1	IBeam	Arrow	-0.2	1		target=IBeam top=0.0,-6.4,0,0.01 left=-0.1,6.6,130,0.01 caret=0.99 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C5B7 bank=0.00 anim=1
+220.6	IBeam	Arrow	-0.1	1	f0010.png	target=IBeam top=0.0,-6.4,0,0.01 left=-0.1,6.6,131,0.01 caret=0.99 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C5B7 bank=0.00 anim=1
+238.5	IBeam	Arrow	-0.1	1	f0011.png	target=IBeam top=0.0,-6.4,0,0.01 left=-0.1,6.6,131,0.01 caret=0.99 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+255.3	IBeam	Arrow	-0.1	1	f0012.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,131,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+268.3	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+285.7	IBeam	Arrow	-0.0	1	f0013.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+302.8	IBeam	Arrow	-0.0	1	f0014.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+320.3	IBeam	Arrow	-0.0	1	f0015.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+337.4	IBeam	Arrow	-0.0	1	f0016.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+353.4	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+369.6	IBeam	Arrow	-0.0	1	f0017.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+386.9	IBeam	Arrow	-0.0	1	f0018.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+403.8	IBeam	Arrow	-0.0	1	f0019.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+420.7	IBeam	Arrow	-0.0	1	f0020.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+434.0	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+451.6	IBeam	Arrow	-0.0	1	f0021.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+471.3	IBeam	Arrow	-0.0	1	f0022.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+490.9	IBeam	Arrow	-0.0	1	f0023.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+500.8	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+522.0	IBeam	Arrow	-0.0	1	f0024.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+534.5	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+553.0	IBeam	Arrow	-0.0	1	f0025.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+570.0	IBeam	Arrow	-0.0	1	f0026.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+593.7	IBeam	Arrow	-0.0	1	f0027.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+601.0	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+620.2	IBeam	Arrow	-0.0	1	f0028.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+637.3	IBeam	Arrow	-0.0	1	f0029.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+655.5	IBeam	Arrow	-0.0	1	f0030.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+668.9	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+690.4	IBeam	Arrow	-0.0	1	f0031.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+706.0	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+718.0	IBeam	Arrow	-0.0	1	f0032.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+735.6	IBeam	Arrow	-0.0	1	f0033.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+754.3	IBeam	Arrow	-0.0	1	f0034.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+769.8	IBeam	Arrow	-0.0	1		target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+787.4	IBeam	Arrow	-0.0	1	f0035.png	target=IBeam top=0.0,-6.5,0,0.00 left=-0.0,6.5,132,0.00 caret=1.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=78C4B7 bank=0.00 anim=1
+801.3	Wait	Arrow	-0.0	1		target=Wait top=0.0,-7.3,0,0.24 left=-2.0,6.1,100,0.24 caret=0.76 resize=0.00@0 four=0.00 spin=0.24 ring=0.00 slash=0.00 q=0.00 globe=8CB8A5 bank=0.00 anim=1
+818.8	Wait	Arrow	-0.0	1	f0036.png	target=Wait top=0.0,-7.9,0,0.47 left=-3.9,5.7,70,0.47 caret=0.53 resize=0.00@0 four=0.00 spin=0.47 ring=0.00 slash=0.00 q=0.00 globe=9FAC94 bank=0.00 anim=1
+839.2	Wait	Arrow	-0.0	1	f0037.png	target=Wait top=0.0,-8.5,0,0.65 left=-5.4,5.4,47,0.65 caret=0.35 resize=0.00@0 four=0.00 spin=0.65 ring=0.00 slash=0.00 q=0.00 globe=B0A286 bank=0.00 anim=1
+857.1	Wait	Arrow	-0.0	1	f0038.png	target=Wait top=0.0,-8.8,0,0.75 left=-6.3,5.2,33,0.75 caret=0.25 resize=0.00@0 four=0.00 spin=0.75 ring=0.00 slash=0.00 q=0.00 globe=BA9C7D bank=0.00 anim=1
+873.3	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.0,0,0.82 left=-6.8,5.1,24,0.82 caret=0.18 resize=0.00@0 four=0.00 spin=0.82 ring=0.00 slash=0.00 q=0.00 globe=C19877 bank=0.00 anim=1
+890.8	Wait	Arrow	-0.0	1	f0039.png	target=Wait top=0.0,-9.2,0,0.87 left=-7.3,5.0,17,0.87 caret=0.13 resize=0.00@0 four=0.00 spin=0.87 ring=0.00 slash=0.00 q=0.00 globe=C79472 bank=0.00 anim=1
+903.1	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.3,0,0.90 left=-7.5,5.0,13,0.90 caret=0.10 resize=0.00@0 four=0.00 spin=0.90 ring=0.00 slash=0.00 q=0.00 globe=CA926F bank=0.00 anim=1
+922.2	Wait	Arrow	-0.0	1	f0040.png	target=Wait top=0.0,-9.4,0,0.93 left=-7.8,4.9,9,0.93 caret=0.07 resize=0.00@0 four=0.00 spin=0.93 ring=0.00 slash=0.00 q=0.00 globe=CE906C bank=0.00 anim=1
+938.7	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.4,0,0.95 left=-7.9,4.9,6,0.95 caret=0.05 resize=0.00@0 four=0.00 spin=0.95 ring=0.00 slash=0.00 q=0.00 globe=D18E69 bank=0.00 anim=1
+951.8	Wait	Arrow	-0.0	1	f0041.png	target=Wait top=0.0,-9.5,0,0.96 left=-8.0,4.9,5,0.96 caret=0.04 resize=0.00@0 four=0.00 spin=0.96 ring=0.00 slash=0.00 q=0.00 globe=D28D68 bank=0.00 anim=1
+971.1	Wait	Arrow	-0.0	1	f0042.png	target=Wait top=0.0,-9.5,0,0.97 left=-8.1,4.8,3,0.97 caret=0.03 resize=0.00@0 four=0.00 spin=0.97 ring=0.00 slash=0.00 q=0.00 globe=D48C67 bank=0.00 anim=1
+987.4	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.5,0,0.98 left=-8.2,4.8,2,0.98 caret=0.02 resize=0.00@0 four=0.00 spin=0.98 ring=0.00 slash=0.00 q=0.00 globe=D58C66 bank=0.00 anim=1
+1004.7	Wait	Arrow	-0.0	1	f0043.png	target=Wait top=0.0,-9.6,0,0.99 left=-8.2,4.8,2,0.99 caret=0.01 resize=0.00@0 four=0.00 spin=0.99 ring=0.00 slash=0.00 q=0.00 globe=D68B65 bank=0.00 anim=1
+1021.2	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,0.99 left=-8.2,4.8,1,0.99 caret=0.01 resize=0.00@0 four=0.00 spin=0.99 ring=0.00 slash=0.00 q=0.00 globe=D68B64 bank=0.00 anim=1
+1034.3	Wait	Arrow	-0.0	1	f0044.png	target=Wait top=0.0,-9.6,0,0.99 left=-8.3,4.8,1,0.99 caret=0.01 resize=0.00@0 four=0.00 spin=0.99 ring=0.00 slash=0.00 q=0.00 globe=D78A64 bank=0.00 anim=1
+1053.1	Wait	Arrow	-0.0	1	f0045.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,1,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D78A64 bank=0.00 anim=1
+1070.4	Wait	Arrow	-0.0	1	f0046.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1087.0	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1103.5	Wait	Arrow	-0.0	1	f0047.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1117.8	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1135.7	Wait	Arrow	-0.0	1	f0048.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1154.7	Wait	Arrow	-0.0	1	f0049.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1171.8	Wait	Arrow	-0.0	1	f0050.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1188.7	Wait	Arrow	-0.0	1	f0051.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1204.9	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1221.2	Wait	Arrow	-0.0	1	f0052.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1238.0	Wait	Arrow	-0.0	1	f0053.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1254.4	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1270.6	Wait	Arrow	-0.0	1	f0054.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1285.0	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1302.3	Wait	Arrow	-0.0	1	f0055.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1319.9	Wait	Arrow	-0.0	1	f0056.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1334.1	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1352.3	Wait	Arrow	-0.0	1	f0057.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1369.9	Wait	Arrow	-0.0	1	f0058.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1386.2	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1402.4	Wait	Arrow	-0.0	1	f0059.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1418.8	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1437.4	Wait	Arrow	-0.0	1	f0060.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1454.6	Wait	Arrow	-0.0	1	f0061.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1467.4	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1486.3	Wait	Arrow	-0.0	1	f0062.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1504.0	Wait	Arrow	-0.0	1	f0063.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1521.0	Wait	Arrow	-0.0	1	f0064.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1538.0	Wait	Arrow	-0.0	1	f0065.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1551.0	Wait	Arrow	-0.0	1		target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1568.5	Wait	Arrow	-0.0	1	f0066.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1593.0	Wait	Arrow	-0.0	1	f0067.png	target=Wait top=0.0,-9.6,0,1.00 left=-8.3,4.8,0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=1.00 ring=0.00 slash=0.00 q=0.00 globe=D88A63 bank=0.00 anim=1
+1618.1	Crosshair	Arrow	0.0	1	f0068.png	target=Crosshair top=0.0,-9.7,71,0.96 left=-8.9,2.9,-54,0.96 caret=0.00 resize=0.00@0 four=0.30 spin=0.61 ring=0.00 slash=0.00 q=0.00 globe=B89D7F bank=0.00 anim=1
+1635.9	Crosshair	Arrow	0.0	1	f0069.png	target=Crosshair top=0.0,-9.7,104,0.94 left=-9.2,2.0,-79,0.94 caret=0.00 resize=0.00@0 four=0.43 spin=0.42 ring=0.00 slash=0.00 q=0.00 globe=A8A78D bank=0.00 anim=1
+1653.1	Crosshair	Arrow	0.0	1	f0070.png	target=Crosshair top=0.0,-9.7,126,0.93 left=-9.4,1.4,-96,0.93 caret=0.00 resize=0.00@0 four=0.52 spin=0.30 ring=0.00 slash=0.00 q=0.00 globe=9CAE97 bank=0.00 anim=1
+1670.5	Crosshair	Arrow	0.0	1	f0071.png	target=Crosshair top=0.0,-9.8,142,0.92 left=-9.5,1.0,-109,0.92 caret=0.00 resize=0.00@0 four=0.59 spin=0.21 ring=0.00 slash=0.00 q=0.00 globe=93B39F bank=0.00 anim=1
+1687.3	Crosshair	Arrow	0.0	1	f0072.png	target=Crosshair top=0.0,-9.8,153,0.92 left=-9.6,0.7,-117,0.92 caret=0.00 resize=0.00@0 four=0.64 spin=0.15 ring=0.00 slash=0.00 q=0.00 globe=8DB7A5 bank=0.00 anim=1
+1701.4	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,159,0.91 left=-9.6,0.5,-122,0.91 caret=0.00 resize=0.00@0 four=0.66 spin=0.11 ring=0.00 slash=0.00 q=0.00 globe=89BAA8 bank=0.00 anim=1
+1718.6	Crosshair	Arrow	0.0	1	f0073.png	target=Crosshair top=0.0,-9.8,165,0.91 left=-9.7,0.4,-127,0.91 caret=0.00 resize=0.00@0 four=0.69 spin=0.08 ring=0.00 slash=0.00 q=0.00 globe=85BCAC bank=0.00 anim=1
+1737.7	Crosshair	Arrow	0.0	1	f0074.png	target=Crosshair top=0.0,-9.8,170,0.91 left=-9.7,0.3,-130,0.91 caret=0.00 resize=0.00@0 four=0.71 spin=0.06 ring=0.00 slash=0.00 q=0.00 globe=81BEAF bank=0.00 anim=1
+1750.8	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,172,0.90 left=-9.7,0.2,-132,0.90 caret=0.00 resize=0.00@0 four=0.72 spin=0.04 ring=0.00 slash=0.00 q=0.00 globe=80BFB0 bank=0.00 anim=1
+1768.1	Crosshair	Arrow	0.0	1	f0075.png	target=Crosshair top=0.0,-9.8,175,0.90 left=-9.8,0.1,-134,0.90 caret=0.00 resize=0.00@0 four=0.73 spin=0.03 ring=0.00 slash=0.00 q=0.00 globe=7EC0B2 bank=0.00 anim=1
+1784.8	Crosshair	Arrow	0.0	1	f0076.png	target=Crosshair top=0.0,-9.8,176,0.90 left=-9.8,0.1,-135,0.90 caret=0.00 resize=0.00@0 four=0.73 spin=0.02 ring=0.00 slash=0.00 q=0.00 globe=7DC1B3 bank=0.00 anim=1
+1802.5	Crosshair	Arrow	0.0	1	f0077.png	target=Crosshair top=0.0,-9.8,177,0.90 left=-9.8,0.1,-136,0.90 caret=0.00 resize=0.00@0 four=0.74 spin=0.02 ring=0.00 slash=0.00 q=0.00 globe=7CC2B4 bank=0.00 anim=1
+1816.8	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,178,0.90 left=-9.8,0.1,-136,0.90 caret=0.00 resize=0.00@0 four=0.74 spin=0.01 ring=0.00 slash=0.00 q=0.00 globe=7BC2B4 bank=0.00 anim=1
+1834.5	Crosshair	Arrow	0.0	1	f0078.png	target=Crosshair top=0.0,-9.8,179,0.90 left=-9.8,0.0,-137,0.90 caret=0.00 resize=0.00@0 four=0.74 spin=0.01 ring=0.00 slash=0.00 q=0.00 globe=7AC2B5 bank=0.00 anim=1
+1851.9	Crosshair	Arrow	0.0	1	f0079.png	target=Crosshair top=0.0,-9.8,179,0.90 left=-9.8,0.0,-137,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.01 ring=0.00 slash=0.00 q=0.00 globe=7AC3B5 bank=0.00 anim=1
+1868.8	Crosshair	Arrow	0.0	1	f0080.png	target=Crosshair top=0.0,-9.8,179,0.90 left=-9.8,0.0,-137,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7AC3B6 bank=0.00 anim=1
+1885.2	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,179,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+1901.3	Crosshair	Arrow	0.0	1	f0081.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+1919.3	Crosshair	Arrow	0.0	1	f0082.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+1935.2	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+1952.5	Crosshair	Arrow	0.0	1	f0083.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+1967.1	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+1985.2	Crosshair	Arrow	0.0	1	f0084.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2003.4	Crosshair	Arrow	0.0	1	f0085.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2017.6	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2035.5	Crosshair	Arrow	0.0	1	f0086.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2051.9	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2069.2	Crosshair	Arrow	0.0	1	f0087.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2083.5	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2102.1	Crosshair	Arrow	0.0	1	f0088.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2119.5	Crosshair	Arrow	0.0	1	f0089.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2135.9	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2151.8	Crosshair	Arrow	0.0	1	f0090.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2169.8	Crosshair	Arrow	0.0	1	f0091.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2187.6	Crosshair	Arrow	0.0	1	f0092.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2202.8	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2220.9	Crosshair	Arrow	0.0	1	f0093.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2237.9	Crosshair	Arrow	0.0	1	f0094.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2254.4	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2267.5	Crosshair	Arrow	0.0	1	f0095.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2286.1	Crosshair	Arrow	0.0	1	f0096.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2302.3	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2319.2	Crosshair	Arrow	0.0	1	f0097.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2336.7	Crosshair	Arrow	0.0	1	f0098.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2350.7	Crosshair	Arrow	0.0	1		target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2368.4	Crosshair	Arrow	0.0	1	f0099.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2385.8	Crosshair	Arrow	0.0	1	f0100.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2403.1	Crosshair	Arrow	0.0	1	f0101.png	target=Crosshair top=0.0,-9.8,180,0.90 left=-9.8,0.0,-138,0.90 caret=0.00 resize=0.00@0 four=0.75 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+2421.4	UpArrow	Arrow	0.0	1	f0102.png	target=UpArrow top=0.0,-5.8,125,0.93 left=-8.8,4.8,-92,0.93 caret=0.00 resize=0.00@0 four=0.52 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=8DBB9A bank=0.00 anim=1
+2434.3	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,-3.8,96,0.95 left=-8.2,7.2,-68,0.95 caret=0.00 resize=0.00@0 four=0.40 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=99B68B bank=0.00 anim=1
+2451.7	UpArrow	Arrow	0.0	1	f0103.png	target=UpArrow top=0.0,-1.7,68,0.96 left=-7.7,9.7,-45,0.96 caret=0.00 resize=0.00@0 four=0.28 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=A5B17B bank=0.00 anim=1
+2470.6	UpArrow	Arrow	0.0	1	f0104.png	target=UpArrow top=0.0,-0.2,47,0.97 left=-7.3,11.6,-27,0.97 caret=0.00 resize=0.00@0 four=0.19 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=AEAD6E bank=0.00 anim=1
+2486.5	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,0.7,34,0.98 left=-7.0,12.7,-16,0.98 caret=0.00 resize=0.00@0 four=0.14 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=B4AA66 bank=0.00 anim=1
+2500.9	UpArrow	Arrow	0.0	1	f0105.png	target=UpArrow top=0.0,1.4,25,0.99 left=-6.9,13.4,-9,0.99 caret=0.00 resize=0.00@0 four=0.11 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=B9A860 bank=0.00 anim=1
+2518.2	UpArrow	Arrow	0.0	1	f0106.png	target=UpArrow top=0.0,1.9,18,0.99 left=-6.7,14.0,-3,0.99 caret=0.00 resize=0.00@0 four=0.08 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=BDA75B bank=0.00 anim=1
+2538.0	UpArrow	Arrow	0.0	1	f0107.png	target=UpArrow top=0.0,2.3,12,0.99 left=-6.6,14.6,2,0.99 caret=0.00 resize=0.00@0 four=0.05 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C0A556 bank=0.00 anim=1
+2550.7	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,2.5,9,0.99 left=-6.6,14.8,4,0.99 caret=0.00 resize=0.00@0 four=0.04 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C2A454 bank=0.00 anim=1
+2569.8	UpArrow	Arrow	0.0	1	f0108.png	target=UpArrow top=0.0,2.7,6,1.00 left=-6.5,15.0,7,1.00 caret=0.00 resize=0.00@0 four=0.03 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C3A451 bank=0.00 anim=1
+2591.7	UpArrow	Arrow	0.0	1	f0109.png	target=UpArrow top=0.0,2.9,4,1.00 left=-6.5,15.2,9,1.00 caret=0.00 resize=0.00@0 four=0.02 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C5A34F bank=0.00 anim=1
+2600.8	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.0,3,1.00 left=-6.5,15.3,9,1.00 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C5A34F bank=0.00 anim=1
+2620.7	UpArrow	Arrow	0.0	1	f0110.png	target=UpArrow top=0.0,3.0,2,1.00 left=-6.4,15.4,10,1.00 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C6A24D bank=0.00 anim=1
+2635.9	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.1,2,1.00 left=-6.4,15.5,11,1.00 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C7A24D bank=0.00 anim=1
+2653.5	UpArrow	Arrow	0.0	1	f0111.png	target=UpArrow top=0.0,3.1,1,1.00 left=-6.4,15.5,11,1.00 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C7A24C bank=0.00 anim=1
+2670.2	UpArrow	Arrow	0.0	1	f0112.png	target=UpArrow top=0.0,3.1,1,1.00 left=-6.4,15.5,11,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24C bank=0.00 anim=1
+2687.1	UpArrow	Arrow	0.0	1	f0113.png	target=UpArrow top=0.0,3.2,1,1.00 left=-6.4,15.5,11,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2704.9	UpArrow	Arrow	0.0	1	f0114.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2717.4	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2737.1	UpArrow	Arrow	0.0	1	f0115.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2753.8	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2767.5	UpArrow	Arrow	0.0	1	f0116.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2788.0	UpArrow	Arrow	0.0	1	f0117.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2800.6	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2818.7	UpArrow	Arrow	0.0	1	f0118.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2838.1	UpArrow	Arrow	0.0	1	f0119.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2851.9	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2870.5	UpArrow	Arrow	0.0	1	f0120.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2887.7	UpArrow	Arrow	0.0	1	f0121.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2903.1	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2919.4	UpArrow	Arrow	0.0	1	f0122.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2936.1	UpArrow	Arrow	0.0	1	f0123.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2954.6	UpArrow	Arrow	0.0	1	f0124.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2968.5	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+2985.9	UpArrow	Arrow	0.0	1	f0125.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3004.2	UpArrow	Arrow	0.0	1	f0126.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3018.2	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3034.9	UpArrow	Arrow	0.0	1	f0127.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3051.6	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3070.0	UpArrow	Arrow	0.0	1	f0128.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3085.7	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3104.5	UpArrow	Arrow	0.0	1	f0129.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3117.5	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3135.3	UpArrow	Arrow	0.0	1	f0130.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3151.6	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3170.4	UpArrow	Arrow	0.0	1	f0131.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3183.9	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3201.4	UpArrow	Arrow	0.0	1	f0132.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3218.4	UpArrow	Arrow	0.0	1	f0133.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3235.5	UpArrow	Arrow	0.0	1	f0134.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3251.8	UpArrow	Arrow	0.0	1		target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3269.1	UpArrow	Arrow	0.0	1	f0135.png	target=UpArrow top=0.0,3.2,0,1.00 left=-6.4,15.6,12,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=C8A24B bank=0.00 anim=1
+3285.0	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=2.0,4.4,37,1.00 left=-4.7,11.3,-17,0.73 caret=0.00 resize=0.27@37 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=B6A964 bank=0.00 anim=1
+3301.6	SizeNWSE	Arrow	0.0	1	f0136.png	target=SizeNWSE top=3.6,5.3,65,1.00 left=-3.3,8.1,-38,0.52 caret=0.00 resize=0.48@65 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=A7B077 bank=0.00 anim=1
+3319.1	SizeNWSE	Arrow	0.0	1	f0137.png	target=SizeNWSE top=4.7,5.9,85,1.00 left=-2.4,5.7,-54,0.37 caret=0.00 resize=0.63@85 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=9BB587 bank=0.00 anim=1
+3335.6	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=5.5,6.4,99,1.00 left=-1.7,4.1,-65,0.26 caret=0.00 resize=0.74@99 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=93B893 bank=0.00 anim=1
+3351.6	SizeNWSE	Arrow	0.0	1	f0138.png	target=SizeNWSE top=6.1,6.7,109,1.00 left=-1.2,3.0,-73,0.19 caret=0.00 resize=0.81@109 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=8DBB9B bank=0.00 anim=1
+3368.5	SizeNWSE	Arrow	0.0	1	f0139.png	target=SizeNWSE top=6.5,6.9,117,1.00 left=-0.9,2.1,-79,0.14 caret=0.00 resize=0.86@117 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=88BDA2 bank=0.00 anim=1
+3384.8	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=6.8,7.1,122,1.00 left=-0.6,1.5,-83,0.10 caret=0.00 resize=0.90@122 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=84BEA7 bank=0.00 anim=1
+3401.4	SizeNWSE	Arrow	0.0	1	f0140.png	target=SizeNWSE top=7.0,7.2,125,1.00 left=-0.5,1.1,-86,0.07 caret=0.00 resize=0.93@125 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=81C0AA bank=0.00 anim=1
+3418.3	SizeNWSE	Arrow	0.0	1	f0141.png	target=SizeNWSE top=7.1,7.3,128,1.00 left=-0.3,0.8,-88,0.05 caret=0.00 resize=0.95@128 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7FC1AD bank=0.00 anim=1
+3434.2	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.2,7.3,130,1.00 left=-0.2,0.6,-89,0.04 caret=0.00 resize=0.96@130 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7EC1AF bank=0.00 anim=1
+3451.0	SizeNWSE	Arrow	0.0	1	f0142.png	target=SizeNWSE top=7.3,7.4,131,1.00 left=-0.2,0.4,-90,0.03 caret=0.00 resize=0.97@131 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7CC2B1 bank=0.00 anim=1
+3467.7	SizeNWSE	Arrow	0.0	1	f0143.png	target=SizeNWSE top=7.4,7.4,132,1.00 left=-0.1,0.3,-91,0.02 caret=0.00 resize=0.98@132 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7BC2B2 bank=0.00 anim=1
+3484.7	SizeNWSE	Arrow	0.0	1	f0144.png	target=SizeNWSE top=7.4,7.4,133,1.00 left=-0.1,0.2,-92,0.01 caret=0.00 resize=0.99@133 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7BC3B3 bank=0.00 anim=1
+3501.0	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.4,7.5,134,1.00 left=-0.1,0.2,-92,0.01 caret=0.00 resize=0.99@134 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7AC3B4 bank=0.00 anim=1
+3518.1	SizeNWSE	Arrow	0.0	1	f0145.png	target=SizeNWSE top=7.4,7.5,134,1.00 left=-0.0,0.1,-92,0.01 caret=0.00 resize=0.99@134 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=7AC3B5 bank=0.00 anim=1
+3535.3	SizeNWSE	Arrow	0.0	1	f0146.png	target=SizeNWSE top=7.5,7.5,134,1.00 left=-0.0,0.1,-92,0.00 caret=0.00 resize=1.00@134 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B5 bank=0.00 anim=1
+3552.1	SizeNWSE	Arrow	0.0	1	f0147.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.1,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B5 bank=0.00 anim=1
+3568.4	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3589.6	SizeNWSE	Arrow	0.0	1	f0148.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3600.5	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3617.9	SizeNWSE	Arrow	0.0	1	f0149.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3634.8	SizeNWSE	Arrow	0.0	1	f0150.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3652.4	SizeNWSE	Arrow	0.0	1	f0151.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3667.9	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3685.2	SizeNWSE	Arrow	0.0	1	f0152.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3703.9	SizeNWSE	Arrow	0.0	1	f0153.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3716.3	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3735.0	SizeNWSE	Arrow	0.0	1	f0154.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3751.4	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3767.8	SizeNWSE	Arrow	0.0	1	f0155.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3785.6	SizeNWSE	Arrow	0.0	1	f0156.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3801.7	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3817.7	SizeNWSE	Arrow	0.0	1	f0157.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3835.0	SizeNWSE	Arrow	0.0	1	f0158.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3851.4	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3867.9	SizeNWSE	Arrow	0.0	1	f0159.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3885.2	SizeNWSE	Arrow	0.0	1	f0160.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3901.4	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3918.1	SizeNWSE	Arrow	0.0	1	f0161.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3934.5	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3951.2	SizeNWSE	Arrow	0.0	1	f0162.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3967.7	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+3984.3	SizeNWSE	Arrow	0.0	1	f0163.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4000.7	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4017.2	SizeNWSE	Arrow	0.0	1	f0164.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4034.6	SizeNWSE	Arrow	0.0	1	f0165.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4050.9	SizeNWSE	Arrow	0.0	1		target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4068.0	SizeNWSE	Arrow	0.0	1	f0166.png	target=SizeNWSE top=7.5,7.5,135,1.00 left=-0.0,0.0,-93,0.00 caret=0.00 resize=1.00@135 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4085.7	SizeNESW	Arrow	0.0	1	f0167.png	target=SizeNESW top=7.5,3.0,108,1.00 left=-0.0,0.0,-120,0.00 caret=0.00 resize=1.00@108 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4103.2	SizeNESW	Arrow	0.0	1	f0168.png	target=SizeNESW top=7.5,-0.1,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4119.4	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-2.1,77,1.00 left=-0.0,0.0,-151,0.00 caret=0.00 resize=1.00@77 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4136.4	SizeNESW	Arrow	0.0	1	f0169.png	target=SizeNESW top=7.5,-3.7,68,1.00 left=-0.0,0.0,-160,0.00 caret=0.00 resize=1.00@68 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4154.0	SizeNESW	Arrow	0.0	1	f0170.png	target=SizeNESW top=7.5,-4.8,61,1.00 left=-0.0,0.0,-167,0.00 caret=0.00 resize=1.00@61 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4170.1	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-5.5,57,1.00 left=-0.0,0.0,-171,0.00 caret=0.00 resize=1.00@57 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4187.5	SizeNESW	Arrow	0.0	1	f0171.png	target=SizeNESW top=7.5,-6.1,53,1.00 left=-0.0,0.0,-175,0.00 caret=0.00 resize=1.00@53 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4203.1	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-6.5,51,1.00 left=-0.0,0.0,-177,0.00 caret=0.00 resize=1.00@51 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4220.1	SizeNESW	Arrow	0.0	1	f0172.png	target=SizeNESW top=7.5,-6.8,49,1.00 left=-0.0,0.0,-179,0.00 caret=0.00 resize=1.00@49 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4237.8	SizeNESW	Arrow	0.0	1	f0173.png	target=SizeNESW top=7.5,-7.0,48,1.00 left=-0.0,0.0,-180,0.00 caret=0.00 resize=1.00@48 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4255.1	SizeNESW	Arrow	0.0	1	f0174.png	target=SizeNESW top=7.5,-7.1,47,1.00 left=-0.0,0.0,-181,0.00 caret=0.00 resize=1.00@47 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4270.9	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.2,47,1.00 left=-0.0,0.0,-181,0.00 caret=0.00 resize=1.00@47 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4286.5	SizeNESW	Arrow	0.0	1	f0175.png	target=SizeNESW top=7.5,-7.3,46,1.00 left=-0.0,0.0,-182,0.00 caret=0.00 resize=1.00@46 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4300.8	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.4,46,1.00 left=-0.0,0.0,-182,0.00 caret=0.00 resize=1.00@46 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4319.1	SizeNESW	Arrow	0.0	1	f0176.png	target=SizeNESW top=7.5,-7.4,46,1.00 left=-0.0,0.0,-182,0.00 caret=0.00 resize=1.00@46 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4335.8	SizeNESW	Arrow	0.0	1	f0177.png	target=SizeNESW top=7.5,-7.4,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4352.3	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.4,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4368.7	SizeNESW	Arrow	0.0	1	f0178.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4385.0	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4401.2	SizeNESW	Arrow	0.0	1	f0179.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4419.0	SizeNESW	Arrow	0.0	1	f0180.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4435.1	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4451.8	SizeNESW	Arrow	0.0	1	f0181.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4468.4	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4485.9	SizeNESW	Arrow	0.0	1	f0182.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4502.1	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4519.2	SizeNESW	Arrow	0.0	1	f0183.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4535.3	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4553.9	SizeNESW	Arrow	0.0	1	f0184.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4567.9	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4592.5	SizeNESW	Arrow	0.0	1	f0185.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4603.0	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4618.5	SizeNESW	Arrow	0.0	1	f0186.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4635.5	SizeNESW	Arrow	0.0	1	f0187.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4652.9	SizeNESW	Arrow	0.0	1	f0188.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4666.8	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4685.0	SizeNESW	Arrow	0.0	1	f0189.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4701.7	SizeNESW	Arrow	0.0	1	f0190.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4718.2	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4735.4	SizeNESW	Arrow	0.0	1	f0191.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4751.6	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4768.0	SizeNESW	Arrow	0.0	1	f0192.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4784.7	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4801.4	SizeNESW	Arrow	0.0	1	f0193.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4817.6	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4835.5	SizeNESW	Arrow	0.0	1	f0194.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4852.1	SizeNESW	Arrow	0.0	1		target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4869.9	SizeNESW	Arrow	0.0	1	f0195.png	target=SizeNESW top=7.5,-7.5,45,1.00 left=-0.0,0.0,-183,0.00 caret=0.00 resize=1.00@45 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4883.4	SizeWE	Arrow	0.0	1		target=SizeWE top=8.2,-5.7,56,1.00 left=-0.0,0.0,-172,0.00 caret=0.00 resize=1.00@56 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4901.0	SizeWE	Arrow	0.0	1	f0196.png	target=SizeWE top=8.9,-4.0,66,1.00 left=-0.0,0.0,-162,0.00 caret=0.00 resize=1.00@66 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4918.0	SizeWE	Arrow	0.0	1	f0197.png	target=SizeWE top=9.4,-2.9,73,1.00 left=-0.0,0.0,-155,0.00 caret=0.00 resize=1.00@73 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4935.7	SizeWE	Arrow	0.0	1	f0198.png	target=SizeWE top=9.8,-2.0,78,1.00 left=-0.0,0.0,-150,0.00 caret=0.00 resize=1.00@78 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4952.0	SizeWE	Arrow	0.0	1		target=SizeWE top=10.0,-1.5,81,1.00 left=-0.0,0.0,-147,0.00 caret=0.00 resize=1.00@81 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4968.5	SizeWE	Arrow	0.0	1	f0199.png	target=SizeWE top=10.2,-1.0,84,1.00 left=-0.0,0.0,-144,0.00 caret=0.00 resize=1.00@84 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+4984.8	SizeWE	Arrow	0.0	1		target=SizeWE top=10.3,-0.8,85,1.00 left=-0.0,0.0,-143,0.00 caret=0.00 resize=1.00@85 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5001.1	SizeWE	Arrow	0.0	1	f0200.png	target=SizeWE top=10.4,-0.5,87,1.00 left=-0.0,0.0,-141,0.00 caret=0.00 resize=1.00@87 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5019.0	SizeWE	Arrow	0.0	1	f0201.png	target=SizeWE top=10.4,-0.4,88,1.00 left=-0.0,0.0,-140,0.00 caret=0.00 resize=1.00@88 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5033.5	SizeWE	Arrow	0.0	1		target=SizeWE top=10.5,-0.3,88,1.00 left=-0.0,0.0,-140,0.00 caret=0.00 resize=1.00@88 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5050.6	SizeWE	Arrow	0.0	1	f0202.png	target=SizeWE top=10.5,-0.2,89,1.00 left=-0.0,0.0,-139,0.00 caret=0.00 resize=1.00@89 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5068.6	SizeWE	Arrow	0.0	1	f0203.png	target=SizeWE top=10.5,-0.1,89,1.00 left=-0.0,0.0,-139,0.00 caret=0.00 resize=1.00@89 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5084.2	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.1,89,1.00 left=-0.0,0.0,-139,0.00 caret=0.00 resize=1.00@89 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5101.3	SizeWE	Arrow	0.0	1	f0204.png	target=SizeWE top=10.6,-0.1,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5117.4	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.1,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5133.9	SizeWE	Arrow	0.0	1	f0205.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5150.7	SizeWE	Arrow	0.0	1	f0206.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5169.6	SizeWE	Arrow	0.0	1	f0207.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5183.8	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5202.4	SizeWE	Arrow	0.0	1	f0208.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5218.6	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5235.3	SizeWE	Arrow	0.0	1	f0209.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5252.0	SizeWE	Arrow	0.0	1	f0210.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5268.3	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5284.6	SizeWE	Arrow	0.0	1	f0211.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5302.4	SizeWE	Arrow	0.0	1	f0212.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5319.1	SizeWE	Arrow	0.0	1	f0213.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5336.3	SizeWE	Arrow	0.0	1	f0214.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5352.4	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5366.5	SizeWE	Arrow	0.0	1	f0215.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5384.5	SizeWE	Arrow	0.0	1	f0216.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5401.4	SizeWE	Arrow	0.0	1	f0217.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5418.5	SizeWE	Arrow	0.0	1	f0218.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5435.4	SizeWE	Arrow	0.0	1	f0219.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5452.1	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5468.5	SizeWE	Arrow	0.0	1	f0220.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5485.2	SizeWE	Arrow	0.0	1	f0221.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5504.0	SizeWE	Arrow	0.0	1	f0222.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5517.3	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5534.9	SizeWE	Arrow	0.0	1	f0223.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5551.8	SizeWE	Arrow	0.0	1	f0224.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5568.3	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5588.8	SizeWE	Arrow	0.0	1	f0225.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5600.3	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5619.8	SizeWE	Arrow	0.0	1	f0226.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5635.9	SizeWE	Arrow	0.0	1		target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5651.9	SizeWE	Arrow	0.0	1	f0227.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5668.7	SizeWE	Arrow	0.0	1	f0228.png	target=SizeWE top=10.6,-0.0,90,1.00 left=-0.0,0.0,-138,0.00 caret=0.00 resize=1.00@90 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5683.0	SizeNS	Arrow	0.0	1		target=SizeNS top=8.0,-2.6,68,1.00 left=-0.0,0.0,-160,0.00 caret=0.00 resize=1.00@68 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5701.2	SizeNS	Arrow	0.0	1	f0229.png	target=SizeNS top=5.5,-5.1,47,1.00 left=-0.0,0.0,-181,0.00 caret=0.00 resize=1.00@47 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5720.1	SizeNS	Arrow	0.0	1	f0230.png	target=SizeNS top=3.8,-6.8,32,1.00 left=-0.0,0.0,-196,0.00 caret=0.00 resize=1.00@32 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5733.0	SizeNS	Arrow	0.0	1		target=SizeNS top=2.9,-7.7,25,1.00 left=-0.0,0.0,-203,0.00 caret=0.00 resize=1.00@25 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5750.7	SizeNS	Arrow	0.0	1	f0231.png	target=SizeNS top=2.1,-8.5,17,1.00 left=-0.0,0.0,-211,0.00 caret=0.00 resize=1.00@17 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5768.6	SizeNS	Arrow	0.0	1	f0232.png	target=SizeNS top=1.4,-9.2,12,1.00 left=-0.0,0.0,-216,0.00 caret=0.00 resize=1.00@12 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5784.8	SizeNS	Arrow	0.0	1		target=SizeNS top=1.0,-9.6,9,1.00 left=-0.0,0.0,-219,0.00 caret=0.00 resize=1.00@9 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5801.1	SizeNS	Arrow	0.0	1	f0233.png	target=SizeNS top=0.8,-9.8,6,1.00 left=-0.0,0.0,-222,0.00 caret=0.00 resize=1.00@6 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5817.7	SizeNS	Arrow	0.0	1		target=SizeNS top=0.5,-10.1,5,1.00 left=-0.0,0.0,-223,0.00 caret=0.00 resize=1.00@5 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5834.6	SizeNS	Arrow	0.0	1	f0234.png	target=SizeNS top=0.4,-10.2,3,1.00 left=-0.0,0.0,-225,0.00 caret=0.00 resize=1.00@3 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5851.1	SizeNS	Arrow	0.0	1		target=SizeNS top=0.3,-10.3,2,1.00 left=-0.0,0.0,-226,0.00 caret=0.00 resize=1.00@2 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5867.8	SizeNS	Arrow	0.0	1	f0235.png	target=SizeNS top=0.2,-10.4,2,1.00 left=-0.0,0.0,-226,0.00 caret=0.00 resize=1.00@2 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5885.9	SizeNS	Arrow	0.0	1	f0236.png	target=SizeNS top=0.1,-10.5,1,1.00 left=-0.0,0.0,-227,0.00 caret=0.00 resize=1.00@1 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5902.8	SizeNS	Arrow	0.0	1	f0237.png	target=SizeNS top=0.1,-10.5,1,1.00 left=-0.0,0.0,-227,0.00 caret=0.00 resize=1.00@1 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5919.4	SizeNS	Arrow	0.0	1		target=SizeNS top=0.1,-10.5,1,1.00 left=-0.0,0.0,-227,0.00 caret=0.00 resize=1.00@1 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5937.3	SizeNS	Arrow	0.0	1	f0238.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5952.4	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5970.0	SizeNS	Arrow	0.0	1	f0239.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+5984.0	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6001.6	SizeNS	Arrow	0.0	1	f0240.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6021.2	SizeNS	Arrow	0.0	1	f0241.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6034.5	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6053.5	SizeNS	Arrow	0.0	1	f0242.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6071.3	SizeNS	Arrow	0.0	1	f0243.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6084.8	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6102.5	SizeNS	Arrow	0.0	1	f0244.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6120.1	SizeNS	Arrow	0.0	1	f0245.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6136.1	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6152.1	SizeNS	Arrow	0.0	1	f0246.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6172.0	SizeNS	Arrow	0.0	1	f0247.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6184.6	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6203.2	SizeNS	Arrow	0.0	1	f0248.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6220.1	SizeNS	Arrow	0.0	1	f0249.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6238.1	SizeNS	Arrow	0.0	1	f0250.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6251.3	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6270.4	SizeNS	Arrow	0.0	1	f0251.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6284.1	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6302.8	SizeNS	Arrow	0.0	1	f0252.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6320.1	SizeNS	Arrow	0.0	1	f0253.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6334.0	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6351.7	SizeNS	Arrow	0.0	1	f0254.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6368.4	SizeNS	Arrow	0.0	1	f0255.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6386.4	SizeNS	Arrow	0.0	1	f0256.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6400.2	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6418.9	SizeNS	Arrow	0.0	1	f0257.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6435.6	SizeNS	Arrow	0.0	1	f0258.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6451.6	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6468.2	SizeNS	Arrow	0.0	1	f0259.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6486.6	SizeNS	Arrow	0.0	1	f0260.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6501.7	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6518.5	SizeNS	Arrow	0.0	1	f0261.png	target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6534.6	SizeNS	Arrow	0.0	1		target=SizeNS top=0.0,-10.6,0,1.00 left=-0.0,0.0,-228,0.00 caret=0.00 resize=1.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6551.9	SizeAll	Arrow	0.0	1	f0262.png	target=SizeAll top=0.0,-10.7,0,1.00 left=-3.2,0.0,-254,0.29 caret=0.00 resize=0.71@0 four=0.25 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6568.1	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.7,0,1.00 left=-5.3,0.0,-272,0.49 caret=0.00 resize=0.51@0 four=0.41 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6589.1	SizeAll	Arrow	0.0	1	f0263.png	target=SizeAll top=0.0,-10.7,0,1.00 left=-7.2,0.0,-288,0.66 caret=0.00 resize=0.34@0 four=0.56 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6600.4	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.7,0,1.00 left=-7.9,0.0,-294,0.73 caret=0.00 resize=0.27@0 four=0.62 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6617.5	SizeAll	Arrow	0.0	1	f0264.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-8.7,0.0,-301,0.81 caret=0.00 resize=0.19@0 four=0.69 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6634.7	SizeAll	Arrow	0.0	1	f0265.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-9.3,0.0,-306,0.86 caret=0.00 resize=0.14@0 four=0.74 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6653.5	SizeAll	Arrow	0.0	1	f0266.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-9.8,0.0,-310,0.91 caret=0.00 resize=0.09@0 four=0.77 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6669.7	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.1,0.0,-312,0.93 caret=0.00 resize=0.07@0 four=0.79 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6686.9	SizeAll	Arrow	0.0	1	f0267.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.3,0.0,-314,0.95 caret=0.00 resize=0.05@0 four=0.81 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6700.8	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.4,0.0,-315,0.96 caret=0.00 resize=0.04@0 four=0.82 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6718.5	SizeAll	Arrow	0.0	1	f0268.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.5,0.0,-316,0.97 caret=0.00 resize=0.03@0 four=0.83 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6735.9	SizeAll	Arrow	0.0	1	f0269.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.6,0.0,-316,0.98 caret=0.00 resize=0.02@0 four=0.83 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6752.6	SizeAll	Arrow	0.0	1	f0270.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.7,0.0,-317,0.99 caret=0.00 resize=0.01@0 four=0.84 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6767.1	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.7,0.0,-317,0.99 caret=0.00 resize=0.01@0 four=0.84 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6785.0	SizeAll	Arrow	0.0	1	f0271.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.7,0.0,-317,0.99 caret=0.00 resize=0.01@0 four=0.84 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6802.3	SizeAll	Arrow	0.0	1	f0272.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.7,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6818.9	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6836.1	SizeAll	Arrow	0.0	1	f0273.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6852.3	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6868.8	SizeAll	Arrow	0.0	1	f0274.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6887.1	SizeAll	Arrow	0.0	1	f0275.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6902.2	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6918.7	SizeAll	Arrow	0.0	1	f0276.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6935.5	SizeAll	Arrow	0.0	1	f0277.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6952.6	SizeAll	Arrow	0.0	1	f0278.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6966.8	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+6984.8	SizeAll	Arrow	0.0	1	f0279.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7003.1	SizeAll	Arrow	0.0	1	f0280.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7017.6	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7035.2	SizeAll	Arrow	0.0	1	f0281.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7051.7	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7069.1	SizeAll	Arrow	0.0	1	f0282.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7085.7	SizeAll	Arrow	0.0	1	f0283.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7102.3	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7118.7	SizeAll	Arrow	0.0	1	f0284.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7135.6	SizeAll	Arrow	0.0	1	f0285.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7152.0	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7169.1	SizeAll	Arrow	0.0	1	f0286.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7185.6	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7199.8	SizeAll	Arrow	0.0	1	f0287.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7217.6	SizeAll	Arrow	0.0	1	f0288.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7234.7	SizeAll	Arrow	0.0	1	f0289.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7250.9	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7268.1	SizeAll	Arrow	0.0	1	f0290.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7285.7	SizeAll	Arrow	0.0	1	f0291.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7301.5	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7318.8	SizeAll	Arrow	0.0	1	f0292.png	target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7334.8	SizeAll	Arrow	0.0	1		target=SizeAll top=0.0,-10.8,0,1.00 left=-10.8,0.0,-318,1.00 caret=0.00 resize=0.00@0 four=0.85 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=79C3B6 bank=0.00 anim=1
+7351.9	No	Arrow	0.0	1	f0293.png	target=No top=0.0,-10.1,52,0.96 left=-9.8,1.2,-275,0.96 caret=0.00 resize=0.00@0 four=0.60 spin=0.00 ring=0.26 slash=0.29 q=0.00 globe=8AAA97 bank=0.00 anim=1
+7367.8	No	Arrow	0.0	1		target=No top=0.0,-9.6,87,0.93 left=-9.1,2.0,-246,0.93 caret=0.00 resize=0.00@0 four=0.44 spin=0.00 ring=0.43 slash=0.48 q=0.00 globe=979781 bank=0.00 anim=1
+7384.8	No	Arrow	0.0	1	f0294.png	target=No top=0.0,-9.3,114,0.91 left=-8.6,2.7,-223,0.91 caret=0.00 resize=0.00@0 four=0.31 spin=0.00 ring=0.57 slash=0.63 q=0.00 globe=A2886F bank=0.00 anim=1
+7401.8	No	Arrow	0.0	1	f0295.png	target=No top=0.0,-9.0,133,0.89 left=-8.2,3.1,-207,0.89 caret=0.00 resize=0.00@0 four=0.22 spin=0.00 ring=0.66 slash=0.74 q=0.00 globe=A97D61 bank=0.00 anim=1
+7418.0	No	Arrow	0.0	1		target=No top=0.0,-8.9,146,0.88 left=-7.9,3.4,-196,0.88 caret=0.00 resize=0.00@0 four=0.16 spin=0.00 ring=0.73 slash=0.81 q=0.00 globe=AF7558 bank=0.00 anim=1
+7435.6	No	Arrow	0.0	1	f0296.png	target=No top=0.0,-8.7,156,0.87 left=-7.7,3.6,-188,0.87 caret=0.00 resize=0.00@0 four=0.11 spin=0.00 ring=0.78 slash=0.87 q=0.00 globe=B46E4F bank=0.00 anim=1
+7454.2	No	Arrow	0.0	1	f0297.png	target=No top=0.0,-8.6,163,0.86 left=-7.6,3.8,-182,0.86 caret=0.00 resize=0.00@0 four=0.08 spin=0.00 ring=0.82 slash=0.91 q=0.00 globe=B76949 bank=0.00 anim=1
+7467.6	No	Arrow	0.0	1		target=No top=0.0,-8.6,167,0.86 left=-7.5,3.9,-179,0.86 caret=0.00 resize=0.00@0 four=0.06 spin=0.00 ring=0.84 slash=0.93 q=0.00 globe=B96646 bank=0.00 anim=1
+7485.3	No	Arrow	0.0	1	f0298.png	target=No top=0.0,-8.5,171,0.86 left=-7.4,4.0,-175,0.86 caret=0.00 resize=0.00@0 four=0.04 spin=0.00 ring=0.86 slash=0.95 q=0.00 globe=BB6342 bank=0.00 anim=1
+7502.1	No	Arrow	0.0	1	f0299.png	target=No top=0.0,-8.5,174,0.86 left=-7.4,4.1,-173,0.86 caret=0.00 resize=0.00@0 four=0.03 spin=0.00 ring=0.87 slash=0.96 q=0.00 globe=BD613F bank=0.00 anim=1
+7519.0	No	Arrow	0.0	1	f0300.png	target=No top=0.0,-8.5,175,0.85 left=-7.4,4.1,-172,0.85 caret=0.00 resize=0.00@0 four=0.02 spin=0.00 ring=0.88 slash=0.97 q=0.00 globe=BE5F3E bank=0.00 anim=1
+7536.8	No	Arrow	0.0	1	f0301.png	target=No top=0.0,-8.4,177,0.85 left=-7.3,4.1,-171,0.85 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.88 slash=0.98 q=0.00 globe=BF5E3C bank=0.00 anim=1
+7550.7	No	Arrow	0.0	1		target=No top=0.0,-8.4,178,0.85 left=-7.3,4.1,-170,0.85 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.89 slash=0.99 q=0.00 globe=BF5D3B bank=0.00 anim=1
+7568.8	No	Arrow	0.0	1	f0302.png	target=No top=0.0,-8.4,178,0.85 left=-7.3,4.2,-169,0.85 caret=0.00 resize=0.00@0 four=0.01 spin=0.00 ring=0.89 slash=0.99 q=0.00 globe=C05D3A bank=0.00 anim=1
+7593.2	No	Arrow	0.0	1	f0303.png	target=No top=0.0,-8.4,179,0.85 left=-7.3,4.2,-169,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.89 slash=0.99 q=0.00 globe=C05C39 bank=0.00 anim=1
+7601.0	No	Arrow	0.0	1		target=No top=0.0,-8.4,179,0.85 left=-7.3,4.2,-169,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15C39 bank=0.00 anim=1
+7619.1	No	Arrow	0.0	1	f0304.png	target=No top=0.0,-8.4,179,0.85 left=-7.3,4.2,-169,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B39 bank=0.00 anim=1
+7638.9	No	Arrow	0.0	1	f0305.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7654.7	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7672.3	No	Arrow	0.0	1	f0306.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7688.5	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7705.8	No	Arrow	0.0	1	f0307.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7721.7	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7738.0	No	Arrow	0.0	1	f0308.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7751.8	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7771.6	No	Arrow	0.0	1	f0309.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7784.9	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7804.2	No	Arrow	0.0	1	f0310.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7822.4	No	Arrow	0.0	1	f0311.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7838.3	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7851.5	No	Arrow	0.0	1	f0312.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7871.4	No	Arrow	0.0	1	f0313.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7888.6	No	Arrow	0.0	1	f0314.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7901.4	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7918.6	No	Arrow	0.0	1	f0315.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7935.8	No	Arrow	0.0	1	f0316.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7952.5	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7968.4	No	Arrow	0.0	1	f0317.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+7985.8	No	Arrow	0.0	1	f0318.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8002.2	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8018.8	No	Arrow	0.0	1	f0319.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8036.1	No	Arrow	0.0	1	f0320.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8052.8	No	Arrow	0.0	1	f0321.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8069.1	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8083.5	No	Arrow	0.0	1	f0322.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8102.9	No	Arrow	0.0	1	f0323.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8118.3	No	Arrow	0.0	1		target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8135.0	No	Arrow	0.0	1	f0324.png	target=No top=0.0,-8.4,180,0.85 left=-7.3,4.2,-168,0.85 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.90 slash=1.00 q=0.00 globe=C15B38 bank=0.00 anim=1
+8152.7	Hand	Arrow	-7.2	1	f0325.png	target=Hand top=0.0,-4.9,126,0.89 left=-7.8,8.1,-120,0.89 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.63 slash=0.70 q=0.00 globe=C76642 bank=1.00 anim=1
+8169.6	Hand	Arrow	-12.0	1	f0326.png	target=Hand top=0.0,-2.6,90,0.92 left=-8.2,10.7,-87,0.92 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.45 slash=0.50 q=0.00 globe=CC6F4A bank=1.00 anim=1
+8186.8	Hand	Arrow	-15.3	1	f0327.png	target=Hand top=0.0,-0.9,64,0.95 left=-8.4,12.6,-64,0.95 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.32 slash=0.36 q=0.00 globe=CF7650 bank=1.00 anim=1
+8203.4	Hand	Arrow	-17.5	1		target=Hand top=0.0,0.3,46,0.96 left=-8.6,13.9,-47,0.96 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.23 slash=0.25 q=0.00 globe=D17A55 bank=1.00 anim=1
+8216.9	Hand	Arrow	-18.8	1	f0328.png	target=Hand top=0.0,1.0,35,0.97 left=-8.7,14.7,-37,0.97 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.17 slash=0.19 q=0.00 globe=D37D57 bank=1.00 anim=1
+8234.9	Hand	Arrow	-20.0	1	f0329.png	target=Hand top=0.0,1.7,24,0.98 left=-8.8,15.4,-28,0.98 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.12 slash=0.14 q=0.00 globe=D4805A bank=1.00 anim=1
+8252.0	Hand	Arrow	-20.8	1	f0330.png	target=Hand top=0.0,2.1,17,0.99 left=-8.9,15.9,-22,0.99 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.09 slash=0.10 q=0.00 globe=D5835C bank=1.00 anim=1
+8268.9	Hand	Arrow	-21.3	1	f0331.png	target=Hand top=0.0,2.5,12,0.99 left=-8.9,16.3,-17,0.99 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.06 slash=0.07 q=0.00 globe=D6845E bank=1.00 anim=1
+8285.6	Hand	Arrow	-21.7	1		target=Hand top=0.0,2.7,9,0.99 left=-9.0,16.6,-14,0.99 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.04 slash=0.05 q=0.00 globe=D7865F bank=1.00 anim=1
+8304.1	Hand	Arrow	-22.0	1	f0332.png	target=Hand top=0.0,2.9,6,0.99 left=-9.0,16.8,-12,0.99 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.03 slash=0.03 q=0.00 globe=D78760 bank=1.00 anim=1
+8318.0	Hand	Arrow	-22.1	1		target=Hand top=0.0,3.0,5,1.00 left=-9.0,16.9,-10,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.02 slash=0.03 q=0.00 globe=D78760 bank=1.00 anim=1
+8335.3	Hand	Arrow	-22.2	1	f0333.png	target=Hand top=0.0,3.0,3,1.00 left=-9.0,17.0,-9,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.02 slash=0.02 q=0.00 globe=D88861 bank=1.00 anim=1
+8352.0	Hand	Arrow	-22.3	1	f0334.png	target=Hand top=0.0,3.1,2,1.00 left=-9.0,17.0,-8,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.01 slash=0.01 q=0.00 globe=D88861 bank=1.00 anim=1
+8368.9	Hand	Arrow	-22.4	1	f0335.png	target=Hand top=0.0,3.1,2,1.00 left=-9.0,17.1,-8,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.01 slash=0.01 q=0.00 globe=D88962 bank=1.00 anim=1
+8386.0	Hand	Arrow	-22.4	1	f0336.png	target=Hand top=0.0,3.2,1,1.00 left=-9.0,17.1,-7,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.01 slash=0.01 q=0.00 globe=D88962 bank=1.00 anim=1
+8402.1	Hand	Arrow	-22.4	1		target=Hand top=0.0,3.2,1,1.00 left=-9.0,17.1,-7,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8418.9	Hand	Arrow	-22.5	1	f0337.png	target=Hand top=0.0,3.2,1,1.00 left=-9.0,17.2,-7,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8435.7	Hand	Arrow	-22.5	1	f0338.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8452.4	Hand	Arrow	-22.5	1	f0339.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8469.9	Hand	Arrow	-22.5	1	f0340.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8487.5	Hand	Arrow	-22.5	1	f0341.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8501.1	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8519.3	Hand	Arrow	-22.5	1	f0342.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8535.7	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8554.4	Hand	Arrow	-22.5	1	f0343.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8567.5	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8590.6	Hand	Arrow	-22.5	1	f0344.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8601.9	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8618.6	Hand	Arrow	-22.5	1	f0345.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8635.8	Hand	Arrow	-22.5	1	f0346.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8652.3	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8668.4	Hand	Arrow	-22.5	1	f0347.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8686.4	Hand	Arrow	-22.5	1	f0348.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8704.2	Hand	Arrow	-22.5	1	f0349.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8717.5	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8736.2	Hand	Arrow	-22.5	1	f0350.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8752.3	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8769.8	Hand	Arrow	-22.5	1	f0351.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8787.4	Hand	Arrow	-22.5	1	f0352.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8800.9	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8818.3	Hand	Arrow	-22.5	1	f0353.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8834.4	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8851.7	Hand	Arrow	-22.5	1	f0354.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8867.8	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8885.0	Hand	Arrow	-22.5	1	f0355.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8901.3	Hand	Arrow	-22.5	1		target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8917.7	Hand	Arrow	-22.5	1	f0356.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8935.8	Hand	Arrow	-22.5	1	f0357.png	target=Hand top=0.0,3.2,0,1.00 left=-9.0,17.2,-6,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8951.9	AppStarting	Arrow	-15.8	1		target=AppStarting top=0.0,3.4,0,1.00 left=-8.9,17.1,-5,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8968.8	AppStarting	Arrow	-11.0	1	f0358.png	target=AppStarting top=0.0,3.4,0,1.00 left=-8.8,17.1,-4,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+8985.5	AppStarting	Arrow	-7.6	1	f0359.png	target=AppStarting top=0.0,3.5,0,1.00 left=-8.7,17.0,-3,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9002.5	AppStarting	Arrow	-5.2	1	f0360.png	target=AppStarting top=0.0,3.5,0,1.00 left=-8.7,17.0,-3,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9016.4	AppStarting	Arrow	-3.8	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-3,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9034.3	AppStarting	Arrow	-2.6	1	f0361.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-3,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9053.1	AppStarting	Arrow	-1.7	1	f0362.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9067.0	AppStarting	Arrow	-1.3	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9084.7	AppStarting	Arrow	-0.9	1	f0363.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9101.3	AppStarting	Arrow	-0.6	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9118.1	AppStarting	Arrow	-0.4	1	f0364.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9134.2	AppStarting	Arrow	-0.3	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9152.9	AppStarting	Arrow	-0.2	1	f0365.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9166.8	AppStarting	Arrow	-0.1	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9184.3	AppStarting	Arrow	-0.1	1	f0366.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9201.8	AppStarting	Arrow	-0.1	1	f0367.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9218.9	AppStarting	Arrow	-0.0	1	f0368.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9233.3	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9251.1	AppStarting	Arrow	-0.0	1	f0369.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9270.7	AppStarting	Arrow	-0.0	1	f0370.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9283.1	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9301.1	AppStarting	Arrow	-0.0	1	f0371.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9318.9	AppStarting	Arrow	-0.0	1	f0372.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9336.9	AppStarting	Arrow	-0.0	1	f0373.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9350.0	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9369.0	AppStarting	Arrow	-0.0	1	f0374.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9385.7	AppStarting	Arrow	-0.0	1	f0375.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9402.2	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9419.8	AppStarting	Arrow	-0.0	1	f0376.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9436.3	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9450.7	AppStarting	Arrow	-0.0	1	f0377.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9469.4	AppStarting	Arrow	-0.0	1	f0378.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9487.0	AppStarting	Arrow	-0.0	1	f0379.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9502.2	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9519.7	AppStarting	Arrow	-0.0	1	f0380.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9536.0	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9552.2	AppStarting	Arrow	-0.0	1	f0381.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9569.8	AppStarting	Arrow	-0.0	1	f0382.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9591.6	AppStarting	Arrow	-0.0	1	f0383.png	target=AppStarting top=0.0,3.6,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9601.2	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9618.9	AppStarting	Arrow	-0.0	1	f0384.png	target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9635.9	AppStarting	Arrow	-0.0	1	f0385.png	target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9652.3	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9669.1	AppStarting	Arrow	-0.0	1	f0386.png	target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9685.8	AppStarting	Arrow	-0.0	1	f0387.png	target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9702.4	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9722.8	AppStarting	Arrow	-0.0	1	f0388.png	target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9739.2	AppStarting	Arrow	-0.0	1		target=AppStarting top=0.0,3.7,0,1.00 left=-8.6,17.0,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=D88962 bank=1.00 anim=1
+9751.0	Help	Arrow	-0.0	1	f0389.png	target=Help top=0.0,3.6,0,1.00 left=-8.5,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.21 globe=D68E5E bank=1.00 anim=1
+9768.9	Help	Arrow	-0.0	1	f0390.png	target=Help top=0.0,3.6,0,1.00 left=-8.5,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.45 globe=D29359 bank=1.00 anim=1
+9785.2	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.5,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.60 globe=D09656 bank=1.00 anim=1
+9804.5	Help	Arrow	-0.0	1	f0391.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.73 globe=CE9953 bank=1.00 anim=1
+9821.7	Help	Arrow	-0.0	1	f0392.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.81 globe=CD9B51 bank=1.00 anim=1
+9833.7	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.85 globe=CC9C50 bank=1.00 anim=1
+9851.7	Help	Arrow	-0.0	1	f0393.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.89 globe=CB9E4E bank=1.00 anim=1
+9869.9	Help	Arrow	-0.0	1	f0394.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.93 globe=CA9F4D bank=1.00 anim=1
+9884.1	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.94 globe=CA9F4D bank=1.00 anim=1
+9901.6	Help	Arrow	-0.0	1	f0395.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.96 globe=CAA04C bank=1.00 anim=1
+9919.2	Help	Arrow	-0.0	1	f0396.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.97 globe=C9A04C bank=1.00 anim=1
+9935.2	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.98 globe=C9A14B bank=1.00 anim=1
+9953.1	Help	Arrow	-0.0	1	f0397.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.99 globe=C9A14B bank=1.00 anim=1
+9969.5	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.99 globe=C9A14B bank=1.00 anim=1
+9983.7	Help	Arrow	-0.0	1	f0398.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.99 globe=C9A14B bank=1.00 anim=1
+10001.2	Help	Arrow	-0.0	1	f0399.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.99 globe=C9A14B bank=1.00 anim=1
+10018.3	Help	Arrow	-0.0	1	f0400.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10034.4	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10051.0	Help	Arrow	-0.0	1	f0401.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10067.8	Help	Arrow	-0.0	1	f0402.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10084.6	Help	Arrow	-0.0	1	f0403.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10102.4	Help	Arrow	-0.0	1	f0404.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10116.5	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10134.0	Help	Arrow	-0.0	1	f0405.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10151.7	Help	Arrow	-0.0	1	f0406.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10169.8	Help	Arrow	-0.0	1	f0407.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10185.9	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10201.6	Help	Arrow	-0.0	1	f0408.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10221.0	Help	Arrow	-0.0	1	f0409.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10234.1	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10252.1	Help	Arrow	-0.0	1	f0410.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10268.5	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10285.1	Help	Arrow	-0.0	1	f0411.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10302.3	Help	Arrow	-0.0	1	f0412.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10319.0	Help	Arrow	-0.0	1	f0413.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10333.5	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10351.3	Help	Arrow	-0.0	1	f0414.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10367.4	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10385.0	Help	Arrow	-0.0	1	f0415.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10399.5	Help	Arrow	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10417.6	Help	AppStarting	-0.0	1	f0416.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10437.1	Help	AppStarting	-0.0	1	f0417.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10451.1	Help	AppStarting	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10470.3	Help	AppStarting	-0.0	1	f0418.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10486.2	Help	AppStarting	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10505.0	Help	AppStarting	-0.0	1	f0419.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10517.6	Help	AppStarting	-0.0	1		target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10534.8	Help	AppStarting	-0.0	1	f0420.png	target=Help top=0.0,3.6,0,1.00 left=-8.4,16.9,-2,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=1.00 globe=C9A14B bank=1.00 anim=1
+10554.2	Arrow	AppStarting	-7.8	1	f0421.png	target=Arrow top=0.0,3.7,0,1.00 left=-8.4,16.9,-1,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.68 globe=ADBB6E bank=1.00 anim=1
+10572.0	Arrow	AppStarting	-12.5	1	f0422.png	target=Arrow top=0.0,3.7,0,1.00 left=-8.4,16.9,-1,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.48 globe=9BCC86 bank=1.00 anim=1
+10584.3	Arrow	AppStarting	-14.9	1		target=Arrow top=0.0,3.7,0,1.00 left=-8.3,16.9,-1,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.37 globe=91D593 bank=1.00 anim=1
+10603.1	Arrow	AppStarting	-17.5	1	f0423.png	target=Arrow top=0.0,3.7,0,1.00 left=-8.3,16.9,-1,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.26 globe=86E0A2 bank=1.00 anim=1
+10621.4	Arrow	AppStarting	-19.1	1	f0424.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.18 globe=7DE8AD bank=1.00 anim=1
+10652.5	Arrow	AppStarting	-20.8	1	f0425.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.10 globe=74F1BA bank=1.00 anim=1
+10669.9	Arrow	AppStarting	-21.3	1	f0426.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.07 globe=70F4BE bank=1.00 anim=1
+10688.6	Arrow	AppStarting	-21.7	1	f0427.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.05 globe=6DF7C2 bank=1.00 anim=1
+10703.6	Arrow	AppStarting	-21.9	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.03 globe=6CF9C4 bank=1.00 anim=1
+10724.5	Arrow	AppStarting	-22.2	1	f0428.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.02 globe=6AFAC7 bank=1.00 anim=1
+10750.0	Arrow	AppStarting	-22.3	1	f0429.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.01 globe=68FCC9 bank=1.00 anim=1
+10770.9	Arrow	AppStarting	-22.4	1	f0430.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.01 globe=68FDCA bank=1.00 anim=1
+10787.3	Arrow	AppStarting	-22.4	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.01 globe=67FDCA bank=1.00 anim=1
+10801.1	Arrow	AppStarting	-22.4	1	f0431.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=67FDCB bank=1.00 anim=1
+10819.1	Arrow	AppStarting	-22.5	1	f0432.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECB bank=1.00 anim=1
+10836.6	Arrow	AppStarting	-22.5	1	f0433.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10853.8	Arrow	Arrow	-22.5	1	f0434.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10867.6	Arrow	Arrow	-22.5	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10886.6	Arrow	Arrow	-22.5	1	f0435.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10903.8	Arrow	Arrow	-22.5	1	f0436.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10919.8	Arrow	Arrow	-22.5	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10936.5	Arrow	Arrow	-22.5	1	f0437.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10950.8	Arrow	Arrow	-22.5	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10968.8	Arrow	Arrow	-22.5	1	f0438.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+10985.7	Arrow	Arrow	-22.5	1	f0439.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11002.9	Arrow	Arrow	-22.5	1	f0440.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11017.0	Arrow	Arrow	-22.5	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11035.5	Arrow	Arrow	-22.5	1	f0441.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11053.2	Arrow	Arrow	-22.5	1	f0442.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11069.3	Arrow	Arrow	-22.5	1		target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11083.7	Arrow	Arrow	-22.5	1	f0443.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1
+11102.1	Arrow	Arrow	-22.5	1	f0444.png	target=Arrow top=0.0,3.8,0,1.00 left=-8.3,16.9,-0,1.00 caret=0.00 resize=0.00@0 four=0.00 spin=0.00 ring=0.00 slash=0.00 q=0.00 globe=66FECC bank=1.00 anim=1

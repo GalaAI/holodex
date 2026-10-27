@@ -317,7 +317,6 @@ internal static class ArkApertureMorphEngine
         public float GlobeR;
         public float GlobeG;
         public float GlobeB;
-        public float BloomStrength;
 
         public float CaretStemAlpha;
         public float ReticleRingAlpha;
@@ -327,10 +326,17 @@ internal static class ArkApertureMorphEngine
         public float ResizeShaftAngleDeg;
         public float FourWayShaftAlpha;
         public float OrbitalSpinWeight;
+
+        /// <summary>
+        /// How much of the pointer's travel angle the cursor takes (1 for pointer-like roles, 0 for upright ones).
+        /// Eased with the shape, so a role change never turns the whole cursor in one frame.
+        /// </summary>
+        public float BankWeight;
     }
 
     private static MorphState _current;
     private static MorphState _target;
+    private static string _targetName = string.Empty;
     private static bool _initialized;
     private static bool _isAnimating;
 
@@ -423,6 +429,7 @@ internal static class ArkApertureMorphEngine
         }
 
         _target = BuildTargetPose(effectiveRole, effectiveMode, effectiveThinking, spinAngleDeg);
+        _targetName = effectiveMode == ApertureMorphMode.AutoContextual ? effectiveRole.ToString() : $"{effectiveRole}/{effectiveMode}";
 
         if (!_initialized)
         {
@@ -447,7 +454,6 @@ internal static class ArkApertureMorphEngine
         StepFloat(ref _current.GlobeR, _target.GlobeR, alpha * 0.85f, ref diff);
         StepFloat(ref _current.GlobeG, _target.GlobeG, alpha * 0.85f, ref diff);
         StepFloat(ref _current.GlobeB, _target.GlobeB, alpha * 0.85f, ref diff);
-        StepFloat(ref _current.BloomStrength, _target.BloomStrength, alpha, ref diff);
 
         StepFloat(ref _current.CaretStemAlpha, _target.CaretStemAlpha, alpha, ref diff);
         StepFloat(ref _current.ReticleRingAlpha, _target.ReticleRingAlpha, alpha, ref diff);
@@ -457,8 +463,9 @@ internal static class ArkApertureMorphEngine
         StepAngle(ref _current.ResizeShaftAngleDeg, _target.ResizeShaftAngleDeg, alpha, ref diff);
         StepFloat(ref _current.FourWayShaftAlpha, _target.FourWayShaftAlpha, alpha, ref diff);
         StepFloat(ref _current.OrbitalSpinWeight, _target.OrbitalSpinWeight, alpha, ref diff);
+        StepFloat(ref _current.BankWeight, _target.BankWeight, alpha, ref diff);
 
-        _isAnimating = diff > 0.015f || _current.OrbitalSpinWeight > 0.02f || _current.BloomStrength > 0.05f;
+        _isAnimating = diff > 0.015f || _current.OrbitalSpinWeight > 0.02f;
     }
 
     private static void StepWing(ref WingPose cur, in WingPose tgt, float alpha, ref float diff)
@@ -502,12 +509,29 @@ internal static class ArkApertureMorphEngine
             GlobeRy = 5.54f,
             GlobeR = globeCol.R,
             GlobeG = globeCol.G,
-            GlobeB = globeCol.B,
-            BloomStrength = isAiThinking ? 1.0f : 0f
+            GlobeB = globeCol.B
         };
     }
 
+    /// <summary>Roles drawn as a pointer, which tilt with the pointer's travel; every other role stays upright.</summary>
+    public static bool Banks(WindowsCursorRole role) =>
+        role is WindowsCursorRole.Arrow or WindowsCursorRole.Hand or WindowsCursorRole.AppStarting or WindowsCursorRole.Help;
+
     private static MorphState BuildTargetPose(
+        WindowsCursorRole role,
+        ApertureMorphMode customMode,
+        bool isAiThinking,
+        float spinAngleDeg)
+    {
+        var s = BuildTargetShape(role, customMode, isAiThinking, spinAngleDeg);
+        // Centred formations (turbine, caret, resize and move shafts) stay upright even on a pointer role.
+        s.BankWeight = Banks(role)
+            ? 1f - Math.Clamp(s.OrbitalSpinWeight + s.CaretStemAlpha + s.ResizeShaftAlpha + s.FourWayShaftAlpha, 0f, 1f)
+            : 0f;
+        return s;
+    }
+
+    private static MorphState BuildTargetShape(
         WindowsCursorRole role,
         ApertureMorphMode customMode,
         bool isAiThinking,
@@ -531,7 +555,7 @@ internal static class ArkApertureMorphEngine
                     s.GlobeY = 0f;
                     s.GlobeRx = 4.2f;
                     s.GlobeRy = 4.2f;
-                    SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina, 0.55f);
+                    SetGlobeColor(ref s, isAiThinking ? PhosphorTheme.Coral : PhosphorTheme.Patina);
                     s.ReticleRingAlpha = 0.65f;
                     return s;
                 }
@@ -546,7 +570,7 @@ internal static class ArkApertureMorphEngine
                     s.GlobeY = 0f;
                     s.GlobeRx = 4.2f;
                     s.GlobeRy = 4.2f;
-                    SetGlobeColor(ref s, PhosphorTheme.Coral, 0.65f);
+                    SetGlobeColor(ref s, PhosphorTheme.Coral);
                     s.FourWayShaftAlpha = 0.65f;
                     return s;
                 }
@@ -560,7 +584,7 @@ internal static class ArkApertureMorphEngine
                     s.GlobeY = 13.0f;
                     s.GlobeRx = 5.8f;
                     s.GlobeRy = 5.8f;
-                    SetGlobeColor(ref s, PhosphorTheme.Coral, 0.72f);
+                    SetGlobeColor(ref s, PhosphorTheme.Coral);
                     return s;
                 }
                 case ApertureMorphMode.AegisShield:
@@ -574,7 +598,7 @@ internal static class ArkApertureMorphEngine
                     s.GlobeY = 13.2f;
                     s.GlobeRx = 5.6f;
                     s.GlobeRy = 5.6f;
-                    SetGlobeColor(ref s, PhosphorTheme.Seal, 0.65f);
+                    SetGlobeColor(ref s, PhosphorTheme.Seal);
                     return s;
                 }
             }
@@ -596,7 +620,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 13.1f;
                 s.GlobeRx = 5.95f;
                 s.GlobeRy = 5.95f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.68f);
+                SetGlobeColor(ref s, PhosphorTheme.Coral);
                 return s;
             }
 
@@ -612,7 +636,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 0f;
                 s.GlobeRx = 1.35f;
                 s.GlobeRy = 9.8f;
-                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.62f);
+                SetGlobeColor(ref s, PhosphorTheme.Patina);
                 s.CaretStemAlpha = 1.0f;
                 return s;
             }
@@ -629,7 +653,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 0f;
                 s.GlobeRx = 2.1f;
                 s.GlobeRy = 2.1f;
-                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.55f);
+                SetGlobeColor(ref s, PhosphorTheme.Patina);
                 s.FourWayShaftAlpha = 0.75f;
                 return s;
             }
@@ -646,7 +670,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 0f;
                 s.GlobeRx = 4.8f;
                 s.GlobeRy = 4.8f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.68f);
+                SetGlobeColor(ref s, PhosphorTheme.Coral);
                 s.OrbitalSpinWeight = 1.0f;
                 return s;
             }
@@ -662,7 +686,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 13.16f;
                 s.GlobeRx = 5.75f;
                 s.GlobeRy = 5.75f;
-                SetGlobeColor(ref s, PhosphorTheme.Coral, 0.72f);
+                SetGlobeColor(ref s, PhosphorTheme.Coral);
                 return s;
             }
 
@@ -692,7 +716,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 0f;
                 s.GlobeRx = 2.8f;
                 s.GlobeRy = 2.8f;
-                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.52f);
+                SetGlobeColor(ref s, PhosphorTheme.Patina);
                 s.ResizeShaftAlpha = 1.0f;
                 s.ResizeShaftAngleDeg = axisDeg;
                 return s;
@@ -710,7 +734,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 0f;
                 s.GlobeRx = 3.0f;
                 s.GlobeRy = 3.0f;
-                SetGlobeColor(ref s, PhosphorTheme.Patina, 0.55f);
+                SetGlobeColor(ref s, PhosphorTheme.Patina);
                 s.FourWayShaftAlpha = 0.85f;
                 return s;
             }
@@ -727,7 +751,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 0f;
                 s.GlobeRx = 4.2f;
                 s.GlobeRy = 4.2f;
-                SetGlobeColor(ref s, PhosphorTheme.Rust, 0.58f);
+                SetGlobeColor(ref s, PhosphorTheme.Rust);
                 s.ReticleRingAlpha = 0.9f;
                 s.SlashAlpha = 1.0f;
                 return s;
@@ -743,7 +767,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 13.16f;
                 s.GlobeRx = 5.8f;
                 s.GlobeRy = 5.8f;
-                SetGlobeColor(ref s, PhosphorTheme.Seal, 0.58f);
+                SetGlobeColor(ref s, PhosphorTheme.Seal);
                 s.QuestionAlpha = 1.0f;
                 return s;
             }
@@ -758,7 +782,7 @@ internal static class ArkApertureMorphEngine
                 s.GlobeY = 11.4f;
                 s.GlobeRx = 4.6f;
                 s.GlobeRy = 4.6f;
-                SetGlobeColor(ref s, PhosphorTheme.Seal, 0.55f);
+                SetGlobeColor(ref s, PhosphorTheme.Seal);
                 return s;
             }
 
@@ -767,12 +791,19 @@ internal static class ArkApertureMorphEngine
         }
     }
 
-    private static void SetGlobeColor(ref MorphState s, Color c, float bloom)
+    /// <summary>The pose the engine is easing toward and where it is now, for <see cref="CursorFilm"/> logs.</summary>
+    public static string Describe() => string.Create(System.Globalization.CultureInfo.InvariantCulture,
+        $"target={_targetName} top={_current.Top.X:0.0},{_current.Top.Y:0.0},{_current.Top.AngleDeg:0},{_current.Top.Alpha:0.00} " +
+        $"left={_current.Left.X:0.0},{_current.Left.Y:0.0},{_current.Left.AngleDeg:0},{_current.Left.Alpha:0.00} " +
+        $"caret={_current.CaretStemAlpha:0.00} resize={_current.ResizeShaftAlpha:0.00}@{_current.ResizeShaftAngleDeg:0} four={_current.FourWayShaftAlpha:0.00} " +
+        $"spin={_current.OrbitalSpinWeight:0.00} ring={_current.ReticleRingAlpha:0.00} slash={_current.SlashAlpha:0.00} q={_current.QuestionAlpha:0.00} " +
+        $"globe={(int)_current.GlobeR:X2}{(int)_current.GlobeG:X2}{(int)_current.GlobeB:X2} bank={_current.BankWeight:0.00} anim={(_isAnimating ? 1 : 0)}");
+
+    private static void SetGlobeColor(ref MorphState s, Color c)
     {
         s.GlobeR = c.R;
         s.GlobeG = c.G;
         s.GlobeB = c.B;
-        s.BloomStrength = bloom;
     }
 
     public static void DrawMorphedApertureCursor(
@@ -795,10 +826,8 @@ internal static class ArkApertureMorphEngine
         g.SmoothingMode = SmoothingMode.HighQuality;
         g.TranslateTransform(cx, cy);
 
-        // Apply subtle banking / true path rotation to pointer-like states; keep symmetric centered states upright
-        float roleBankWeight = (role is WindowsCursorRole.Arrow or WindowsCursorRole.Hand or WindowsCursorRole.AppStarting or WindowsCursorRole.Help)
-            ? 1.0f - Math.Clamp(_current.OrbitalSpinWeight + _current.CaretStemAlpha + _current.ResizeShaftAlpha + _current.FourWayShaftAlpha, 0f, 1f)
-            : 0f;
+        // Banking / true path rotation, eased with the shape (see MorphState.BankWeight).
+        float roleBankWeight = _current.BankWeight;
         if (Math.Abs(angleDeg) > 0.01f && roleBankWeight > 0.01f)
         {
             g.RotateTransform(angleDeg * roleBankWeight);

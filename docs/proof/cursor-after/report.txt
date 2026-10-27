@@ -1,0 +1,26 @@
+Live Omniwand on gala (144 DPI), ArkAperture style, AutoContextual morph. Fix build (bank weight eased in ArkApertureMorphEngine).
+frames.tsv: forced role sequence over the pipe (cursor:role), starting with a tilted Arrow switching to IBeam and Hand.
+f*.png: the overlay bitmap as drawn (centre 200x200), at most one per 1/60 s. roles-settled.png, arrow-to-ibeam.png, ibeam-to-arrow.png are built from them.
+
+cursor-after/frames.tsv: 993 loop frames, 589 redraws
+  largest one-frame change in drawn tilt: 6.8 deg
+        Arrow -> IBeam       tilt by frame [-22.5, -16.0, -11.2, -7.9, -5.6, -4.0, -2.9]  settled 501 ms
+        IBeam -> Arrow       tilt by frame [-0.0, -6.8, -11.2, -14.6, -16.6, -18.4, -19.6]  settled 501 ms
+        Arrow -> Hand        tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.5]  settled 550 ms
+         Hand -> IBeam       tilt by frame [-22.5, -16.2, -11.5, -8.6, -6.1, -4.0, -3.2]  settled 533 ms
+        IBeam -> Arrow       tilt by frame [-0.0, -6.8, -11.5, -14.6, -16.9, -18.4, -19.6]  settled 499 ms
+        Arrow -> IBeam       tilt by frame [-22.5, -16.9, -11.7, -8.3, -6.1, -4.3, -2.9]  settled 521 ms
+        IBeam -> Wait        tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled not within the hold
+         Wait -> Crosshair   tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 531 ms
+    Crosshair -> UpArrow     tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 548 ms
+      UpArrow -> SizeNWSE    tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 550 ms
+     SizeNWSE -> SizeNESW    tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 351 ms
+     SizeNESW -> SizeWE      tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 317 ms
+       SizeWE -> SizeNS      tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 331 ms
+       SizeNS -> SizeAll     tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 334 ms
+      SizeAll -> No          tilt by frame [-0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]  settled 546 ms
+           No -> Hand        tilt by frame [-0.0, -5.9, -9.4, -13.5, -16.0, -17.6, -19.1]  settled 496 ms
+         Hand -> AppStarting tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.5]  settled 190 ms
+  AppStarting -> Help        tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.5]  settled 448 ms
+         Help -> Arrow       tilt by frame [-22.5, -22.5, -22.5, -22.5, -22.5, -22.5, -22.5]  settled 547 ms
+
