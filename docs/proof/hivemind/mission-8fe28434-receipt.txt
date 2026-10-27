@@ -1,0 +1,6 @@
+15s ok:holodex:orders:WO-101|BOOTSTRAPPING|SCOUT|8fe28434-0279-4d02-bfd5-57312b3443dc|raw=
+30s ok:holodex:orders:WO-101|BOOTSTRAPPING|SCOUT|8fe28434-0279-4d02-bfd5-57312b3443dc|raw=
+45s ok:holodex:orders:WO-101|BOOTSTRAPPING|SCOUT|8fe28434-0279-4d02-bfd5-57312b3443dc|raw=
+60s ok:holodex:orders:WO-101|RUNNING|SCOUT|8fe28434-0279-4d02-bfd5-57312b3443dc|raw=
+75s ok:holodex:orders:WO-101|RUNNING|SCOUT|8fe28434-0279-4d02-bfd5-57312b3443dc|raw=
+90s ok:holodex:orders:WO-101|COMPLETED|SCOUT|8fe28434-0279-4d02-bfd5-57312b3443dc|raw=## Objective\n\nAgent: `scout`. Omniwand Hivemind check 9 completed.\n\n## Constraints\n\nRead-only mission. No changes made.\n\n## Validation\n\nPASS: Mission receipt format used.

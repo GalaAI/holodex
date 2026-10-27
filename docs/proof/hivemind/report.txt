@@ -57,7 +57,7 @@ Second pass (2026-10-27), after the reply cards started showing the receipt's mo
   Roster: holodex-live-roster-all.png, "HIVEMIND // LIVE // 36 AGENTS"; ALL now reads "Sent to gala, who
     orchestrates the group" instead of 36 wrapped names that pushed the session off the pane.
   Real dispatch and polling, work order to scout (holodex:order, the + button's path), sampled every 20 s with
-    holodex:orders (mission-a47f5893-polling.log):
+    holodex:orders (mission-a47f5893-polling.txt):
       executionId a47f5893-ee74-4e9c-9a2a-df17d239959e
       BOOTSTRAPPING (20 s, 40 s) -> RUNNING (60 s) -> COMPLETED (80 s)
     holodex:thread: "[SCOUT // HIVEMIND] objective agent:scout inputs Owner-submitted read-only runtime mission.
@@ -74,7 +74,7 @@ Receipt rendering (2026-10-27): agents answer missions in a receipt with Objecti
 Validation, seen live in four shapes ("## Name" headings, bare name lines, "Name: x; Name: y", "Name: x | Name: y").
 HivemindMission.Reply() reads all four: the Objective is the card body, Validation and Constraints are one LED each,
 and the model line is the receipt's model verbatim.
-  Mission 8fe28434-0279-4d02-bfd5-57312b3443dc (mission-8fe28434-receipt.log), raw result:
+  Mission 8fe28434-0279-4d02-bfd5-57312b3443dc (mission-8fe28434-receipt.txt), raw result:
     ## Objective / Agent: `scout`. Omniwand Hivemind check 9 completed. / ## Constraints / Read-only mission. No
     changes made. / ## Validation / PASS: Mission receipt format used.
   holodex:thread: [SCOUT // HIVEMIND] Agent: `scout`. Omniwand Hivemind check 9 completed.

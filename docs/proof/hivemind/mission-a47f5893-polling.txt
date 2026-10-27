@@ -1,0 +1,8 @@
+20s ok:holodex:orders:WO-101|BOOTSTRAPPING|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+40s ok:holodex:orders:WO-101|BOOTSTRAPPING|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+60s ok:holodex:orders:WO-101|RUNNING|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+80s ok:holodex:orders:WO-101|COMPLETED|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+100s ok:holodex:orders:WO-101|COMPLETED|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+120s ok:holodex:orders:WO-101|COMPLETED|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+140s ok:holodex:orders:WO-101|COMPLETED|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
+160s ok:holodex:orders:WO-101|COMPLETED|SCOUT|a47f5893-ee74-4e9c-9a2a-df17d239959e
