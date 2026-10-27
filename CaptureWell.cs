@@ -405,12 +405,6 @@ internal sealed class CapturedRow : Control
         }
 
         var rr = RemoveRect;
-        if (_hoverRemove) PhosphorPaint.FillRounded(g, rr, 10f * s, PhosphorTheme.Surface2);
-        using var pen = new Pen(_hoverRemove ? PhosphorTheme.Bone : PhosphorTheme.Dim, 1.8f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        float c = 5f * s;
-        var mid = new PointF(rr.X + rr.Width / 2f, rr.Y + rr.Height / 2f);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.DrawLine(pen, mid.X - c, mid.Y - c, mid.X + c, mid.Y + c);
-        g.DrawLine(pen, mid.X + c, mid.Y - c, mid.X - c, mid.Y + c);
+        PhosphorPaint.DrawXMark(g, new PointF(rr.X + rr.Width / 2f, rr.Y + rr.Height / 2f), s, _hoverRemove);
     }
 }

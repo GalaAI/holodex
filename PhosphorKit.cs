@@ -224,6 +224,19 @@ internal static class PhosphorPaint
         g.DrawPath(p, path);
     }
 
+    /// <summary>
+    /// The one X (LW-02): a 10px mark of two round-capped 1.5px strokes in muted bone, full bone when lit.
+    /// No circle, box, fill, outline or hover plate; the caller's hit area stays invisible.
+    /// </summary>
+    public static void DrawXMark(Graphics g, PointF center, float s, bool lit)
+    {
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        using var pen = new Pen(lit ? PhosphorTheme.Bone : PhosphorTheme.XMark, 1.5f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+        float c = 5f * s;
+        g.DrawLine(pen, center.X - c, center.Y - c, center.X + c, center.Y + c);
+        g.DrawLine(pen, center.X + c, center.Y - c, center.X - c, center.Y + c);
+    }
+
     /// <summary>The first opaque background up the parent chain, for controls that paint their own corners.</summary>
     public static Color ResolveBackColor(Control? c)
     {
@@ -353,7 +366,7 @@ internal sealed class PhosphorButton : Control
 
     public PhosphorButtonVariant Variant { get; set; }
 
-    /// <summary>Glyph mode draws the text as a single large glyph (the close ×) with no tracking.</summary>
+    /// <summary>Glyph mode is the close X (LW-02): the bare muted bone mark, no fill or border; Text stays the accessible name.</summary>
     public bool Glyph { get; set; }
 
     private bool _selected;
@@ -386,6 +399,15 @@ internal sealed class PhosphorButton : Control
         var g = e.Graphics;
         var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
         float radius = PhosphorTheme.RadiusButton * s;
+
+        if (Glyph)
+        {
+            if (!Enabled) return;
+            if (Focused && !_hover)
+                PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), Math.Max(1f, radius - 2f), Color.FromArgb(160, PhosphorTheme.Patina));
+            PhosphorPaint.DrawXMark(g, new PointF(Width / 2f, Height / 2f), s, _hover || _down);
+            return;
+        }
 
         Color fill, border, ink;
         switch (Variant)
@@ -435,15 +457,6 @@ internal sealed class PhosphorButton : Control
         }
 
         using var inkBrush = new SolidBrush(ink);
-        if (Glyph)
-        {
-            using var gf = new Font("Segoe UI", PhosphorFonts.Pt(20f), FontStyle.Regular, GraphicsUnit.Point);
-            using var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-            g.DrawString(Text, gf, inkBrush, rect, fmt);
-            return;
-        }
-
         float px = PhosphorTheme.TextButton;
         using var font = PhosphorFonts.Ui(px, heavy: true);
         string label = Text.ToUpperInvariant();

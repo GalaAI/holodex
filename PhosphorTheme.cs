@@ -85,6 +85,8 @@ public static class PhosphorTheme
     public static Color Plate => C("color-plate");
     public static Color PlateInk => C("color-plate-ink");
     public static Color Cream => C("color-cream");
+    /// <summary>The X mark at rest (LW-02, 2026-10-27): color-bone at 60%, no container or outline. Hover lifts it to Bone.</summary>
+    public static Color XMark => Color.FromArgb(153, Bone);
 
     // Signals and zone accents
     public static Color Ember => C("color-ember");      // warnings and gates only, never primary buttons
