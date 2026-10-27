@@ -250,7 +250,13 @@ public sealed class HivemindClient : IAsyncDisposable
                 SetState(HivemindState.NotSignedIn, string.Empty);
                 return false;
             }
-            if (interactive) SetState(HivemindState.SigningIn, string.Empty);
+            if (interactive)
+            {
+                // A browser sign-in registers afresh: the saved client id keeps the name it was registered under
+                // (Omniwand, before the rename), and Hivemind's Authorize page and client lists show that name.
+                ArkStationClient.TryDeleteWindowsCredential(CredentialTarget);
+                SetState(HivemindState.SigningIn, string.Empty);
+            }
 
             _client = await CreateClientAsync(interactive
                 ? BrowserSignInAsync
@@ -270,7 +276,7 @@ public sealed class HivemindClient : IAsyncDisposable
         }
     }
 
-    private Task<McpClient> CreateClientAsync(Func<AuthorizationCallbackContext, CancellationToken, Task<AuthorizationResult?>> authorize, CancellationToken ct)
+    private Task<McpClient> CreateClientAsync(Func<AuthorizationCallbackContext, CancellationToken, Task<AuthorizationResult?>> authorize, CancellationToken ct, ITokenCache? tokenCache = null)
     {
         var transport = new HttpClientTransport(new HttpClientTransportOptions
         {
@@ -284,7 +290,7 @@ public sealed class HivemindClient : IAsyncDisposable
                 Scopes = RequestedScopes,
                 // Hivemind names the client from this registration: Session posts and connected-client lists show "Holodex".
                 DynamicClientRegistration = new DynamicClientRegistrationOptions { ClientName = "Holodex", ApplicationType = "native" },
-                TokenCache = new WinCredTokenCache(CredentialTarget),
+                TokenCache = tokenCache ?? new WinCredTokenCache(CredentialTarget),
                 AuthorizationCallbackHandler = authorize
             }
         }, _http);
@@ -297,11 +303,11 @@ public sealed class HivemindClient : IAsyncDisposable
     /// <summary>
     /// Runs the sign-in up to the browser and stops there (pipe <c>hivemind:probe</c>): discovery, dynamic
     /// registration, PKCE and scope selection all happen against the live server, and the authorization URL the
-    /// browser would open comes back with its state and challenge redacted. Nothing is saved and no browser opens.
+    /// browser would open comes back with its state and challenge redacted. The probe registers into a throwaway
+    /// cache, so the saved sign-in is neither used nor touched, nothing is saved and no browser opens.
     /// </summary>
     public async Task<string> ProbeSignInAsync(CancellationToken ct = default)
     {
-        if (HasSavedSignIn) return "saved sign-in present; probe skipped";
         Uri? seen = null;
         try
         {
@@ -309,7 +315,7 @@ public sealed class HivemindClient : IAsyncDisposable
             {
                 seen = context.AuthorizationUri;
                 throw new OperationCanceledException("probe stops before the browser");
-            }, ct);
+            }, ct, new ThrowawayTokenCache());
             return "connected without a sign-in (unexpected)";
         }
         catch (Exception ex)
@@ -468,6 +474,18 @@ public sealed class HivemindClient : IAsyncDisposable
         public ValueTask StoreTokensAsync(TokenContainer tokens, CancellationToken cancellationToken)
         {
             ArkStationClient.TryWriteWindowsCredential(target, JsonSerializer.Serialize(tokens));
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>The probe's cache: starts empty and lives only as long as the probe (the SDK's own is internal).</summary>
+    private sealed class ThrowawayTokenCache : ITokenCache
+    {
+        private TokenContainer? _tokens;
+        public ValueTask<TokenContainer?> GetTokensAsync(CancellationToken cancellationToken) => ValueTask.FromResult(_tokens);
+        public ValueTask StoreTokensAsync(TokenContainer tokens, CancellationToken cancellationToken)
+        {
+            _tokens = tokens;
             return ValueTask.CompletedTask;
         }
     }
