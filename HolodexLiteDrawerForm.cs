@@ -95,8 +95,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
     // Who the session reaches: Hivemind's live roster once signed in, the offline roster until then.
     private IReadOnlyList<SyndicateAgentInfo> _roster = OfflineRoster;
     private HivemindState? _shownHivemindState;
-    /// <summary>The one card that says what the session reaches; a new Hivemind state replaces it, never stacks.</summary>
-    private ThreadCard? _hivemindStateCard;
     /// <summary>The composer, its footer and the roster line: they step aside while the profile is open over them.</summary>
     private Control[] _sessionComposerParts = Array.Empty<Control>();
 
@@ -384,14 +382,33 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _rosterChip.Fit();
         string who = agent.Id == "all" ? "all" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(agent.Name.ToLowerInvariant());
         _sessionSendBtn.Text = $"Send to {who}";
-        // The chip names the agent and its pod; the line says who else that reaches or the agent's role. The offline
-        // roster lists everyone; Hivemind's live roster (36 agents) would bury the session, so All says where it goes
-        // and the chip's menu lists the agents.
-        _activeRosterLabel.Set(agent.Id != "all"
-            ? new[] { (agent.Accent, agent.Role) }
-            : _roster == OfflineRoster
-                ? _roster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)).ToArray()
-                : new[] { (PhosphorTheme.Patina, $"Sent to {MissionTarget(agent)}, who orchestrates the group. The chip lists every agent.") });
+        ShowTargetLine();
+    }
+
+    /// <summary>
+    /// The line under the chip: first whether Hivemind is reached (the session thread holds only what was said), then
+    /// who the message reaches. The chip names the agent and its pod; the line adds its role, or for All where it
+    /// goes. The offline roster lists everyone; Hivemind's live roster (36 agents) would bury the line, so All says
+    /// where it goes and the chip's menu lists the agents.
+    /// </summary>
+    private void ShowTargetLine()
+    {
+        if (_activeRosterLabel == null || _openSession != null) return; // not built yet, or an open Hivemind session has its own line (ShowSessionLine)
+        var agent = _roster.FirstOrDefault(a => a.Id == _selectedSyndicateTarget) ?? _roster[0];
+        string error = _ark.Hivemind.LastError;
+        (Color, string) status = _ark.Hivemind.State switch
+        {
+            HivemindState.Connected => (PhosphorTheme.Moss, "Hivemind live"),
+            HivemindState.SigningIn => (PhosphorTheme.Seal, "Signing in: finish in the browser"),
+            HivemindState.Connecting => (PhosphorTheme.Ghost, "Connecting to Hivemind"),
+            HivemindState.Unreachable => (PhosphorTheme.Rust, $"Hivemind unreachable{(error.Length > 0 ? $" ({(error.Length > 48 ? error[..47] + "\u2026" : error)})" : "")}: replies are role-play"),
+            _ => (PhosphorTheme.Ember, "Signed out: replies are role-play, orders stay here")
+        };
+        var leds = new List<(Color, string)> { status };
+        if (agent.Id != "all") leds.Add((agent.Accent, agent.Role));
+        else if (_roster == OfflineRoster) leds.AddRange(_roster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)));
+        else leds.Add((PhosphorTheme.Patina, $"Goes to {MissionTarget(agent)}, who orchestrates the group"));
+        _activeRosterLabel.Set(leds.ToArray());
     }
 
     private void ShowTokenBar(bool show)
@@ -994,8 +1011,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     };
 
     /// <summary>
-    /// Reflects the Hivemind state: the sign-in button, the connection LED, the roster, and one intro card in the
-    /// session saying what a message reaches now.
+    /// Reflects the Hivemind state: the sign-in button, the connection LED, the roster, and the line under the chip
+    /// saying what a message reaches now. The session thread stays empty until something is sent.
     /// </summary>
     private void ShowHivemindState()
     {
@@ -1008,27 +1025,12 @@ public sealed partial class HolodexLiteDrawerForm : Form
         var led = HivemindLed();
         _hivemindLine.Set(led);
         _profileBtn.Status = led.Item1;
-        // Connecting is the moment before the saved sign-in is tried: no card until it succeeds or fails.
+        ShowTargetLine();
+        // Connecting is the moment before the saved sign-in is tried: nothing opens until it succeeds or fails.
         if (state == _shownHivemindState || state == HivemindState.Connecting) return;
         _shownHivemindState = state;
         // Signing in is done from the profile, so it opens when Hivemind needs it.
         if (state is HivemindState.NotSignedIn or HivemindState.Unreachable) ShowProfile(true);
-        string error = _ark.Hivemind.LastError;
-        // One status card: the old one goes, so signing in does not leave Signed out and Signing in behind it.
-        if (_hivemindStateCard != null && !_hivemindStateCard.IsDisposed) _hivemindStateCard.Dispose();
-        _hivemindStateCard = _sessionThread.Add(ThreadTone.Intro, state switch
-        {
-            HivemindState.Connected => "HIVEMIND // LIVE",
-            HivemindState.SigningIn => "HIVEMIND // SIGNING IN",
-            HivemindState.Unreachable => "HIVEMIND // UNREACHABLE",
-            _ => "HIVEMIND // SIGNED OUT"
-        }, state switch
-        {
-            HivemindState.Connected => "Messages and work orders go to the agents as real Hivemind missions. Each reply names its agent and model.",
-            HivemindState.SigningIn => "Finish in the browser: sign in with the Hivemind owner key, then Authorize. Holodex picks it up on its own.",
-            HivemindState.Unreachable => $"Hivemind did not answer ({(error.Length > 0 ? error : "no reason given")}). Until it does, replies are Nemotron role-play and work orders are not sent.",
-            _ => "Sign in from your profile (the avatar at the foot of the rail) to reach the real Hivemind agents. Until then replies are Nemotron role-play, labelled as such, and work orders are not sent."
-        });
         RefreshWorkOrdersText();
     }
 
