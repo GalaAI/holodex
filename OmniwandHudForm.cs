@@ -380,6 +380,19 @@ public sealed class OmniwandHudForm : Form
     }
 
     /// <summary>
+    /// Live capture (the pipe's hud:submit): asks <paramref name="question"/> through the real composer and Ask path,
+    /// with the screen toggle off so no screen pixels leave the machine for a capture.
+    /// </summary>
+    internal async Task AskForCaptureAsync(string question)
+    {
+        bool screen = _visionToggle.Selected;
+        _visionToggle.Selected = false;
+        _promptBox.Text = question;
+        try { await AskAsync(); }
+        finally { _visionToggle.Selected = screen; }
+    }
+
+    /// <summary>
     /// As-built render states (SurfaceCapture): "answered" shows a question with the screen and its answer as the
     /// cards a live ask adds; "reset" clears them.
     /// </summary>

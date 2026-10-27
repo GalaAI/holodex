@@ -17,6 +17,22 @@ namespace Omniwand;
 /// </summary>
 internal static class SurfaceCapture
 {
+    /// <summary>The toasts the catalog keeps or integrates, with the copy the app raises; rendered here, shown live by the pipe's toast:show.</summary>
+    internal static readonly (string File, string Title, string Body, string Eyebrow, ToastTone Tone)[] ToastCatalog =
+    {
+        ("toast-info", "Omniwand Active", "Actions Ring casts the eight Spell Orb slots. Right-click the tray mark for settings.", "PHOSPHOR SHELL // GRIMX WAND", ToastTone.Info),
+        ("toast-success", "Cast: Quick Cast", "Quick Cast dispatched through Input Spine.", "GRIMX SPELL // CAST", ToastTone.Success),
+        ("toast-warning", "Ritual not cast", "No Input Spine binding for grimx/ritual, so nothing was cast. Bind it in Input Studio.", "GRIMX SPELL // PERFORM", ToastTone.Warning),
+        ("toast-error", "Input Spine unreachable", "Input Spine (:8842) is unreachable, so nothing was cast. Start the Ark runtime and cast again.", "GRIMX SPELL // CAST", ToastTone.Error),
+        ("toast-cursor-profile", "Cursor profile", "Active Input Studio profile: Precision", "MX MASTER 4", ToastTone.Info),
+        ("toast-vr-mode", "VR mode", "Air Link detected. Native cursor hidden, wand enlarged.", "OMNIWAND // VR", ToastTone.Info),
+        ("toast-gateway", "Gateway unavailable", "No inbound key in Keymaster, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work.", "GATEWAY // KEYMASTER", ToastTone.Info),
+        ("toast-ghosttrailer", "GhostTrailer on", "Streaming the ribbon. F16 stops it.", "GHOSTTRAILER // F16", ToastTone.Info),
+        ("toast-cursor-shown", "Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "OMNIWAND // CURSOR", ToastTone.Info),
+        ("toast-intake", "Intake submitted", "Handoff Scroll sent to Eden and its inbox pulsed. Seal sha256:3f9a1c07b2de.", "AINBOX // POD EDEN", ToastTone.Success),
+        ("toast-crafted", "Ritual crafted", "Ritual drafted in Wiz. Bind it to a ring slot in Input Studio.", "WIZ // 4GE BENCH", ToastTone.Success),
+    };
+
     public static IReadOnlyList<string> CaptureAll(string dir, ContextMenuStrip trayMenu, params (string Name, Form Form)[] widgets)
     {
         Directory.CreateDirectory(dir);
@@ -71,21 +87,7 @@ internal static class SurfaceCapture
         Save(RenderCursorMorphSheet(), Path.Combine(dir, "cursor-morph-sheet.png"), written);
 
         // Toasts: every entry the toast catalog keeps or integrates, built by the real class with the copy the app raises.
-        (string File, string Title, string Body, string Eyebrow, ToastTone Tone)[] toasts =
-        {
-            ("toast-info", "Omniwand Active", "Actions Ring casts the eight Spell Orb slots. Right-click the tray mark for settings.", "PHOSPHOR SHELL // GRIMX WAND", ToastTone.Info),
-            ("toast-success", "Cast: Quick Cast", "Quick Cast dispatched through Input Spine.", "GRIMX SPELL // CAST", ToastTone.Success),
-            ("toast-warning", "Ritual not cast", "No Input Spine binding for grimx/ritual, so nothing was cast. Bind it in Input Studio.", "GRIMX SPELL // PERFORM", ToastTone.Warning),
-            ("toast-error", "Input Spine unreachable", "Input Spine (:8842) is unreachable, so nothing was cast. Start the Ark runtime and cast again.", "GRIMX SPELL // CAST", ToastTone.Error),
-            ("toast-cursor-profile", "Cursor profile", "Active Input Studio profile: Precision", "MX MASTER 4", ToastTone.Info),
-            ("toast-vr-mode", "VR mode", "Air Link detected. Native cursor hidden, wand enlarged.", "OMNIWAND // VR", ToastTone.Info),
-            ("toast-gateway", "Gateway unavailable", "No inbound key in Keymaster, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work.", "GATEWAY // KEYMASTER", ToastTone.Info),
-            ("toast-ghosttrailer", "GhostTrailer on", "Streaming the ribbon. F16 stops it.", "GHOSTTRAILER // F16", ToastTone.Info),
-            ("toast-cursor-shown", "Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "OMNIWAND // CURSOR", ToastTone.Info),
-            ("toast-intake", "Intake submitted", "Handoff Scroll sent to Eden and its inbox pulsed. Seal sha256:3f9a1c07b2de.", "AINBOX // POD EDEN", ToastTone.Success),
-            ("toast-crafted", "Ritual crafted", "Ritual drafted in Wiz. Bind it to a ring slot in Input Studio.", "WIZ // 4GE BENCH", ToastTone.Success),
-        };
-        foreach (var t in toasts)
+        foreach (var t in ToastCatalog)
             Save(PhosphorToast.RenderPreview(t.Title, t.Body, t.Eyebrow, t.Tone), Path.Combine(dir, $"{t.File}.png"), written);
 
         foreach (var (name, form) in widgets)
@@ -169,6 +171,14 @@ internal static class SurfaceCapture
     /// as an empty panel. Show it far off-screen without activating it (no focus taken from the operator),
     /// draw it, then hide it and put it back. A widget that is already open is drawn where it is.
     /// </summary>
+    /// <summary>Renders one live form offscreen (as the as-built render does) and saves it as a PNG.</summary>
+    internal static Size SaveForm(Form form, string path)
+    {
+        using var bmp = RenderForm(form);
+        bmp.Save(path, ImageFormat.Png);
+        return bmp.Size;
+    }
+
     private static Bitmap RenderForm(Form form)
     {
         if (form is ScreenSnipAndElementPickerForm snipForm)

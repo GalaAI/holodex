@@ -818,6 +818,80 @@ internal sealed class OmniwandAppContext : ApplicationContext
             }, null);
             return result;
         }
+        // Live capture hooks: the real surfaces driven through their own paths, waited on so a capture can follow.
+        if (cmd.StartsWith("hud:submit:", StringComparison.OrdinalIgnoreCase))
+        {
+            string q = cmd["hud:submit:".Length..].Trim();
+            RunOnUiAndWait(async () => { _hud.SummonAt(pt); await _hud.AskForCaptureAsync(q); });
+            return "ok:hud:submit";
+        }
+        if (cmd.StartsWith("wiz:submit:", StringComparison.OrdinalIgnoreCase))
+        {
+            string goal = cmd["wiz:submit:".Length..].Trim();
+            // Not waited on: a run that reaches an approval waits there for a person.
+            _uiSync.Post(async _ => { _wizWidget.SummonAt(pt); await _wizWidget.SubmitForCaptureAsync(goal); }, null);
+            return "ok:wiz:submit:started";
+        }
+        if (cmd.StartsWith("wiz:run:hidden:", StringComparison.OrdinalIgnoreCase))
+        {
+            // The same real run, in the Wiz window without showing it: nothing opens on the desktop or takes focus.
+            string goal = cmd["wiz:run:hidden:".Length..].Trim();
+            _uiSync.Post(async _ => await _wizWidget.SubmitForCaptureAsync(goal), null);
+            return "ok:wiz:run:hidden:started";
+        }
+        if (cmd.StartsWith("form:render:", StringComparison.OrdinalIgnoreCase))
+        {
+            // form:render:<hud|wiz|ainbox|holodex|snip>:<png>, drawn offscreen from the live form at its own DPI.
+            string[] parts = cmd["form:render:".Length..].Split(':', 2);
+            if (parts.Length < 2) return "error:form:render:name and path required";
+            Form? form = parts[0].ToLowerInvariant() switch
+            {
+                "hud" => _hud, "wiz" => _wizWidget, "ainbox" => _ainboxWidget, "holodex" => _holodexDrawer, "snip" => _snipWidget, _ => null
+            };
+            if (form == null) return $"error:form:render:unknown {parts[0]}";
+            string result = "error:form:render:not run";
+            _uiSync.Send(_ =>
+            {
+                try { var size = SurfaceCapture.SaveForm(form, parts[1].Trim()); result = $"ok:form:render:{parts[0]}:{size.Width}x{size.Height}:dpi={form.DeviceDpi}"; }
+                catch (Exception ex) { result = $"error:form:render:{ex.Message}"; }
+            }, null);
+            return result;
+        }
+        if (cmd.StartsWith("snip:ask:holodex:", StringComparison.OrdinalIgnoreCase))
+        {
+            // The lasso covers Omniwand's own Holodex window, so only its pixels go to the vision model.
+            string q = cmd["snip:ask:holodex:".Length..].Trim();
+            string rects = "";
+            RunOnUiAndWait(async () =>
+            {
+                if (!_holodexDrawer.Visible) return;
+                var target = _holodexDrawer.Bounds;
+                _snipWidget.SummonAt(new Point(target.X + target.Width / 2, target.Y + target.Height / 2), WandCaptureTool.FreeformLasso);
+                await _snipWidget.AskAboutRegionForCaptureAsync(target, q);
+                rects = string.Join(";", _snipWidget.ChromeScreenRects().Select(r => $"{r.X},{r.Y},{r.Width},{r.Height}"));
+            });
+            return rects.Length > 0 ? $"ok:snip:ask:rects={rects}" : "error:snip:ask:open Holodex first";
+        }
+        if (string.Equals(cmd, "snip:rects", StringComparison.OrdinalIgnoreCase))
+        {
+            string rects = "";
+            _uiSync.Send(_ => rects = string.Join(";", _snipWidget.ChromeScreenRects().Select(r => $"{r.X},{r.Y},{r.Width},{r.Height}")), null);
+            return $"ok:snip:rects={rects}";
+        }
+        if (cmd.StartsWith("ainbox:state:", StringComparison.OrdinalIgnoreCase))
+        {
+            string state = cmd["ainbox:state:".Length..].Trim();
+            _uiSync.Send(_ => { SummonAInboxIntake(); _ainboxWidget.PreviewState(state); }, null);
+            return $"ok:ainbox:state:{state}";
+        }
+        if (cmd.StartsWith("toast:show:", StringComparison.OrdinalIgnoreCase))
+        {
+            string file = cmd["toast:show:".Length..].Trim();
+            var t = SurfaceCapture.ToastCatalog.FirstOrDefault(x => string.Equals(x.File, file, StringComparison.OrdinalIgnoreCase));
+            if (t.File == null) return $"error:toast:show:unknown {file}";
+            _uiSync.Post(_ => PhosphorToast.Show(t.Title, t.Body, t.Eyebrow, 6000, t.Tone), null);
+            return $"ok:toast:show:{t.File}";
+        }
         if (string.Equals(cmd, "mouse:status", StringComparison.OrdinalIgnoreCase))
         {
             var active = MouseHardwareAndWandEngine.ActiveMouse;
@@ -1324,6 +1398,18 @@ internal sealed class OmniwandAppContext : ApplicationContext
             PhosphorToast.Show($"Mouse speed: {label}", $"Saved for your {MouseHardwareAndWandEngine.ActiveMouse.Name}.", "MOUSE // SPEED", 2400);
         };
         parent.DropDownItems.Add(item);
+    }
+
+    /// <summary>Runs <paramref name="work"/> on the UI thread and waits for it (up to three minutes) from the pipe thread.</summary>
+    private void RunOnUiAndWait(Func<Task> work)
+    {
+        var done = new TaskCompletionSource();
+        _uiSync.Post(async _ =>
+        {
+            try { await work(); done.TrySetResult(); }
+            catch (Exception ex) { done.TrySetException(ex); }
+        }, null);
+        done.Task.Wait(TimeSpan.FromMinutes(3));
     }
 
     /// <summary>Lists every mouse found, the one in use checked, and the Switch by itself toggle.</summary>

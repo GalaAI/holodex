@@ -443,6 +443,19 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     }
 
     /// <summary>
+    /// Live capture (the pipe's wiz:submit): sends <paramref name="goal"/> through the real composer and Send path,
+    /// without the screen. A run that reaches an approval waits there; nothing here approves it.
+    /// </summary>
+    internal async Task SubmitForCaptureAsync(string goal)
+    {
+        bool screen = _attachScreenToggle.Selected;
+        _attachScreenToggle.Selected = false;
+        _promptBox.Text = goal;
+        try { await SubmitCraftingPromptAsync(); }
+        finally { _attachScreenToggle.Selected = screen; }
+    }
+
+    /// <summary>
     /// As-built render states (SurfaceCapture): "agent" draws a sample agent thread written through the same
     /// IWizThread calls a live run makes, stopped on an approval; "reset" puts the intro back.
     /// </summary>

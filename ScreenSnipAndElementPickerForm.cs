@@ -378,6 +378,30 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _visionOutputBox.Add(tone, kicker, text);
     }
 
+    /// <summary>
+    /// Live capture (the pipe's snip:ask): lassoes <paramref name="screenRect"/> on the frozen desktop and asks the
+    /// vision model about it through the real Ask path. Only the lassoed pixels are sent, as with a drawn lasso.
+    /// </summary>
+    internal Task AskAboutRegionForCaptureAsync(Rectangle screenRect, string question)
+    {
+        SelectTool(WandCaptureTool.FreeformLasso);
+        var r = new Rectangle(screenRect.X - _overlayScreen.X, screenRect.Y - _overlayScreen.Y, screenRect.Width, screenRect.Height);
+        _lassoPoints.Clear();
+        _lassoPoints.AddRange(new[] { new Point(r.Left, r.Top), new Point(r.Right, r.Top), new Point(r.Right, r.Bottom), new Point(r.Left, r.Bottom), new Point(r.Left, r.Top) });
+        UpdateLassoBoundingBox();
+        _visionPromptBox.Text = question;
+        Invalidate(true);
+        return RunLiveVisionAnalysisAsync();
+    }
+
+    /// <summary>The overlay's own chrome in screen pixels (toolbar, drawer, selection), so a capture can mask the rest.</summary>
+    internal Rectangle[] ChromeScreenRects() => new[]
+    {
+        RectangleToScreen(_topToolbar.Bounds),
+        RectangleToScreen(_actionDrawer.Bounds),
+        RectangleToScreen(Rectangle.Inflate(_selectionRect, 6, 6))
+    };
+
     /// <summary>For the as-built render: "answered" shows an answer card for the seeded lasso; "reset" returns to guidance.</summary>
     internal void PreviewState(string state)
     {

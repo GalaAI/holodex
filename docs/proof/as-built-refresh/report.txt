@@ -1,0 +1,32 @@
+As built refresh, 2026-10-27, gala primary display at 150% (dpi 144)
+Canvas: Omniwand UI, version 82 (1793088261-d4a8)
+
+How each shot was made
+- Tray menu (5): live, TrayProbe opens the real menu at the tray icon's rect and copies the screen; no input.
+  Everything outside the menu panels and the tray icon is masked.
+- Holodex (6): live window captures.
+- HUD answered, Wiz at rest, AInbox stack and review, Snip at rest and answered: live window captures.
+  Corners outside each window's rounded frame are masked; the Snip overlay's frozen desktop is masked
+  except its tool bar, its drawer and (answered) the lasso, which covers Omniwand's own Holodex window.
+- HUD answered is a real text-only ask (screen toggle off for the ask, restored after).
+- Snip answered is a real vision ask; only the lassoed Holodex pixels were sent.
+- Wiz mid-run is a real agent run (queue_work_order for Arbiter) in the hidden Wiz window, rendered
+  offscreen; it stopped at its approval card and nothing was approved (the 3-minute limit later ended it).
+- Toasts (11), HUD at rest, AInbox at rest: rendered offscreen from the running app at 150%.
+  Live toasts at 150% were clipped (a 96-DPI width with 150% fonts); fixed in PhosphorToast.
+  The live HUD and AInbox at rest picked up keystrokes typed elsewhere while they had focus, so the
+  offscreen renders of the same forms were used instead.
+- AInbox stack and review show the form's sample captures (PreviewState), not real files.
+
+Canvas changes
+- Removed design targets superseded by As built boards: Main (tray menu v0.2), Toasts (catalog),
+  Hud (Gemini-Argon dropdowns), Wiz (lens and model dropdowns), AInbox (old intake form).
+- Kept Marks (tray icon sizes and Options+ Actions Ring chips: no As built board covers them) and
+  AInboxCapture (targets ainbox-service :8840 via capture-core, marked not wired yet).
+- GrimX Flows and AInbox Upload pages untouched. Justin's sketch strokes on the tray menu and Holodex
+  boards restored; notes kept; title maxW set to the new row widths.
+
+Found while capturing
+- Live toasts clipped at 150% (fixed).
+- The first tray:shoot after a launch fails with "menu is not open"; later ones work.
+- The HUD answer card is cut off under the LEDs with no visible scrollbar on a long answer.

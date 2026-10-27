@@ -62,12 +62,16 @@ internal sealed class PhosphorToast : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "Toast";
-        Size = new Size(WidthPx, MeasureHeight());
+        // Sized for the primary monitor's DPI (where it shows): the fonts draw at that DPI, so a 96-DPI width cut
+        // the eyebrow and body at 150%. DeviceDpi is the monitor's even before the first Show.
+        float s = DeviceDpi / 96f;
+        Size = new Size((int)Math.Round(WidthPx * s), MeasureHeight(s));
         WidgetChrome.ClipToFrame(this);
         Opacity = 0.0;
 
         var area = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
-        _rest = new Point(area.Right - Width - 16, area.Bottom - Height - 16);
+        int margin = (int)Math.Round(16 * s);
+        _rest = new Point(area.Right - Width - margin, area.Bottom - Height - margin);
         Location = new Point(_rest.X, _rest.Y + RisePx);
 
         Click += (_, _) => Close();
@@ -164,18 +168,19 @@ internal sealed class PhosphorToast : Form
         _ => PhosphorTheme.Line2,
     };
 
-    private int MeasureHeight()
+    private int MeasureHeight(float s)
     {
         using var bmp = new Bitmap(1, 1);
+        bmp.SetResolution(96f * s, 96f * s);
         using var g = Graphics.FromImage(bmp);
         using var eyebrowFont = PhosphorFonts.Eyebrow();
         using var titleFont = PhosphorFonts.Ui(PhosphorTheme.TextSection, heavy: true);
         using var bodyFont = PhosphorFonts.Body(PhosphorTheme.TextBody);
         float bodyH = string.IsNullOrEmpty(_body)
             ? 0
-            : g.MeasureString(_body, bodyFont, WidthPx - TextLeft - PadRight, BodyFormat).Height;
-        float h = PadTop + eyebrowFont.GetHeight(g) + 4 + titleFont.GetHeight(g) + (bodyH > 0 ? 6 + bodyH : 0) + PadBottom;
-        return Math.Max(84, (int)Math.Ceiling(h));
+            : g.MeasureString(_body, bodyFont, (int)Math.Round((WidthPx - TextLeft - PadRight) * s), BodyFormat).Height;
+        float h = PadTop * s + eyebrowFont.GetHeight(g) + 4 * s + titleFont.GetHeight(g) + (bodyH > 0 ? 6 * s + bodyH : 0) + PadBottom * s;
+        return Math.Max((int)Math.Round(84 * s), (int)Math.Ceiling(h));
     }
 
     protected override void OnPaint(PaintEventArgs e)
