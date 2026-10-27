@@ -22,7 +22,8 @@ public sealed record SyndicateWorkOrder(
     string OwnerAgent,
     string Status,
     string CreatedAt,
-    string ExecutionId = "");
+    string ExecutionId = "",
+    string Result = "");
 
 /// <summary>
 /// Holodex Lite Dashboard Drawer (Alt+H, Mouse5, HUD button, pipe holodex:summon).
@@ -784,7 +785,7 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         int i = _workOrders.FindIndex(w => w.OrderId == orderId);
         if (i < 0) return;
-        _workOrders[i] = _workOrders[i] with { Status = mission.Status.ToUpperInvariant(), ExecutionId = mission.ExecutionId };
+        _workOrders[i] = _workOrders[i] with { Status = mission.Status.ToUpperInvariant(), ExecutionId = mission.ExecutionId, Result = mission.Result };
         RefreshWorkOrdersText();
     }
 
@@ -841,8 +842,18 @@ public sealed class HolodexLiteDrawerForm : Form
             // be checked against Hivemind; it is the receipt's claim, not Omniwand's.
             string model = $"\n\nModel (Hivemind receipt): {(mission.Model.Length > 0 ? mission.Model : "not reported")}";
             if (mission.Status == "completed")
+            {
+                // The answer is the body; the receipt's verdict and constraints are one LED each under it.
+                var reply = mission.Reply();
+                var leds = new List<(Color, string)>();
+                if (reply.Validation.Length > 0)
+                    leds.Add((reply.Validation.StartsWith("PASS", StringComparison.OrdinalIgnoreCase) ? PhosphorTheme.Moss
+                        : reply.Validation.StartsWith("FAIL", StringComparison.OrdinalIgnoreCase) ? PhosphorTheme.Rust : PhosphorTheme.Ghost,
+                        $"Validation // {reply.Validation}"));
+                if (reply.Constraints.Length > 0) leds.Add((PhosphorTheme.Ghost, reply.Constraints));
                 _sessionThread.Add(ThreadTone.Agent, $"{mission.AgentId.ToUpperInvariant()} // HIVEMIND",
-                    (mission.Result.Length > 0 ? mission.Result : "Completed with no text result.") + model);
+                    (reply.Answer.Length > 0 ? reply.Answer : "Completed with no text result.") + model, leds: leds.Count > 0 ? leds : null);
+            }
             else if (mission.Finished)
                 _sessionThread.Add(ThreadTone.Fail, $"{mission.AgentId.ToUpperInvariant()} // {mission.Status.ToUpperInvariant()} // HIVEMIND",
                     (mission.Error.Length > 0 ? mission.Error : $"The mission ended {mission.Status}.") + model);
@@ -931,11 +942,12 @@ public sealed class HolodexLiteDrawerForm : Form
     }
 
     /// <summary>The work orders with each one's full Hivemind execution id, for pipe holodex:orders.</summary>
-    public string DescribeWorkOrders() => string.Join(" || ", _workOrders.Select(w => $"{w.OrderId}|{w.Status}|{w.OwnerAgent}|{w.ExecutionId}"));
+    public string DescribeWorkOrders() => string.Join(" || ", _workOrders.Select(w =>
+        $"{w.OrderId}|{w.Status}|{w.OwnerAgent}|{w.ExecutionId}|raw={w.Result.Replace("\r", "").Replace("\n", "\\n")}"));
 
     /// <summary>The session's newest cards as they read (kicker, body, result), newest last, for pipe holodex:thread.</summary>
     public string DescribeSessionThread(int count) => string.Join(" || ", _sessionThread.Cards.TakeLast(Math.Max(1, count))
-        .Select(c => $"[{c.Kicker}] {c.Body}{(c.Result != null ? $" => {c.Result}" : "")}".Replace("\r", " ").Replace("\n", " ")));
+        .Select(c => $"[{c.Kicker}] {c.Body}{(c.Result != null ? $" => {c.Result}" : "")}{(c.Leds.Count > 0 ? " leds=" + string.Join(" | ", c.Leds.Select(l => l.Text)) : "")}".Replace("\r", " ").Replace("\n", " ")));
 
     /// <summary>Sends <paramref name="message"/> to <paramref name="agentId"/> exactly as the session's Send button does.</summary>
     public async void SendSessionMessage(string agentId, string message)

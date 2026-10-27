@@ -69,3 +69,15 @@ Second pass (2026-10-27), after the reply cards started showing the receipt's mo
     receipt left model empty ("not reported"); gala's d50cc2db receipt said gguf default while gala answered Codex.
   Startup: a saved sign-in now starts as HIVEMIND // CONNECTING with no card, instead of a false
     "HIVEMIND // UNREACHABLE (no reason given)" card before the first connect (holodex-live-startup.png).
+
+Receipt rendering (2026-10-27): agents answer missions in a receipt with Objective, Inputs, Constraints and
+Validation, seen live in four shapes ("## Name" headings, bare name lines, "Name: x; Name: y", "Name: x | Name: y").
+HivemindMission.Reply() reads all four: the Objective is the card body, Validation and Constraints are one LED each,
+and the model line is the receipt's model verbatim.
+  Mission 8fe28434-0279-4d02-bfd5-57312b3443dc (mission-8fe28434-receipt.log), raw result:
+    ## Objective / Agent: `scout`. Omniwand Hivemind check 9 completed. / ## Constraints / Read-only mission. No
+    changes made. / ## Validation / PASS: Mission receipt format used.
+  holodex:thread: [SCOUT // HIVEMIND] Agent: `scout`. Omniwand Hivemind check 9 completed.
+    Model (Hivemind receipt): not reported  leds=Validation // PASS: Mission receipt format used. | Read-only
+    mission. No changes made.
+  holodex-live-reply-parsed.png: the answer as the body (the LEDs sit below the visible part of the thread).

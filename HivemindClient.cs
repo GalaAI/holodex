@@ -34,7 +34,44 @@ public sealed record HivemindAgent(string Id, string Name, string Role, string P
 public sealed record HivemindMission(string ExecutionId, string AgentId, string Status, string Model, string Result, string Error)
 {
     public bool Finished => Status is "completed" or "failed" or "cancelled" or "timed_out";
+
+    /// <summary>
+    /// The result as a reply: agents answer a mission with a short receipt in sections (Objective, Inputs,
+    /// Constraints, Validation). Seen live in four shapes: "## Name" heading lines, bare section-name lines, and
+    /// inline "Name: text; Name: text" or "Name: text | Name: text". The answer is the Objective (or Answer, Result, Summary) section, the verdict
+    /// is the Validation section's first line, and Constraints is kept as a one-line note; Inputs echoes the mission
+    /// and is dropped. A result without sections is the answer.
+    /// </summary>
+    public HivemindReply Reply()
+    {
+        // Inline "Name: text" segments (at a line start or after ; | · or •) become heading lines, so one parse reads all.
+        string text = System.Text.RegularExpressions.Regex.Replace(Result.Replace("\r", ""),
+            @"(^|[;|·•])[ \t]*(?:#{1,6}[ \t]*)?(?<name>objective|answer|result|summary|inputs|constraints|validation|verdict)[ \t]*:[ \t]*",
+            "\n## ${name}\n",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Multiline);
+        var sections = new List<(string Name, List<string> Lines)>();
+        foreach (string raw in text.Split('\n'))
+        {
+            var head = System.Text.RegularExpressions.Regex.Match(raw.Trim(),
+                @"^(?:#{1,6}\s*(?<name>[A-Za-z][A-Za-z ]{0,30})|(?<name>objective|answer|result|summary|inputs|constraints|validation|verdict))\s*:?$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (head.Success) { sections.Add((head.Groups["name"].Value.Trim().ToLowerInvariant(), new List<string>())); continue; }
+            if (sections.Count == 0) sections.Add(("", new List<string>()));
+            sections[^1].Lines.Add(raw);
+        }
+        string Text(params string[] names) => string.Join("\n", sections.Where(s => names.Contains(s.Name)).SelectMany(s => s.Lines)).Trim();
+        string First(params string[] names) => Text(names).Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) ?? "";
+
+        if (sections.All(s => s.Name.Length == 0)) return new HivemindReply(Result.Trim(), "", "");
+        string answer = FirstNonEmpty(Text("objective", "answer", "result", "summary", "response"), Text(""));
+        return new HivemindReply(answer, First("validation", "verdict"), First("constraints"));
+    }
+
+    private static string FirstNonEmpty(params string[] values) => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? "";
 }
+
+/// <summary>A mission result read as a reply: the answer, the validation verdict, and the constraints note.</summary>
+public sealed record HivemindReply(string Answer, string Validation, string Constraints);
 
 /// <summary>
 /// Omniwand's connection to the real Hivemind: the remote MCP server at hivemind.arkomnitek.com/mcp, through the
