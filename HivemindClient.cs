@@ -107,6 +107,25 @@ public sealed class HivemindClient : IAsyncDisposable
     /// </summary>
     public Task<bool> SignInAsync(CancellationToken ct = default) => ConnectAsync(interactive: true, ct);
 
+    /// <summary>
+    /// Signs Omniwand out of Hivemind: drops the connection and deletes the saved tokens and client id from
+    /// <c>Omniwand:HivemindToken</c>. The next Sign in registers again and opens the browser.
+    /// </summary>
+    public async Task SignOutAsync()
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            await DropClientAsync();
+            ArkStationClient.TryDeleteWindowsCredential(CredentialTarget);
+            SetState(HivemindState.NotSignedIn, string.Empty);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     /// <summary>Connects with the saved sign-in only; false (and no browser) when there is none or it no longer works.</summary>
     public Task<bool> EnsureConnectedAsync(CancellationToken ct = default) => ConnectAsync(interactive: false, ct);
 

@@ -311,6 +311,13 @@ public sealed class ArkStationClient
     [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool CredWriteW([In] ref CREDENTIALW userCredential, uint flags);
 
+    [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredDeleteW(string target, uint type, uint flags);
+
+    /// <summary>Deletes a generic Windows credential; true when it is gone (deleted, or was never there).</summary>
+    internal static bool TryDeleteWindowsCredential(string targetName) =>
+        CredDeleteW(targetName, 1, 0) || Marshal.GetLastWin32Error() == 1168; // ERROR_NOT_FOUND
+
     [DllImport("advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
     private static extern void CredFree(IntPtr cred);
 

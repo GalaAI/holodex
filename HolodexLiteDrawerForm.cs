@@ -50,11 +50,17 @@ public sealed class HolodexLiteDrawerForm : Form
     private readonly LedRow _connectionTelemetry;
     private readonly PhosphorButton _replaceKeyBtn;
     private readonly PhosphorButton _hivemindBtn;
+    private readonly PhosphorButton _signOutBtn;
     private readonly LedRow _hivemindLine;
+
+    // Profile: the avatar in the header opens the panel that holds the account, the key and the gateway.
+    private readonly AvatarButton _profileBtn;
+    private readonly Panel _profilePanel;
+    private bool _profileOpen;
     private bool _connected;
     private bool _tokenBarOpen;
 
-    private readonly Dictionary<string, PhosphorButton> _tabButtons = new();
+    private readonly Dictionary<string, RailButton> _tabButtons = new();
     private readonly Panel _contentHost;
 
     // Tab panels
@@ -144,12 +150,12 @@ public sealed class HolodexLiteDrawerForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "Holodex";
-        Size = new Size(500, 760);
+        Size = new Size(560, 760);
         Padding = WidgetChrome.FramePadding();
 
         bool hasNebiusKey = HasNebiusKey;
-        // The connection is said once, by the telemetry line under the header. With a key linked the key row stays
-        // hidden, and Replace key brings it back.
+        // The account, the key and the gateway live in the profile panel (the avatar in the header opens it). It opens
+        // itself when something needs signing in; with everything linked the header is the title and the avatar.
 
         _tokenBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface, Name = "Holodex.TokenBar" };
         _tokenField = new PhosphorField("Paste a Nebius Token Factory key. It is saved to Windows Credential Manager.", false, 40, mono: true)
@@ -187,38 +193,61 @@ public sealed class HolodexLiteDrawerForm : Form
         _hivemindLine = new LedRow { Dock = DockStyle.Fill, Height = 36, Name = "Holodex.HivemindLine" };
         _hivemindBtn = new PhosphorButton("Sign in", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.HivemindSignInButton" };
         _hivemindBtn.Click += async (_, _) => await SignInToHivemindAsync();
+        _signOutBtn = new PhosphorButton("Sign out") { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.HivemindSignOutButton" };
+        _signOutBtn.Click += async (_, _) => await SignOutOfHivemindAsync();
         hivemindRow.Controls.Add(_hivemindLine);
         hivemindRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
         hivemindRow.Controls.Add(_hivemindBtn);
+        hivemindRow.Controls.Add(_signOutBtn);
         _ark.Hivemind.StateChanged += () => { if (IsHandleCreated) BeginInvoke(new Action(ShowHivemindState)); };
         _connected = hasNebiusKey;
 
-        // 2. 5-Tab Bar: SESSION | AINBOX | CODEX | GRIMX | MODS
-        var tabBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface, Name = "Holodex.TabBar" };
-        var tabs = new (string Id, string Label)[]
+        // Who Omniwand runs as on this machine: the Windows account, read from the system, never typed in.
+        var identityLine = new LedRow { Dock = DockStyle.Top, Height = 28, Name = "Holodex.ProfileIdentity" };
+        identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, "OMNIWAND v0.3"));
+
+        // The profile panel, top to bottom: identity, Hivemind (sign in or out), the gateway and key, the key row.
+        // Docked children stack from the last added, so they are added bottom first.
+        _profilePanel = new Panel { Dock = DockStyle.Top, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ProfilePanel" };
+        _profilePanel.Paint += (_, e) =>
         {
-            ("session", "Session"),
-            ("ainbox",  "AInbox"),
-            ("codex",   "Codex"),
-            ("grimx",   "GrimX"),
-            ("mods",    "Mods")
+            using var line = new Pen(PhosphorTheme.Line);
+            e.Graphics.DrawLine(line, 0, _profilePanel.Height - 1, _profilePanel.Width, _profilePanel.Height - 1);
         };
-        int tabX = 0;
-        int tabW = 86;
-        foreach (var (id, label) in tabs)
+        _profilePanel.Controls.Add(WidgetChrome.Spacer(10));
+        _profilePanel.Controls.Add(_tokenBar);
+        _profilePanel.Controls.Add(_tokenGap);
+        _profilePanel.Controls.Add(connectionRow);
+        _profilePanel.Controls.Add(WidgetChrome.Spacer(4));
+        _profilePanel.Controls.Add(hivemindRow);
+        _profilePanel.Controls.Add(WidgetChrome.Spacer(4));
+        _profilePanel.Controls.Add(identityLine);
+        _profileBtn = new AvatarButton("Holodex.ProfileButton", "Profile") { Size = new Size(36, 36) };
+        _profileBtn.Click += (_, _) => ShowProfile(!_profileOpen);
+
+        // The tabs, as the ArkStation rail draws its zones (station-shell Rail, collapsed): an icon per tab, the
+        // label in its tooltip, the active tab as the neutral pill. Icons are the web console Holodex's lucide set.
+        var rail = new Panel { Dock = DockStyle.Left, Width = 60, BackColor = PhosphorTheme.Surface, Padding = new Padding(4, 8, 4, 8), Name = "Holodex.Rail" };
+        rail.Paint += (_, e) =>
+        {
+            using var line = new Pen(PhosphorTheme.Line);
+            e.Graphics.DrawLine(line, rail.Width - 1, 0, rail.Width - 1, rail.Height);
+        };
+        var tabs = new (string Id, string Label, PhosphorGlyph Glyph)[]
+        {
+            ("session", "Session", PhosphorGlyph.Chat),
+            ("ainbox",  "AInbox",  PhosphorGlyph.Inbox),
+            ("codex",   "Codex",   PhosphorGlyph.BookOpen),
+            ("grimx",   "GrimX",   PhosphorGlyph.Sparkles),
+            ("mods",    "Mods",    PhosphorGlyph.WandSparkles)
+        };
+        foreach (var (id, label, glyph) in tabs.Reverse())
         {
             string capturedId = id;
-            var btn = new PhosphorButton(label)
-            {
-                Selected = id == _activeTab,
-                Location = new Point(tabX, 2),
-                Size = new Size(tabW, 34),
-                Name = $"Holodex.Tab.{id}"
-            };
+            var btn = new RailButton($"Holodex.Tab.{id}", glyph, label) { Dock = DockStyle.Top, Height = 44, Selected = id == _activeTab };
             btn.Click += (_, _) => SwitchTab(capturedId);
             _tabButtons[id] = btn;
-            tabBar.Controls.Add(btn);
-            tabX += tabW + 6;
+            rail.Controls.Add(btn);
         }
 
         // 3. Content Host for the 5 tabs
@@ -230,16 +259,11 @@ public sealed class HolodexLiteDrawerForm : Form
         BuildModsTab();
 
         Controls.Add(_contentHost);
+        Controls.Add(new Panel { Dock = DockStyle.Left, Width = 12, BackColor = Color.Transparent });
+        Controls.Add(rail);
         Controls.Add(WidgetChrome.Spacer(8));
-        Controls.Add(tabBar);
-        Controls.Add(_tokenGap);
-        Controls.Add(_tokenBar);
-        Controls.Add(WidgetChrome.Spacer(6));
-        Controls.Add(hivemindRow);
-        Controls.Add(WidgetChrome.Spacer(4));
-        Controls.Add(connectionRow);
-        Controls.Add(WidgetChrome.Spacer(4));
-        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null);
+        Controls.Add(_profilePanel);
+        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, _profileBtn);
         WidgetDrag.Enable(this);
 
         ShowTokenBar(!hasNebiusKey);
@@ -340,7 +364,29 @@ public sealed class HolodexLiteDrawerForm : Form
         // Without a working connection the key row is the way in, so it has no Replace toggle.
         _replaceKeyBtn.Visible = _connected;
         _replaceKeyBtn.Text = show ? "Cancel" : "Replace key";
+        if (show) ShowProfile(true);
+        FitProfile();
         if (show) _tokenField.Box.Focus();
+    }
+
+    /// <summary>The avatar's click, for pipe holodex:profile:open|close.</summary>
+    public void SetProfileOpen(bool open) => ShowProfile(open);
+
+    /// <summary>Opens or closes the profile panel under the header; the avatar is lit while it is open.</summary>
+    private void ShowProfile(bool open)
+    {
+        _profileOpen = open;
+        _profilePanel.Visible = open;
+        _profileBtn.Open = open;
+        _profileBtn.Invalidate();
+        FitProfile();
+    }
+
+    /// <summary>Sizes the profile panel to its visible rows.</summary>
+    private void FitProfile()
+    {
+        int h = _profilePanel.Controls.Cast<Control>().Where(c => c.Visible).Sum(c => c.Height);
+        if (_profilePanel.Height != h) _profilePanel.Height = h;
     }
 
     private static Color PodAccent(string token) => token switch
@@ -889,11 +935,16 @@ public sealed class HolodexLiteDrawerForm : Form
         _hivemindBtn.Visible = state is HivemindState.NotSignedIn or HivemindState.Unreachable;
         _hivemindBtn.Text = state == HivemindState.Unreachable ? "Reconnect" : "Sign in";
         _hivemindBtn.Enabled = state != HivemindState.SigningIn;
+        _signOutBtn.Visible = state is HivemindState.Connected or HivemindState.Unreachable;
         if (state != HivemindState.Connected && _roster != OfflineRoster) SetRoster(OfflineRoster);
-        _hivemindLine.Set(HivemindLed());
+        var led = HivemindLed();
+        _hivemindLine.Set(led);
+        _profileBtn.Status = led.Item1;
         // Connecting is the moment before the saved sign-in is tried: no card until it succeeds or fails.
         if (state == _shownHivemindState || state == HivemindState.Connecting) return;
         _shownHivemindState = state;
+        // Signing in is done from the profile, so it opens when Hivemind needs it.
+        if (state is HivemindState.NotSignedIn or HivemindState.Unreachable) ShowProfile(true);
         string error = _ark.Hivemind.LastError;
         _sessionThread.Add(ThreadTone.Intro, state switch
         {
@@ -906,7 +957,7 @@ public sealed class HolodexLiteDrawerForm : Form
             HivemindState.Connected => "Messages and work orders go to the agents as real Hivemind missions. Each reply names its agent and model.",
             HivemindState.SigningIn => "Finish in the browser: sign in with the Hivemind owner key, then Authorize. Omniwand picks it up on its own.",
             HivemindState.Unreachable => $"Hivemind did not answer ({(error.Length > 0 ? error : "no reason given")}). Until it does, replies are Nemotron role-play and work orders are not sent.",
-            _ => "Sign in (above) to reach the real Hivemind agents. Until then replies are Nemotron role-play, labelled as such, and work orders are not sent."
+            _ => "Sign in from your profile (top right) to reach the real Hivemind agents. Until then replies are Nemotron role-play, labelled as such, and work orders are not sent."
         });
         RefreshWorkOrdersText();
     }
@@ -931,6 +982,13 @@ public sealed class HolodexLiteDrawerForm : Form
             a.DispatchReady ? PhosphorTheme.Patina : PhosphorTheme.Ghost)));
         SetRoster(live);
         _hivemindLine.Set(HivemindLed());
+    }
+
+    private async Task SignOutOfHivemindAsync()
+    {
+        await _ark.Hivemind.SignOutAsync();
+        PhosphorToast.Show("Signed out of Hivemind", "The saved sign-in was removed from Windows Credential Manager.", "HOLODEX // HIVEMIND", 3200, ToastTone.Info);
+        await RefreshConnectionHeaderAsync();
     }
 
     private async Task SignInToHivemindAsync()
@@ -1095,11 +1153,11 @@ public sealed class HolodexLiteDrawerForm : Form
             SwitchTab(tab);
         }
 
-        // The drawer's 500 x 820 is logical: at 150% it is 750 x 1230 device pixels, capped by the work area.
+        // The drawer's 560 x 820 is logical: at 150% it is 840 x 1230 device pixels, capped by the work area.
         var work = Screen.FromPoint(cursorPos).WorkingArea;
         float s = DeviceDpi / 96f; // the monitor's DPI even before the first Show (PhosphorPaint.Scale is 1 until then)
         int h = Math.Min((int)Math.Round(820 * s), work.Height - (int)Math.Round(24 * s));
-        Size = new Size((int)Math.Round(500 * s), h);
+        Size = new Size((int)Math.Round(560 * s), h);
         Location = new Point(work.Right - Width - 12, work.Top + (work.Height - h) / 2);
 
         Show();

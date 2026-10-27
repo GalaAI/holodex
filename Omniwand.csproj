@@ -32,6 +32,8 @@
   <!-- Official MCP C# SDK, client only (no ASP.NET hosting): Hivemind's remote MCP endpoint and its OAuth 2.1 sign-in. -->
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol.Core" Version="2.3.0" />
+    <!-- SVG.NET: the one SVG path reader (SvgPaths) for the emblem geometry and the lucide icons. -->
+    <PackageReference Include="Svg" Version="3.4.8" />
   </ItemGroup>
 
   <ItemGroup>

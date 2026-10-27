@@ -1,0 +1,17 @@
+Holodex profile and left tab rail, live on gala (DISPLAY37, 144 DPI), captured from the running app with capwin
+(DPI-aware CopyFromScreen of the Holodex window), driven only over the control pipe (holodex:tab:<id>,
+holodex:profile:open|close). Hivemind was signed in (hivemind:status Connected) for every capture.
+
+  session.png       Header: title and the profile avatar (aperture emblem, ring moss = Hivemind live) beside close.
+                    No Replace key or Sign in in the header. Left rail: Session (active, neutral pill), AInbox,
+                    Codex, GrimX, Mods as lucide icons. Session content to the right.
+  profile-open.png  The avatar opens the profile under the header: WINDOWS // GALA\JUSTI and OMNIWAND v0.3;
+                    HIVEMIND // LIVE // 36 AGENTS with Sign out; ARKSTATION GATEWAY ONLINE and NEBIUS KEY LINKED
+                    with Replace key (which opens the key row inside the profile).
+  tab-ainbox.png, tab-codex.png, tab-grimx.png, tab-mods.png
+                    Each tab from the rail, the active icon in the pill; every tab's controls fit the 560 logical
+                    (840 device px) drawer, which grew by the rail's 72 px so the content keeps its width.
+
+Not captured: the signed-out profile (Sign in, ember ring, opening by itself) because that needs signing Justin out
+of Hivemind; it is the same panel with the Sign in button shown, as in the earlier docs/proof/hivemind captures of
+the HIVEMIND // SIGNED OUT row. Hover and keyboard focus on the rail were not exercised (no input on gala).

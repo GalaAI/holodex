@@ -18,11 +18,28 @@ namespace Omniwand;
 internal enum PhosphorGlyph
 {
     File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, Plus,
-    Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault
+    Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault,
+    // ArkStation's own icons (lucide-react, as the web console's Holodex uses them), drawn from their path data.
+    Chat, Inbox, BookOpen, Sparkles, WandSparkles
 }
 
 internal static class PhosphorIcons
 {
+    /// <summary>
+    /// Lucide 1.55.0 path data (24 viewBox, stroke 2, round caps and joins), copied from the web console's
+    /// node_modules/lucide-react icons: MessageSquareText, Inbox, BookOpen, Sparkles, WandSparkles.
+    /// </summary>
+    private static readonly Dictionary<PhosphorGlyph, string[]> Lucide = new()
+    {
+        [PhosphorGlyph.Chat] = new[] { "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z", "M7 11h10", "M7 15h6", "M7 7h8" },
+        [PhosphorGlyph.Inbox] = new[] { "M22 12h-6l-2 3h-4l-2-3H2", "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" },
+        [PhosphorGlyph.BookOpen] = new[] { "M12 5v16", "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" },
+        [PhosphorGlyph.Sparkles] = new[] { "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z", "M20 2v4", "M22 4h-4", "M6 20a2 2 0 1 1-4 0a2 2 0 1 1 4 0" },
+        [PhosphorGlyph.WandSparkles] = new[] { "m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72", "m14 7 3 3", "M5 6v4", "M19 14v4", "M10 2v2", "M7 8H3", "M21 16h-4", "M11 3H9" },
+    };
+
+    private static readonly Dictionary<PhosphorGlyph, GraphicsPath[]> LucidePaths = new();
+
     /// <summary>
     /// Stroke icons on a 24-unit grid, drawn into <paramref name="box"/>. They follow the canvas glyphs (Omniwand
     /// UI, AInbox upload board) with GDI shapes in place of SVG paths.
@@ -35,6 +52,18 @@ internal static class PhosphorIcons
         float u = box.Width / 24f;
         g.ScaleTransform(u, u);
         using var pen = new Pen(ink, stroke / u) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+        if (Lucide.TryGetValue(glyph, out var data))
+        {
+            GraphicsPath[] paths;
+            lock (LucidePaths)
+            {
+                if (!LucidePaths.TryGetValue(glyph, out paths!))
+                    LucidePaths[glyph] = paths = data.Select(d => SvgPaths.Parse(d)).ToArray();
+            }
+            foreach (var path in paths) g.DrawPath(pen, path);
+            g.Restore(state);
+            return;
+        }
         switch (glyph)
         {
             case PhosphorGlyph.File:
@@ -305,6 +334,127 @@ internal sealed class IconToolButton : Control
             using var ring = PhosphorTheme.CreateRoundedRect(rect, r);
             g.DrawPath(dash, ring);
         }
+    }
+}
+
+/// <summary>
+/// One item of an ArkStation rail (packages/station-shell rail.css, collapsed): a 44px row with the lucide glyph at
+/// 1.5 x 18px, idle in dim, hover in bone (color only, the geometry never moves), and the active item as the neutral
+/// pill (surface-2 fill, line-2 inset, 14px corners, bone glyph). Keyboard focus is the patina outline. The tooltip
+/// (PhosphorTips, by Name) is the rail's label, as the collapsed rail's AnimatedTooltip is.
+/// </summary>
+internal sealed class RailButton : Control
+{
+    private readonly PhosphorGlyph _glyph;
+    private bool _hover;
+    private bool _selected;
+
+    public RailButton(string name, PhosphorGlyph glyph, string label)
+    {
+        _glyph = glyph;
+        Name = name;
+        Text = label;
+        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
+        BackColor = Color.Transparent;
+        TabStop = true;
+        Cursor = Cursors.Hand;
+        Size = new Size(52, 44);
+        AccessibleName = label;
+        AccessibleRole = AccessibleRole.PageTab;
+    }
+
+    public bool Selected
+    {
+        get => _selected;
+        set { _selected = value; Invalidate(); }
+    }
+
+    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
+    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
+    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
+    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
+    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Enter or Keys.Space || base.IsInputKey(keyData);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.KeyCode is Keys.Enter or Keys.Space) { e.Handled = true; OnClick(EventArgs.Empty); }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        float s = PhosphorPaint.Scale(this);
+        var rect = new RectangleF(0.5f * s, 0.5f * s, Width - 1f * s, Height - 1f * s);
+        float r = 14f * s;
+        if (_selected)
+        {
+            PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
+            PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Line2);
+        }
+        if (Focused) PhosphorPaint.StrokeRounded(g, rect, r, PhosphorTheme.Patina, 2f * s);
+        float icon = 27f * s;
+        Color ink = _selected || _hover ? PhosphorTheme.Bone : PhosphorTheme.Dim;
+        PhosphorIcons.Draw(g, _glyph, new RectangleF((Width - icon) / 2f, (Height - icon) / 2f, icon, icon), ink, 2f * icon / 24f);
+    }
+}
+
+/// <summary>
+/// The profile button: a 32px circle holding the aperture emblem (the brand's profile picture, DESIGN.md), on the
+/// surface fill with a line ring like the Holodex vitals avatar in drawer mode. The ring takes
+/// <see cref="Status"/>, so whether Hivemind is live shows without opening the profile.
+/// </summary>
+internal sealed class AvatarButton : Control
+{
+    private bool _hover;
+    private Color _status = PhosphorTheme.Line;
+
+    public AvatarButton(string name, string accessibleName)
+    {
+        Name = name;
+        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
+        BackColor = Color.Transparent;
+        TabStop = true;
+        Cursor = Cursors.Hand;
+        Size = new Size(36, 36);
+        AccessibleName = accessibleName;
+        AccessibleRole = AccessibleRole.PushButton;
+    }
+
+    public Color Status
+    {
+        get => _status;
+        set { _status = value; Invalidate(); }
+    }
+
+    /// <summary>On while the profile panel is open.</summary>
+    public bool Open { get; set; }
+
+    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
+    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
+    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
+    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
+    protected override bool IsInputKey(Keys keyData) => keyData is Keys.Enter or Keys.Space || base.IsInputKey(keyData);
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.KeyCode is Keys.Enter or Keys.Space) { e.Handled = true; OnClick(EventArgs.Empty); }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        float s = PhosphorPaint.Scale(this);
+        float d = Math.Min(Width, Height) - 4f * s;
+        var circle = new RectangleF((Width - d) / 2f, (Height - d) / 2f, d, d);
+        using (var fill = new SolidBrush(Open || _hover ? PhosphorTheme.Surface2 : PhosphorTheme.Surface)) g.FillEllipse(fill, circle);
+        using (var ring = new Pen(_status, 1.5f * s)) g.DrawEllipse(ring, circle);
+        if (Focused) using (var focus = new Pen(PhosphorTheme.Patina, 2f * s)) g.DrawEllipse(focus, RectangleF.Inflate(circle, 2f * s, 2f * s));
+        float m = d * 0.62f;
+        ArkEmblem.DrawAperture(g, new RectangleF(circle.X + (d - m) / 2f, circle.Y + (d - m) / 2f, m, m));
     }
 }
 

@@ -724,6 +724,12 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ => _holodexDrawer.SummonDrawer(pt, tab), null);
             return $"ok:holodex:tab:{tab}";
         }
+        if (cmd.StartsWith("holodex:profile:", StringComparison.OrdinalIgnoreCase))
+        {
+            bool open = cmd["holodex:profile:".Length..].Trim().Equals("open", StringComparison.OrdinalIgnoreCase);
+            _uiSync.Post(_ => _holodexDrawer.SetProfileOpen(open), null);
+            return $"ok:holodex:profile:{(open ? "open" : "close")}";
+        }
         if (string.Equals(cmd, "snip:summon", StringComparison.OrdinalIgnoreCase))
         {
             _uiSync.Post(_ => _snipWidget.SummonAt(pt, WandCaptureTool.FreeformLasso), null);
