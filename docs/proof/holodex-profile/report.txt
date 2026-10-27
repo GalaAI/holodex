@@ -24,6 +24,7 @@ Item 5 (2026-10-27): profile at the foot of the rail, tab icons centred. Same ca
                               in the ArkStation popover look (surface, line-2 border, 14 px corners). The gateway and
                               key line now wraps, which shows NEMOTRON READY and WINDOWS VAULT; the fixed 36 px row
                               had been clipping them. Replace key keeps its height at the top of that row.
-  rail-foot-mods.png          Mods from the rail with the profile closed.
+  rail-foot-mods.png, rail-foot-ainbox.png, rail-foot-codex.png, rail-foot-grimx.png
+                              Each tab from the centred rail with the profile closed.
   Justin's live Omniwand cursor appears in two captures (it was over the drawer); it is screen content, not part
   of Holodex.
