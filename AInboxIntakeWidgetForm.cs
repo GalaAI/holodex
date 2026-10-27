@@ -70,8 +70,11 @@ public sealed class AInboxIntakeWidgetForm : Form
         _setThinkingState = setThinkingState;
 
         PhosphorFonts.EnsureLoaded();
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
+        // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
+        SuspendLayout();
         AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -160,6 +163,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _queue.Changed += (_, _) => { if (InvokeRequired) BeginInvoke(new Action(SyncQueueStatus)); else SyncQueueStatus(); };
         SyncQueueStatus();
         Rebuild();
+        ResumeLayout(false);
     }
 
     private StackGroup? Active => _groups.Count == 0 ? null : _groups[Math.Clamp(_active, 0, _groups.Count - 1)];
@@ -456,15 +460,17 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         foreach (Control c in _stackHost.Controls.Cast<Control>().ToList()) { _stackHost.Controls.Remove(c); c.Dispose(); }
         int h = 0;
+        float s = PhosphorPaint.Scale(_stackHost);
+        int gap = (int)Math.Round(8 * s);
         for (int i = _groups.Count - 1; i >= 0; i--)
         {
             var g = _groups[i];
             if (g.Items.Count == 0) continue;
             int index = i;
-            var view = new StackGroupView(g, i == _active, RemoveItem, () => SetActive(index)) { Dock = DockStyle.Top };
-            if (h > 0) _stackHost.Controls.Add(WidgetChrome.Spacer(8));
+            var view = new StackGroupView(g, i == _active, RemoveItem, () => SetActive(index), s) { Dock = DockStyle.Top };
+            if (h > 0) _stackHost.Controls.Add(WidgetChrome.Spacer(gap));
             _stackHost.Controls.Add(view);
-            h += view.Height + (h > 0 ? 8 : 0);
+            h += view.Height + (h > 0 ? gap : 0);
         }
         _stackHost.Height = h;
         _stackHost.Visible = _stackGap.Visible = h > 0;
@@ -586,8 +592,8 @@ public sealed class AInboxIntakeWidgetForm : Form
         string ask = _intentBox.Text.Trim();
         _suggestion = g == null ? "" : Suggestion(g);
         _intentBox.Prompt = _suggestion.Length > 0 ? _suggestion : "What should happen? Drop, paste or pick anything; it stacks by where it came from.";
-        _suggestionHint.Text = _suggestion.Length > 0 && ask.Length == 0 ? "TAB // USE THE SUGGESTION"
-            : _items.Count > 0 ? $"{_items.Count} IN THE STACK // {_groups.Count} CONTEXT{(_groups.Count == 1 ? "" : "S")}" : "";
+        // The stack's context eyebrows already count each group, so the hint only offers the suggestion.
+        _suggestionHint.Text = _suggestion.Length > 0 && ask.Length == 0 ? "TAB // USE THE SUGGESTION" : "";
 
         if (g == null)
         {
@@ -612,6 +618,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         {
             foreach (Control c in _scroll.Controls.Cast<Control>().ToList()) { _scroll.Controls.Remove(c); c.Dispose(); }
             _fieldRows.Clear();
+            float s = PhosphorPaint.Scale(_scroll);
             for (int i = fields.Count - 1; i >= 0; i--)
             {
                 var f = fields[i];
@@ -620,10 +627,10 @@ public sealed class AInboxIntakeWidgetForm : Form
                 {
                     group.Fields[f.Label] = new ScrollField(f.Label, v, "YOU EDITED");
                     UpdateSeal(group);
-                }) { Dock = DockStyle.Top };
+                }, s) { Dock = DockStyle.Top };
                 _fieldRows.Insert(0, row);
                 _scroll.Controls.Add(row);
-                if (i > 0) _scroll.Controls.Add(WidgetChrome.Spacer(8));
+                if (i > 0) _scroll.Controls.Add(WidgetChrome.Spacer((int)Math.Round(8 * s)));
             }
             _scrollShape = g.Key + "|" + shape.Id;
         }

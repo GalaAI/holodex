@@ -128,8 +128,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _onCodexSaved = onCodexSaved;
 
         PhosphorFonts.EnsureLoaded();
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
+        // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
+        SuspendLayout();
         AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -285,6 +288,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         // Seed preview state for SurfaceCapture offscreen rendering
         SeedPreviewDemoState();
+        ResumeLayout(false);
     }
 
     private void SeedPreviewDemoState()

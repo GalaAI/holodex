@@ -205,8 +205,11 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         Action openAInbox)
     {
         PhosphorFonts.EnsureLoaded();
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
+        // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
+        SuspendLayout();
         AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -343,6 +346,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         WidgetChrome.ClipToFrame(this);
         WidgetDrag.Enable(this);
         SyncStepControls();
+        ResumeLayout(false);
     }
 
     public void StartTutorial(Point anchorPt)

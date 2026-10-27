@@ -93,7 +93,7 @@ internal sealed class ThreadCard : Control
 
     public int HeightFor(int width)
     {
-        float s = PhosphorComposerScale.Of(this);
+        float s = PhosphorPaint.Scale(this);
         float textW = Math.Max(40f, width - TextLeft(s) - Pad * s);
         float h = 12f * s + 16f * s; // kicker line
         if (Body.Length > 0) h += 4f * s + StackPaint.MeasureWrapped(Body, BodyPx, textW, this);
@@ -270,7 +270,7 @@ internal static class LedPaint
     /// <summary>Height the LEDs take in a box of <paramref name="width"/> at scale <paramref name="s"/>.</summary>
     public static float Measure(IReadOnlyList<(Color Led, string Text)> leds, float width, float s, bool wrap)
     {
-        using var g = Graphics.FromHwnd(IntPtr.Zero);
+        using var g = PhosphorPaint.MeasureGraphics(s);
         return Flow(g, leds, new RectangleF(0, 0, width, 0), s, wrap, draw: false);
     }
 
@@ -286,7 +286,7 @@ internal static class LedPaint
         if (leds.Count == 0) return 0;
         float dot = 6f * s, gap = 7f * s, sep = 16f * s, line = LinePx * s;
         float x = 0, y = 0;
-        using var font = PhosphorFonts.Mono(9f * s);
+        using var font = PhosphorFonts.Mono(9f);
         using var ink = new SolidBrush(PhosphorTheme.Dim);
         foreach (var (led, text) in leds)
         {
@@ -342,7 +342,7 @@ internal class LedRow : Control
 
     public int HeightFor(int width)
     {
-        float s = PhosphorComposerScale.Of(this);
+        float s = PhosphorPaint.Scale(this);
         return (int)Math.Ceiling(Math.Max(LedPaint.LinePx * s, LedPaint.Measure(Leds, width, s, Wrap)));
     }
 

@@ -314,7 +314,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         var titleItem = new PhosphorMenuHeader(
             "Omniwand // v0.3",
             "Relic Phosphor",
-            $"{_onboardingReport.MouseHardware.Brand} {_onboardingReport.MouseHardware.Model} · Holodex Lite");
+            $"{_onboardingReport.MouseHardware.Brand} {_onboardingReport.MouseHardware.Model}");
         menu.Items.Add(titleItem);
 
         var summonItem = new ToolStripMenuItem("Phosphor HUD") { ShortcutKeyDisplayString = "Alt+Space" };

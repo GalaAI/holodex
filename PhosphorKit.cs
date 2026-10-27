@@ -110,7 +110,33 @@ internal static class PhosphorPaint
 {
     public static readonly StringFormat Typographic = (StringFormat)StringFormat.GenericTypographic.Clone();
 
-    public static float Scale(Control c) => c.DeviceDpi / 96f;
+    /// <summary>
+    /// Scale for sizes the kit computes. While a control's form is still being built (no window anywhere up its
+    /// parents) sizes are logical 96-DPI pixels that the form's DPI autoscale multiplies at ResumeLayout, so they
+    /// must not be pre-scaled (DeviceDpi already reads the monitor's DPI then, which scaled constructor layout
+    /// twice). Under a window, sizes are device pixels: a card added to a live thread is not autoscaled, so it takes
+    /// its nearest windowed ancestor's DPI. Fonts are points and scale with the device on their own, so their sizes
+    /// never take this factor.
+    /// </summary>
+    public static float Scale(Control c)
+    {
+        for (Control? x = c; x != null; x = x.Parent)
+            if (x.IsHandleCreated) return x.DeviceDpi / 96f;
+        return 1f;
+    }
+
+    /// <summary>
+    /// A screen Graphics that measures text in the units of a control at scale <paramref name="s"/>: point fonts
+    /// measure at the screen's DPI, so the page scale maps that back to logical pixels before a window exists and
+    /// to device pixels after (where it is 1 on a monitor at the system DPI).
+    /// </summary>
+    public static Graphics MeasureGraphics(float s)
+    {
+        var g = Graphics.FromHwnd(IntPtr.Zero);
+        g.PageUnit = GraphicsUnit.Pixel;
+        g.PageScale = g.DpiX / (96f * s);
+        return g;
+    }
 
     /// <summary>Draws text with letter spacing (CSS letter-spacing has no WinForms equivalent).</summary>
     public static float DrawTracked(Graphics g, string text, Font font, Brush brush, float x, float y, float trackingPx)
@@ -469,7 +495,7 @@ internal sealed class PhosphorBadge : Control
     public void FitToText()
     {
         float s = PhosphorPaint.Scale(this);
-        using var g = CreateGraphics();
+        using var g = PhosphorPaint.MeasureGraphics(s);
         float px = PhosphorTheme.TextBadge;
         using var font = PhosphorFonts.Mono(px);
         float w = PhosphorPaint.MeasureTracked(g, Text.ToUpperInvariant(), font, px * TrackingEm * s);
@@ -935,10 +961,11 @@ internal static class WidgetChrome
 
         void Place()
         {
-            close.Location = new Point(header.ClientSize.Width - close.Width, (int)Math.Round(4 * s));
+            float ps = PhosphorPaint.Scale(header);
+            close.Location = new Point(header.ClientSize.Width - close.Width, (int)Math.Round(4 * ps));
             if (trailing != null)
             {
-                trailing.Location = new Point(close.Left - trailing.Width - (int)Math.Round(10 * s), (int)Math.Round(11 * s));
+                trailing.Location = new Point(close.Left - trailing.Width - (int)Math.Round(10 * ps), (int)Math.Round(11 * ps));
             }
         }
         header.Resize += (_, _) => Place();

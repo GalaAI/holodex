@@ -36,7 +36,6 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     private ThreadCard? _approvalCard;
     private ThreadCard? _lastAction;
 
-    private readonly PhosphorBadge _runtimeBadge;
     private readonly ThreadView _thread;
     private readonly ComposerSurface _composer;
     private readonly PromptTextBox _promptBox;
@@ -75,8 +74,11 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         _agent = new WizAgent(ark, agentHost);
 
         PhosphorFonts.EnsureLoaded();
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
+        // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
+        SuspendLayout();
         AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -87,8 +89,6 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         Name = "Wiz";
         Size = new Size(620, 560);
         Padding = WidgetChrome.FramePadding();
-
-        _runtimeBadge = new PhosphorBadge("Nemotron", PhosphorBadgeState.Accent) { AccentColor = PhosphorTheme.Coral, Name = "Wiz.RuntimeBadge" };
 
         // The thread is the body: its intro card at rest, then a card per turn, in the AInbox card language.
         _thread = new ThreadView("Wiz.ThreadBox") { Dock = DockStyle.Top, Height = 160 };
@@ -166,12 +166,13 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         Controls.Add(chipRow);
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = Color.Transparent });
         Controls.Add(hostRow);
-        WidgetChrome.Attach(this, "4GE // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, _runtimeBadge);
+        WidgetChrome.Attach(this, "4GE // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, null);
         WidgetDrag.Enable(this);
 
         SetLens("flow", confident: false);
         ShowRuntime(null, null);
         FitToThread();
+        ResumeLayout(false);
     }
 
     /// <summary>The thread fits its cards up to a cap, then scrolls; the widget follows it.</summary>
@@ -212,8 +213,8 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     }
 
     /// <summary>
-    /// Badge and host line. Before a run they name the runtime the chip's model will use; after one, the runtime
-    /// and model that actually answered.
+    /// The host line. Before a run it names where the chip's model will run; after one, the host that actually
+    /// answered. The model is said once by the chip, and each step card names the model that wrote it.
     /// </summary>
     private void ShowRuntime(string? runtime, string? model)
     {
@@ -221,10 +222,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         string host = runtime != null
             ? HostName(runtime)
             : ArkStationClient.IsNemotronModel(model) || !_ark.LastGatewayOnline ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
-        string shortModel = ModelChip.ShortName(model);
-        _runtimeBadge.Text = shortModel;
-        _runtimeBadge.FitToText();
-        _hostLine.Set((PhosphorTheme.Moss, host), (PhosphorTheme.Patina, shortModel));
+        _hostLine.Set((PhosphorTheme.Moss, host));
     }
 
     /// <summary>Runtime ids from AskWizGeminiArgonAsync ("nebius-token-factory", "subscription-gemini (agy)", "ark-model-gateway") as hosts.</summary>

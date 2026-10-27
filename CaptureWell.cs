@@ -174,8 +174,8 @@ internal sealed class CaptureWellControl : ComposerSurface
         DrawFan(g, fanCenter, s);
 
         float ty = fanCenter.Y + 38f * s;
-        using (var titleFont = PhosphorFonts.Ui(14f * s, heavy: true))
-        using (var bodyFont = PhosphorFonts.Body(12f * s))
+        using (var titleFont = PhosphorFonts.Ui(14f, heavy: true))
+        using (var bodyFont = PhosphorFonts.Body(12f))
         using (var bone = new SolidBrush(PhosphorTheme.Bone))
         using (var dim = new SolidBrush(PhosphorTheme.Dim))
         using (var fmt = new StringFormat(StringFormat.GenericTypographic) { Alignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
@@ -387,12 +387,12 @@ internal sealed class CapturedRow : Control
 
         float tx = bx + box + 10f * s;
         float tw = RemoveRect.X - tx - 8f * s;
-        using (var nameFont = PhosphorFonts.Ui(12f * s, heavy: true))
+        using (var nameFont = PhosphorFonts.Ui(12f, heavy: true))
         using (var bone = new SolidBrush(PhosphorTheme.Bone))
         using (var fmt = new StringFormat(StringFormat.GenericTypographic) { Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
             g.DrawString(ItemName, nameFont, bone, new RectangleF(tx, Height / 2f - 17f * s, tw, 17f * s), fmt);
 
-        using (var mono = PhosphorFonts.Mono(9.5f * s))
+        using (var mono = PhosphorFonts.Mono(9.5f))
         using (var ghost = new SolidBrush(PhosphorTheme.Ghost))
         using (var patina = new SolidBrush(PhosphorTheme.Patina))
         {

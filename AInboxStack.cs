@@ -394,7 +394,7 @@ internal static class ScrollPredictor
             },
             "research" => new()
             {
-                ["Question"] = (ask.Length > 0 ? ask : $"What do {names} say, and what should we do about it?", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
+                ["Question"] = (ask.Length > 0 ? ask : $"What {(g.Items.Count > 1 ? "do" : "does")} {names} say, and what should we do about it?", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Sources"] = (names, fromStack),
                 ["Depth"] = ("One-page digest with citations.", "PREDICTED"),
                 ["Deliverable"] = ("A Holodex research digest in Cortex.", "PREDICTED"),

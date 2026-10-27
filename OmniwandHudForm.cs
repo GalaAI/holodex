@@ -25,7 +25,6 @@ public sealed class OmniwandHudForm : Form
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
-    private readonly PhosphorBadge _statusBadge;
     private readonly ComposerSurface _composer;
     private readonly PromptTextBox _promptBox;
     private readonly IconToolButton _visionToggle;
@@ -58,8 +57,11 @@ public sealed class OmniwandHudForm : Form
         _setThinkingState = setThinkingState;
 
         PhosphorFonts.EnsureLoaded();
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
+        // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
+        SuspendLayout();
         AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -71,7 +73,7 @@ public sealed class OmniwandHudForm : Form
         Size = new Size(560, 300);
         Padding = WidgetChrome.FramePadding();
 
-        // Header: the wand status badge, then the launchers as icons.
+        // Header: the launchers as icons. Wand status is the gateway LED in the telemetry line, said once.
         var headerTools = new FlowLayoutPanel
         {
             AutoSize = true,
@@ -82,8 +84,6 @@ public sealed class OmniwandHudForm : Form
             Padding = Padding.Empty,
             Name = "Hud.HeaderTools"
         };
-        _statusBadge = new PhosphorBadge("Checking") { Margin = new Padding(0, 11, 10, 0), Name = "Hud.StatusBadge" };
-        headerTools.Controls.Add(_statusBadge);
         void AddLauncher(string name, PhosphorGlyph glyph, string label, Action<Point>? open)
         {
             if (open == null) return;
@@ -173,10 +173,11 @@ public sealed class OmniwandHudForm : Form
         Controls.Add(footer);
         WidgetChrome.Attach(this, "ARK // WAND", "Omniwand", PhosphorTheme.Patina, headerTools);
         WidgetDrag.Enable(this);
-        ShowWandStatus(gatewayOnline: false, keyed: !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
+        ShowWandStatus(gatewayOnline: false);
         SyncVisionHint();
         SyncAskLabel();
         FitToAnswer();
+        ResumeLayout(false);
     }
 
     private bool HasAnswer => _answers.Cards.Any();
@@ -237,13 +238,13 @@ public sealed class OmniwandHudForm : Form
         _promptBox.Focus();
         _promptBox.SelectAll();
 
-        // The local key state is instant, so the badge never sits on "Checking"; the probe below upgrades it.
-        if (!_ark.LastGatewayOnline) ShowWandStatus(false, !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
+        // The local key state is instant, so the gateway LED never waits on the probe; the probe below upgrades it.
+        if (!_ark.LastGatewayOnline) ShowWandStatus(false);
         _ = DetectMouseOnceAsync();
 
         var status = await _ark.CheckStatusAsync();
         _spineOnline = status.InputSpineOnline;
-        ShowWandStatus(status.GatewayOnline, status.NebiusKeyLoaded);
+        ShowWandStatus(status.GatewayOnline);
         if (!_gatewayNoticeShown && !status.GatewayOnline && !_ark.HasGatewayInboundKey && !_ark.ForceStandaloneMode)
         {
             _gatewayNoticeShown = true;
@@ -274,14 +275,10 @@ public sealed class OmniwandHudForm : Form
         if (!IsDisposed) SyncTelemetry();
     }
 
-    /// <summary>Online when the ArkStation gateway answers, Ready when Nebius is direct with a key, No key otherwise.</summary>
-    private void ShowWandStatus(bool gatewayOnline, bool keyed)
+    /// <summary>Gateway online, Nebius direct with a key, or no key: the gateway LED carries it.</summary>
+    private void ShowWandStatus(bool gatewayOnline)
     {
         _gatewayOnline = gatewayOnline;
-        _statusBadge.Text = gatewayOnline ? "Online" : keyed ? "Ready" : "No key";
-        _statusBadge.State = gatewayOnline || keyed ? PhosphorBadgeState.Validated : PhosphorBadgeState.Blocked;
-        _statusBadge.FitToText();
-        _statusBadge.AccessibleName = $"Wand status: {_statusBadge.Text}";
         SyncTelemetry();
     }
 
@@ -290,7 +287,7 @@ public sealed class OmniwandHudForm : Form
         bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
         var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "GATEWAY ONLINE")
             : keyed ? (PhosphorTheme.Patina, "NEBIUS DIRECT")
-            : (PhosphorTheme.Ember, "NO MODEL KEY");
+            : (PhosphorTheme.Ember, "NO MODEL KEY // ALT+H ADDS ONE");
         var spine = _spineOnline switch
         {
             true => (PhosphorTheme.Moss, "SPINE 8842"),
@@ -312,11 +309,14 @@ public sealed class OmniwandHudForm : Form
         return m.Length > 24 ? m[..24].TrimEnd() : m;
     }
 
+    /// <summary>
+    /// The footer status is only what is happening now, in words that fit beside the chip: the answer card names
+    /// the model that answered and the gateway LED names a missing key, so neither is repeated here.
+    /// </summary>
     private void ShowKeyState()
     {
-        bool keyed = _ark.LastGatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
-        if (keyed) { if (!_working) SetStatus("ENTER ASKS", PhosphorTheme.Ghost); }
-        else SetStatus("NO MODEL KEY // ADD ONE IN HOLODEX (ALT+H)", PhosphorTheme.Ember);
+        if (!_working) SetStatus("ENTER ASKS", PhosphorTheme.Ghost);
+        SyncTelemetry();
     }
 
     private void SetStatus(string text, Color color)
@@ -347,7 +347,7 @@ public sealed class OmniwandHudForm : Form
         _promptBox.Enabled = false;
         _askBtn.Enabled = false;
         _answers.Add(ThreadTone.You, snapshot != null ? "YOU // WITH THE SCREEN" : "YOU", prompt, snapshot != null ? PhosphorGlyph.Screen : null);
-        SetStatus($"ASKING {_modelChip.Label.ToUpperInvariant()}", PhosphorTheme.Patina);
+        SetStatus("ASKING", PhosphorTheme.Patina);
         FitToAnswer();
         Invalidate();
         _setThinkingState(true);
@@ -358,7 +358,7 @@ public sealed class OmniwandHudForm : Form
             string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
             _answers.Add(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? $"ANSWERED BY {answeredBy}" : "NOT ANSWERED", output);
             _promptBox.Clear();
-            SetStatus(ok ? $"ANSWERED BY {answeredBy}" : "NOT ANSWERED", ok ? PhosphorTheme.Ghost : PhosphorTheme.Rust);
+            SetStatus("ENTER ASKS", PhosphorTheme.Ghost);
             if (!Visible)
             {
                 // Esc hid the HUD mid-ask: the answer still arrives, so say where it is.
@@ -393,9 +393,8 @@ public sealed class OmniwandHudForm : Form
             _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
             _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model}",
                 "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
-            SetStatus($"ANSWERED BY {model}", PhosphorTheme.Ghost);
         }
-        else ShowKeyState();
+        ShowKeyState();
         SizeAnswers();
         FitToAnswer();
     }

@@ -34,7 +34,7 @@ internal static class StackPaint
     public static float Tracked(Graphics g, string text, float px, Color color, float x, float y, Control c, float tracking = 1.1f)
     {
         float s = PhosphorPaint.Scale(c);
-        using var font = PhosphorFonts.Mono(px * s);
+        using var font = PhosphorFonts.Mono(px);
         using var b = new SolidBrush(color);
         return PhosphorPaint.DrawTracked(g, text.ToUpperInvariant(), font, b, x, y, tracking * s);
     }
@@ -42,15 +42,14 @@ internal static class StackPaint
     public static float MeasureTracked(Graphics g, string text, float px, Control c, float tracking = 1.1f)
     {
         float s = PhosphorPaint.Scale(c);
-        using var font = PhosphorFonts.Mono(px * s);
+        using var font = PhosphorFonts.Mono(px);
         return PhosphorPaint.MeasureTracked(g, text.ToUpperInvariant(), font, tracking * s);
     }
 
     /// <summary>Wrapped body text in a box; returns the height used.</summary>
     public static float Wrapped(Graphics g, string text, float px, Color color, RectangleF box, Control c)
     {
-        float s = PhosphorPaint.Scale(c);
-        using var font = PhosphorFonts.Body(px * s);
+        using var font = PhosphorFonts.Body(px);
         using var b = new SolidBrush(color);
         var size = g.MeasureString(text, font, (int)box.Width);
         g.DrawString(text, font, b, box);
@@ -59,9 +58,8 @@ internal static class StackPaint
 
     public static float MeasureWrapped(string text, float px, float width, Control c)
     {
-        float s = PhosphorComposerScale.Of(c);
-        using var g = Graphics.FromHwnd(IntPtr.Zero);
-        using var font = PhosphorFonts.Body(px * s);
+        using var g = PhosphorPaint.MeasureGraphics(PhosphorPaint.Scale(c));
+        using var font = PhosphorFonts.Body(px);
         return g.MeasureString(text, font, (int)Math.Max(1, width)).Height;
     }
 
@@ -88,12 +86,14 @@ internal sealed class StackGroupView : Panel
     private const int GapPx = 4;
     private readonly HeaderStrip _header;
 
-    public StackGroupView(StackGroup group, bool active, Action<StackItem> remove, Action activate)
+    /// <param name="s">The stack host's scale: groups are rebuilt into a live widget, where autoscale does not reach.</param>
+    public StackGroupView(StackGroup group, bool active, Action<StackItem> remove, Action activate, float s)
     {
         Group = group;
+        int headerPx = (int)Math.Round(HeaderPx * s), rowPx = (int)Math.Round(RowPx * s), gapPx = (int)Math.Round(GapPx * s);
         BackColor = Color.Transparent;
         Name = "AInbox.StackGroup";
-        _header = new HeaderStrip(this) { Dock = DockStyle.Top, Height = HeaderPx, Name = "AInbox.StackGroup" };
+        _header = new HeaderStrip(this) { Dock = DockStyle.Top, Height = headerPx, Name = "AInbox.StackGroup" };
         _header.Click += (_, _) => activate();
         var rows = new List<Control>();
         foreach (var it in group.Items)
@@ -101,7 +101,7 @@ internal sealed class StackGroupView : Panel
             var row = new CapturedRow("AInbox.CapturedRow")
             {
                 Dock = DockStyle.Top,
-                Height = RowPx,
+                Height = rowPx,
                 Kind = it.Kind,
                 ItemName = it.Name,
                 Meta = it.Meta + (it.Secrets.Count > 0 ? $" // AEGIS {it.Secrets.Count}" : ""),
@@ -109,14 +109,14 @@ internal sealed class StackGroupView : Panel
             };
             var captured = it;
             row.RemoveClicked += (_, _) => remove(captured);
-            rows.Add(new Panel { Dock = DockStyle.Top, Height = GapPx, BackColor = Color.Transparent });
+            rows.Add(new Panel { Dock = DockStyle.Top, Height = gapPx, BackColor = Color.Transparent });
             rows.Add(row);
         }
         rows.Reverse();
         foreach (var r in rows) Controls.Add(r);
         Controls.Add(_header);
         Active = active;
-        Height = HeaderPx + group.Items.Count * (RowPx + GapPx);
+        Height = headerPx + group.Items.Count * (rowPx + gapPx);
     }
 
     public StackGroup Group { get; }
@@ -143,7 +143,7 @@ internal sealed class StackGroupView : Panel
             var box = new RectangleF(0.5f, 3f * s, 18f * s, 18f * s);
             Color ink = _owner.Active ? PhosphorTheme.Coral : PhosphorTheme.Ghost;
             PhosphorPaint.StrokeRounded(g, box, 5f * s, ink, _owner.Active ? 1.5f * s : 1f);
-            using (var f = PhosphorFonts.Mono(9.5f * s))
+            using (var f = PhosphorFonts.Mono(9.5f))
             using (var b = new SolidBrush(_owner.Active ? PhosphorTheme.Cream : PhosphorTheme.Bone))
             using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
                 g.DrawString(_owner.Group.Letter, f, b, box, fmt);
@@ -194,7 +194,7 @@ internal sealed class PredictionCard : Control
     /// <summary>Height for this card at <paramref name="width"/> in logical pixels: head, rows, why, synthesis, pulse.</summary>
     public int HeightFor(int width)
     {
-        float s = PhosphorComposerScale.Of(this);
+        float s = PhosphorPaint.Scale(this);
         float syn = Group.Synthesis.Length > 0 || Group.Refining ? 20f * s + StackPaint.MeasureWrapped(Group.Synthesis.Length > 0 ? Group.Synthesis : "x", 12f, width - 36f * s, this) : 0;
         return (int)Math.Ceiling((HeadPx + Group.Ranking.Count * RowPx + 30f + 26f + 14f) * s + syn);
     }
@@ -272,7 +272,7 @@ internal sealed class PredictionCard : Control
             var ring = new RectangleF(x, cy - 7f * s, 14f * s, 14f * s);
             using (var p = new Pen(on ? PhosphorTheme.Bone : PhosphorTheme.Line2, 1f)) g.DrawEllipse(p, ring);
             if (on) using (var b = new SolidBrush(PhosphorTheme.Bone)) g.FillEllipse(b, RectangleF.Inflate(ring, -4f * s, -4f * s));
-            using (var f = PhosphorFonts.Ui(12f * s, heavy: true))
+            using (var f = PhosphorFonts.Ui(12f, heavy: true))
             using (var b = new SolidBrush(on ? PhosphorTheme.Bone : PhosphorTheme.Dim))
                 g.DrawString(o.Intent.Label, f, b, x + 24f * s, cy - 8f * s, PhosphorPaint.Typographic);
             string pct = $"{Math.Round(o.Score * 100)}%";
@@ -351,7 +351,7 @@ internal sealed class AegisCard : Control
 
     public int HeightFor(int width)
     {
-        float s = PhosphorComposerScale.Of(this);
+        float s = PhosphorPaint.Scale(this);
         return (int)Math.Ceiling(40f * s + StackPaint.MeasureWrapped(Sentence, 12f, width - 32f * s - (Findings.Count > 0 ? 166f * s : 0), this) + 14f * s);
     }
 
@@ -388,16 +388,18 @@ internal sealed class ScrollFieldRow : Panel
     private readonly FieldHead _head;
     private bool _setting;
 
-    public ScrollFieldRow(int index, ScrollField field, Action<string> edited)
+    /// <param name="s">The Scroll's scale: field rows are rebuilt into a live widget, where autoscale does not reach.</param>
+    public ScrollFieldRow(int index, ScrollField field, Action<string> edited, float s)
     {
         BackColor = Color.Transparent;
         Name = "AInbox.ScrollField";
-        Field = new PhosphorField("", true, 44, mono: true) { Dock = DockStyle.Top, Height = 44, Name = "AInbox.ScrollFieldBox" };
-        _head = new FieldHead { Dock = DockStyle.Top, Height = 18, Label = $"{index} // {field.Label}", Source = field.Source };
+        int box = (int)Math.Round(44 * s), head = (int)Math.Round(18 * s), gap = (int)Math.Round(4 * s);
+        Field = new PhosphorField("", true, box, mono: true) { Dock = DockStyle.Top, Height = box, Name = "AInbox.ScrollFieldBox" };
+        _head = new FieldHead { Dock = DockStyle.Top, Height = head, Label = $"{index} // {field.Label}", Source = field.Source };
         Controls.Add(Field);
-        Controls.Add(new Panel { Dock = DockStyle.Top, Height = 4, BackColor = Color.Transparent });
+        Controls.Add(new Panel { Dock = DockStyle.Top, Height = gap, BackColor = Color.Transparent });
         Controls.Add(_head);
-        Height = 18 + 4 + 44;
+        Height = head + gap + box;
         Set(field);
         Field.Box.TextChanged += (_, _) => { if (!_setting) { _head.Source = "YOU EDITED"; _head.Invalidate(); edited(Field.Box.Text); } };
     }

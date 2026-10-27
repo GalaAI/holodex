@@ -81,8 +81,7 @@ internal static class PhosphorTips
         ["Hud.WizButton"] = new("Wiz", "Turns a goal into a Spell, an ordered chain of steps.", "Alt+W"),
         ["Hud.AInboxButton"] = new("AInbox", "Drop a file, snippet or capture and hand it off with a goal.", "Alt+I"),
         ["Hud.HolodexButton"] = new("Holodex", "Session chat, captures, Codex, Spells and mouse mods.", "Alt+H"),
-        ["Hud.StatusBadge"] = new("Wand status", "Online: the ArkStation gateway answers. Ready: Nebius direct with a linked key. No key: add one in Holodex.", "Alt+H"),
-        ["Hud.Telemetry"] = new("Telemetry", "Gateway state, Input Spine on 8842 up or down, and the connected mouse."),
+        ["Hud.Telemetry"] = new("Telemetry", "Gateway online, Nebius direct with a linked key, or no key (add one in Holodex); Input Spine on 8842 up or down; the connected mouse.", "Alt+H"),
         ["Hud.Shortcuts"] = new("Shortcuts", "The wand's keys and ring: Actions Ring slots, the fallback orb, GhostTrailer, Wiz and AInbox. Click to show or hide."),
 
         ["Wiz.PromptField"] = new("Describe the goal", "Say what you want done. Shift+Enter breaks a line.", "Enter"),
@@ -94,8 +93,7 @@ internal static class PhosphorTips
         ["Wiz.ApprovalLine"] = new("Pending action", "The tool call waiting for you, with its arguments."),
         ["Wiz.ApproveButton"] = new("Approve", "Lets Wiz run this action: save to Codex or queue a Holodex work order."),
         ["Wiz.SkipButton"] = new("Skip", "Declines this action. Nothing is saved and Wiz carries on without it."),
-        ["Wiz.RuntimeBadge"] = new("Runtime model", "The model Wiz runs on; after a craft, the one that actually answered."),
-        ["Wiz.RuntimeLine"] = new("Host", "Where Wiz runs (Nebius Token Factory, Antigravity CLI or the Ark model gateway) and the model, updated with the one that answered."),
+        ["Wiz.RuntimeLine"] = new("Host", "Where Wiz runs: Nebius Token Factory, Antigravity CLI or the Ark model gateway, updated with the host that answered. Each step card names its model."),
         ["Wiz.StarterExplain"] = new("Explain my screen", "Fills in a question about what is open, with the screen attached."),
         ["Wiz.StarterChecklist"] = new("Checklist", "Starts a goal that comes back as a step-by-step checklist."),
         ["Wiz.StarterAutomate"] = new("Automate", "Starts a goal that comes back as a rerunnable Combo."),
@@ -124,7 +122,6 @@ internal static class PhosphorTips
         ["AInbox.HandoffScroll"] = new("Handoff scroll", "What the receiving agent reads. Edit any field; the SHA-256 seal follows your edits."),
 
         ["Holodex.TabBar"] = new("Holodex tabs", "Session, AInbox, Codex, GrimX and Mods. Each tab keeps its state while the drawer is closed."),
-        ["Holodex.VaultBadge"] = new("Connection", "Nemotron ready or Gateway online when a key works. Click to link or replace the Nebius key."),
         ["Holodex.ConnectionLine"] = new("Connection", "The gateway or Nebius key state in full, and whether the key is saved in the Windows vault."),
         ["Holodex.ReplaceKeyButton"] = new("Replace key", "Opens the key row to link a different Nebius Token Factory key."),
         ["Holodex.RosterLine"] = new("Roster", "Who the message reaches: every Syndicate agent in its accent, or the chosen conductor's role."),

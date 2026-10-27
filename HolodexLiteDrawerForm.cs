@@ -42,7 +42,6 @@ public sealed class HolodexLiteDrawerForm : Form
     private string _activeTab = "session";
     private string _selectedSyndicateTarget = "all";
 
-    private readonly PhosphorBadge _vaultBadge;
     private readonly PhosphorField _tokenField;
     private readonly Panel _tokenBar;
     private readonly Panel _tokenGap;
@@ -119,8 +118,11 @@ public sealed class HolodexLiteDrawerForm : Form
         _onCursorStyleChanged = onCursorStyleChanged;
 
         PhosphorFonts.EnsureLoaded();
-        AutoScaleMode = AutoScaleMode.Dpi;
+        // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
+        // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
+        SuspendLayout();
         AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleMode = AutoScaleMode.Dpi;
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         ShowInTaskbar = false;
@@ -133,15 +135,8 @@ public sealed class HolodexLiteDrawerForm : Form
         Padding = WidgetChrome.FramePadding();
 
         bool hasNebiusKey = HasNebiusKey;
-        // The header badge sums up the connection; the telemetry line under the header says it in full. With a key
-        // linked the key row stays hidden, and Replace key (or the badge) brings it back.
-        _vaultBadge = new PhosphorBadge(hasNebiusKey ? "Nemotron ready" : "No key", hasNebiusKey ? PhosphorBadgeState.Validated : PhosphorBadgeState.Unstated)
-        {
-            Name = "Holodex.VaultBadge",
-            Cursor = Cursors.Hand
-        };
-        _vaultBadge.FitToText();
-        _vaultBadge.Click += (_, _) => ShowTokenBar(!_tokenBarOpen);
+        // The connection is said once, by the telemetry line under the header. With a key linked the key row stays
+        // hidden, and Replace key brings it back.
 
         _tokenBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface, Name = "Holodex.TokenBar" };
         _tokenField = new PhosphorField("Paste a Nebius Token Factory key. It is saved to Windows Credential Manager.", false, 40, mono: true)
@@ -219,11 +214,12 @@ public sealed class HolodexLiteDrawerForm : Form
         Controls.Add(WidgetChrome.Spacer(6));
         Controls.Add(connectionRow);
         Controls.Add(WidgetChrome.Spacer(4));
-        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, _vaultBadge);
+        WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null);
         WidgetDrag.Enable(this);
 
         ShowTokenBar(!hasNebiusKey);
         SwitchTab("session");
+        ResumeLayout(false);
     }
 
     private void BuildSessionTab(bool hasNebiusKey)
@@ -846,26 +842,19 @@ public sealed class HolodexLiteDrawerForm : Form
         _connected = st.GatewayOnline || st.NebiusKeyLoaded;
         if (st.GatewayOnline)
         {
-            _vaultBadge.Text = "Gateway online";
-            _vaultBadge.State = PhosphorBadgeState.Validated;
             ShowConnection(gatewayOnline: true, st.NebiusKeyLoaded, bundle);
             ShowTokenBar(_tokenBarOpen);
         }
         else if (st.NebiusKeyLoaded)
         {
-            _vaultBadge.Text = "Nemotron ready";
-            _vaultBadge.State = PhosphorBadgeState.Validated;
             ShowConnection(gatewayOnline: false, keyed: true, bundle);
             ShowTokenBar(_tokenBarOpen);
         }
         else
         {
-            _vaultBadge.Text = "No key";
-            _vaultBadge.State = PhosphorBadgeState.Unstated;
             ShowConnection(gatewayOnline: false, keyed: false, bundle: false);
             ShowTokenBar(true);
         }
-        _vaultBadge.FitToText();
     }
 
     public async void SummonDrawer(Point cursorPos, string? tab = null)

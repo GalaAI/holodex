@@ -151,7 +151,7 @@ internal class ComposerSurface : Control
     public Panel Content { get; }
 
     /// <summary>Control height that fits <paramref name="contentHeight"/> of composer inside the insets.</summary>
-    public int HeightFor(int contentHeight) => contentHeight + (int)Math.Round(2 * (InsetPx + PadYPx) * PhosphorComposerScale.Of(this));
+    public int HeightFor(int contentHeight) => contentHeight + (int)Math.Round(2 * (InsetPx + PadYPx) * PhosphorPaint.Scale(this));
 
     protected RectangleF WellRect
     {
@@ -344,9 +344,9 @@ internal class SuggestionChip : Control
     public void Fit()
     {
         AccessibleName = Detail.Length > 0 ? $"{Label}, {Detail}" : Label;
-        float s = PhosphorComposerScale.Of(this);
-        using var g = Graphics.FromHwnd(IntPtr.Zero);
-        using var font = PhosphorFonts.Mono(10.5f * s);
+        float s = PhosphorPaint.Scale(this);
+        using var g = PhosphorPaint.MeasureGraphics(s);
+        using var font = PhosphorFonts.Mono(10.5f);
         float text = PhosphorPaint.MeasureTracked(g, Text2, font, 1f * s);
         Width = (int)Math.Ceiling(text + (ShowArrow ? 88f : 66f) * s);
         Invalidate();
@@ -438,7 +438,7 @@ internal class SuggestionChip : Control
             x += 22f * s;
         }
 
-        using (var font = PhosphorFonts.Mono(10.5f * s))
+        using (var font = PhosphorFonts.Mono(10.5f))
         using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Cream))
             x += PhosphorPaint.DrawTracked(g, Text2, font, ink, x, cy - font.GetHeight(g) / 2f, 1f * s);
 
@@ -601,13 +601,13 @@ internal sealed class DisclosureRow : Control
 
         float cy = Height / 2f;
         float x = 14f * s;
-        using (var mono = PhosphorFonts.Mono(9.5f * s))
+        using (var mono = PhosphorFonts.Mono(9.5f))
         using (var ghost = new SolidBrush(PhosphorTheme.Ghost))
             x += PhosphorPaint.DrawTracked(g, Kicker, mono, ghost, x, cy - mono.GetHeight(g) / 2f, 1.1f * s) + 12f * s;
 
         string action = Expanded ? "CLOSE" : OpenWord;
         float actionW;
-        using (var mono = PhosphorFonts.Mono(9.5f * s))
+        using (var mono = PhosphorFonts.Mono(9.5f))
         using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Dim))
         {
             actionW = PhosphorPaint.MeasureTracked(g, action, mono, 1.1f * s);
@@ -620,21 +620,13 @@ internal sealed class DisclosureRow : Control
         }
 
         float tw = Width - 30f * s - actionW - 12f * s - x;
-        using var body = PhosphorFonts.Body(12f * s);
+        using var body = PhosphorFonts.Body(12f);
         using var text = new SolidBrush(Muted ? PhosphorTheme.Ghost : PhosphorTheme.Bone);
         using var fmt = new StringFormat(StringFormat.GenericTypographic) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
         g.DrawString(Sentence, body, text, new RectangleF(x, 0, Math.Max(0, tw), Height), fmt);
     }
 }
 
-/// <summary>
-/// Scale for sizes the kit computes. Before a control has a window its sizes are logical 96-DPI pixels that the
-/// form's DPI autoscale multiplies later, so they must not be pre-scaled; once it has a window they are device pixels.
-/// </summary>
-internal static class PhosphorComposerScale
-{
-    public static float Of(Control c) => c.IsHandleCreated ? PhosphorPaint.Scale(c) : 1f;
-}
 
 /// <summary>Sizes a widget to its docked children, keeping its top edge and staying on screen.</summary>
 internal static class FitToContent
