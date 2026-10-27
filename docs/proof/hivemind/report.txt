@@ -30,3 +30,20 @@ Holodex, live window captures (capwin, DPI-aware CopyFromScreen of the Holodex w
 
 Not verified yet (needs Justin's sign-in): token exchange and refresh, ark_agents roster, dispatch_agent_mission,
 agent_mission_status polling, the reply card's model as Hivemind reports it.
+
+After Justin signed in from Holodex (2026-10-27):
+  hivemind:status  ok:hivemind:status:state=Connected:connected=True:savedSignIn=True:error=
+  hivemind:agents  ok:hivemind:agents:36: arbiter, astra, athena, atom, bttco-bella, bttco-booky, bttco-doc,
+                   bttco-herald, bttco-mercury, bttco-smoku, bttco-spyder, bttco-xar, claude, codex, doc, fabrix,
+                   gala, gemini, haxes, hermes, icarus, machinist, metis, muse, openclaw, oracle, scholar, scout,
+                   scribe, sentinel, seraphym, sigma, veritas, vulcan, watcher, wiz
+                   (every agent reports dispatchReady false; Holodex shows them in ghost and still dispatches)
+  holodex:order:gala|Omniwand Hivemind check: reply in one sentence with your agent id and the model you run on.
+                   Do not change anything.
+                   -> ok:holodex:order:WO-101:hivemind=Connected
+  holodex-live-dispatched.png  "HIVEMIND // LIVE // 36 AGENTS"; WO-101 BOOTSTRAPPING with mission d50cc2db; the
+                   roster line under the chip is Gala's role as ark_agents reports it.
+  holodex-live-completed.png   WO-101 COMPLETED (mission d50cc2db, about 2 minutes); Gala's answer as its own card:
+                   "Agent `gala` running on Codex (subscription-codex runtime). No changes made."
+                   Card kicker "GALA // GGUF DEFAULT // HIVEMIND": the receipt's model field, shortened by
+                   ModelChip.ShortName. It disagrees with the agent's own answer (Codex); the receipt is Hivemind's.
