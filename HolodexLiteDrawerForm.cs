@@ -95,6 +95,10 @@ public sealed partial class HolodexLiteDrawerForm : Form
     // Who the session reaches: Hivemind's live roster once signed in, the offline roster until then.
     private IReadOnlyList<SyndicateAgentInfo> _roster = OfflineRoster;
     private HivemindState? _shownHivemindState;
+    /// <summary>The one card that says what the session reaches; a new Hivemind state replaces it, never stacks.</summary>
+    private ThreadCard? _hivemindStateCard;
+    /// <summary>The composer, its footer and the roster line: they step aside while the profile is open over them.</summary>
+    private Control[] _sessionComposerParts = Array.Empty<Control>();
 
     // Mouse detection launches PowerShell, so it runs once and the result is reused.
     private static MouseHardwareReport ConnectedMouse => MouseHardwareAndWandEngine.ActiveMouse;
@@ -353,11 +357,14 @@ public sealed partial class HolodexLiteDrawerForm : Form
         BuildHivemindSessions(_sessionPanel, bar);
         _sessionPanel.Controls.Add(ordersGap);
         _sessionPanel.Controls.Add(_workOrdersHost);
+        var composerGap = new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = PhosphorTheme.Surface };
+        var rosterGap = new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = PhosphorTheme.Surface };
         _sessionPanel.Controls.Add(composer);
-        _sessionPanel.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = PhosphorTheme.Surface });
+        _sessionPanel.Controls.Add(composerGap);
         _sessionPanel.Controls.Add(footer);
-        _sessionPanel.Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = PhosphorTheme.Surface });
+        _sessionPanel.Controls.Add(rosterGap);
         _sessionPanel.Controls.Add(_activeRosterLabel);
+        _sessionComposerParts = new Control[] { composer, composerGap, footer, rosterGap, _activeRosterLabel };
 
         SetSyndicateTarget("all");
         RefreshWorkOrdersText();
@@ -407,6 +414,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     {
         _profileOpen = open;
         _profilePanel.Visible = open;
+        // The panel floats over the session's foot; the composer under it would show only its top edge.
+        foreach (var part in _sessionComposerParts) part.Visible = !open;
         _profileBtn.Open = open;
         _profileBtn.Invalidate();
         FitProfile();
@@ -1005,7 +1014,9 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // Signing in is done from the profile, so it opens when Hivemind needs it.
         if (state is HivemindState.NotSignedIn or HivemindState.Unreachable) ShowProfile(true);
         string error = _ark.Hivemind.LastError;
-        _sessionThread.Add(ThreadTone.Intro, state switch
+        // One status card: the old one goes, so signing in does not leave Signed out and Signing in behind it.
+        if (_hivemindStateCard != null && !_hivemindStateCard.IsDisposed) _hivemindStateCard.Dispose();
+        _hivemindStateCard = _sessionThread.Add(ThreadTone.Intro, state switch
         {
             HivemindState.Connected => "HIVEMIND // LIVE",
             HivemindState.SigningIn => "HIVEMIND // SIGNING IN",
@@ -1014,9 +1025,9 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }, state switch
         {
             HivemindState.Connected => "Messages and work orders go to the agents as real Hivemind missions. Each reply names its agent and model.",
-            HivemindState.SigningIn => "Finish in the browser: sign in with the Hivemind owner key, then Authorize. Omniwand picks it up on its own.",
+            HivemindState.SigningIn => "Finish in the browser: sign in with the Hivemind owner key, then Authorize. Holodex picks it up on its own.",
             HivemindState.Unreachable => $"Hivemind did not answer ({(error.Length > 0 ? error : "no reason given")}). Until it does, replies are Nemotron role-play and work orders are not sent.",
-            _ => "Sign in from your profile (top right) to reach the real Hivemind agents. Until then replies are Nemotron role-play, labelled as such, and work orders are not sent."
+            _ => "Sign in from your profile (the avatar at the foot of the rail) to reach the real Hivemind agents. Until then replies are Nemotron role-play, labelled as such, and work orders are not sent."
         });
         RefreshWorkOrdersText();
     }
@@ -1057,6 +1068,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         if (!ok)
             PhosphorToast.Show("Hivemind sign-in did not finish", _ark.Hivemind.LastError, "HOLODEX // HIVEMIND", 5200, ToastTone.Warning);
         await RefreshConnectionHeaderAsync();
+        // Signed in: the profile has done its job, so the session it covered comes back.
+        if (ok) ShowProfile(false);
     }
 
     /// <summary>The work orders with each one's full Hivemind execution id, for pipe holodex:orders.</summary>
