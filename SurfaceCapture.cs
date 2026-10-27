@@ -44,7 +44,7 @@ internal static class SurfaceCapture
             settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault()?.Select();
             Save(Render(settings.DropDown), Path.Combine(dir, "menu-settings-submenu.png"), written);
 
-            var spells = settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("gestures", StringComparison.OrdinalIgnoreCase));
+            var spells = settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("Spells", StringComparison.OrdinalIgnoreCase));
             if (spells != null)
             {
                 using (Render(spells.DropDown)) { }
@@ -52,12 +52,12 @@ internal static class SurfaceCapture
                 spells.DropDown.Close();
             }
 
-            var dpi = settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("DPI", StringComparison.OrdinalIgnoreCase));
-            if (dpi != null)
+            var speed = settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("speed", StringComparison.OrdinalIgnoreCase));
+            if (speed != null)
             {
-                using (Render(dpi.DropDown)) { }
-                Save(RenderDpiSubmenuSheet(dpi), Path.Combine(dir, "menu-dpi-submenu.png"), written);
-                dpi.DropDown.Close();
+                using (Render(speed.DropDown)) { }
+                Save(RenderSpeedSubmenuSheet(speed), Path.Combine(dir, "menu-speed-submenu.png"), written);
+                speed.DropDown.Close();
             }
 
             settings.DropDown.Close();
@@ -221,9 +221,9 @@ internal static class SurfaceCapture
         }
     }
 
-    private static Bitmap RenderDpiSubmenuSheet(ToolStripMenuItem dpiMenu)
+    private static Bitmap RenderSpeedSubmenuSheet(ToolStripMenuItem speedMenu)
     {
-        var dd = dpiMenu.DropDown;
+        var dd = speedMenu.DropDown;
         int w = Math.Max(248, dd.Width);
         int h = Math.Max(228, dd.Height);
         var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
