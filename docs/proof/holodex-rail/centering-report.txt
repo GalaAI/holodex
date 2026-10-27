@@ -1,0 +1,16 @@
+Holodex rail centring, live capture at 100% (all displays 96 dpi, 2026-10-27)
+
+Before: the frame's 20 px side padding (S5) sat left of the rail, in the rail's own surface colour, so the visible
+rail column ran from the window edge to the divider (x 4..88, centre 46) while every item centred on the rail
+itself (x 60). Then the divider took the rail's last pixel column, and GDI+'s default PixelOffsetMode drew each
+glyph half a pixel right.
+
+Fix (owner: HolodexLiteDrawerForm rail, PhosphorComposer RailButton / RailMark / AvatarButton)
+- The rail sits flush on the frame's 3 px patina edge (form Padding.Left = 3).
+- The divider is the gutter's first pixel column, outside the rail.
+- Rail items paint with PixelOffsetMode.Half.
+
+After, left and right gaps inside the column x 3..62 (pixels):
+  mark 16/16  chat 17/17  inbox 17/17  book 17/17  sparkles 17/17  wand pill 4/4  avatar 13/13
+At 150% the same layout scales uniformly (padding, widths, glyph sizes); not captured, because no display was at
+150% while this ran.

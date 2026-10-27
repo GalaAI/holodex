@@ -385,6 +385,9 @@ internal sealed class RailButton : Control
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        // Half: geometry lands on pixel edges, so a shape centred in the control is centred on screen. The default
+        // (None) draws everything half a pixel right and down, which read as the rail icons sitting off its axis.
+        g.PixelOffsetMode = PixelOffsetMode.Half;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f * s, 0.5f * s, Width - 1f * s, Height - 1f * s);
         float r = 14f * s;
@@ -419,6 +422,7 @@ internal sealed class RailMark : Control
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        e.Graphics.PixelOffsetMode = PixelOffsetMode.Half; // on the rail's axis, as RailButton
         float s = PhosphorPaint.Scale(this);
         float d = 32f * s;
         PhosphorTheme.DrawArkMark(e.Graphics, new RectangleF((Width - d) / 2f, (Height - d) / 2f, d, d));
@@ -472,6 +476,7 @@ internal sealed class AvatarButton : Control
     {
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.PixelOffsetMode = PixelOffsetMode.Half; // on the rail's axis, as RailButton
         float s = PhosphorPaint.Scale(this);
         // 32px like the Holodex vitals avatar in drawer mode, smaller only if the control is.
         float d = Math.Min(32f * s, Math.Min(Width, Height) - 4f * s);

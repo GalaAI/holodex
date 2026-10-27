@@ -151,7 +151,11 @@ public sealed class HolodexLiteDrawerForm : Form
         ForeColor = PhosphorTheme.Bone;
         Name = "Holodex";
         Size = new Size(560, 760);
-        Padding = WidgetChrome.FramePadding();
+        // The rail is the drawer's left edge, flush against the frame's 3 px patina edge: with the frame's side padding
+        // the rail's own surface ran on to the window edge, so its icons sat right of the column's middle.
+        var frame = WidgetChrome.FramePadding();
+        frame.Left = 3;
+        Padding = frame;
 
         bool hasNebiusKey = HasNebiusKey;
         // The account, the key and the gateway live in the profile panel (the avatar in the header opens it). It opens
@@ -234,11 +238,6 @@ public sealed class HolodexLiteDrawerForm : Form
         // are the web console Holodex's lucide set.
         var rail = new Panel { Dock = DockStyle.Left, Width = 60, BackColor = PhosphorTheme.Surface, Padding = new Padding(4, 0, 4, 4), Name = "Holodex.Rail" };
         _rail = rail;
-        rail.Paint += (_, e) =>
-        {
-            using var line = new Pen(PhosphorTheme.Line);
-            e.Graphics.DrawLine(line, rail.Width - 1, 0, rail.Width - 1, rail.Height);
-        };
         _profileBtn = new AvatarButton("Holodex.ProfileButton", "Profile") { Dock = DockStyle.Bottom, Height = 44 };
         _profileBtn.Click += (_, _) => ShowProfile(!_profileOpen);
         var tabs = new (string Id, string Label, PhosphorGlyph Glyph)[]
@@ -276,7 +275,15 @@ public sealed class HolodexLiteDrawerForm : Form
         Controls.Add(_profilePanel);
         var header = WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null, mark: false);
         header.Height = 48;
-        Controls.Add(new Panel { Dock = DockStyle.Left, Width = Gutter, BackColor = Color.Transparent });
+        // The rail's divider is the gutter's first pixel column, outside the rail, so the rail's whole width is the
+        // column its items centre on.
+        var railGutter = new Panel { Dock = DockStyle.Left, Width = Gutter, BackColor = Color.Transparent, Name = "Holodex.RailGutter" };
+        railGutter.Paint += (_, e) =>
+        {
+            using var line = new Pen(PhosphorTheme.Line);
+            e.Graphics.DrawLine(line, 0, rail.Top - railGutter.Top, 0, rail.Bottom - railGutter.Top);
+        };
+        Controls.Add(railGutter);
         Controls.Add(rail);
         WidgetDrag.Enable(this);
         Resize += (_, _) => PlaceProfile();
