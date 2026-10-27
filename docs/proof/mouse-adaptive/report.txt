@@ -1,0 +1,29 @@
+Adaptive mouse profiles, live proof, 2026-10-27, gala at 150% (dpi 144)
+
+How the active mouse is chosen
+- Windows Raw Input (RIDEV_INPUTSINK on a message-only window) reports which device sent each mouse event.
+- A mouse that moves in a real burst (8 events in 400 ms) becomes the active one. Injected input (no device) is ignored.
+- Before anything moves, the first known mouse model is active.
+- "Switch by itself" (Settings > Your mouse) is on by default; picking a mouse by hand pins it and turns that off.
+- Each mouse keeps its own speed and buttons in %LOCALAPPDATA%\Omniwand\mouse-profiles.json, keyed by VID&PID.
+- No mouse lets Omniwand set real DPI (that lives in G HUB, Options+ or Synapse), so every mouse gets
+  Mouse speed (Windows pointer speed 1 to 20), and Holodex says "DPI is set in your mouse's own app".
+
+mouse:status while Justin moved the MX Master 4 (before and after redeploy)
+  active=VID_046D&PID_B042:Logitech MX Master 4  auto=True  speed=6  lastInput=[VID_046D&PID_B042=6ms]
+mouse:status right after a restart, nothing moved yet
+  see mouse-status.txt (lastInput=[] and the first known model, MX Master 4, active)
+
+Device list
+- Windows lists 5 mouse-type devices. Two Razer ones are a Huntsman V2 keyboard and a Tartarus V2 keypad (their HID
+  product strings say so); they stay out of the menu unless they actually move the pointer.
+- A maker-only match (no exact PID in the table) now uses the device's own product string instead of a guessed model.
+
+Captures (taken from the live app through the pipe, no clicks)
+- tray-sheet.png: Holodex title with the live mouse name; Your mouse (IN USE, Switch by itself); Mouse speed; Spells you draw.
+- holodex-sheet.png: Mods tab (mouse line, speed, slider, plain pointer looks) and GrimX buttons for the MX Master 4.
+
+Not verified
+- A live switch to the second mouse (G PRO X Superlight 2): it needs that mouse moved by hand. The switch path is the same
+  one that made the MX Master 4 active from its own input.
+- tray:shoot of a root-level submenu (Grab from the screen) fails with "menu is not open"; Settings paths capture fine.

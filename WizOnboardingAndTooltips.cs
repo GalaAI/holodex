@@ -37,8 +37,7 @@ public static class WizOnboardingEngine
 
     public static WizEnvironmentScanReport RunZeroManualProvisioning(ArkStationClient ark)
     {
-        var mouse = MouseHardwareAndWandEngine.DetectConnectedMouse();
-        ark.ActiveMousePackageId = mouse.PackageId == "mx-master-4" ? "mx-master-4" : "universal-mouse";
+        var mouse = MouseHardwareAndWandEngine.ActiveMouse;
 
         // 1. Scan monitors & DPI
         var screens = Screen.AllScreens;
@@ -84,7 +83,7 @@ public static class WizOnboardingEngine
                 vidPid = mouse.VidPid,
                 packageId = mouse.PackageId,
                 windowsPointerSpeed = mouse.WindowsPointerSpeed,
-                estimatedDpi = mouse.EstimatedDpi
+                canSetDpi = mouse.CanSetDpi
             },
             capabilities = new[]
             {

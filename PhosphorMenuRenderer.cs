@@ -296,16 +296,30 @@ internal sealed class PhosphorMenuHeader : ToolStripItem
 {
     private readonly string _eyebrow;
     private readonly string _title;
-    private readonly string _subline;
+    private string _subline;
 
     public PhosphorMenuHeader(string eyebrow, string title, string subline)
     {
         _eyebrow = eyebrow;
         _title = title;
         _subline = subline;
+        Text = subline;
     }
 
     public override bool CanSelect => false;
+
+    /// <summary>The second line (the mouse in use). Setting it also sets Text, so the menu re-lays out on open.</summary>
+    public string Subline
+    {
+        get => _subline;
+        set
+        {
+            if (_subline == value) return;
+            _subline = value;
+            Text = value;
+            Invalidate();
+        }
+    }
 
     /// <summary>Row width set by <see cref="PhosphorMenuLayout"/> (the panel's label column); null sizes to content.</summary>
     public int? ColumnWidth { get; set; }

@@ -110,8 +110,8 @@ public sealed class ArkStationClient
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(25) };
     public string ArkRoot { get; }
-    public string ActiveMousePackageId { get; set; } = "universal-mouse";
-    public bool IsMxMaster4Detected { get; private set; }
+    /// <summary>The input package of the mouse in use: MX Master 4's Actions Ring package, or the universal one.</summary>
+    public string ActiveMousePackageId => MouseHardwareAndWandEngine.ActiveMouse.PackageId == "mx-master-4" ? "mx-master-4" : "universal-mouse";
     public string ActiveCursorProfile { get; private set; } = "smooth-cursor";
     public bool LastGatewayOnline { get; private set; }
 
@@ -120,7 +120,6 @@ public sealed class ArkStationClient
         ArkRoot = !string.IsNullOrWhiteSpace(arkRoot) && Directory.Exists(arkRoot)
             ? arkRoot
             : DefaultArkRoot;
-        DetectMouseHardware();
         SelectedModel = DefaultNemotronFastModel;
     }
 
@@ -320,39 +319,6 @@ public sealed class ArkStationClient
 
     [DllImport("advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
     private static extern void CredFree(IntPtr cred);
-
-    /// <summary>
-    /// Detects whether a Logitech MX Master 4 (VID_046D&amp;PID_B042 / model 2b042) is connected,
-    /// activating Package 1 (mx-master-4) when present or Package 2 (universal-mouse) otherwise.
-    /// </summary>
-    public void DetectMouseHardware()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo("powershell.exe",
-                "-NoProfile -NonInteractive -Command \"Get-PnpDevice -Class Mouse,HIDClass -PresentOnly -ErrorAction SilentlyContinue | Select-Object -ExpandProperty InstanceId\"")
-            {
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true
-            };
-            using var proc = Process.Start(psi);
-            if (proc != null)
-            {
-                string output = proc.StandardOutput.ReadToEnd();
-                proc.WaitForExit(1500);
-                IsMxMaster4Detected =
-                    output.Contains("VID_046D&PID_B042", StringComparison.OrdinalIgnoreCase) ||
-                    output.Contains("2b042", StringComparison.OrdinalIgnoreCase);
-                ActiveMousePackageId = IsMxMaster4Detected ? "mx-master-4" : "universal-mouse";
-            }
-        }
-        catch
-        {
-            IsMxMaster4Detected = false;
-            ActiveMousePackageId = "universal-mouse";
-        }
-    }
 
     public IReadOnlyList<string> ListCursorProfiles()
     {

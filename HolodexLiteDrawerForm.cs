@@ -97,8 +97,7 @@ public sealed class HolodexLiteDrawerForm : Form
     private HivemindState? _shownHivemindState;
 
     // Mouse detection launches PowerShell, so it runs once and the result is reused.
-    private MouseHardwareReport? _cachedMouse;
-    private MouseHardwareReport ConnectedMouse => _cachedMouse ??= MouseHardwareAndWandEngine.DetectConnectedMouse();
+    private static MouseHardwareReport ConnectedMouse => MouseHardwareAndWandEngine.ActiveMouse;
 
     private bool HasNebiusKey => !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
 
@@ -518,7 +517,7 @@ public sealed class HolodexLiteDrawerForm : Form
         };
         openWizBtn.Click += (_, _) => _openWiz(Location);
 
-        var autoMacroBtn = new PhosphorButton("Auto-bind mouse")
+        var autoMacroBtn = new PhosphorButton("Reset my buttons")
         {
             Dock = DockStyle.Right,
             Width = 210,
@@ -535,18 +534,18 @@ public sealed class HolodexLiteDrawerForm : Form
             catch (Exception ex)
             {
                 PhosphorToast.Show(
-                    "Mouse Macros Not Saved",
-                    $"Could not save macro bindings: {ex.Message}",
-                    "WIZ // GRIMX MACROS",
+                    "Buttons not saved",
+                    $"Your buttons could not be saved: {ex.Message}",
+                    "MOUSE // BUTTONS",
                     4200,
                     ToastTone.Warning);
                 return;
             }
             RefreshGrimXMacroReadout();
             PhosphorToast.Show(
-                "Wiz Mouse Macros Bound",
-                $"Configured Mouse4, Mouse5 & Right-Hold Gesture Flicks for {hw.Brand} {hw.Model}.",
-                "WIZ // GRIMX MACROS",
+                "Buttons reset",
+                $"Your {hw.Name} has its starting buttons back.",
+                "MOUSE // BUTTONS",
                 3400,
                 ToastTone.Success);
         };
@@ -566,42 +565,33 @@ public sealed class HolodexLiteDrawerForm : Form
     {
         _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
 
-        var hw = ConnectedMouse;
-        // The mouse (brand, model, VID/PID), then the pointer: speed, DPI, the slider's range and VSync.
-        // One LED per fact; the slider's eyebrow below says its 100 to 4000 DPI range.
-        _mouseHwLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Holodex.MouseLine" };
-        _mouseHwLabel.Set((PhosphorTheme.Patina, $"Mouse // {hw.Brand} {hw.Model}"), (PhosphorTheme.Moss, $"VID/PID {hw.VidPid}"));
+        // The mouse in use (it follows the one you move), then its speed. Omniwand sets the Windows pointer speed for
+        // every mouse; a mouse's own DPI lives in its maker's app, so the setting is speed.
+        _mouseHwLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Wrap = true, Name = "Holodex.MouseLine" };
         _dpiValueLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Holodex.PointerLine" };
-        void PointerLine(int dpi, int speed) => _dpiValueLabel.Set(
-            (PhosphorTheme.Patina, $"Pointer speed {speed}/20"),
-            (PhosphorTheme.Coral, $"{dpi} DPI"),
-            (PhosphorTheme.Moss, "VSync morph"));
-        PointerLine(MouseHardwareAndWandEngine.GetCurrentDpi(), hw.WindowsPointerSpeed);
-
-        // Live DPI Slider (100 DPI to 4000 DPI)
-        var dpiSlider = new PhosphorDpiSlider
+        ShowActiveMouse();
+        var dpiSlider = new PhosphorSpeedSlider
         {
             Dock = DockStyle.Top,
             Height = 46,
             Name = "Holodex.DpiSlider"
         };
-        MouseHardwareAndWandEngine.DpiChanged += (dpi, speed) =>
+        MouseHardwareAndWandEngine.SpeedChanged += speed =>
         {
             if (IsDisposed) return;
-            void UpdateText() => PointerLine(dpi, speed);
-            if (InvokeRequired) BeginInvoke(new Action(UpdateText));
-            else UpdateText();
+            if (InvokeRequired) BeginInvoke(new Action(() => ShowSpeed(speed)));
+            else ShowSpeed(speed);
         };
-        var dpiLabeled = WidgetChrome.Labeled("Pointer speed // 100 to 4000 DPI", dpiSlider, 46);
+        var dpiLabeled = WidgetChrome.Labeled("Mouse speed // slow to fast", dpiSlider, 46);
 
         // On-Brand Cursor Icon Style Picker
         var styleRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
         var styles = new (string Label, CursorIconStyle Style, int Width)[]
         {
             ("Aperture",   CursorIconStyle.ArkAperture, 108),
-            ("Relic Wand", CursorIconStyle.RelicWand, 110),
+            ("Magic wand", CursorIconStyle.RelicWand, 110),
             ("Arrow",      CursorIconStyle.PhosphorArrow, 96),
-            ("Reticle",    CursorIconStyle.ViewfinderReticle, 114)
+            ("Target",     CursorIconStyle.ViewfinderReticle, 114)
         };
         int sx = 0;
         foreach (var (lbl, st, w) in styles)
@@ -630,10 +620,10 @@ public sealed class HolodexLiteDrawerForm : Form
             styleRow.Controls.Add(btn);
             sx += w + 6;
         }
-        var styleLabeled = WidgetChrome.Labeled("Cursor // VSync vector morph", styleRow, 40);
+        var styleLabeled = WidgetChrome.Labeled("Pointer look", styleRow, 40);
 
         // Wiz Automated Onboarding & Animated Tooltip Tutorial button
-        var onboardBtn = new PhosphorButton("Replay the tour")
+        var onboardBtn = new PhosphorButton("Show me around")
         {
             Dock = DockStyle.Top,
             Height = 42,
@@ -643,21 +633,21 @@ public sealed class HolodexLiteDrawerForm : Form
 
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
-        modsInfoBox.AddSection("Equipped // Spellbook");
-        foreach (var (spell, gesture, opens) in new[]
+        modsInfoBox.AddSection("Spells you draw");
+        foreach (var (spell, gesture, does) in new[]
         {
-            ("Time Splitter", "Hold Ctrl or right-click, then shake left and right.", "Wiz Inspect"),
-            ("Copycat", "Hold Ctrl or right-click, then shake up and down.", "Free-form lasso"),
-            ("Mutation", "Hold Ctrl or right-click, then draw a circle.", "GrimX Spell cast"),
-            ("Synthesize", "Hold Ctrl or right-click, then sweep right.", "Holodex session")
+            ("Time Splitter", "Hold Ctrl or right-click, then shake side to side.", "Asks Wiz about it"),
+            ("Copycat", "Hold Ctrl or right-click, then shake up and down.", "Cuts out a picture"),
+            ("Mutation", "Hold Ctrl or right-click, then draw a circle.", "Casts a spell"),
+            ("Synthesize", "Hold Ctrl or right-click, then sweep to the right.", "Opens Holodex")
         })
-            modsInfoBox.Add(ThreadTone.Action, $"Spell // {spell}", gesture, leds: new[] { (PhosphorTheme.Patina, $"Opens {opens}") });
-        modsInfoBox.AddSection("Equipped // Mods");
+            modsInfoBox.Add(ThreadTone.Action, $"Spell // {spell}", gesture, leds: new[] { (PhosphorTheme.Patina, does) });
+        modsInfoBox.AddSection("What is turned on");
         foreach (var (mod, what, leds) in new (string, string, (Color, string)[])[]
         {
-            ("Ark Aperture morph engine", "Solid patina I-beam, coral hover and the Wiz globe.", new[] { (PhosphorTheme.Moss, "240 Hz") }),
-            ("Mouse hardware intelligence", "Reads the brand and VID/PID over USB/HID and drives the DPI slider.", new[] { (PhosphorTheme.Moss, "100 to 4000 DPI") }),
-            ("KeyMaster local vault sync", "Keeps the model key in Windows Credential Manager, synced with ArkHive.", new[] { (PhosphorTheme.Patina, "wincred:// to ArkHive") }),
+            ("Shape-changing pointer", "It turns into a line when you can type, glows on links, and spins while it waits.", new[] { (PhosphorTheme.Moss, "Smooth") }),
+            ("Knows your mouse", "Finds the mouse you are moving and uses its own speed and buttons.", new[] { (PhosphorTheme.Moss, "Switches by itself") }),
+            ("Safe key keeper", "Keeps your model key locked in Windows, never in a file.", new[] { (PhosphorTheme.Patina, "Windows vault") }),
             ("Hivemind session bridge", "Messages and work orders become real Hivemind missions over MCP. Signed out or offline, replies are Nemotron role-play and are labelled so.", new[] { (PhosphorTheme.Patina, "hivemind.arkomnitek.com/mcp"), (PhosphorTheme.Ghost, "Offline: Nemotron 3 Nano") })
         })
             modsInfoBox.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
@@ -726,6 +716,20 @@ public sealed class HolodexLiteDrawerForm : Form
         }
     }
 
+    /// <summary>The Mods tab's mouse line, speed line and the GrimX buttons, for the mouse in use now.</summary>
+    public void ShowActiveMouse()
+    {
+        var hw = ConnectedMouse;
+        _mouseHwLabel.Set((PhosphorTheme.Patina, $"Mouse // {hw.Name}"), (PhosphorTheme.Moss, "IN USE"),
+            (PhosphorTheme.Ghost, MouseHardwareAndWandEngine.KnownMice.Count > 1 ? $"{MouseHardwareAndWandEngine.KnownMice.Count} MICE FOUND" : "1 MOUSE FOUND"));
+        ShowSpeed(MouseHardwareAndWandEngine.GetWindowsMouseSpeed());
+        RefreshGrimXMacroReadout();
+    }
+
+    private void ShowSpeed(int speed) => _dpiValueLabel.Set(
+        (PhosphorTheme.Patina, $"Speed {speed} of 20"),
+        (PhosphorTheme.Ghost, ConnectedMouse.CanSetDpi ? "DPI SET HERE" : "DPI IS SET IN YOUR MOUSE'S OWN APP"));
+
     public void RefreshGrimXMacroReadout()
     {
         if (_macroList == null) return;
@@ -733,7 +737,7 @@ public sealed class HolodexLiteDrawerForm : Form
         var macros = MouseHardwareAndWandEngine.LoadOrCreateMacroBindings(hw);
         _macroList.Clear();
         // The full model is on the Mods tab; each binding names the device it reads.
-        _macroList.AddSection($"Wiz mouse bindings // {hw.Brand}");
+        _macroList.AddSection($"Buttons // {hw.Name}");
         foreach (var m in macros)
             _macroList.Add(ThreadTone.Action, m.TriggerLabel, m.ActionLabel,
                 leds: string.IsNullOrWhiteSpace(m.Parameter) ? null : new[] { (PhosphorTheme.Patina, m.Parameter) });

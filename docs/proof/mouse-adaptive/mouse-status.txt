@@ -1,0 +1,2 @@
+> mouse:status
+ok:mouse:status:active=VID_046D&PID_B042:Logitech MX Master 4:auto=True:speed=6:known=[VID_046D&PID_B042:Logitech MX Master 4,VID_046D&PID_C547:Logitech G PRO X Superlight 2 (Lightspeed)]:lastInput=[VID_046D&PID_B042=231ms]

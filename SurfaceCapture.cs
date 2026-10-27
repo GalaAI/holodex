@@ -232,10 +232,10 @@ internal static class SurfaceCapture
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
             PhosphorPaint.DrawPanel(g, new Rectangle(0, 0, w, h), PhosphorTheme.RadiusButton, PhosphorTheme.Surface, PhosphorTheme.Line2, PhosphorTheme.Surface, 1f);
-            PhosphorPaint.DrawEyebrow(g, "MOUSE DPI // SPEED", PhosphorTheme.Ghost, 12f, 8f, 1f);
+            PhosphorPaint.DrawEyebrow(g, "MOUSE SPEED", PhosphorTheme.Ghost, 12f, 8f, 1f);
 
             var host = dd.Items.OfType<ToolStripControlHost>().FirstOrDefault();
-            if (host?.Control is PhosphorDpiSlider slider)
+            if (host?.Control is PhosphorSpeedSlider slider)
             {
                 var st = g.Save();
                 g.TranslateTransform(10, 26);
