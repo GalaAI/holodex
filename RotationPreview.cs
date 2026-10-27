@@ -6,11 +6,11 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>
-/// Rotation submenu row with a live preview in the right column: the cursor runs a small figure-eight and
+/// Pointer tilt row with a live preview in the right column: the cursor runs a small figure-eight and
 /// turns the way that <see cref="RotationMode"/> turns the real wand (Program.RenderLoop):
 /// TruePathTrailer faces its direction of travel, SubtleBank holds the classic -22.5 degree angle and tilts
-/// up to 28 degrees with horizontal speed, LockedAngle keeps the classic angle. Animates only while the
-/// submenu is open.
+/// up to 28 degrees with horizontal speed, LockedAngle keeps the classic angle. Animates only while its
+/// page is on the open tray menu.
 /// </summary>
 internal sealed class RotationPreviewItem : ToolStripMenuItem
 {
@@ -34,20 +34,20 @@ internal sealed class RotationPreviewItem : ToolStripMenuItem
         ShortcutKeyDisplayString = new string(' ', 11);
     }
 
-    /// <summary>Runs the shared animation clock while <paramref name="parent"/>'s submenu is open.</summary>
-    public static void Animate(ToolStripMenuItem parent)
+    /// <summary>Runs the shared animation clock while <paramref name="page"/> is on the open tray menu.</summary>
+    public static void Animate(TrayPage page)
     {
         void Tick(object? s, EventArgs e)
         {
-            foreach (ToolStripItem child in parent.DropDownItems)
+            foreach (ToolStripItem child in page.Items)
                 if (child is RotationPreviewItem) child.Invalidate();
         }
-        parent.DropDownOpened += (_, _) =>
+        page.Shown += (_, _) =>
         {
             Clock.Tick += Tick;
             if (_openMenus++ == 0) Clock.Start();
         };
-        parent.DropDownClosed += (_, _) =>
+        page.Hidden += (_, _) =>
         {
             Clock.Tick -= Tick;
             if (--_openMenus <= 0) { _openMenus = 0; Clock.Stop(); }

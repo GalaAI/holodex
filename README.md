@@ -18,9 +18,9 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 | --- | --- | --- |
 | ![Snip](docs/shots/as-built/snip.png) | ![Tutorial](docs/shots/as-built/tutorial.png) | ![AInbox](docs/shots/as-built/ainbox.png) |
 
-| Tray Menu (`Omniwand // v0.3`) | Settings & Spellbook Submenus | 240Hz Aperture Morph States |
+| Tray Menu (`Omniwand // v0.3`) | Settings page | 240Hz Aperture Morph States |
 | --- | --- | --- |
-| ![Menu](docs/shots/as-built/menu.png) | ![Settings](docs/shots/as-built/menu-settings-submenu.png) | ![Morph Sheet](docs/shots/as-built/cursor-morph-sheet.png) |
+| ![Menu](docs/shots/as-built/menu.png) | ![Settings](docs/shots/as-built/menu-settings.png) | ![Morph Sheet](docs/shots/as-built/cursor-morph-sheet.png) |
 
 ---
 
@@ -40,8 +40,8 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
     2. **Shake Up-Down (`4 swings ≥ 44px in 900ms`)**: Casts `COPYCAT · LASSO CAPTURE` (arms Free-Form Lasso & Vision Annotator).
     3. **Draw a Circle (`≥ 300° signed turn + ≥ 210px travel in 1400ms`)**: Casts `MUTATION · GRIMX SPELL CAST` (casts GrimX Slot 1 Spell).
     4. **Unbroken Sweep Right (`≥ 280px`)**: Casts `SYNTHESIZE · HOLODEX BRIDGE` (opens Holodex Lite Syndicate Session).
-- **Streamlined Root Tray Menu & Consolidated `Settings` Menu**:
-  - Top-level tray menu keeps the 6 primary workflow surfaces (`Phosphor HUD`, `Holodex Lite drawer`, `Wiz crafting`, `Capture & intake >`, `Spell Orb >`, `Settings >`) while housing all hardware, cursor, morph, DPI slider (`100 to 4000 DPI`), spellbook, onboarding, and VR controls cleanly inside **`Settings`**.
+- **Tray Menu That Turns Pages**:
+  - Clicking the tray icon opens one panel centered above the icon. The home page holds the primary surfaces (`Ask a question`, `Open Holodex`, `Make a spell with Wiz`, `Grab from the screen >`, `Spell Orb >`, `Settings >`); a `>` row turns the same panel to its page, and `Back` (or Esc, Backspace, Left) returns. Choices and toggles keep the panel open so the change shows; it closes on a click outside it, Esc on the home page, another click on the icon, or a row that opens something.
 - **Zero-Manual Wiz Environment Onboarding & Animated Phosphor Tooltips (`Alt+T`)**:
   - On first launch, **Wiz** automatically scans your hardware (connected mouse brand & model via VID/PID, Windows pointer speed, display DPI, installed CLIs, and Windows Credential Manager `wincred://` vault), auto-provisions `~/.ark/agents/omniwand` (`omniwand.agent.bamf.json` + `SKILL.md` + `mouse-macros.json`), and launches a 7-step **guided tour** with eased Phosphor motion, keycap shortcuts and keyboard navigation (Left, Right, Esc) with zero manual configuration.
 - **Intelligent Mouse Brand Detection, Live 100 to 4000 DPI Slider & Macro Binder**:

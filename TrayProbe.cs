@@ -15,11 +15,11 @@ namespace Omniwand;
 
 /// <summary>
 /// The live tray menu, driven through the control pipe so it can be checked without touching the mouse or
-/// keyboard: <c>tray:open</c>, <c>tray:path:Settings/Wand gestures</c>, <c>tray:capture:&lt;png&gt;</c>,
-/// <c>tray:report</c>, <c>tray:close</c>, and <c>tray:shoot:&lt;png&gt;|Settings/Wand gestures</c>, which does open, path,
+/// keyboard: <c>tray:open</c>, <c>tray:path:Settings/Spells</c>, <c>tray:capture:&lt;png&gt;</c>,
+/// <c>tray:report</c>, <c>tray:close</c>, and <c>tray:shoot:&lt;png&gt;|Settings/Spells</c>, which does open, path,
 /// capture and close in one call (a menu the app opened without a click closes as soon as anything else is
 /// activated, so separate calls can find it gone). It opens the menu the way NotifyIcon does when its icon is clicked, at the
-/// icon's real screen rectangle, opens submenus through WinForms' own <see cref="ToolStripDropDownItem.ShowDropDown"/>,
+/// icon's real screen rectangle, turns pages the way a click on a page row does (<see cref="PhosphorTrayMenu.ShowPage"/>),
 /// and copies the screen, so what it reports is what a click would show. It never moves the pointer.
 /// </summary>
 internal static class TrayProbe
@@ -30,7 +30,7 @@ internal static class TrayProbe
         if (arg.StartsWith("path:", StringComparison.OrdinalIgnoreCase)) return OpenPath(menu, arg["path:".Length..]);
         if (arg.StartsWith("capture:", StringComparison.OrdinalIgnoreCase)) return Capture(icon, menu, arg["capture:".Length..].Trim());
         if (arg.StartsWith("shoot:", StringComparison.OrdinalIgnoreCase)) return Shoot(icon, menu, arg["shoot:".Length..]);
-        if (arg.Equals("report", StringComparison.OrdinalIgnoreCase)) return "ok:tray:report:" + Report(menu);
+        if (arg.Equals("report", StringComparison.OrdinalIgnoreCase)) return "ok:tray:report:" + Report(menu, icon);
         if (arg.Equals("close", StringComparison.OrdinalIgnoreCase))
         {
             menu.Close();
@@ -42,7 +42,7 @@ internal static class TrayProbe
     private static string Open(NotifyIcon icon, PhosphorTrayMenu menu)
     {
         if (menu.Visible) menu.Close();
-        var rect = IconRect(icon);
+        var rect = TrayIconBounds.Of(icon, out string iconError);
         var pt = rect is Rectangle r ? new Point(r.Left + r.Width / 2, r.Top + r.Height / 2) : Cursor.Position;
 
         // NotifyIcon.ShowContextMenu: bring the icon's window forward, then ContextMenuStrip.ShowInTaskbar at the
@@ -54,7 +54,7 @@ internal static class TrayProbe
         if (show != null) show.Invoke(menu, new object[] { pt.X, pt.Y });
         else menu.Show(pt, ToolStripDropDownDirection.AboveLeft);
         long ms = sw.ElapsedMilliseconds;
-        return $"ok:tray:open:icon={(rect is Rectangle ir ? Format(ir) : "unknown(" + LastIconError + ")")}:at={pt.X},{pt.Y}:ms={ms}:{Report(menu)}";
+        return $"ok:tray:open:icon={(rect is Rectangle ir ? Format(ir) : "unknown(" + iconError + ")")}:at={pt.X},{pt.Y}:ms={ms}:{Report(menu, icon)}";
     }
 
     private static string Shoot(NotifyIcon icon, PhosphorTrayMenu menu, string spec)
@@ -91,19 +91,16 @@ internal static class TrayProbe
     private static string OpenPath(PhosphorTrayMenu menu, string path)
     {
         if (!menu.Visible) return "error:tray:path:menu is not open";
-        CloseSubmenus(menu);
-        ToolStripDropDown current = menu;
+        menu.ShowPage(menu.Home);
         var timings = new List<string>();
         foreach (string segment in path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            var item = current.Items.OfType<ToolStripMenuItem>()
-                .FirstOrDefault(i => i.HasDropDownItems && Clean(i.Text).StartsWith(segment, StringComparison.OrdinalIgnoreCase));
-            if (item == null) return $"error:tray:path:no submenu '{segment}'";
-            item.Select();
+            var row = menu.Page.Items.OfType<PhosphorPageRow>()
+                .FirstOrDefault(i => Clean(i.Text).StartsWith(segment, StringComparison.OrdinalIgnoreCase));
+            if (row == null) return $"error:tray:path:no page '{segment}' on {Name(menu.Page)}";
             var sw = Stopwatch.StartNew();
-            item.ShowDropDown();
+            menu.ShowPage(row.Page);
             timings.Add($"{segment}={sw.ElapsedMilliseconds}ms");
-            current = item.DropDown;
         }
         return $"ok:tray:path:{string.Join(",", timings)}:{Report(menu)}";
     }
@@ -111,15 +108,14 @@ internal static class TrayProbe
     private static string Capture(NotifyIcon icon, PhosphorTrayMenu menu, string file)
     {
         if (file.Length == 0) return "error:tray:capture:file required";
-        var panels = Panels(menu).Where(p => p.Visible).ToList();
-        if (panels.Count == 0) return "error:tray:capture:menu is not open";
-        // Let the panels finish painting before the copy.
-        foreach (var p in panels) p.Update();
+        if (!menu.Visible) return "error:tray:capture:menu is not open";
+        // Let the panel finish painting before the copy.
+        menu.Update();
         Application.DoEvents();
 
         var screen = Screen.FromRectangle(menu.Bounds);
-        var area = panels.Select(p => p.Bounds).Aggregate(Rectangle.Union);
-        if (IconRect(icon) is Rectangle ir && screen.Bounds.Contains(ir)) area = Rectangle.Union(area, ir);
+        var area = menu.Bounds;
+        if (TrayIconBounds.Of(icon, out _) is Rectangle ir && screen.Bounds.Contains(ir)) area = Rectangle.Union(area, ir);
         area.Inflate(32, 32);
         // Down to the screen bottom, so the taskbar shows beside the menu.
         area = Rectangle.FromLTRB(area.Left, area.Top, area.Right, screen.Bounds.Bottom);
@@ -130,95 +126,36 @@ internal static class TrayProbe
         using (var g = Graphics.FromImage(bmp))
             g.CopyFromScreen(area.Location, Point.Empty, area.Size, CopyPixelOperation.SourceCopy);
         bmp.Save(file, ImageFormat.Png);
-        return $"ok:tray:capture:{file}:region={Format(area)}:{Report(menu)}";
+        return $"ok:tray:capture:{file}:region={Format(area)}:{Report(menu, icon)}";
     }
 
     /// <summary>
-    /// Each open panel's screen rectangle, the work area, and the checks the menu has to pass: every panel
-    /// inside the work area (never over the taskbar), every submenu right of its parent and clear of every
-    /// panel before it, and no row label clipped by its panel.
+    /// The panel's screen rectangle, its page, the work area, and the checks it has to pass: inside the work area
+    /// (never over the taskbar), clear of the icon on the taskbar's side, and no row label clipped by the panel.
     /// </summary>
-    private static string Report(PhosphorTrayMenu menu)
+    private static string Report(PhosphorTrayMenu menu, NotifyIcon? icon = null)
     {
-        var open = Panels(menu).Where(p => p.Visible).ToList();
         var work = Screen.FromRectangle(menu.Bounds).WorkingArea;
-        var sb = new StringBuilder($"work={Format(work)}:dpi={menu.DeviceDpi}");
+        var sb = new StringBuilder($"work={Format(work)}:dpi={menu.DeviceDpi}:page={Name(menu.Page)}:panel={Format(menu.Bounds)}:visible={menu.Visible}");
         var problems = new List<string>();
-        for (int i = 0; i < open.Count; i++)
+        if (menu.Visible && !work.Contains(menu.Bounds)) problems.Add("panel leaves the work area");
+        if (menu.Visible && icon != null && TrayIconBounds.Of(icon, out _) is Rectangle ir)
         {
-            var p = open[i];
-            string name = Name(p);
-            sb.Append($":{name}={Format(p.Bounds)}");
-            if (!work.Contains(p.Bounds)) problems.Add($"{name} leaves the work area");
-            if (i > 0)
-            {
-                var parent = open[i - 1];
-                if (p.Left < parent.Right - 2) problems.Add($"{name} not right of {Name(parent)}");
-                foreach (var before in open.Take(i))
-                {
-                    var overlap = Rectangle.Intersect(before.Bounds, p.Bounds);
-                    if (overlap.Width > 2 && overlap.Height > 2) problems.Add($"{name} overlaps {Name(before)}");
-                }
-            }
-            foreach (ToolStripItem item in p.Items)
-                if (item.Available && item.Bounds.Right > p.ClientSize.Width) problems.Add($"{name}/{Clean(item.Text)} clipped");
+            sb.Append($":icon={Format(ir)}");
+            bool below = ir.Top + ir.Height / 2 < work.Top + work.Height / 2;
+            if (below ? menu.Top < ir.Bottom : menu.Bottom > ir.Top) problems.Add("panel covers the icon");
         }
+        foreach (ToolStripItem item in menu.Items)
+            if (item.Available && item.Bounds.Right > menu.ClientSize.Width) problems.Add($"{Clean(item.Text)} clipped");
         sb.Append(problems.Count == 0 ? ":checks=pass" : ":checks=FAIL[" + string.Join("; ", problems) + "]");
         return sb.ToString();
     }
 
-    private static IEnumerable<ToolStripDropDown> Panels(ToolStripDropDown panel)
-    {
-        yield return panel;
-        foreach (var item in panel.Items.OfType<ToolStripDropDownItem>().Where(i => i.HasDropDownItems && i.DropDown.Visible))
-            foreach (var child in Panels(item.DropDown))
-                yield return child;
-    }
-
-    private static void CloseSubmenus(ToolStripDropDown panel)
-    {
-        foreach (var item in panel.Items.OfType<ToolStripDropDownItem>().Where(i => i.HasDropDownItems && i.DropDown.Visible))
-        {
-            CloseSubmenus(item.DropDown);
-            item.HideDropDown();
-        }
-    }
-
-    private static string Name(ToolStripDropDown panel) => panel.OwnerItem == null ? "root" : Clean(panel.OwnerItem.Text);
+    private static string Name(TrayPage page) => page.Parent == null ? "home" : Clean(page.Title);
 
     private static string Clean(string? text) => (text ?? string.Empty).Replace("&&", "&");
 
     private static string Format(Rectangle r) => $"{r.X},{r.Y},{r.Width}x{r.Height}";
-
-    private static string LastIconError = string.Empty;
-
-    /// <summary>The icon's screen rectangle from the shell, or null when the shell does not report it.</summary>
-    private static Rectangle? IconRect(NotifyIcon icon)
-    {
-        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
-        if (typeof(NotifyIcon).GetField("_window", flags)?.GetValue(icon) is not NativeWindow window) { LastIconError = "no _window"; return null; }
-        object? rawId = typeof(NotifyIcon).GetField("_id", flags)?.GetValue(icon);
-        if (rawId == null) { LastIconError = "no _id"; return null; }
-        var ident = new NOTIFYICONIDENTIFIER { cbSize = (uint)Marshal.SizeOf<NOTIFYICONIDENTIFIER>(), hWnd = window.Handle, uID = Convert.ToUInt32(rawId) };
-        int hr = Shell_NotifyIconGetRect(ref ident, out var rc);
-        if (hr != 0) { LastIconError = $"Shell_NotifyIconGetRect 0x{hr:X8}"; return null; }
-        return Rectangle.FromLTRB(rc.Left, rc.Top, rc.Right, rc.Bottom);
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NOTIFYICONIDENTIFIER
-    {
-        public uint cbSize;
-        public IntPtr hWnd;
-        public uint uID;
-        public Guid guidItem;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RECT { public int Left, Top, Right, Bottom; }
-
-    [DllImport("shell32.dll")]
-    private static extern int Shell_NotifyIconGetRect(ref NOTIFYICONIDENTIFIER identifier, out RECT iconLocation);
 
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);

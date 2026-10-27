@@ -33,55 +33,14 @@ internal static class SurfaceCapture
         ("toast-crafted", "Ritual crafted", "Ritual drafted in Wiz. Bind it to a ring slot in Input Studio.", "WIZ // 4GE BENCH", ToastTone.Success),
     };
 
-    public static IReadOnlyList<string> CaptureAll(string dir, ContextMenuStrip trayMenu, params (string Name, Form Form)[] widgets)
+    public static IReadOnlyList<string> CaptureAll(string dir, PhosphorTrayMenu trayMenu, params (string Name, Form Form)[] widgets)
     {
         Directory.CreateDirectory(dir);
         var written = new List<string>();
 
-        // Tray menu at rest, then with the orb row lit and its submenu open on its first row.
-        Save(Render(trayMenu), Path.Combine(dir, "menu.png"), written);
-        var orb = trayMenu.Items.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("orb", StringComparison.OrdinalIgnoreCase));
-        if (orb != null)
-        {
-            using (Render(trayMenu)) { }
-            using (Render(orb.DropDown)) { }
-            orb.Select();
-            Save(Render(trayMenu), Path.Combine(dir, "menu-orb-lit.png"), written);
-            orb.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault()?.Select();
-            Save(Render(orb.DropDown), Path.Combine(dir, "menu-orb-submenu.png"), written);
-            orb.DropDown.Close();
-            trayMenu.Close();
-        }
-
-        var settings = trayMenu.Items.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("Settings", StringComparison.OrdinalIgnoreCase));
-        if (settings != null)
-        {
-            using (Render(settings.DropDown)) { }
-            settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault()?.Select();
-            Save(Render(settings.DropDown), Path.Combine(dir, "menu-settings-submenu.png"), written);
-
-            var spells = settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("Spells", StringComparison.OrdinalIgnoreCase));
-            if (spells != null)
-            {
-                using (Render(spells.DropDown)) { }
-                Save(Render(spells.DropDown), Path.Combine(dir, "menu-spells-submenu.png"), written);
-                spells.DropDown.Close();
-            }
-
-            var speed = settings.DropDownItems.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.DropDownItems.Count > 0 && (i.Text ?? string.Empty).Contains("speed", StringComparison.OrdinalIgnoreCase));
-            if (speed != null)
-            {
-                using (Render(speed.DropDown)) { }
-                Save(RenderSpeedSubmenuSheet(speed), Path.Combine(dir, "menu-speed-submenu.png"), written);
-                speed.DropDown.Close();
-            }
-
-            settings.DropDown.Close();
-            trayMenu.Close();
-        }
-
-        // The menu as it opens from the tray, one sheet per submenu, placed on a 1920x1080 screen.
-        written.AddRange(CaptureTrayComposites(dir, trayMenu));
+        // Tray menu: the home page and every page it turns to, each as the panel alone (menu*.png) and as it opens
+        // above the tray icon on a 1920x1080 screen (menu-tray*.png).
+        written.AddRange(CaptureTrayPages(dir, trayMenu));
 
         // Render a composite sheet of the 240Hz ArkApertureMorphEngine states
         Save(RenderCursorMorphSheet(), Path.Combine(dir, "cursor-morph-sheet.png"), written);
@@ -231,52 +190,6 @@ internal static class SurfaceCapture
         }
     }
 
-    private static Bitmap RenderSpeedSubmenuSheet(ToolStripMenuItem speedMenu)
-    {
-        var dd = speedMenu.DropDown;
-        int w = Math.Max(248, dd.Width);
-        int h = Math.Max(228, dd.Height);
-        var bmp = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-            PhosphorPaint.DrawPanel(g, new Rectangle(0, 0, w, h), PhosphorTheme.RadiusButton, PhosphorTheme.Surface, PhosphorTheme.Line2, PhosphorTheme.Surface, 1f);
-            PhosphorPaint.DrawEyebrow(g, "MOUSE SPEED", PhosphorTheme.Ghost, 12f, 8f, 1f);
-
-            var host = dd.Items.OfType<ToolStripControlHost>().FirstOrDefault();
-            if (host?.Control is PhosphorSpeedSlider slider)
-            {
-                var st = g.Save();
-                g.TranslateTransform(10, 26);
-                slider.PaintSlider(g);
-                g.Restore(st);
-            }
-
-            using var sepPen = new Pen(PhosphorTheme.Line, 1f);
-            g.DrawLine(sepPen, 10, 78, w - 10, 78);
-
-            using var itemFont = PhosphorFonts.Ui(PhosphorTheme.TextData);
-            using var monoFont = PhosphorFonts.Mono(PhosphorTheme.TextData);
-            using var boneBrush = new SolidBrush(PhosphorTheme.Bone);
-            using var ghostBrush = new SolidBrush(PhosphorTheme.Ghost);
-
-            int ry = 84;
-            foreach (var item in dd.Items.OfType<ToolStripMenuItem>())
-            {
-                g.DrawString(item.Text ?? "", itemFont, boneBrush, 12f, ry + 3f);
-                string sc = (item.ShortcutKeyDisplayString ?? "").TrimEnd('\u2007');
-                if (!string.IsNullOrEmpty(sc))
-                {
-                    var sz = g.MeasureString(sc, monoFont);
-                    g.DrawString(sc, monoFont, ghostBrush, w - sz.Width - 12f, ry + 3f);
-                }
-                ry += 23;
-            }
-        }
-        return bmp;
-    }
-
     /// <summary>The screen the tray composites are placed on: 1920x1080 with a 48px taskbar along the bottom.</summary>
     internal static readonly Rectangle TrayScreen = new(0, 0, 1920, 1080);
     internal static readonly Rectangle TrayWorkArea = new(0, 0, 1920, 1032);
@@ -284,58 +197,72 @@ internal static class SurfaceCapture
     /// <summary>Pointer on the Omniwand tray icon, near the clock at the bottom-right.</summary>
     internal static readonly Point TrayAnchor = new(1790, 1056);
 
+    /// <summary>The tray icon on <see cref="TrayScreen"/>: a 24px slot centered on <see cref="TrayAnchor"/>.</summary>
+    internal static readonly Rectangle TrayIcon = new(TrayAnchor.X - 12, TrayAnchor.Y - 12, 24, 24);
+
     /// <summary>
-    /// <c>menu-tray-*.png</c>: the main menu with each submenu open (and each Settings submenu open under
-    /// Settings), placed where they open from the tray on <see cref="TrayScreen"/>.
+    /// <c>menu{-page}.png</c> and <c>menu-tray{-page}.png</c> for the home page and every page under it, turned
+    /// the way a click on its row turns it. The menu is put back on the home page afterwards.
     /// </summary>
-    public static IReadOnlyList<string> CaptureTrayComposites(string dir, ContextMenuStrip trayMenu)
+    public static IReadOnlyList<string> CaptureTrayPages(string dir, PhosphorTrayMenu trayMenu)
     {
         Directory.CreateDirectory(dir);
         var written = new List<string>();
-        foreach (var root in trayMenu.Items.OfType<ToolStripMenuItem>().Where(i => i.HasDropDownItems))
+        try
         {
-            Save(RenderTrayComposite(trayMenu, new[] { root }, out _), Path.Combine(dir, $"menu-tray-{Slug(root.Text)}.png"), written);
-            foreach (var nested in root.DropDownItems.OfType<ToolStripMenuItem>().Where(i => i.HasDropDownItems))
-                Save(RenderTrayComposite(trayMenu, new[] { root, nested }, out _), Path.Combine(dir, $"menu-tray-{Slug(root.Text)}-{Slug(nested.Text)}.png"), written);
+            foreach (var page in trayMenu.Home.AndBelow())
+            {
+                string slug = page == trayMenu.Home ? string.Empty : "-" + Slug(page.Title);
+                trayMenu.ShowPage(page);
+                Save(RenderMenu(trayMenu), Path.Combine(dir, $"menu{slug}.png"), written);
+                Save(RenderTrayComposite(trayMenu, out _), Path.Combine(dir, $"menu-tray{slug}.png"), written);
+            }
+        }
+        finally
+        {
+            trayMenu.ShowPage(trayMenu.Home);
         }
         return written;
     }
 
     /// <summary>
-    /// Draws <paramref name="trayMenu"/> with the submenus on <paramref name="path"/> open, placed the way the
-    /// app places them: NotifyIcon opens the menu above and left of the pointer, PhosphorTrayMenu moves it left
-    /// until the submenu chain fits and up out of the taskbar (<see cref="PhosphorMenuLayout.PlaceRoot"/>), and each submenu opens in
-    /// its row's <see cref="ToolStripDropDownItem.DropDownDirection"/>, kept inside the working area the way
-    /// WinForms keeps it. <paramref name="panels"/> receives each panel's screen rectangle, root first.
+    /// The menu panel as it draws, with each hosted speed slider painted into its row: a hosted control is a child
+    /// window, which DrawToBitmap of a menu that was never shown leaves blank. The slider paints into a bitmap of
+    /// its own (<see cref="PhosphorSpeedSlider.PaintSlider"/> clears the surface it is given).
     /// </summary>
-    internal static Bitmap RenderTrayComposite(ContextMenuStrip trayMenu, IReadOnlyList<ToolStripMenuItem> path, out List<Rectangle> panels)
+    internal static Bitmap RenderMenu(PhosphorTrayMenu trayMenu)
     {
-        PhosphorMenuLayout.Apply(trayMenu);
-        var chain = new List<ToolStripDropDown> { trayMenu };
-        chain.AddRange(path.Select(i => i.DropDown));
-        foreach (var dd in chain) using (Render(dd)) { }
-
-        var root = new Rectangle(TrayAnchor.X - trayMenu.Width, TrayAnchor.Y - trayMenu.Height, trayMenu.Width, trayMenu.Height);
-        root.Location = PhosphorMenuLayout.PlaceRoot(root, PhosphorMenuLayout.Reach(trayMenu, root.Width), TrayWorkArea);
-        panels = new List<Rectangle> { root };
-        var parent = root;
-        foreach (var item in path)
+        var bmp = Render(trayMenu);
+        using var g = Graphics.FromImage(bmp);
+        foreach (var slider in trayMenu.Items.OfType<ToolStripControlHost>().Select(h => h.Control).OfType<PhosphorSpeedSlider>())
         {
-            var row = item.Bounds;
-            var sub = item.DropDown;
-            int x = item.DropDownDirection == ToolStripDropDownDirection.Left ? parent.X + row.X - sub.Width : parent.X + row.Right;
-            parent = Constrain(new Rectangle(x, parent.Y + row.Y, sub.Width, sub.Height), TrayWorkArea);
-            panels.Add(parent);
+            using var face = new Bitmap(Math.Max(1, slider.Width), Math.Max(1, slider.Height), PixelFormat.Format32bppArgb);
+            using (var fg = Graphics.FromImage(face))
+            {
+                fg.SmoothingMode = SmoothingMode.AntiAlias;
+                fg.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+                slider.PaintSlider(fg);
+            }
+            g.DrawImageUnscaled(face, slider.Left, slider.Top);
         }
+        return bmp;
+    }
 
-        // Light each open row's parent, as the live menu does while a submenu is open.
-        foreach (var item in path) item.Select();
-        var shots = chain.Select(Render).ToList();
+    /// <summary>
+    /// Draws the menu on its current page where it opens on <see cref="TrayScreen"/>: centered above the tray icon
+    /// and clear of the taskbar (<see cref="PhosphorTrayMenu.PlaceAbove"/>). <paramref name="panel"/> receives its
+    /// screen rectangle.
+    /// </summary>
+    internal static Bitmap RenderTrayComposite(PhosphorTrayMenu trayMenu, out Rectangle panel)
+    {
+        using var shot = RenderMenu(trayMenu);
+        float s = trayMenu.DeviceDpi / 96f;
+        panel = new Rectangle(PhosphorTrayMenu.PlaceAbove(TrayIcon, shot.Size, TrayWorkArea, (int)Math.Round(8 * s)), shot.Size);
 
-        int left = Math.Max(TrayScreen.Left, panels.Min(r => r.Left) - 48);
-        int top = Math.Max(TrayScreen.Top, panels.Min(r => r.Top) - 48);
-        var origin = new Point(left, top);
-        var bmp = new Bitmap(TrayScreen.Right - left, TrayScreen.Bottom - top, PixelFormat.Format32bppArgb);
+        int left = Math.Max(TrayScreen.Left, Math.Min(panel.Left, TrayIcon.Left) - 48);
+        int top = Math.Max(TrayScreen.Top, panel.Top - 48);
+        int right = Math.Min(TrayScreen.Right, Math.Max(panel.Right, TrayIcon.Right) + 48);
+        var bmp = new Bitmap(right - left, TrayScreen.Bottom - top, PixelFormat.Format32bppArgb);
         using (var g = Graphics.FromImage(bmp))
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -344,32 +271,10 @@ internal static class SurfaceCapture
             using (var bar = new SolidBrush(PhosphorTheme.Surface)) g.FillRectangle(bar, 0, TrayWorkArea.Bottom - top, bmp.Width, TrayScreen.Bottom - TrayWorkArea.Bottom);
             using (var line = new Pen(PhosphorTheme.Line)) g.DrawLine(line, 0, TrayWorkArea.Bottom - top, bmp.Width, TrayWorkArea.Bottom - top);
             PhosphorTheme.DrawArkMark(g, new RectangleF(TrayAnchor.X - left - 10, TrayAnchor.Y - top - 10, 20, 20));
-            PhosphorPaint.DrawEyebrow(g, $"Tray menu // {TrayScreen.Width} x {TrayScreen.Height} // screen edge right", PhosphorTheme.Ghost, 16, 14, 1f);
-            for (int i = 0; i < shots.Count; i++)
-                g.DrawImageUnscaled(shots[i], panels[i].X - origin.X, panels[i].Y - origin.Y);
+            PhosphorPaint.DrawEyebrow(g, $"Tray menu // {TrayScreen.Width} x {TrayScreen.Height} // above the icon", PhosphorTheme.Ghost, 16, 14, 1f);
+            g.DrawImageUnscaled(shot, panel.X - left, panel.Y - top);
         }
-        foreach (var shot in shots) shot.Dispose();
-
-        // Put the rows back unlit: the menu was never shown, so nothing else clears the selection, and the next
-        // capture (or the next time the tray opens it) would draw them lit. Hiding an item unselects it.
-        foreach (var item in path)
-        {
-            item.Available = false;
-            item.Available = true;
-        }
-        for (int i = path.Count - 1; i >= 0; i--) path[i].DropDown.Close();
-        trayMenu.Close();
         return bmp;
-    }
-
-    /// <summary>WinForms' ConstrainToScreenBounds: slides <paramref name="r"/> inside <paramref name="area"/>.</summary>
-    private static Rectangle Constrain(Rectangle r, Rectangle area)
-    {
-        if (r.Right > area.Right) r.X = area.Right - r.Width;
-        if (r.Left < area.Left) r.X = area.Left;
-        if (r.Bottom > area.Bottom) r.Y = area.Bottom - r.Height;
-        if (r.Top < area.Top) r.Y = area.Top;
-        return r;
     }
 
     private static string Slug(string? text)

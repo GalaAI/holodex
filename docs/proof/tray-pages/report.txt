@@ -1,0 +1,24 @@
+Tray menu as pages, 2026-10-27
+
+What changed
+- The tray menu is one panel that turns pages. A row with a chevron (Grab from the screen, Spell Orb, Settings,
+  and each Settings group) shows its page in the same panel; every page under home starts with a Back row
+  (Back, or Back to Settings) and its eyebrow. Esc, Backspace and Left go back a page; Esc on home closes.
+- It opens centered above the tray icon, 8px clear of the taskbar, kept inside the work area; its bottom edge
+  stays put when a page changes height. Every page is the same width, so a turn never moves it sideways.
+- Moving the pointer never closes it. Page rows, Back and setting rows (speed, mouse, pointer look, shape,
+  tilt, size, the toggles, VR mode and fixes, Refresh the pointer, the pointer log) keep it open. It closes on
+  a click outside it, Esc on home, another click on the icon, or a row that opens something or casts.
+- PhosphorTrayMenu.cs replaces PhosphorMenuLayout, PhosphorMenuFrame and the old PhosphorTrayMenu; TrayProbe
+  and SurfaceCapture turn pages instead of opening submenus.
+
+Checked
+- Build: 0 warnings, 0 errors.
+- Offscreen render of every page (pages-sheet.png; menu*.png and menu-tray*.png in docs/shots/as-built).
+- Live, through the pipe (tray:shoot, menu shown for a moment, no pointer or keys): icon 1642,1032 32x48,
+  panel 1443,718 430x306 on home (centered on the icon), Settings/Mouse speed turned to 1443,733 430x291 with
+  the bottom edge kept at 1024; checks=pass (inside the work area, clear of the icon, no clipped labels).
+
+Not exercised (needs a real pointer and keyboard)
+- Hovering off the panel, clicking a setting row and seeing it stay open, Esc and Back by key, and the icon
+  click toggle.

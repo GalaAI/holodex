@@ -162,7 +162,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly NotifyIcon _trayIcon;
     private readonly ToolStripMenuItem _hideNativeMenuItem;
     private readonly PhosphorMenuHeader _trayTitle;
-    private readonly ToolStripMenuItem _yourMouseMenu;
+    private readonly TrayPage _yourMousePage;
+    private readonly PhosphorTrayMenu _trayMenu;
     private readonly Thread _renderThread;
 
     private volatile bool _running = true;
@@ -302,134 +303,115 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         PhosphorTips.Install();
         ToolStripManager.Renderer = new PhosphorMenuRenderer();
-        // PhosphorTrayMenu owns the geometry: one column width for every panel, submenus always open right, and
-        // the menu shifts left of the tray far enough for them to fit (PhosphorMenuLayout).
-        var menu = new PhosphorTrayMenu
-        {
-            Renderer = new PhosphorMenuRenderer(),
-            ShowImageMargin = false,
-            ShowCheckMargin = false // its one toggle shows its check in the shortcut column
-        };
+        // One panel that turns pages: a row with a chevron opens its page in place and Back returns. It opens above
+        // the tray icon and stays open until a click outside it, Esc, a click on the icon, or a row that does
+        // something (PhosphorTrayMenu). Add closes after the row runs; AddSetting keeps the menu open.
+        var home = new TrayPage();
         var titleItem = new PhosphorMenuHeader("Omniwand // v0.3", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
         _trayTitle = titleItem;
-        menu.Items.Add(titleItem);
+        home.Add(titleItem);
 
-        var summonItem = new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = "Alt+Space", ToolTipText = "Opens the HUD ask box." };
+        var summonItem = home.Add(new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = "Alt+Space", ToolTipText = "Opens the HUD ask box." });
         summonItem.Click += (_, _) => SummonHud();
-        menu.Items.Add(summonItem);
 
-        var holodexItem = new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "Alt+H" };
+        var holodexItem = home.Add(new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "Alt+H" });
         holodexItem.Click += (_, _) => ToggleHolodexDrawer();
-        menu.Items.Add(holodexItem);
 
-        var wizItem = new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" };
+        var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
-        menu.Items.Add(wizItem);
 
-        var captureMenu = new ToolStripMenuItem("Grab from the screen");
-        var lassoItem = new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Alt+S", ToolTipText = "Lasso: draw around anything on the screen." };
+        var capturePage = new TrayPage("Grab from the screen");
+        var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Alt+S", ToolTipText = "Lasso: draw around anything on the screen." });
         lassoItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.FreeformLasso);
-        captureMenu.DropDownItems.Add(lassoItem);
 
-        var elemItem = new ToolStripMenuItem("Pick a thing or a color") { ShortcutKeyDisplayString = "Alt+E", ToolTipText = "Point at a button, window or color to learn about it." };
+        var elemItem = capturePage.Add(new ToolStripMenuItem("Pick a thing or a color") { ShortcutKeyDisplayString = "Alt+E", ToolTipText = "Point at a button, window or color to learn about it." });
         elemItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.ElementPicker);
-        captureMenu.DropDownItems.Add(elemItem);
 
-        var ainboxItem = new ToolStripMenuItem("Send to AInbox") { ShortcutKeyDisplayString = "Alt+I" };
+        var ainboxItem = capturePage.Add(new ToolStripMenuItem("Send to AInbox") { ShortcutKeyDisplayString = "Alt+I" });
         ainboxItem.Click += (_, _) => SummonAInboxIntake();
-        captureMenu.DropDownItems.Add(ainboxItem);
-        menu.Items.Add(captureMenu);
+        home.AddPage("Grab from the screen", capturePage);
 
-        var orbMenu = new ToolStripMenuItem("Spell Orb");
+        var orbPage = new TrayPage("Spell Orb // ring slots");
         foreach (var slot in GrimXFlowOrb.Slots)
         {
             var s = slot;
             string label = s.Id == "ainbox" ? "AInbox" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s.Title.ToLowerInvariant());
-            var slotItem = new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle };
+            var slotItem = orbPage.Add(new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle });
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
-            orbMenu.DropDownItems.Add(slotItem);
         }
-        menu.Items.Add(orbMenu);
+        home.AddPage("Spell Orb", orbPage);
 
-        // ── Consolidated Settings Submenu ────────────────────────────────────
-        menu.Items.Add(new ToolStripSeparator());
-        var settingsMenu = new ToolStripMenuItem("Settings");
+        // ── Settings page ────────────────────────────────────────────────────
+        home.Add(new ToolStripSeparator());
+        var settingsPage = new TrayPage("Settings");
 
-        var openSettingsPanelItem = new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = "Alt+H", ToolTipText = "Opens every setting in Holodex." };
+        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = "Alt+H", ToolTipText = "Opens every setting in Holodex." });
         openSettingsPanelItem.Click += (_, _) => _holodexDrawer.SummonDrawer(GetCursorPoint(), "mods");
-        settingsMenu.DropDownItems.Add(openSettingsPanelItem);
-        settingsMenu.DropDownItems.Add(new ToolStripSeparator());
+        settingsPage.Add(new ToolStripSeparator());
 
         // 1. Mouse speed: how fast the pointer moves, saved for the mouse in use (a slider and five steps).
-        var dpiMenu = new ToolStripMenuItem("Mouse speed") { ToolTipText = "How fast the pointer moves. Each mouse keeps its own." };
+        var dpiPage = new TrayPage("Mouse speed // slow to fast");
         var trayDpiSlider = new PhosphorSpeedSlider { Size = new Size(220, 44), BackColor = PhosphorTheme.Surface };
-        var sliderHost = new ToolStripControlHost(trayDpiSlider)
+        dpiPage.Add(new ToolStripControlHost(trayDpiSlider)
         {
             AutoSize = false,
             Size = new Size(224, 46),
             Margin = new Padding(6, 4, 6, 4)
-        };
-        dpiMenu.DropDownItems.Add(sliderHost);
-        dpiMenu.DropDownItems.Add(new ToolStripSeparator());
-        AddSpeedOption(dpiMenu, "Very slow", 2);
-        AddSpeedOption(dpiMenu, "Slow", 6);
-        AddSpeedOption(dpiMenu, "Normal", 10);
-        AddSpeedOption(dpiMenu, "Fast", 14);
-        AddSpeedOption(dpiMenu, "Very fast", 18);
-        settingsMenu.DropDownItems.Add(dpiMenu);
+        });
+        dpiPage.Add(new ToolStripSeparator());
+        AddSpeedOption(dpiPage, "Very slow", 2);
+        AddSpeedOption(dpiPage, "Slow", 6);
+        AddSpeedOption(dpiPage, "Normal", 10);
+        AddSpeedOption(dpiPage, "Fast", 14);
+        AddSpeedOption(dpiPage, "Very fast", 18);
+        settingsPage.AddPage("Mouse speed", dpiPage, "How fast the pointer moves. Each mouse keeps its own.");
 
         // 2. Wand Gestures & Spells (ported from MagiXLab Video Bench)
-        var gestureMenu = new ToolStripMenuItem("Spells you draw") { ToolTipText = "Hold a key, then move the mouse in a shape to do something." };
-        var ctrlGestureToggle = new ToolStripMenuItem("Hold Ctrl to draw")
+        var gesturePage = new TrayPage("Spells // hold a key, then draw");
+        var ctrlGestureToggle = gesturePage.AddSetting(new ToolStripMenuItem("Hold Ctrl to draw")
         {
             Checked = OmniwandSpellGestureEngine.HoldCtrlToArm,
             CheckOnClick = true
-        };
+        });
         ctrlGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldCtrlToArm = ctrlGestureToggle.Checked;
-        gestureMenu.DropDownItems.Add(ctrlGestureToggle);
 
-        var rmbGestureToggle = new ToolStripMenuItem("Hold right-click to draw")
+        var rmbGestureToggle = gesturePage.AddSetting(new ToolStripMenuItem("Hold right-click to draw")
         {
             Checked = OmniwandSpellGestureEngine.HoldRightMouseToArm,
             CheckOnClick = true
-        };
+        });
         rmbGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldRightMouseToArm = rmbGestureToggle.Checked;
-        gestureMenu.DropDownItems.Add(rmbGestureToggle);
-        gestureMenu.DropDownItems.Add(new ToolStripSeparator());
+        gesturePage.Add(new ToolStripSeparator());
 
-        var spell1Item = new ToolStripMenuItem("Ask Wiz about it") { ShortcutKeyDisplayString = "SHAKE SIDEWAYS", ToolTipText = "Time Splitter: shake side to side." };
+        var spell1Item = gesturePage.Add(new ToolStripMenuItem("Ask Wiz about it") { ShortcutKeyDisplayString = "SHAKE SIDEWAYS", ToolTipText = "Time Splitter: shake side to side." });
         spell1Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.ShakeHorizontal, GetCursorPoint());
-        gestureMenu.DropDownItems.Add(spell1Item);
 
-        var spell2Item = new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "SHAKE UP-DOWN", ToolTipText = "Copycat: shake up and down." };
+        var spell2Item = gesturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "SHAKE UP-DOWN", ToolTipText = "Copycat: shake up and down." });
         spell2Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.ShakeVertical, GetCursorPoint());
-        gestureMenu.DropDownItems.Add(spell2Item);
 
-        var spell3Item = new ToolStripMenuItem("Cast a spell") { ShortcutKeyDisplayString = "CIRCLE", ToolTipText = "Mutation: draw a circle." };
+        var spell3Item = gesturePage.Add(new ToolStripMenuItem("Cast a spell") { ShortcutKeyDisplayString = "CIRCLE", ToolTipText = "Mutation: draw a circle." });
         spell3Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.CircleLoop, GetCursorPoint());
-        gestureMenu.DropDownItems.Add(spell3Item);
 
-        var spell4Item = new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "SWEEP RIGHT", ToolTipText = "Synthesize: sweep to the right." };
+        var spell4Item = gesturePage.Add(new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "SWEEP RIGHT", ToolTipText = "Synthesize: sweep to the right." });
         spell4Item.Click += (_, _) => ExecuteWandSpellGesture(WandSpellGestureKind.SweepRight, GetCursorPoint());
-        gestureMenu.DropDownItems.Add(spell4Item);
-        settingsMenu.DropDownItems.Add(gestureMenu);
+        settingsPage.AddPage("Spells you draw", gesturePage, "Hold a key, then move the mouse in a shape to do something.");
 
         // 3. Cursor Icon Style & Aperture Morph Engine
-        var iconStyleMenu = new ToolStripMenuItem("Pointer look") { ToolTipText = "What your pointer looks like." };
-        AddCursorStyleOption(iconStyleMenu, "Aperture", "", CursorIconStyle.ArkAperture, true);
-        AddCursorStyleOption(iconStyleMenu, "Magic wand", "", CursorIconStyle.RelicWand, false);
-        AddCursorStyleOption(iconStyleMenu, "Arrow", "", CursorIconStyle.PhosphorArrow, false);
-        AddCursorStyleOption(iconStyleMenu, "Target", "", CursorIconStyle.ViewfinderReticle, false);
-        settingsMenu.DropDownItems.Add(iconStyleMenu);
+        var iconStylePage = new TrayPage("Pointer look");
+        AddCursorStyleOption(iconStylePage, "Aperture", "", CursorIconStyle.ArkAperture, true);
+        AddCursorStyleOption(iconStylePage, "Magic wand", "", CursorIconStyle.RelicWand, false);
+        AddCursorStyleOption(iconStylePage, "Arrow", "", CursorIconStyle.PhosphorArrow, false);
+        AddCursorStyleOption(iconStylePage, "Target", "", CursorIconStyle.ViewfinderReticle, false);
+        settingsPage.AddPage("Pointer look", iconStylePage, "What your pointer looks like.");
 
-        var morphMenu = new ToolStripMenuItem("Pointer shape") { ToolTipText = "The shape the Aperture pointer takes." };
-        AddMorphModeOption(morphMenu, "Changes by itself", "", ApertureMorphMode.AutoContextual, true);
-        AddMorphModeOption(morphMenu, "Eye", "", ApertureMorphMode.HoloscopeIris, false);
-        AddMorphModeOption(morphMenu, "Compass", "", ApertureMorphMode.SyndicateCompass, false);
-        AddMorphModeOption(morphMenu, "Star", "", ApertureMorphMode.WizWandStar, false);
-        AddMorphModeOption(morphMenu, "Shield", "", ApertureMorphMode.AegisShield, false);
-        morphMenu.DropDownItems.Add(new ToolStripSeparator());
-        var morphShowcaseItem = new ToolStripMenuItem("Show me every shape");
+        var morphPage = new TrayPage("Pointer shape");
+        AddMorphModeOption(morphPage, "Changes by itself", "", ApertureMorphMode.AutoContextual, true);
+        AddMorphModeOption(morphPage, "Eye", "", ApertureMorphMode.HoloscopeIris, false);
+        AddMorphModeOption(morphPage, "Compass", "", ApertureMorphMode.SyndicateCompass, false);
+        AddMorphModeOption(morphPage, "Star", "", ApertureMorphMode.WizWandStar, false);
+        AddMorphModeOption(morphPage, "Shield", "", ApertureMorphMode.AegisShield, false);
+        morphPage.Add(new ToolStripSeparator());
+        var morphShowcaseItem = morphPage.Add(new ToolStripMenuItem("Show me every shape"));
         morphShowcaseItem.Click += (_, _) =>
         {
             ArkApertureMorphEngine.StartMorphShowcase();
@@ -439,99 +421,83 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 "ARK APERTURE // 240HZ MORPH ENGINE",
                 6000);
         };
-        morphMenu.DropDownItems.Add(morphShowcaseItem);
-        settingsMenu.DropDownItems.Add(morphMenu);
+        settingsPage.AddPage("Pointer shape", morphPage, "The shape the Aperture pointer takes.");
 
         // 4. Rotation & Size
-        var modeMenu = new ToolStripMenuItem("Pointer tilt") { ToolTipText = "How the pointer leans when you move it." };
-        AddModeOption(modeMenu, "Leans a little", "Tips a little as you move. Points the way you go while Wiz is busy.", RotationMode.SubtleBank, true);
-        AddModeOption(modeMenu, "Points where you go", "Turns to face the way you move.", RotationMode.TruePathTrailer, false);
-        AddModeOption(modeMenu, "Stays straight", "Never turns.", RotationMode.LockedAngle, false);
-        RotationPreviewItem.Animate(modeMenu);
-        settingsMenu.DropDownItems.Add(modeMenu);
+        var modePage = new TrayPage("Pointer tilt");
+        AddModeOption(modePage, "Leans a little", "Tips a little as you move. Points the way you go while Wiz is busy.", RotationMode.SubtleBank, true);
+        AddModeOption(modePage, "Points where you go", "Turns to face the way you move.", RotationMode.TruePathTrailer, false);
+        AddModeOption(modePage, "Stays straight", "Never turns.", RotationMode.LockedAngle, false);
+        RotationPreviewItem.Animate(modePage);
+        settingsPage.AddPage("Pointer tilt", modePage, "How the pointer leans when you move it.");
 
-        var sizeMenu = new ToolStripMenuItem("Pointer size") { ToolTipText = "How big your pointer is." };
-        AddScaleOption(sizeMenu, "Small", "", 1.0f, false);
-        AddScaleOption(sizeMenu, "Medium", "", 1.25f, true);
-        AddScaleOption(sizeMenu, "Big", "", 1.5f, false);
-        settingsMenu.DropDownItems.Add(sizeMenu);
+        var sizePage = new TrayPage("Pointer size");
+        AddScaleOption(sizePage, "Small", "", 1.0f, false);
+        AddScaleOption(sizePage, "Medium", "", 1.25f, true);
+        AddScaleOption(sizePage, "Big", "", 1.5f, false);
+        settingsPage.AddPage("Pointer size", sizePage, "How big your pointer is.");
 
-        _hideNativeMenuItem = new ToolStripMenuItem("Hide the normal pointer")
+        _hideNativeMenuItem = settingsPage.AddSetting(new ToolStripMenuItem("Hide the normal pointer")
         {
             ToolTipText = "Shows only the Omniwand pointer.",
             ShortcutKeyDisplayString = "Ctrl+Alt+C",
             Checked = NativeCursorManager.IsHidden,
             CheckOnClick = false
-        };
+        });
         _hideNativeMenuItem.Click += (_, _) => ToggleNativeCursor();
-        settingsMenu.DropDownItems.Add(_hideNativeMenuItem);
 
         // 5. Device, Onboarding & VR
-        settingsMenu.DropDownItems.Add(new ToolStripSeparator());
+        settingsPage.Add(new ToolStripSeparator());
         // Your mouse: every mouse found, the one in use checked. It follows the mouse you move unless you pick one.
-        var pkgMenu = new ToolStripMenuItem("Your mouse") { ToolTipText = "Omniwand uses the mouse you are moving. Pick one to keep it." };
-        _yourMouseMenu = pkgMenu;
+        _yourMousePage = new TrayPage("Your mouse");
         FillYourMouseMenu();
-        settingsMenu.DropDownItems.Add(pkgMenu);
+        settingsPage.AddPage("Your mouse", _yourMousePage, "Omniwand uses the mouse you are moving. Pick one to keep it.");
 
-        var tutorialItem = new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Alt+T" };
+        var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Alt+T" });
         tutorialItem.Click += (_, _) => SummonTutorialTooltips();
-        settingsMenu.DropDownItems.Add(tutorialItem);
 
-        var vrMenu = new ToolStripMenuItem("VR headset") { ToolTipText = "For using your computer inside a VR headset." };
-        _vrStatusItem = new ToolStripMenuItem("No headset right now") { Enabled = false };
-        vrMenu.DropDownItems.Add(_vrStatusItem);
-        vrMenu.DropDownItems.Add(new ToolStripSeparator());
-        AddVrModeOption(vrMenu, "Notice it by itself", "Makes the pointer bigger when a headset is on.", VrStreamMode.Auto, true);
-        AddVrModeOption(vrMenu, "Always on", "Always uses the big headset pointer.", VrStreamMode.AlwaysOn, false);
-        AddVrModeOption(vrMenu, "Off", "Never changes the pointer for a headset.", VrStreamMode.Off, false);
-        var arrowHeader = new PhosphorMenuEyebrow("If the pointer looks wrong");
-        vrMenu.DropDownItems.Add(arrowHeader);
-        AddArrowStyleOption(vrMenu, "Fix 1 (try first)", "Works with Air Link.", ArrowSlotStyle.ArgbClear, true);
-        AddArrowStyleOption(vrMenu, "Fix 2", "Another way to hide the normal pointer.", ArrowSlotStyle.Mono, false);
-        AddArrowStyleOption(vrMenu, "Fix 3", "One more way to hide it.", ArrowSlotStyle.NearClear, false);
-        var flushCacheItem = new ToolStripMenuItem("Refresh the pointer") { Name = "Tray.VrFlushCache", ToolTipText = "Redraws the pointer in the headset." };
+        var vrPage = new TrayPage("VR headset");
+        _vrStatusItem = vrPage.Add(new ToolStripMenuItem("No headset right now") { Enabled = false });
+        vrPage.Add(new ToolStripSeparator());
+        AddVrModeOption(vrPage, "Notice it by itself", "Makes the pointer bigger when a headset is on.", VrStreamMode.Auto, true);
+        AddVrModeOption(vrPage, "Always on", "Always uses the big headset pointer.", VrStreamMode.AlwaysOn, false);
+        AddVrModeOption(vrPage, "Off", "Never changes the pointer for a headset.", VrStreamMode.Off, false);
+        var arrowHeader = vrPage.Add(new PhosphorMenuEyebrow("If the pointer looks wrong"));
+        AddArrowStyleOption(vrPage, "Fix 1 (try first)", "Works with Air Link.", ArrowSlotStyle.ArgbClear, true);
+        AddArrowStyleOption(vrPage, "Fix 2", "Another way to hide the normal pointer.", ArrowSlotStyle.Mono, false);
+        AddArrowStyleOption(vrPage, "Fix 3", "One more way to hide it.", ArrowSlotStyle.NearClear, false);
+        var flushCacheItem = vrPage.AddSetting(new ToolStripMenuItem("Refresh the pointer") { Name = "Tray.VrFlushCache", ToolTipText = "Redraws the pointer in the headset." });
         flushCacheItem.Click += (_, _) =>
         {
             NativeCursorManager.HideSystemCursors(force: true);
             VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
             _overlay.PulseCursorHandleForVr(_uiSync);
         };
-        vrMenu.DropDownItems.Add(flushCacheItem);
-        var diagItem = new ToolStripMenuItem("Keep a pointer log") { CheckOnClick = true, ToolTipText = "Writes notes to %TEMP%\\omniwand-pointer.log to help fix problems." };
+        var diagItem = vrPage.AddSetting(new ToolStripMenuItem("Keep a pointer log") { CheckOnClick = true, ToolTipText = "Writes notes to %TEMP%\\omniwand-pointer.log to help fix problems." });
         diagItem.CheckedChanged += (_, _) => SetPointerDiagnostics(diagItem.Checked);
-        vrMenu.DropDownItems.Add(diagItem);
-        settingsMenu.DropDownItems.Add(vrMenu);
+        var vrRow = settingsPage.AddPage("VR headset", vrPage, "For using your computer inside a VR headset.");
 
-        menu.Items.Add(settingsMenu);
+        home.AddPage("Settings", settingsPage);
 
-        menu.Name = "Tray.Menu";
         titleItem.Name = "Tray.Title";
-        vrMenu.Name = "Tray.VrStreaming";
+        vrRow.Name = "Tray.VrStreaming";
         _vrStatusItem.Name = "Tray.VrStatus";
         arrowHeader.Name = "Tray.VrArrowTestHeader";
         diagItem.Name = "Tray.VrPointerLog";
         _vrTimer = new System.Threading.Timer(_ => VrTick(), null, 600, 1500);
 
-        menu.Items.Add(new ToolStripSeparator());
-        var exitItem = new ToolStripMenuItem("Quit Omniwand") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" };
+        home.Add(new ToolStripSeparator());
+        var exitItem = home.Add(new ToolStripMenuItem("Quit Omniwand") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
         exitItem.Click += (_, _) => ExitApp();
-        menu.Items.Add(exitItem);
-        menu.Items.Add(new PhosphorMenuSpacer());
 
-        PhosphorMenuFrame.Apply(captureMenu, "Grab from the screen");
-        PhosphorMenuFrame.Apply(orbMenu, "Spell Orb // ring slots");
-        PhosphorMenuFrame.Apply(settingsMenu, "Settings");
-        PhosphorMenuFrame.Apply(gestureMenu, "Spells // hold a key, then draw");
-        PhosphorMenuFrame.Apply(iconStyleMenu, "Pointer look");
-        PhosphorMenuFrame.Apply(morphMenu, "Pointer shape");
-        PhosphorMenuFrame.Apply(modeMenu, "Pointer tilt");
-        PhosphorMenuFrame.Apply(sizeMenu, "Pointer size");
-        PhosphorMenuFrame.Apply(pkgMenu, "Your mouse");
-        PhosphorMenuFrame.Apply(dpiMenu, "Mouse speed // slow to fast");
-        PhosphorMenuFrame.Apply(vrMenu, "VR headset");
-        // Size the panels now, so the first open already anchors the finished width to the tray.
-        PhosphorMenuLayout.Apply(menu);
+        var menu = new PhosphorTrayMenu(home)
+        {
+            Renderer = new PhosphorMenuRenderer(),
+            Name = "Tray.Menu"
+        };
+        _trayMenu = menu;
+        // Size the pages now, so the first open already lands on the finished width above the icon.
+        menu.ShowPage(home);
 
         _trayIcon = new NotifyIcon
         {
@@ -540,28 +506,35 @@ internal sealed class OmniwandAppContext : ApplicationContext
             ContextMenuStrip = menu,
             Visible = true
         };
+        menu.IconBounds = () => TrayIconBounds.Of(_trayIcon, out _);
         _trayIcon.MouseUp += (_, e) =>
         {
-            if (e.Button == MouseButtons.Left)
+            if (e.Button != MouseButtons.Left) return;
+            // The icon toggles the menu: a click while it is open closes it. Pressing the icon usually closes it
+            // first (Omniwand loses the foreground), so a menu that closed a moment ago stays closed.
+            if (menu.Visible)
             {
-                try
-                {
-                    var mi = typeof(NotifyIcon).GetMethod(
-                        "ShowContextMenu",
-                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                    if (mi != null)
-                    {
-                        mi.Invoke(_trayIcon, null);
-                        return;
-                    }
-                }
-                catch
-                {
-                    // Fallback to direct ContextMenuStrip.Show below
-                }
-                // Same anchor as NotifyIcon's own path: the menu sits above and left of the pointer.
-                menu.Show(Cursor.Position, ToolStripDropDownDirection.AboveLeft);
+                menu.Close();
+                return;
             }
+            if ((DateTime.UtcNow - menu.ClosedAtUtc).TotalMilliseconds < 400) return;
+            try
+            {
+                var mi = typeof(NotifyIcon).GetMethod(
+                    "ShowContextMenu",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (mi != null)
+                {
+                    mi.Invoke(_trayIcon, null);
+                    return;
+                }
+            }
+            catch
+            {
+                // Fallback to direct ContextMenuStrip.Show below
+            }
+            // PhosphorTrayMenu places itself over the icon wherever it is shown.
+            menu.Show(Cursor.Position, ToolStripDropDownDirection.AboveLeft);
         };
 
         _renderThread = new Thread(RenderLoop)
@@ -761,7 +734,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 try
                 {
-                    var files = SurfaceCapture.CaptureAll(dir, _trayIcon.ContextMenuStrip!,
+                    var files = SurfaceCapture.CaptureAll(dir, _trayMenu,
                         ("hud", _hud),
                         ("wiz", _wizWidget),
                         ("ainbox", _ainboxWidget),
@@ -973,7 +946,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             string result = "error:tray:not run";
             _uiSync.Send(_ =>
             {
-                try { result = TrayProbe.Run(_trayIcon, (PhosphorTrayMenu)_trayIcon.ContextMenuStrip!, cmd["tray:".Length..].Trim()); }
+                try { result = TrayProbe.Run(_trayIcon, _trayMenu, cmd["tray:".Length..].Trim()); }
                 catch (Exception ex) { result = $"error:tray:{ex.Message}"; }
             }, null);
             return result;
@@ -1292,26 +1265,26 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }, null);
     }
 
-    private void AddVrModeOption(ToolStripMenuItem parent, string label, string detail, VrStreamMode mode, bool isDefault)
+    private void AddVrModeOption(TrayPage page, string label, string detail, VrStreamMode mode, bool isDefault)
     {
         var item = new ToolStripMenuItem(label) { Checked = isDefault, Tag = "vrmode", ToolTipText = detail };
         item.Click += (_, _) =>
         {
-            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>().Where(c => Equals(c.Tag, "vrmode")))
+            foreach (var child in page.Items.OfType<ToolStripMenuItem>().Where(c => Equals(c.Tag, "vrmode")))
                 child.Checked = false;
             item.Checked = true;
             _vrMode = mode;
             VrTick();
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
-    private void AddArrowStyleOption(ToolStripMenuItem parent, string label, string detail, ArrowSlotStyle style, bool isDefault)
+    private void AddArrowStyleOption(TrayPage page, string label, string detail, ArrowSlotStyle style, bool isDefault)
     {
         var item = new ToolStripMenuItem(label) { Checked = isDefault, Tag = "arrowstyle", ToolTipText = detail };
         item.Click += (_, _) =>
         {
-            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>().Where(c => Equals(c.Tag, "arrowstyle")))
+            foreach (var child in page.Items.OfType<ToolStripMenuItem>().Where(c => Equals(c.Tag, "arrowstyle")))
                 child.Checked = false;
             item.Checked = true;
             NativeCursorManager.ArrowStyle = style;
@@ -1319,7 +1292,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
             _overlay.PulseCursorHandleForVr(_uiSync);
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
     private System.Threading.Timer? _pointerDiagTimer;
@@ -1404,26 +1377,26 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
     }
 
-    private void AddCursorStyleOption(ToolStripMenuItem parent, string label, string tagText, CursorIconStyle style, bool isDefault)
+    private void AddCursorStyleOption(TrayPage page, string label, string tagText, CursorIconStyle style, bool isDefault)
     {
         var item = new ToolStripMenuItem(label) { Checked = isDefault, ShortcutKeyDisplayString = tagText };
         item.Click += (_, _) =>
         {
-            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>())
+            foreach (var child in page.Items.OfType<ToolStripMenuItem>())
                 child.Checked = false;
             item.Checked = true;
             MouseHardwareAndWandEngine.ActiveCursorStyle = style;
             _overlay.ForceCursorRedraw();
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
-    private void AddMorphModeOption(ToolStripMenuItem parent, string label, string tagText, ApertureMorphMode mode, bool isDefault)
+    private void AddMorphModeOption(TrayPage page, string label, string tagText, ApertureMorphMode mode, bool isDefault)
     {
         var item = new ToolStripMenuItem(label) { Checked = isDefault, ShortcutKeyDisplayString = tagText };
         item.Click += (_, _) =>
         {
-            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>())
+            foreach (var child in page.Items.OfType<ToolStripMenuItem>())
             {
                 if (child.ShortcutKeyDisplayString != "DEMO")
                     child.Checked = false;
@@ -1433,10 +1406,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _overlay.ForceCursorRedraw();
             PhosphorToast.Show("Aperture Morph Mode", $"Active morph formation: {label}", "ARK APERTURE // MORPH", 2200);
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
-    private void AddSpeedOption(ToolStripMenuItem parent, string label, int speed1To20)
+    private void AddSpeedOption(TrayPage page, string label, int speed1To20)
     {
         var item = new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{speed1To20} OF 20" };
         item.Click += (_, _) =>
@@ -1444,7 +1417,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             MouseHardwareAndWandEngine.SetWindowsMouseSpeed(speed1To20);
             PhosphorToast.Show($"Mouse speed: {label}", $"Saved for your {MouseHardwareAndWandEngine.ActiveMouse.Name}.", "MOUSE // SPEED", 2400);
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
     /// <summary>Runs <paramref name="work"/> on the UI thread and waits for it (up to three minutes) from the pipe thread.</summary>
@@ -1463,33 +1436,30 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private void FillYourMouseMenu()
     {
         var active = MouseHardwareAndWandEngine.ActiveMouse;
-        var keep = _yourMouseMenu.DropDownItems.OfType<ToolStripItem>().Where(i => i is PhosphorMenuEyebrow or PhosphorMenuSpacer).ToList();
-        _yourMouseMenu.DropDownItems.Clear();
-        foreach (var eyebrow in keep.OfType<PhosphorMenuEyebrow>()) _yourMouseMenu.DropDownItems.Add(eyebrow);
+        _yourMousePage.Clear();
         var mice = MouseHardwareAndWandEngine.KnownMice;
         if (!mice.Any(m => m.Key == active.Key)) mice = mice.Append(active).ToList();
         foreach (var mouse in mice)
         {
             string key = mouse.Key;
-            var item = new ToolStripMenuItem(mouse.Name)
+            var item = _yourMousePage.AddSetting(new ToolStripMenuItem(mouse.Name)
             {
                 Checked = mouse.Key == active.Key,
                 ShortcutKeyDisplayString = mouse.Key == active.Key ? "IN USE" : "",
                 ToolTipText = "Use this mouse and keep it."
-            };
+            });
             item.Click += (_, _) => MouseHardwareAndWandEngine.UseMouse(key);
-            _yourMouseMenu.DropDownItems.Add(item);
         }
-        _yourMouseMenu.DropDownItems.Add(new ToolStripSeparator());
-        var auto = new ToolStripMenuItem("Switch by itself")
+        _yourMousePage.Add(new ToolStripSeparator());
+        var auto = _yourMousePage.AddSetting(new ToolStripMenuItem("Switch by itself")
         {
             Checked = MouseHardwareAndWandEngine.AutoSwitch,
             CheckOnClick = true,
             ToolTipText = "Uses whichever mouse you are moving right now."
-        };
+        });
         auto.CheckedChanged += (_, _) => MouseHardwareAndWandEngine.AutoSwitch = auto.Checked;
-        _yourMouseMenu.DropDownItems.Add(auto);
-        foreach (var spacer in keep.OfType<PhosphorMenuSpacer>()) _yourMouseMenu.DropDownItems.Add(spacer);
+        // Built before the menu exists on the first call; afterwards the open page shows the new list.
+        _trayMenu?.Refresh(_yourMousePage);
     }
 
     /// <summary>Another mouse is in use: the tray, Holodex and the buttons follow it, and a toast says so.</summary>
@@ -1501,30 +1471,30 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorToast.Show($"Now using your {mouse.Name}", "Its speed and buttons are ready.", "MOUSE // SWITCHED", 2600, ToastTone.Info);
     }
 
-    private void AddModeOption(ToolStripMenuItem parent, string label, string detail, RotationMode mode, bool isDefault)
+    private void AddModeOption(TrayPage page, string label, string detail, RotationMode mode, bool isDefault)
     {
         var item = new RotationPreviewItem(label, mode) { Checked = isDefault, ToolTipText = detail };
         item.Click += (_, _) =>
         {
-            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>())
+            foreach (var child in page.Items.OfType<ToolStripMenuItem>())
                 child.Checked = false;
             item.Checked = true;
             _rotationMode = mode;
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
-    private void AddScaleOption(ToolStripMenuItem parent, string label, string factor, float mult, bool isDefault)
+    private void AddScaleOption(TrayPage page, string label, string factor, float mult, bool isDefault)
     {
         var item = new ToolStripMenuItem(label) { Checked = isDefault, ShortcutKeyDisplayString = factor };
         item.Click += (_, _) =>
         {
-            foreach (var child in parent.DropDownItems.OfType<ToolStripMenuItem>())
+            foreach (var child in page.Items.OfType<ToolStripMenuItem>())
                 child.Checked = false;
             item.Checked = true;
             _baseScaleMultiplier = mult;
         };
-        parent.DropDownItems.Add(item);
+        page.AddSetting(item);
     }
 
     private void ToggleNativeCursor()
