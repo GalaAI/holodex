@@ -23,7 +23,7 @@ Canvas changes
   Hud (Gemini-Argon dropdowns), Wiz (lens and model dropdowns), AInbox (old intake form).
 - Kept Marks (tray icon sizes and Options+ Actions Ring chips: no As built board covers them) and
   AInboxCapture (targets ainbox-service :8840 via capture-core, marked not wired yet).
-- GrimX Flows and AInbox Upload pages untouched. Justin's sketch strokes on the tray menu and Holodex
+- GrimX Flows and AInbox Upload pages untouched. The operator's sketch strokes on the tray menu and Holodex
   boards restored; notes kept; title maxW set to the new row widths.
 
 Found while capturing

@@ -9,8 +9,8 @@ limitations stated plainly, and Nebius Token Factory plus Nemotron named out lou
 
 ## The family line (say it the same way in all three videos)
 
-ArkStation is Justin's personal orchestration software, built over the past couple of months. To show
-what it can do, Justin used ArkStation itself to build these apps end to end and publish them to
+ArkStation is GalaAI's personal orchestration software, built over the past couple of months. To show
+what it can do, we used ArkStation itself to build these apps end to end and publish them to
 GitHub: Gala plans the work, dispatches missions to Ark agents, and each step leaves a receipt. Each
 entry takes one part of ArkStation and stands on its own:
 

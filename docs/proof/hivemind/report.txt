@@ -1,4 +1,4 @@
-Hivemind integration, verified live on gala (144 DPI) before Justin's first sign-in. Nothing below needed a browser.
+Hivemind integration, verified live on gala (144 DPI) before the operator's first sign-in. Nothing below needed a browser.
 
 Endpoint and auth (live server, unauthenticated):
   POST https://hivemind.arkomnitek.com/mcp without a token
@@ -15,7 +15,7 @@ Pipe hivemind:probe (the real sign-in, stopped where the browser would open; sta
   selection (only runtime.read and runtime.execute) against the live server.
   The same authorize request sent by curl (fresh challenge, redirect not followed):
     HTTP 302 -> https://hivemind.arkomnitek.com/login?request_id=<redacted>, Hivemind's sign-in page.
-  The loopback callback http://127.0.0.1:47613/hivemind/callback/ starts as GALA\justi without elevation.
+  The loopback callback http://127.0.0.1:47613/hivemind/callback/ starts as GALA\operator without elevation.
 
 Pipe hivemind:status before and after the probe:
   ok:hivemind:status:state=NotSignedIn:connected=False:savedSignIn=False:error=
@@ -28,13 +28,13 @@ Holodex, live window captures (capwin, DPI-aware CopyFromScreen of the Holodex w
   holodex-offline-reply.png  pipe holodex:say:gala|... (the Send button's path): the reply card reads
                            "GALA // OFFLINE ROLE-PLAY // NEMOTRON 3 NANO".
 
-Not verified yet (needs Justin's sign-in): token exchange and refresh, ark_agents roster, dispatch_agent_mission,
+Not verified yet (needs operator sign-in): token exchange and refresh, ark_agents roster, dispatch_agent_mission,
 agent_mission_status polling, the reply card's model as Hivemind reports it.
 
-After Justin signed in from Holodex (2026-10-27):
+After operator signed in from Holodex (2026-10-27):
   hivemind:status  ok:hivemind:status:state=Connected:connected=True:savedSignIn=True:error=
-  hivemind:agents  ok:hivemind:agents:36: arbiter, astra, athena, atom, bttco-bella, bttco-booky, bttco-doc,
-                   bttco-herald, bttco-mercury, bttco-smoku, bttco-spyder, bttco-xar, claude, codex, doc, fabrix,
+  hivemind:agents  ok:hivemind:agents:28: arbiter, astra, athena, atom,
+                   claude, codex, doc, fabrix,
                    gala, gemini, haxes, hermes, icarus, machinist, metis, muse, openclaw, oracle, scholar, scout,
                    scribe, sentinel, seraphym, sigma, veritas, vulcan, watcher, wiz
                    (every agent reports dispatchReady false; Holodex shows them in ghost and still dispatches)

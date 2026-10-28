@@ -2,6 +2,7 @@ bin/
 obj/
 dist/
 publish/
+artifacts/
 *.user
 *.suo
 .vs/
@@ -20,6 +21,7 @@ HANDOFF_REPORT.md
 INVENTORY.json
 atlas/
 docs/Augment Inventory.html
+docs/hackathon/DEVPOST_ANSWERS.md
 
 # Local test captures (contain private desktop screenshots)
 docs/shots/eden-runs/

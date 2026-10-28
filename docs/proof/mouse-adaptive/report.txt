@@ -9,7 +9,7 @@ How the active mouse is chosen
 - No mouse lets Omniwand set real DPI (that lives in G HUB, Options+ or Synapse), so every mouse gets
   Mouse speed (Windows pointer speed 1 to 20), and Holodex says "DPI is set in your mouse's own app".
 
-mouse:status while Justin moved the MX Master 4 (before and after redeploy)
+mouse:status while the operator moved the MX Master 4 (before and after redeploy)
   active=VID_046D&PID_B042:Logitech MX Master 4  auto=True  speed=6  lastInput=[VID_046D&PID_B042=6ms]
 mouse:status right after a restart, nothing moved yet
   see mouse-status.txt (lastInput=[] and the first known model, MX Master 4, active)
