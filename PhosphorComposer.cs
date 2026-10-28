@@ -20,7 +20,9 @@ internal enum PhosphorGlyph
     File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, Plus,
     Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault,
     // ArkStation's own icons (lucide-react, as the web console's Holodex uses them), drawn from their path data.
-    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink
+    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink,
+    // Answer-card actions (lucide Copy, RotateCcw, Square, ThumbsUp, ThumbsDown).
+    Copy, Retry, Stop, ThumbUp, ThumbDown
 }
 
 internal static class PhosphorIcons
@@ -36,6 +38,12 @@ internal static class PhosphorIcons
         [PhosphorGlyph.BookOpen] = new[] { "M12 5v16", "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" },
         [PhosphorGlyph.Sparkles] = new[] { "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z", "M20 2v4", "M22 4h-4", "M6 20a2 2 0 1 1-4 0a2 2 0 1 1 4 0" },
         [PhosphorGlyph.ExternalLink] = new[] { "M15 3h6v6", "M10 14 21 3", "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
+        // Copy and Square are lucide rects (rx 2), written as the same rounded-rect paths.
+        [PhosphorGlyph.Copy] = new[] { "M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z", "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },
+        [PhosphorGlyph.Retry] = new[] { "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", "M3 3v5h5" },
+        [PhosphorGlyph.Stop] = new[] { "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" },
+        [PhosphorGlyph.ThumbUp] = new[] { "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z", "M7 10v12" },
+        [PhosphorGlyph.ThumbDown] = new[] { "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z", "M17 14V2" },
         [PhosphorGlyph.WandSparkles] = new[] { "m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72", "m14 7 3 3", "M5 6v4", "M19 14v4", "M10 2v2", "M7 8H3", "M21 16h-4", "M11 3H9" },
     };
 

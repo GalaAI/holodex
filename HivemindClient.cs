@@ -80,7 +80,7 @@ public sealed record HivemindSessionSummary(string Id, string Title, string Stat
 /// One transcript entry from <c>read_session</c>: the owner (<c>user</c>), an agent turn (<c>agent</c>, with its model),
 /// or a connected client's post (<c>client</c>, Holodex's own included) under that client's name.
 /// </summary>
-public sealed record HivemindSessionMessage(string Id, string Role, string AgentId, string Model, string ClientName, string Content, DateTimeOffset CreatedAt);
+public sealed record HivemindSessionMessage(string Id, string Role, string AgentId, string Model, string ClientName, string Content, DateTimeOffset CreatedAt, string ExecutionId = "");
 
 /// <summary>An <c>ask_agent</c> receipt: the Session asked in, the owner message it holds, and the room's status then.</summary>
 public sealed record HivemindAsk(string SessionId, string MessageId, string Status);
@@ -219,7 +219,7 @@ public sealed class HivemindClient : IAsyncDisposable
                 if (m.ValueKind != JsonValueKind.Object) continue;
                 string model = m.TryGetProperty("execution", out var ex) ? Str(ex, "model") : "";
                 string client = m.TryGetProperty("sourceClient", out var sc) ? Str(sc, "name") : "";
-                messages.Add(new HivemindSessionMessage(Str(m, "id"), Str(m, "role"), Str(m, "agentId"), model, client, Str(m, "content"), Date(m, "createdAt")));
+                messages.Add(new HivemindSessionMessage(Str(m, "id"), Str(m, "role"), Str(m, "agentId"), model, client, Str(m, "content"), Date(m, "createdAt"), Str(m, "executionId")));
             }
         }
         return new HivemindSession(ReadSessionSummary(session), messages.OrderBy(m => m.CreatedAt).ToList());

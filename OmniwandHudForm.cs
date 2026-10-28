@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
 using System.Threading.Tasks;
@@ -48,6 +50,8 @@ public sealed class OmniwandHudForm : Form
     private (Color Led, string Text) _galaLed = (PhosphorTheme.Ghost, "GALA");
     private static readonly TimeSpan GalaReplyTimeout = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan GalaPollInterval = TimeSpan.FromSeconds(2);
+    /// <summary>The ask under way, cancelled by a pending card's Stop.</summary>
+    private System.Threading.CancellationTokenSource? _askCancel;
     private Point _summonCursorPos;
     private bool _working;
     private bool _gatewayOnline;
@@ -375,6 +379,8 @@ public sealed class OmniwandHudForm : Form
         FitToAnswer();
         Invalidate();
         _setThinkingState(true);
+        using var cancel = new System.Threading.CancellationTokenSource();
+        _askCancel = cancel;
 
         (bool Ok, string Text, string Kicker) answer;
         try
@@ -383,14 +389,14 @@ public sealed class OmniwandHudForm : Form
             // and its card says why Gala did not. A Gala card is only ever Gala's own reply.
             string? galaReason = await GalaUnavailableReasonAsync();
             SyncTelemetry();
-            answer = galaReason == null ? await AskGalaAsync(prompt, snapshot) : (false, "", galaReason);
-            if (!answer.Ok && answer.Text.Length == 0)
-                answer = await AskNemotronAsync(prompt, snapshot, because: answer.Kicker);
+            answer = galaReason == null ? await AskGalaAsync(prompt, snapshot, cancel.Token) : (false, "", galaReason);
+            if (!answer.Ok && answer.Text.Length == 0 && !cancel.IsCancellationRequested)
+                answer = await AskNemotronAsync(prompt, snapshot, because: answer.Kicker, linked: galaReason == null, cancel.Token);
         }
         catch (Exception ex)
         {
             answer = (false, ex.Message, "NOT ANSWERED");
-            _answers.Add(ThreadTone.Fail, answer.Kicker, answer.Text);
+            FailFooter(_answers.Add(ThreadTone.Fail, answer.Kicker, answer.Text), prompt);
         }
         try
         {
@@ -398,7 +404,7 @@ public sealed class OmniwandHudForm : Form
             SetStatus("ENTER ASKS", PhosphorTheme.Ghost);
             SyncTelemetry();
             SyncAskLabel();
-            if (!Visible)
+            if (!Visible && !cancel.IsCancellationRequested)
             {
                 // Esc hid the HUD mid-ask: the answer still arrives, so say where it is.
                 string first = answer.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
@@ -409,6 +415,7 @@ public sealed class OmniwandHudForm : Form
         }
         finally
         {
+            _askCancel = null;
             _working = false;
             _setThinkingState(false);
             // After _working clears: who answers the next ask, now that this one has settled.
@@ -443,24 +450,35 @@ public sealed class OmniwandHudForm : Form
     /// Asks Gala in the operator's Hivemind (ask_agent): the first ask opens a Session with Gala, later ones continue
     /// it, and Hivemind runs Gala's turn with its receipt. An attached screen is read first by the vision model and its
     /// words go with the question, so Gala answers about the screen without receiving pixels. The reply card names the
-    /// model Gala's receipt reports. When Gala does not answer, the result carries the reason and no text, so the
-    /// caller answers on Nemotron instead.
+    /// model Gala's receipt reports and carries the receipt. When Gala does not answer, the result carries the reason
+    /// and no text, so the caller answers on Nemotron instead.
     /// </summary>
-    private async Task<(bool Ok, string Text, string Kicker)> AskGalaAsync(string prompt, string? snapshot)
+    private async Task<(bool Ok, string Text, string Kicker)> AskGalaAsync(string prompt, string? snapshot, System.Threading.CancellationToken ct)
     {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         string content = prompt;
         if (snapshot != null)
         {
             string readerId = AnsweringModel(true);
             string reader = ModelChip.ShortName(readerId).ToUpperInvariant();
             var reading = _answers.AddPending($"READING THE SCREEN // {reader}");
-            var (seen, description) = await _ark.AskArkGatewayAsync(
-                $"Describe, in a few plain sentences, what on this screen bears on the question below. Do not answer it.\n\nQuestion: {prompt}", snapshot);
-            reading.Resolve(seen ? ThreadTone.Action : ThreadTone.Fail, seen ? $"SCREEN READ BY {reader}" : $"SCREEN NOT READ // {reader}", description);
-            if (seen) content = $"{prompt}\n\nWhat is on my screen, as {ModelChip.ShortName(readerId)} read it:\n{description}";
+            reading.SetFooter("", StopAction());
+            try
+            {
+                var (seen, description) = await _ark.AskArkGatewayAsync(
+                    $"Describe, in a few plain sentences, what on this screen bears on the question below. Do not answer it.\n\nQuestion: {prompt}", snapshot).WaitAsync(ct);
+                reading.Resolve(seen ? ThreadTone.Action : ThreadTone.Fail, seen ? $"SCREEN READ BY {reader}" : $"SCREEN NOT READ // {reader}", description);
+                if (seen) content = $"{prompt}\n\nWhat is on my screen, as {ModelChip.ShortName(readerId)} read it:\n{description}";
+            }
+            catch (OperationCanceledException)
+            {
+                reading.Resolve(ThreadTone.Fail, "STOPPED BY YOU", "The screen was not read and nothing was asked.");
+                return (false, "STOPPED", "STOPPED BY YOU");
+            }
         }
 
         var pending = _answers.AddPending("ASKING GALA // HIVEMIND");
+        pending.SetFooter("", StopAction());
         var ask = await _ark.Hivemind.AskAgentAsync(_galaSessionId, "gala", content, Guid.NewGuid(),
             title: $"Holodex: {(prompt.Length > 60 ? prompt[..60] : prompt)}");
         if (ask == null)
@@ -474,47 +492,132 @@ public sealed class OmniwandHudForm : Form
         // Hivemind runs the turn on its own schedule; the Session is read until Gala's reply to this ask lands.
         var deadline = DateTime.UtcNow + GalaReplyTimeout;
         string failure = "";
-        while (DateTime.UtcNow < deadline)
+        try
         {
-            await Task.Delay(GalaPollInterval);
-            var session = await _ark.Hivemind.ReadSessionAsync(ask.SessionId);
-            if (session == null) continue;
-            int asked = session.Messages.ToList().FindIndex(m => m.Id == ask.MessageId);
-            var reply = asked < 0 ? null : session.Messages.Skip(asked + 1).FirstOrDefault(m => m.Role == "agent" && m.AgentId == "gala");
-            if (reply != null)
+            while (DateTime.UtcNow < deadline)
             {
-                string model = reply.Model.Length > 0 ? ModelChip.ShortName(reply.Model).ToUpperInvariant() : "MODEL NOT REPORTED";
-                string kicker = $"GALA // {model} // HIVEMIND";
-                pending.Resolve(ThreadTone.Agent, kicker, reply.Content);
-                return (true, reply.Content, kicker);
+                await Task.Delay(GalaPollInterval, ct);
+                var session = await _ark.Hivemind.ReadSessionAsync(ask.SessionId, ct);
+                if (session == null) continue;
+                int asked = session.Messages.ToList().FindIndex(m => m.Id == ask.MessageId);
+                var reply = asked < 0 ? null : session.Messages.Skip(asked + 1).FirstOrDefault(m => m.Role == "agent" && m.AgentId == "gala");
+                if (reply != null)
+                {
+                    string model = reply.Model.Length > 0 ? ModelChip.ShortName(reply.Model).ToUpperInvariant() : "MODEL NOT REPORTED";
+                    string kicker = $"GALA // {model} // HIVEMIND";
+                    pending.Resolve(ThreadTone.Agent, kicker, reply.Content);
+                    string receipt = reply.ExecutionId.Length > 8 ? $"RECEIPT {reply.ExecutionId[..8]} // " : "";
+                    AnswerFooter(pending, prompt, $"{receipt}{Seconds(clock)}", gala: true);
+                    return (true, reply.Content, kicker);
+                }
+                if (session.Summary.Status is "failed" or "completed" || (session.Summary.Status == "paused" && session.Summary.Error.Length > 0))
+                {
+                    failure = session.Summary.Error.Length > 0 ? session.Summary.Error : $"The Session is {session.Summary.Status} with no reply from Gala.";
+                    break;
+                }
             }
-            if (session.Summary.Status is "failed" or "completed" || (session.Summary.Status == "paused" && session.Summary.Error.Length > 0))
-            {
-                failure = session.Summary.Error.Length > 0 ? session.Summary.Error : $"The Session is {session.Summary.Status} with no reply from Gala.";
-                break;
-            }
+        }
+        catch (OperationCanceledException)
+        {
+            pending.Resolve(ThreadTone.Fail, "STOPPED BY YOU // GALA", "Holodex stopped waiting. The ask stays in its Hivemind Session, where Gala may still answer.");
+            pending.SetFooter("", OpenInHivemindAction());
+            return (false, "STOPPED", "STOPPED BY YOU");
         }
         if (failure.Length == 0) failure = $"Gala did not reply within {GalaReplyTimeout.TotalMinutes:0} minutes. The Session stays open in Hivemind.";
         pending.Resolve(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", failure);
+        FailFooterGala(pending);
         return (false, "", "GALA DID NOT ANSWER");
     }
 
     /// <summary>
     /// Nemotron through Token Factory (or the Ark gateway), as the HUD always asked. <paramref name="because"/> is why
-    /// Gala is not answering, and the card's kicker carries it beside the model that did.
+    /// Gala is not answering, and the card's kicker carries it beside the model that did. <paramref name="linked"/>
+    /// joins this card to Gala's failure card above it, so the two read as one exchange.
     /// </summary>
-    private async Task<(bool Ok, string Text, string Kicker)> AskNemotronAsync(string prompt, string? snapshot, string because)
+    private async Task<(bool Ok, string Text, string Kicker)> AskNemotronAsync(string prompt, string? snapshot, string because, bool linked, System.Threading.CancellationToken ct)
     {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         string answeredBy = ModelChip.ShortName(AnsweringModel(snapshot != null)).ToUpperInvariant();
         var pending = _answers.AddPending($"ASKING {answeredBy} // {because}");
+        pending.LinkedAbove = linked;
+        pending.SetFooter("", StopAction());
         bool ok = false;
         string output;
-        try { (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot); }
+        try { (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot).WaitAsync(ct); }
+        catch (OperationCanceledException)
+        {
+            pending.Resolve(ThreadTone.Fail, "STOPPED BY YOU", $"Holodex stopped waiting for {answeredBy}.");
+            return (false, "STOPPED", "STOPPED BY YOU");
+        }
         catch (Exception ex) { output = ex.Message; }
         string kicker = ok ? $"ANSWERED BY {answeredBy} // {because}" : $"NOT ANSWERED // {answeredBy}";
         pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, kicker, output);
+        if (ok) AnswerFooter(pending, prompt, Seconds(clock), gala: false);
+        else FailFooter(pending, prompt);
         return (ok, output, kicker);
     }
+
+    private static string Seconds(System.Diagnostics.Stopwatch clock) => $"{clock.Elapsed.TotalSeconds:0.0} S";
+
+    // ---- Card actions: the kit's footer on every answer and failure, and Stop on every wait ----------------------
+
+    private CardAction StopAction() => new("Thread.Stop", PhosphorGlyph.Stop, "Stop", (_, _) => _askCancel?.Cancel());
+
+    private static CardAction CopyAction() => new("Thread.Copy", PhosphorGlyph.Copy, "Copy", (card, _) =>
+    {
+        try { Clipboard.SetText(card.Body); } catch { return; }
+        string meta = card.Meta;
+        card.SetMeta("COPIED");
+        var restore = new System.Windows.Forms.Timer { Interval = 1400 };
+        restore.Tick += (_, _) => { restore.Dispose(); if (!card.IsDisposed) card.SetMeta(meta); };
+        restore.Start();
+    });
+
+    private CardAction RetryAction(string prompt) => new("Thread.Retry", PhosphorGlyph.Retry, "Ask again", (_, _) =>
+    {
+        if (_working) return;
+        _promptBox.Text = prompt;
+        _ = AskAsync();
+    });
+
+    private static CardAction OpenInHivemindAction() =>
+        new("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind", (_, _) => HivemindClient.OpenWebSessions());
+
+    /// <summary>A rating of one answer, kept on this PC (feedback.jsonl beside the other Holodex data): nothing is sent.</summary>
+    private static CardAction FeedbackAction(bool up) => new(up ? "Thread.ThumbUp" : "Thread.ThumbDown", up ? PhosphorGlyph.ThumbUp : PhosphorGlyph.ThumbDown,
+        up ? "Good answer" : "Bad answer", (card, button) =>
+        {
+            // The two ratings are one choice: picking one clears the other.
+            foreach (var other in card.Controls.OfType<IconToolButton>())
+                if (other != button && other.Name is "Thread.ThumbUp" or "Thread.ThumbDown") other.Selected = false;
+            if (!button.Selected) return;
+            try
+            {
+                string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
+                Directory.CreateDirectory(dir);
+                File.AppendAllText(Path.Combine(dir, "feedback.jsonl"), System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    at = DateTimeOffset.UtcNow,
+                    rating = up ? "up" : "down",
+                    kicker = card.Kicker,
+                    answerSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(card.Body))).ToLowerInvariant()
+                }) + Environment.NewLine);
+            }
+            catch { }
+        }, Toggle: true);
+
+    private void AnswerFooter(ThreadCard card, string prompt, string meta, bool gala)
+    {
+        var actions = new List<CardAction> { CopyAction(), RetryAction(prompt), FeedbackAction(true), FeedbackAction(false) };
+        if (gala) actions.Add(OpenInHivemindAction());
+        card.SetFooter(meta, actions.ToArray());
+    }
+
+    /// <summary>Gala's own failure card: copy its real cause, or open the Session where the ask still waits.</summary>
+    private static void FailFooterGala(ThreadCard card) => card.SetFooter("", CopyAction(), OpenInHivemindAction());
+
+    /// <summary>A failure keeps its real cause as its body; its footer offers copying that cause and asking again.</summary>
+    private void FailFooter(ThreadCard card, string prompt) => card.SetFooter("", CopyAction(), RetryAction(prompt));
 
     /// <summary>
     /// Live capture (the pipe's hud:submit): asks <paramref name="question"/> through the real composer and Ask path,
@@ -547,13 +650,21 @@ public sealed class OmniwandHudForm : Form
         string model = ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant();
         if (state is "asking" or "answered" or "failed")
             _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
+        const string question = "Why would this hold the PR?";
         if (state == "asking")
-            _answers.AddPending($"ASKING {model} // GALA DID NOT ANSWER");
+            _answers.AddPending("ASKING GALA // HIVEMIND").SetFooter("", StopAction());
         else if (state == "answered")
-            _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA DID NOT ANSWER",
+        {
+            // The honest fallback as a live ask draws it: Gala's real failure, linked to the model that answered.
+            FailFooterGala(_answers.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND",
+                "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY."));
+            var answer = _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA DID NOT ANSWER",
                 "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
+            answer.LinkedAbove = true;
+            AnswerFooter(answer, question, "", gala: false); // a render has no latency to report
+        }
         else if (state == "failed")
-            _answers.Add(ThreadTone.Fail, $"NOT ANSWERED // {model}", "Vision request to nvidia/Nemotron-3.5-Super-VL returned no answer. Check the Nebius key and try again.");
+            FailFooter(_answers.Add(ThreadTone.Fail, $"NOT ANSWERED // {model}", "Vision request to nvidia/Nemotron-3.5-Super-VL returned no answer. Check the Nebius key and try again."), question);
         ShowKeyState();
         if (state == "asking") SetStatus("", PhosphorTheme.Ghost);
         SizeAnswers();

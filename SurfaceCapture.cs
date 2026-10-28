@@ -47,6 +47,11 @@ internal static class SurfaceCapture
         // Render a composite sheet of the 240Hz ArkApertureMorphEngine states
         Save(RenderCursorMorphSheet(), Path.Combine(dir, "cursor-morph-sheet.png"), written);
 
+        // The AI card kit as it stands: every state and footer the surfaces compose, drawn by the real classes.
+        // Two sheets: a form cannot be taller than the screen, and the kit is.
+        Save(RenderAiKitSheet(approvals: false), Path.Combine(dir, "kit-ai-components.png"), written);
+        Save(RenderAiKitSheet(approvals: true), Path.Combine(dir, "kit-ai-approvals.png"), written);
+
         // Toasts: every entry the toast catalog keeps or integrates, built by the real class with the copy the app raises.
         foreach (var t in ToastCatalog)
             Save(PhosphorToast.RenderPreview(t.Title, t.Body, t.Eyebrow, t.Tone), Path.Combine(dir, $"{t.File}.png"), written);
@@ -286,6 +291,73 @@ internal static class SurfaceCapture
     {
         string plain = System.Text.RegularExpressions.Regex.Replace(text ?? string.Empty, @"\(.*?\)", string.Empty);
         return System.Text.RegularExpressions.Regex.Replace(plain.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+    }
+
+    /// <summary>
+    /// The thread card kit on one sheet, built by the real ThreadView and ThreadCard: waiting with Stop, the honest
+    /// fallback (Gala's real failure linked to the model that answered, with its footer), a cited answer, a failure
+    /// keeping its cause, an agent action with its receipt, and approvals for a change, a client send and a payment.
+    /// The copy is a labelled render sample, the same states the HUD, Wiz and Holodex show live.
+    /// </summary>
+    private static Bitmap RenderAiKitSheet(bool approvals)
+    {
+        using var form = new Form
+        {
+            FormBorderStyle = FormBorderStyle.None,
+            StartPosition = FormStartPosition.Manual,
+            ShowInTaskbar = false,
+            BackColor = PhosphorTheme.Surface,
+            Padding = WidgetChrome.FramePadding(),
+            Size = new Size(560, 1600),
+            Name = "Kit"
+        };
+        var thread = new ThreadView("Kit.Thread") { Dock = DockStyle.Fill, ReserveScrollbar = false, FollowNewest = false };
+        form.Controls.Add(thread);
+        CardAction Noop(string name, PhosphorGlyph glyph, string label, bool toggle = false) => new(name, glyph, label, (_, _) => { }, toggle);
+        var answerActions = new[]
+        {
+            Noop("Thread.Copy", PhosphorGlyph.Copy, "Copy"), Noop("Thread.Retry", PhosphorGlyph.Retry, "Ask again"),
+            Noop("Thread.ThumbUp", PhosphorGlyph.ThumbUp, "Good answer", true), Noop("Thread.ThumbDown", PhosphorGlyph.ThumbDown, "Bad answer", true)
+        };
+
+        thread.AddSection("KIT // SAMPLE COPY, DRAWN BY THE REAL CARD CLASSES");
+        if (!approvals)
+        {
+            thread.AddSection("WAITING // A PENDING CARD WITH STOP");
+            thread.AddPending("ASKING GALA // HIVEMIND").SetFooter("", Noop("Thread.Stop", PhosphorGlyph.Stop, "Stop"));
+
+            thread.AddSection("HONEST FALLBACK // TWO LINKED CARDS, NEVER A DISGUISED ANSWER");
+            thread.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.")
+                .SetFooter("", Noop("Thread.Copy", PhosphorGlyph.Copy, "Copy"), Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind"));
+            var fallback = thread.Add(ThreadTone.Agent, "ANSWERED BY NEMOTRON 3 NANO // GALA DID NOT ANSWER", "A paused Verify lane holds the PR until the release resumes; the diff itself is not the reason.");
+            fallback.LinkedAbove = true;
+            fallback.SetFooter("2.4 S", answerActions);
+
+            thread.AddSection("AGENT ANSWER // MODEL, RECEIPT AND SOURCES");
+            thread.Add(ThreadTone.Agent, "GALA // NEMOTRON 3 SUPER // HIVEMIND",
+                    "SolaTree grafts verified work automatically; the PR checklist is at https://github.com/GalaAI/ark/pull/1255")
+                .SetFooter("RECEIPT SAMPLE01 // 41.2 S", answerActions.Append(Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind")).ToArray());
+
+            thread.AddSection("FAILURE // THE REAL CAUSE, COPY AND RETRY");
+            thread.Add(ThreadTone.Fail, "NOT ANSWERED // NEMOTRON 3.5 SUPER VL", "Vision request to nvidia/Nemotron-3.5-Super-VL returned no answer. Check the Nebius key and try again.")
+                .SetFooter("", Noop("Thread.Copy", PhosphorGlyph.Copy, "Copy"), Noop("Thread.Retry", PhosphorGlyph.Retry, "Ask again"));
+
+        }
+        else
+        {
+            thread.AddSection("APPROVALS // EVERY CLIENT SEND AND MONEY MOVE ASKS BY NAME");
+            thread.Add(ThreadTone.Approval, "NEEDS YOUR APPROVAL // QUEUES A HOLODEX WORK ORDER", "Approve lets Wiz do this; Skip leaves everything as it is.", PhosphorGlyph.Holodex);
+            thread.Add(ThreadTone.Approval, "NEEDS YOUR APPROVAL // SENDS A CLIENT MESSAGE", "Mercury sends one SMS to the client on the booking. Nothing else is sent.", PhosphorGlyph.Chat)
+                .SetRisk(ApprovalRisk.ClientSend);
+            thread.Add(ThreadTone.Approval, "NEEDS YOUR APPROVAL // MOVES MONEY", "Collect a $150 deposit through Stripe for Friday 14:00.", PhosphorGlyph.Vault)
+                .SetRisk(ApprovalRisk.MoneyMove);
+        }
+
+        thread.Relayout();
+        // Section labels and approval buttons settle on layout; the headroom keeps the last card whole.
+        int contentHeight = thread.ContentHeight(thread.FitWidth) + form.Padding.Vertical + 96;
+        form.Height = Math.Min(contentHeight, 2400);
+        return RenderForm(form);
     }
 
     private static Bitmap RenderCursorMorphSheet()
