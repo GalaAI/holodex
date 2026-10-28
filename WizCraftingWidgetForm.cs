@@ -91,7 +91,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         Padding = WidgetChrome.FramePadding();
 
         // The thread is the body: its intro card at rest, then a card per turn, in the AInbox card language.
-        _thread = new ThreadView("Wiz.ThreadBox") { Dock = DockStyle.Top, Height = 160 };
+        _thread = new ThreadView("Wiz.ThreadBox") { Dock = DockStyle.Top, Height = 160, ReserveScrollbar = false };
         _thread.ContentChanged += (_, _) => SizeThread();
         ShowIntro();
 
@@ -178,7 +178,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     /// <summary>The thread fits its cards up to a cap, then scrolls; the widget follows it.</summary>
     private void SizeThread()
     {
-        int want = Math.Clamp(_thread.ContentHeight(_thread.CardWidth) + 2, 96, ThreadMaxHeight);
+        int want = Math.Clamp(_thread.ContentHeight(_thread.FitWidth) + 2, 96, ThreadMaxHeight);
         if (_thread.Height == want) return;
         _thread.Height = want;
         if (IsHandleCreated) FitToThread();

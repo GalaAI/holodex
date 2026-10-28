@@ -127,7 +127,8 @@ public sealed class OmniwandHudForm : Form
 
         // The answers appear under the question once there are any: a card per question and per answer, in the
         // AInbox card language, fitting their content up to a cap and then scrolling.
-        _answers = new ThreadView("Hud.ResponseBox") { Dock = DockStyle.Top, Height = 0 };
+        // Full width until the answers reach their cap and scroll: the cards line up with the composer's edges.
+        _answers = new ThreadView("Hud.ResponseBox") { Dock = DockStyle.Top, Height = 0, ReserveScrollbar = false };
         _answers.ContentChanged += (_, _) => SizeAnswers();
         _responseGap = WidgetChrome.Spacer(10);
 
@@ -202,7 +203,7 @@ public sealed class OmniwandHudForm : Form
         float s = DeviceDpi / 96f;
         int work = Screen.FromControl(this).WorkingArea.Height;
         int cap = Math.Min((int)Math.Round(AnswerMaxHeight * s), work / 2);
-        int want = HasAnswer ? Math.Min(_answers.ContentHeight(_answers.CardWidth) + 2, cap) : 0;
+        int want = HasAnswer ? Math.Min(_answers.ContentHeight(_answers.FitWidth) + 2, cap) : 0;
         if (_answers.Height == want) return;
         _answers.Height = want;
         if (IsHandleCreated) FitToAnswer();
@@ -531,13 +532,13 @@ public sealed class OmniwandHudForm : Form
     /// <summary>The answer box's sizes and scroll state, for the pipe's hud:state.</summary>
     internal string DescribeAnswers() =>
         $"dpi={DeviceDpi}:box={_answers.Width}x{_answers.Height}:client={_answers.ClientSize.Width}x{_answers.ClientSize.Height}" +
-        $":content={_answers.ContentHeight(_answers.CardWidth)}:display={_answers.DisplayRectangle.Height}" +
+        $":content={_answers.ContentHeight(_answers.FitWidth)}:display={_answers.DisplayRectangle.Height}" +
         $":vscroll={_answers.VerticalScroll.Visible}:cards={_answers.Cards.Count()}:form={Width}x{Height}";
 
     /// <summary>
     /// As-built render states (SurfaceCapture): "asking", "answered" and "failed" show a question with the screen and
     /// the card a live ask holds at that moment (pending, answer, failure) on the path a live ask takes today, Nemotron
-    /// with Gala not ready; "reset" clears them. No state draws a Gala reply: only Gala's own reply is ever shown as one.
+    /// when Gala did not answer; "reset" clears them. No state draws a Gala reply: only Gala's own reply is ever shown as one.
     /// </summary>
     internal void PreviewState(string state)
     {
@@ -547,9 +548,9 @@ public sealed class OmniwandHudForm : Form
         if (state is "asking" or "answered" or "failed")
             _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
         if (state == "asking")
-            _answers.AddPending($"ASKING {model} // GALA NOT READY");
+            _answers.AddPending($"ASKING {model} // GALA DID NOT ANSWER");
         else if (state == "answered")
-            _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA NOT READY",
+            _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA DID NOT ANSWER",
                 "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
         else if (state == "failed")
             _answers.Add(ThreadTone.Fail, $"NOT ANSWERED // {model}", "Vision request to nvidia/Nemotron-3.5-Super-VL returned no answer. Check the Nebius key and try again.");

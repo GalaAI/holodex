@@ -231,7 +231,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         // The output is one card in the AInbox card language: the guidance at rest, then the asking card, then the
         // answer kicked with the model and route that answered (or a failure card).
-        _visionOutputBox = new ThreadView("Snip.VisionOutputBox") { Dock = DockStyle.Top, Height = 60 };
+        _visionOutputBox = new ThreadView("Snip.VisionOutputBox") { Dock = DockStyle.Top, Height = 60, ReserveScrollbar = false };
         _visionOutputBox.ContentChanged += (_, _) => FitDrawer();
         _outputGap = WidgetChrome.Spacer(8);
 
@@ -356,7 +356,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         float k = _actionDrawer.Width / (float)DrawerLogicalWidth;
         // The card's own height, up to a cap (an answer gets more room), then it scrolls.
         int cap = (int)Math.Round((_hasAnswer ? 220 : 110) * k);
-        _visionOutputBox.Height = Math.Min(cap, _visionOutputBox.ContentHeight(_visionOutputBox.CardWidth) + 2);
+        _visionOutputBox.Height = Math.Min(cap, _visionOutputBox.ContentHeight(_visionOutputBox.FitWidth) + 2);
         int h = _actionDrawer.Padding.Vertical;
         foreach (Control c in _actionDrawer.Controls) h += c.Height;
         int bottom = _actionDrawer.Bottom;
