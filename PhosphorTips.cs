@@ -278,7 +278,7 @@ internal sealed record PhosphorTipInfo(string Title, string Body, string? Keys =
 /// </summary>
 internal static class PhosphorTips
 {
-    private const int DwellMs = 420;
+    private const int DwellMs = 500;
 
     private static readonly Dictionary<string, PhosphorTipInfo> Catalog = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -388,11 +388,24 @@ internal static class PhosphorTips
         ["Tutorial.CloseButton"] = new("Skip the tour", "Replay any time from Holodex or the tray.", "Esc"),
     };
 
+    private const int ReshowMs = 90;
+    private const int WatchMs = 100;
+
+    /// <summary>
+    /// What a tip is for: a catalogued control (by Name), or a menu row with ToolTipText. The anchor, the copy and
+    /// whether it is still on screen are read through it, so both kinds share one dwell, one window and one watchdog.
+    /// </summary>
+    private sealed record TipTarget(object Key, Func<Rectangle> Anchor, PhosphorTipInfo Info, Func<bool> Alive, bool Beside);
+
     private static TipForm? _form;
     private static Filter? _filter;
     private static readonly System.Windows.Forms.Timer Dwell = new() { Interval = DwellMs };
-    private static Control? _pending;
-    private static Control? _shownFor;
+    // While a tip is up: the cursor leaving it, its window hiding or closing, or another app taking the foreground
+    // retracts it, so no tip outlives what it describes.
+    private static readonly System.Windows.Forms.Timer Watch = new() { Interval = WatchMs };
+    private static TipTarget? _pending;
+    private static TipTarget? _shown;
+    private static long _lastHiddenAt = long.MinValue / 2;
 
     public static void Install()
     {
@@ -402,55 +415,97 @@ internal static class PhosphorTips
         Dwell.Tick += (_, _) =>
         {
             Dwell.Stop();
-            if (Suppressed) return;
-            if (_pending is { IsDisposed: false, Visible: true } c && Catalog.TryGetValue(c.Name, out var info)) Show(c, info);
+            if (_pending is { } t && t.Alive() && (!Suppressed || t.Key is ToolStripItem)) Show(t);
+        };
+        Watch.Tick += (_, _) =>
+        {
+            if (_shown is not { } t) { Watch.Stop(); return; }
+            var anchor = t.Anchor();
+            anchor.Inflate(2, 2);
+            if (!t.Alive() || !anchor.Contains(Cursor.Position) || !OwnsForeground()) Hide();
         };
     }
 
-    /// <summary>True while a chip menu is open: no tooltip may appear over or beside it.</summary>
+    /// <summary>True while a chip menu is open: no control tip may appear over or beside it; its own rows still tip.</summary>
     public static bool Suppressed { get; set; }
 
     public static bool TryGet(string name, out PhosphorTipInfo info) => Catalog.TryGetValue(name, out info!);
 
-    private static Control? ResolveTipTarget(Control? c)
+    /// <summary>
+    /// The tip under the pointer: a menu row with ToolTipText (the menu's own native tips are switched off the first
+    /// time it is seen, so a row never shows two), else the nearest catalogued control.
+    /// </summary>
+    private static TipTarget? ResolveTipTarget(Control? c)
     {
+        if (c is ToolStrip strip)
+        {
+            if (strip.ShowItemToolTips) strip.ShowItemToolTips = false;
+            var item = strip.GetItemAt(strip.PointToClient(Cursor.Position));
+            if (item is { ToolTipText.Length: > 0, Visible: true } && !string.IsNullOrWhiteSpace(item.Text))
+                return new TipTarget(item, () => strip.RectangleToScreen(item.Bounds),
+                    new PhosphorTipInfo(item.Text.Replace("&", ""), item.ToolTipText),
+                    () => !strip.IsDisposed && strip.Visible && item.Visible && item.Owner == strip, Beside: true);
+            return null;
+        }
         while (c != null)
         {
-            if (!string.IsNullOrEmpty(c.Name) && Catalog.ContainsKey(c.Name)) return c;
+            if (!string.IsNullOrEmpty(c.Name) && Catalog.TryGetValue(c.Name, out var info))
+            {
+                var control = c;
+                return new TipTarget(control, () => control.RectangleToScreen(control.ClientRectangle), info,
+                    () => !control.IsDisposed && control.Visible && control.FindForm() is { Visible: true, Opacity: > 0.5 }, Beside: false);
+            }
             c = c.Parent;
         }
         return null;
     }
 
-    private static void OnHover(Control? target)
+    private static void OnHover(TipTarget? target)
     {
-        if (target == _shownFor) return;
-        if (target != _pending)
-        {
-            _pending = target;
-            Dwell.Stop();
-            Hide();
-            if (target != null) Dwell.Start();
-        }
+        if (Equals(target?.Key, _shown?.Key)) return;
+        if (Equals(target?.Key, _pending?.Key)) return;
+        _pending = target;
+        Dwell.Stop();
+        bool neighbour = _shown != null || SurfaceMotion.Now - _lastHiddenAt < 400;
+        Hide();
+        if (target == null) return;
+        // Moving straight from one tip to the next re-tips at once instead of waiting out the dwell again.
+        Dwell.Interval = neighbour ? ReshowMs : DwellMs;
+        Dwell.Start();
     }
 
-    private static void Show(Control target, PhosphorTipInfo info)
+    private static void Show(TipTarget target)
     {
         _form ??= new TipForm();
-        _shownFor = target;
-        var screenRect = target.RectangleToScreen(target.ClientRectangle);
-        _form.Present(info, screenRect);
+        _shown = target;
+        _form.Present(target.Info, target.Anchor(), target.Beside);
+        Watch.Start();
     }
 
     public static void Hide()
     {
-        _shownFor = null;
+        if (_shown != null) _lastHiddenAt = SurfaceMotion.Now;
+        _shown = null;
+        Watch.Stop();
         _form?.Retract();
     }
 
+    /// <summary>Whether the foreground window is one of Holodex's own: a tip never stays over another app.</summary>
+    private static bool OwnsForeground()
+    {
+        var fg = GetForegroundWindow();
+        if (fg == IntPtr.Zero) return false;
+        GetWindowThreadProcessId(fg, out uint pid);
+        return pid == (uint)Environment.ProcessId;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
     private sealed class Filter : IMessageFilter
     {
-        private const int WM_MOUSEMOVE = 0x0200, WM_MOUSELEAVE = 0x02A3, WM_LBUTTONDOWN = 0x0201, WM_RBUTTONDOWN = 0x0204, WM_KEYDOWN = 0x0100, WM_NCMOUSEMOVE = 0x00A0;
+        private const int WM_MOUSEMOVE = 0x0200, WM_MOUSELEAVE = 0x02A3, WM_LBUTTONDOWN = 0x0201, WM_RBUTTONDOWN = 0x0204,
+            WM_MBUTTONDOWN = 0x0207, WM_MOUSEWHEEL = 0x020A, WM_MOUSEHWHEEL = 0x020E, WM_KEYDOWN = 0x0100, WM_NCMOUSEMOVE = 0x00A0;
 
         public bool PreFilterMessage(ref Message m)
         {
@@ -465,6 +520,9 @@ internal static class PhosphorTips
                     break;
                 case WM_LBUTTONDOWN:
                 case WM_RBUTTONDOWN:
+                case WM_MBUTTONDOWN:
+                case WM_MOUSEWHEEL:
+                case WM_MOUSEHWHEEL:
                 case WM_KEYDOWN:
                     _pending = null;
                     Dwell.Stop();
@@ -517,7 +575,7 @@ internal static class PhosphorTips
             }
         }
 
-        public void Present(PhosphorTipInfo info, Rectangle anchor)
+        public void Present(PhosphorTipInfo info, Rectangle anchor, bool beside = false)
         {
             _info = info;
             float s = DeviceDpi / 96f;
@@ -536,9 +594,20 @@ internal static class PhosphorTips
             ClipRounded();
 
             var work = Screen.FromRectangle(anchor).WorkingArea;
-            int x = Math.Clamp(anchor.Left + anchor.Width / 2 - Width / 2, work.Left + 8, work.Right - Width - 8);
-            int y = anchor.Bottom + (int)(10 * s);
-            if (y + Height > work.Bottom - 8) y = anchor.Top - Height - (int)(10 * s);
+            int x, y;
+            if (beside)
+            {
+                // A menu row tips beside the menu, never over the rows under it.
+                x = anchor.Right + (int)(10 * s);
+                if (x + Width > work.Right - 8) x = anchor.Left - Width - (int)(10 * s);
+                y = Math.Clamp(anchor.Top, work.Top + 8, work.Bottom - Height - 8);
+            }
+            else
+            {
+                x = Math.Clamp(anchor.Left + anchor.Width / 2 - Width / 2, work.Left + 8, work.Right - Width - 8);
+                y = anchor.Bottom + (int)(10 * s);
+                if (y + Height > work.Bottom - 8) y = anchor.Top - Height - (int)(10 * s);
+            }
             _restLocation = new Point(x, y);
 
             _showing = true;
