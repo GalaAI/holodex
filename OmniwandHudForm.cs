@@ -234,7 +234,7 @@ public sealed class OmniwandHudForm : Form
     {
         if (_working) return;
         string first = _modelChip.Label.Split(' ')[0];
-        _askBtn.Text = _galaLed.Text == "GALA LIVE" ? "Ask Gala" : first.Length > 0 ? $"Ask {first}" : "Ask";
+        _askBtn.Text = _galaLed.Text == "GALA IN HIVEMIND" ? "Ask Gala" : first.Length > 0 ? $"Ask {first}" : "Ask";
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -410,6 +410,8 @@ public sealed class OmniwandHudForm : Form
         {
             _working = false;
             _setThinkingState(false);
+            // After _working clears: who answers the next ask, now that this one has settled.
+            SyncAskLabel();
             _promptBox.Enabled = true;
             _askBtn.Enabled = true;
             _promptBox.Focus();
@@ -422,17 +424,17 @@ public sealed class OmniwandHudForm : Form
         System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(kicker.ToLowerInvariant());
 
     /// <summary>
-    /// Why Gala cannot take this turn, in the words its LED and the answer card carry, or null when it can: Hivemind
-    /// is signed out or did not answer, it lists no Gala, or Gala is registered but not ready for a turn.
+    /// Why Gala cannot be asked, in the words its LED and the answer card carry, or null when it can: Hivemind is
+    /// signed out or did not answer, or it lists no Gala. The roster's dispatchReady is not a gate: it reads false for
+    /// every agent while Sessions still run their turns, so Gala is asked and the Session says whether it answered.
     /// </summary>
     private async Task<string?> GalaUnavailableReasonAsync()
     {
         (Color Led, string Text)? state = null;
         if (!HivemindClient.HasSavedSignIn) state = (PhosphorTheme.Ghost, "HIVEMIND SIGNED OUT");
         else if (await _ark.Hivemind.ListAgentsAsync() is not { } agents) state = (PhosphorTheme.Rust, "HIVEMIND UNREACHABLE");
-        else if (agents.FirstOrDefault(a => a.Id == "gala") is not { } gala) state = (PhosphorTheme.Ember, "NO GALA IN HIVEMIND");
-        else if (!gala.DispatchReady) state = (PhosphorTheme.Ember, "GALA NOT READY");
-        _galaLed = state ?? (PhosphorTheme.Moss, "GALA LIVE");
+        else if (!agents.Any(a => a.Id == "gala")) state = (PhosphorTheme.Ember, "NO GALA IN HIVEMIND");
+        _galaLed = state ?? (PhosphorTheme.Moss, "GALA IN HIVEMIND");
         return state?.Text;
     }
 
