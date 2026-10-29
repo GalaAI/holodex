@@ -165,6 +165,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly ScreenSnipAndElementPickerForm _snipWidget;
     private readonly HolodexLiteDrawerForm _holodexDrawer;
     private readonly AugmentInventoryForm _inventory = new();
+    private readonly VaultForm _vault;
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
@@ -281,6 +282,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _overlay?.ForceCursorRedraw();
             });
         _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
+        _vault = new VaultForm(_ark);
+        _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -335,6 +338,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
+
+        // The Vault needs no Ark and no Hivemind account: keys, MCP sign-ins and local services on this PC.
+        var vaultItem = home.Add(new ToolStripMenuItem("Vault") { Name = "Tray.Vault", ToolTipText = "Connect apps, services and keys. Keys stay in Windows Credential Manager." });
+        vaultItem.Click += (_, _) => _vault.Summon(GetCursorPoint());
 
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
@@ -677,7 +684,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "vault:capture:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -832,6 +839,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                         ("ainbox", _ainboxWidget),
                         ("holodex", _holodexDrawer),
                         ("snip", _snipWidget),
+                        ("vault", _vault),
                         ("tutorial", _tutorialTooltip));
                     result = $"ok:render:{files.Count}:{string.Join(",", files)}";
                 }
@@ -1052,6 +1060,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _wizWidget.Hide();
                 _ainboxWidget.Hide();
                 _inventory.Hide();
+                _vault.Hide();
                 _holodexDrawer.Hide();
                 _snipWidget.Hide();
                 _tutorialTooltip.Hide();
@@ -1067,6 +1076,32 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SurfaceMotion.Dismiss(_wizWidget), null);
             return "ok:wiz:close";
+        }
+        // vault:summon[:catalog] opens the Vault; vault:capture:<png>[|catalog] draws it offscreen; vault:close hides it.
+        if (cmd.StartsWith("vault:summon", StringComparison.OrdinalIgnoreCase))
+        {
+            bool? catalog = cmd.EndsWith(":catalog", StringComparison.OrdinalIgnoreCase) ? true : null;
+            var at = GetCursorPoint();
+            _uiSync.Post(_ => _vault.Summon(at, catalog), null);
+            return "ok:vault:summon";
+        }
+        if (cmd.StartsWith("vault:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] parts = cmd["vault:capture:".Length..].Split('|');
+            string png = parts[0].Trim();
+            bool catalog = parts.Length > 1 && parts[1].Trim().Equals("catalog", StringComparison.OrdinalIgnoreCase);
+            string result = "error:vault:capture:not-run";
+            _uiSync.Send(_ =>
+            {
+                try { result = "ok:vault:capture:" + _vault.Capture(png, catalog); }
+                catch (Exception ex) { result = "error:vault:capture:" + ex.Message; }
+            }, null);
+            return result;
+        }
+        if (string.Equals(cmd, "vault:close", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_vault), null);
+            return "ok:vault:close";
         }
         // inventory:summon[:<base>] opens the Augment Inventory on the Ark API at base (default the live :8788).
         if (cmd.StartsWith("inventory:summon", StringComparison.OrdinalIgnoreCase))

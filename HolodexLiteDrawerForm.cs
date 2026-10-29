@@ -41,6 +41,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private readonly Action _runWizOnboardingTutorial;
     /// <summary>Opens the Augment Inventory window (Program owns it).</summary>
     internal Action? OpenAugmentInventory { get; set; }
+    internal Action? OpenVault { get; set; }
     private readonly Action<CursorIconStyle> _onCursorStyleChanged;
 
     private string _activeTab = "session";
@@ -676,6 +677,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         inventoryBtn.Click += (_, _) => OpenAugmentInventory?.Invoke();
 
+        // The Vault: apps, services and keys, on this PC with or without Ark or Hivemind.
+        var vaultBtn = new PhosphorButton("Vault and adapters")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.VaultBtn"
+        };
+        vaultBtn.Click += (_, _) => OpenVault?.Invoke();
+
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
         modsInfoBox.AddSection("Spells you draw");
@@ -707,6 +717,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _modsPanel.Controls.Add(modsInfoBox);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(onboardBtn);
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+        _modsPanel.Controls.Add(vaultBtn);
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
         {
