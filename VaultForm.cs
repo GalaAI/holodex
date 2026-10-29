@@ -397,23 +397,24 @@ internal sealed class VaultForm : Form
     private void BuildCatalog(List<VaultEntry> entries)
     {
         var connected = entries.Select(e => e.ProviderId).ToHashSet();
-        AddHivemindCard();
         foreach (var group in HolodexVault.Catalog.GroupBy(p => p.Group))
         {
             _list.AddSection(group.Key.ToUpperInvariant());
             foreach (var provider in group) AddCatalogCard(provider, connected.Contains(provider.Id));
         }
+        // Last on purpose: no account is the default, and nothing above needs one.
+        AddHivemindCard();
     }
 
     /// <summary>Hivemind is optional: signing in shares the session with the Hivemind web app; the vault works without it.</summary>
     private void AddHivemindCard()
     {
-        _list.AddSection("YOUR ACCOUNT");
+        _list.AddSection("HIVEMIND ACCOUNT // OPTIONAL");
         bool signedIn = _ark.Hivemind.State == HivemindState.Connected || HivemindClient.HasSavedSignIn;
         var card = _list.Add(signedIn ? ThreadTone.Ok : ThreadTone.Step, "HIVEMIND // OPTIONAL",
             signedIn
                 ? $"Signed in to {HivemindClient.EndpointHost}. Your vault stays on this PC either way."
-                : "Optional. Sign in to use your Hivemind agents and Sessions from Holodex. Everything here works without it.",
+                : "Not needed. Nemotron on Nebius and everything above work without an account. Sign in to share Sessions and agents with the Hivemind web app.",
             PhosphorGlyph.Holodex,
             new[] { signedIn ? (PhosphorTheme.Moss, "Signed in") : (PhosphorTheme.Ghost, "Not signed in"), (PhosphorTheme.Ghost, HivemindClient.EndpointHost) });
         card.Name = "Vault.Catalog.hivemind";
