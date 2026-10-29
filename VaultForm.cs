@@ -495,7 +495,7 @@ internal sealed class VaultForm : Form
     }
 
     /// <summary>Draws the window offscreen to a PNG (pipe <c>vault:capture:&lt;png&gt;</c>) on the tab asked for.</summary>
-    public string Capture(string path, bool catalog)
+    public string CaptureTo(string path, bool catalog)
     {
         ShowTab(catalog);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".");

@@ -1105,7 +1105,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             string result = "error:vault:capture:not-run";
             _uiSync.Send(_ =>
             {
-                try { result = "ok:vault:capture:" + _vault.Capture(png, catalog); }
+                try { result = "ok:vault:capture:" + _vault.CaptureTo(png, catalog); }
                 catch (Exception ex) { result = "error:vault:capture:" + ex.Message; }
             }, null);
             return result;

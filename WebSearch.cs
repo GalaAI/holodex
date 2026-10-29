@@ -38,7 +38,7 @@ internal static class WebSearch
                 ["function"] = new JsonObject
                 {
                     ["name"] = ToolName,
-                    ["description"] = "Search the live web. Use it for news, prices, releases, schedules, people and anything that may have changed since training.",
+                    ["description"] = $"Search the live web. Today is {DateTime.Now:MMMM d, yyyy}; your training data is older, so use it for news, prices, releases, schedules, people and anything that may have changed, and put the current year in queries about recent events.",
                     ["parameters"] = new JsonObject
                     {
                         ["type"] = "object",
@@ -55,7 +55,7 @@ internal static class WebSearch
         payload["tool_choice"] = "auto";
         if (payload["messages"] is JsonArray messages && messages.Count > 0 && messages[0] is JsonObject system && system["role"]?.GetValue<string>() == "system")
             system["content"] = system["content"]?.GetValue<string>() +
-                " You can call web_search when the question needs current or outside facts. Answer from the results and do not invent sources.";
+                $" Today is {DateTime.Now:dddd, MMMM d, yyyy}. You can call web_search when the question needs current or outside facts. Answer from the results and do not invent sources.";
     }
 
     /// <summary>

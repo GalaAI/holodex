@@ -1121,7 +1121,7 @@ public sealed class ArkStationClient
                 }
 
                 var (text, finish, answeredBy) = ReadCompletion(body);
-                if (searching && finish == "tool_calls" && rounds < WebSearch.MaxRounds && await WebSearch.RunToolCallsAsync(payload, body, sources))
+                if (searching && rounds < WebSearch.MaxRounds && await WebSearch.RunToolCallsAsync(payload, body, sources))
                 {
                     // The last round offers no tool, so the model answers from what it has.
                     if (++rounds == WebSearch.MaxRounds) { payload.Remove("tools"); payload.Remove("tool_choice"); }
