@@ -16,6 +16,7 @@ internal static class PhosphorMotion
 {
     public static int DurDisclosure => Math.Max(1, PhosphorTheme.Px("dur-disclosure"));
     public static int DurDisclosureItem => Math.Max(1, PhosphorTheme.Px("dur-disclosure-item"));
+    public static int DurBloom => Math.Max(1, PhosphorTheme.Px("dur-bloom"));
 
     public static bool ReducedMotion
     {
@@ -34,6 +35,9 @@ internal static class PhosphorMotion
     /// things that lift, drop, land or snap back. Overshoots past 1 before settling.
     /// </summary>
     public static float EaseSpring(float t) => CubicBezier(Math.Clamp(t, 0f, 1f), 0.34f, 1.36f, 0.5f, 1f);
+
+    /// <summary>ease-disclosure cubic-bezier(0.2,0,0,1): the disclosure beat (FluidSelect's panel, glide and items).</summary>
+    public static float EaseDisclosure(float t) => CubicBezier(Math.Clamp(t, 0f, 1f), 0.2f, 0f, 0f, 1f);
 
     /// <summary>Ease-out cubic for entries that should settle, not swing.</summary>
     public static float EaseOut(float t)
@@ -274,11 +278,14 @@ internal sealed record PhosphorTipInfo(string Title, string Body, string? Keys =
 /// <summary>
 /// One hover tooltip for every Omniwand surface. Controls opt in by Name (the catalog below), so no form
 /// carries its own tooltip code. A message filter watches mouse movement, waits a short dwell, then shows a
-/// non-activating tip that rises 6px and fades in on the disclosure timing, with the highlight aura on its lead edge.
+/// non-activating tip the way the Augment Inventory's AnimatedTooltip (CP-34) opens: after 180ms of hover, 8px from
+/// the trigger, fading and scaling from 96% toward the trigger on dur-bloom with ease-analog, and closing the same way
+/// when the pointer leaves, a click or a key activates the control, or Esc is pressed.
 /// </summary>
 internal static class PhosphorTips
 {
-    private const int DwellMs = 500;
+    /// <summary>CP-34's open delay (AnimatedTooltip.tsx, Tooltip.Trigger delay={180}).</summary>
+    private const int DwellMs = 180;
 
     private static readonly Dictionary<string, PhosphorTipInfo> Catalog = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -330,11 +337,11 @@ internal static class PhosphorTips
         ["AInbox.SubmitButton"] = new("Send", "Waits five seconds so you can undo (or press Esc), then queues the active group's scroll and captures for AInbox.", "Ctrl+Enter"),
         ["AInbox.HandoffScroll"] = new("Handoff scroll", "What the receiving agent reads. Edit any field; the SHA-256 seal follows your edits."),
 
-        ["Holodex.Tab.session"] = new("Session", "Messages and work orders to the Hivemind agents, a card each."),
-        ["Holodex.Tab.ainbox"] = new("AInbox", "The pod inboxes, and the way into AInbox (Alt+I)."),
-        ["Holodex.Tab.codex"] = new("Codex", "What you saved from the lasso and the element picker."),
-        ["Holodex.Tab.grimx"] = new("GrimX", "Mouse bindings and the eight Spell Orb slots."),
-        ["Holodex.Tab.mods"] = new("Mods", "Mouse, pointer speed, cursor style, the spellbook and the equipped mods."),
+        ["Holodex.Tab.session"] = new("Session", "Messages and work orders to the Hivemind agents, a card each. Ctrl+1."),
+        ["Holodex.Tab.ainbox"] = new("AInbox", "The pod inboxes, and the way into AInbox (Alt+I). Ctrl+2."),
+        ["Holodex.Tab.codex"] = new("Codex", "What you saved from the lasso and the element picker. Ctrl+3."),
+        ["Holodex.Tab.grimx"] = new("GrimX", "Mouse bindings and the eight Spell Orb slots. Ctrl+4."),
+        ["Holodex.Tab.mods"] = new("Mods", "Mouse, pointer speed, cursor style, the spellbook and the equipped mods. Ctrl+5; Ctrl+Tab steps through the tabs."),
         ["Holodex.AugmentInventoryBtn"] = new("Augment Inventory", "Every Augment by Shell, Phosphor or Bandit, opened from your Ark in its own window."),
         ["Holodex.RailMark"] = new("Holodex", "ArkStation's desktop face of Hivemind: the tabs below, your profile at the foot."),
         ["Holodex.ProfileButton"] = new("Profile", "Your account, at the foot of the rail: the Hivemind sign-in, the Nebius key and the gateway. Its ring is green while Hivemind is live."),
@@ -395,7 +402,6 @@ internal static class PhosphorTips
         ["Tutorial.CloseButton"] = new("Skip the tour", "Replay any time from Holodex or the tray.", "Esc"),
     };
 
-    private const int ReshowMs = 90;
     private const int WatchMs = 100;
 
     /// <summary>
@@ -412,7 +418,11 @@ internal static class PhosphorTips
     private static readonly System.Windows.Forms.Timer Watch = new() { Interval = WatchMs };
     private static TipTarget? _pending;
     private static TipTarget? _shown;
-    private static long _lastHiddenAt = long.MinValue / 2;
+    /// <summary>
+    /// The control a click or key just closed the tip of. It does not tip again until the pointer leaves it: without
+    /// this, the next 1px of movement after a click re-opened the tip it had just closed.
+    /// </summary>
+    private static object? _dismissed;
 
     public static void Install()
     {
@@ -422,7 +432,7 @@ internal static class PhosphorTips
         Dwell.Tick += (_, _) =>
         {
             Dwell.Stop();
-            if (_pending is { } t && t.Alive() && (!Suppressed || t.Key is ToolStripItem)) Show(t);
+            if (_pending is { } t && t.Alive() && (!Suppressed || t.Beside)) Show(t);
         };
         Watch.Tick += (_, _) =>
         {
@@ -444,6 +454,11 @@ internal static class PhosphorTips
     /// </summary>
     private static TipTarget? ResolveTipTarget(Control? c)
     {
+        if (c is IRowTips rows)
+        {
+            if (rows.TipAt(Cursor.Position) is not { } hit) return null;
+            return new TipTarget(hit.Key, () => hit.Anchor, hit.Info, () => rows.TipsAlive, Beside: true);
+        }
         if (c is ToolStrip strip)
         {
             if (strip.ShowItemToolTips) strip.ShowItemToolTips = false;
@@ -469,16 +484,25 @@ internal static class PhosphorTips
 
     private static void OnHover(TipTarget? target)
     {
+        if (_dismissed != null && !Equals(target?.Key, _dismissed)) _dismissed = null;
+        if (target != null && Equals(target.Key, _dismissed)) return;
         if (Equals(target?.Key, _shown?.Key)) return;
         if (Equals(target?.Key, _pending?.Key)) return;
         _pending = target;
         Dwell.Stop();
-        bool neighbour = _shown != null || SurfaceMotion.Now - _lastHiddenAt < 400;
         Hide();
         if (target == null) return;
-        // Moving straight from one tip to the next re-tips at once instead of waiting out the dwell again.
-        Dwell.Interval = neighbour ? ReshowMs : DwellMs;
+        Dwell.Interval = DwellMs;
         Dwell.Start();
+    }
+
+    /// <summary>A click, a wheel or a key on <paramref name="target"/>: its tip closes and waits for the pointer to leave.</summary>
+    private static void OnActivate(TipTarget? target)
+    {
+        _dismissed = target?.Key ?? _shown?.Key ?? _pending?.Key;
+        _pending = null;
+        Dwell.Stop();
+        Hide();
     }
 
     private static void Show(TipTarget target)
@@ -491,7 +515,6 @@ internal static class PhosphorTips
 
     public static void Hide()
     {
-        if (_shown != null) _lastHiddenAt = SurfaceMotion.Now;
         _shown = null;
         Watch.Stop();
         _form?.Retract();
@@ -508,6 +531,10 @@ internal static class PhosphorTips
 
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
+
+    /// <summary>The tip for whatever is under the pointer now, whichever window the message came to.</summary>
+    private static TipTarget? UnderPointer() => ResolveTipTarget(Control.FromChildHandle(WindowFromPoint(Cursor.Position)));
 
     private sealed class Filter : IMessageFilter
     {
@@ -523,26 +550,40 @@ internal static class PhosphorTips
                     break;
                 case WM_NCMOUSEMOVE:
                 case WM_MOUSELEAVE:
-                    if (Control.FromChildHandle(m.HWnd) is { } c && ResolveTipTarget(c) == null) OnHover(null);
+                    // A container's leave arrives as the pointer enters one of its children; judged by the window that
+                    // got it, that cancelled the child's tip, and the next move spawned it again. Judge by what is
+                    // under the pointer now.
+                    OnHover(UnderPointer());
                     break;
                 case WM_LBUTTONDOWN:
                 case WM_RBUTTONDOWN:
                 case WM_MBUTTONDOWN:
                 case WM_MOUSEWHEEL:
                 case WM_MOUSEHWHEEL:
+                    OnActivate(ResolveTipTarget(Control.FromChildHandle(m.HWnd)));
+                    break;
                 case WM_KEYDOWN:
-                    _pending = null;
-                    Dwell.Stop();
-                    Hide();
+                    OnActivate(UnderPointer());
                     break;
             }
             return false;
         }
     }
 
-    /// <summary>Non-activating, click-through tip window. Rises 6px and fades in over dur-disclosure-item.</summary>
+    /// <summary>
+    /// Non-activating, click-through tip window. CP-34's motion (animated-tooltip.css): opacity 0 and scale(0.96) with a
+    /// one-unit shift toward the trigger at the start and end, the rest state between, on dur-bloom with ease-analog.
+    /// </summary>
     private sealed class TipForm : Form
     {
+        /// <summary>CP-34's sideOffset: the --s2 spacing token.</summary>
+        private const float GapPx = 8f;
+        /// <summary>The one-unit shift (--u) toward the trigger at the start and end of the motion.</summary>
+        private const float ShiftPx = 4f;
+        private const float FromScale = 0.96f;
+        /// <summary>Where the trigger is from the tip: the scale origin and the direction of the shift.</summary>
+        private Point _toward;
+        private float _scale = 1f;
         private const int WS_EX_NOACTIVATE = 0x08000000, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_TOPMOST = 0x00000008, WS_EX_TRANSPARENT = 0x00000020;
         private readonly System.Windows.Forms.Timer _anim = new() { Interval = 15 };
         private readonly Stopwatch _clock = new();
@@ -568,8 +609,10 @@ internal static class PhosphorTips
         private void ClipRounded()
         {
             float s = DeviceDpi / 96f;
-            using var path = PhosphorTheme.CreateRoundedRect(new RectangleF(0, 0, Width, Height), PhosphorTheme.RadiusButton * s);
+            using var path = PhosphorTheme.CreateRoundedRect(ScaledBox(new RectangleF(0, 0, Width, Height)), PhosphorTheme.RadiusButton * s * _scale);
+            var old = Region;
             Region = new Region(path);
+            old?.Dispose();
         }
 
         protected override CreateParams CreateParams
@@ -605,33 +648,36 @@ internal static class PhosphorTips
             if (beside)
             {
                 // A menu row tips beside the menu, never over the rows under it.
-                x = anchor.Right + (int)(10 * s);
-                if (x + Width > work.Right - 8) x = anchor.Left - Width - (int)(10 * s);
+                x = anchor.Right + (int)(GapPx * s);
+                _toward = new Point(-1, 0);
+                if (x + Width > work.Right - 8)
+                {
+                    x = anchor.Left - Width - (int)(GapPx * s);
+                    _toward = new Point(1, 0);
+                }
                 y = Math.Clamp(anchor.Top, work.Top + 8, work.Bottom - Height - 8);
             }
             else
             {
                 x = Math.Clamp(anchor.Left + anchor.Width / 2 - Width / 2, work.Left + 8, work.Right - Width - 8);
-                y = anchor.Bottom + (int)(10 * s);
-                if (y + Height > work.Bottom - 8) y = anchor.Top - Height - (int)(10 * s);
+                y = anchor.Bottom + (int)(GapPx * s);
+                _toward = new Point(0, -1);
+                if (y + Height > work.Bottom - 8)
+                {
+                    y = anchor.Top - Height - (int)(GapPx * s);
+                    _toward = new Point(0, 1);
+                }
             }
             _restLocation = new Point(x, y);
 
+            // From where it stands: a tip retracting from the last control opens again from its current frame.
+            float from = Visible ? _progress : 0f;
             _showing = true;
-            _clock.Restart();
-            if (PhosphorMotion.ReducedMotion)
-            {
-                Location = _restLocation;
-                Opacity = 1.0;
-            }
-            else
-            {
-                Location = new Point(x, y + (int)(6 * s));
-                Opacity = 0;
-            }
+            if (PhosphorMotion.ReducedMotion) from = 1f;
+            Settle(from);
             if (!Visible) Show();
             Invalidate();
-            _anim.Start();
+            if (from < 1f) Run(from);
         }
 
         public void Retract()
@@ -639,23 +685,59 @@ internal static class PhosphorTips
             if (!Visible) return;
             if (PhosphorMotion.ReducedMotion) { Hide(); return; }
             _showing = false;
+            Run(_progress);
+        }
+
+        /// <summary>How far open the tip is, 0 to 1, so a turn mid-motion carries on from where it stands.</summary>
+        private float _progress;
+        private float _runFrom;
+
+        private void Run(float from)
+        {
+            _runFrom = from;
             _clock.Restart();
             _anim.Start();
         }
 
         private void Step()
         {
-            float dur = PhosphorMotion.DurDisclosureItem;
+            // The whole bloom covers 0 to 1; a turn mid-motion runs only the part left.
+            float left = _showing ? 1f - _runFrom : _runFrom;
+            float dur = Math.Max(1f, PhosphorMotion.DurBloom * left);
             float t = Math.Min(1f, _clock.ElapsedMilliseconds / dur);
-            float e = _showing ? PhosphorMotion.EaseAnalog(t) : 1f - PhosphorMotion.EaseOut(t);
-            float s = DeviceDpi / 96f;
-            Opacity = Math.Clamp(e, 0, 1.0);
-            Location = new Point(_restLocation.X, _restLocation.Y + (int)Math.Round((1f - e) * 6f * s));
+            float p = _showing ? _runFrom + (1f - _runFrom) * t : _runFrom * (1f - t);
+            Settle(p);
             if (t >= 1f)
             {
                 _anim.Stop();
                 if (!_showing) Hide();
             }
+        }
+
+        /// <summary>Puts the tip at progress <paramref name="p"/>: eased opacity, scale and shift toward the trigger.</summary>
+        private void Settle(float p)
+        {
+            _progress = p;
+            float e = PhosphorMotion.EaseAnalog(p);
+            float s = DeviceDpi / 96f;
+            Opacity = Math.Clamp(e, 0, 1.0);
+            int shift = (int)Math.Round((1f - e) * ShiftPx * s);
+            Location = new Point(_restLocation.X + _toward.X * shift, _restLocation.Y + _toward.Y * shift);
+            _scale = FromScale + (1f - FromScale) * e;
+            ClipRounded();
+            Invalidate();
+        }
+
+        /// <summary>The scale origin: the middle of the tip's edge that faces the trigger.</summary>
+        private PointF Origin => new(
+            _toward.X < 0 ? 0 : _toward.X > 0 ? Width : Width / 2f,
+            _toward.Y < 0 ? 0 : _toward.Y > 0 ? Height : Height / 2f);
+
+        /// <summary>The tip's box at the current scale, shrunk toward <see cref="Origin"/>.</summary>
+        private RectangleF ScaledBox(RectangleF box)
+        {
+            var o = Origin;
+            return new RectangleF(o.X + (box.X - o.X) * _scale, o.Y + (box.Y - o.Y) * _scale, box.Width * _scale, box.Height * _scale);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -664,6 +746,13 @@ internal static class PhosphorTips
             float s = DeviceDpi / 96f;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+            if (_scale < 1f)
+            {
+                var o = Origin;
+                g.TranslateTransform(o.X, o.Y);
+                g.ScaleTransform(_scale, _scale);
+                g.TranslateTransform(-o.X, -o.Y);
+            }
             using (var path = PhosphorTheme.CreateRoundedRect(new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f), PhosphorTheme.RadiusButton * s))
             using (var fill = new SolidBrush(PhosphorTheme.Surface))
             using (var edge = new Pen(PhosphorTheme.Line2, 1f))

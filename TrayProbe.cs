@@ -98,8 +98,10 @@ internal static class TrayProbe
             var row = menu.Page.Items.OfType<PhosphorPageRow>()
                 .FirstOrDefault(i => Clean(i.Text).StartsWith(segment, StringComparison.OrdinalIgnoreCase));
             if (row == null) return $"error:tray:path:no page '{segment}' on {Name(menu.Page)}";
+            // The turn through its first paint, as a click sees it.
             var sw = Stopwatch.StartNew();
             menu.ShowPage(row.Page);
+            menu.Update();
             timings.Add($"{segment}={sw.ElapsedMilliseconds}ms");
         }
         return $"ok:tray:path:{string.Join(",", timings)}:{Report(menu)}";

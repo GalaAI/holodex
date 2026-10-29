@@ -20,8 +20,10 @@ internal enum PhosphorGlyph
     File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, Plus,
     Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault,
     // ArkStation's own icons (lucide-react, as the web console's Holodex uses them), drawn from their path data.
-    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink,
-    // Answer-card actions (lucide Copy, RotateCcw, Square, ThumbsUp, ThumbsDown).
+    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink,
+
+    // Answer-card actions (lucide Copy, RotateCcw, Square, ThumbsUp, ThumbsDown).
+
     Copy, Retry, Stop, ThumbUp, ThumbDown
 }
 
@@ -499,7 +501,12 @@ internal sealed class AvatarButton : Control
 }
 
 /// <summary>One choice in a suggestion chip's menu.</summary>
-internal sealed record ChipChoice(string Text, string? Note, bool Selected, Action Pick, string? Tip = null)
+/// <summary>
+/// One option of a value picker (FluidSelect, CP-32): its label, a mono note on the right, whether it is the current
+/// value, what picking it does, its tip, the accent <paramref name="Tone"/> its dot takes when lit (accent tokens only,
+/// never ember or rust), and a rule under it (the "All" divider).
+/// </summary>
+internal sealed record ChipChoice(string Text, string? Note, bool Selected, Action Pick, string? Tip = null, Color? Tone = null, bool SeparatorAfter = false)
 {
     /// <summary>A heading between groups of choices (it picks nothing).</summary>
     public static ChipChoice Header(string text) => new(text, null, false, null!);
@@ -509,12 +516,18 @@ internal sealed record ChipChoice(string Text, string? Note, bool Selected, Acti
 
 /// <summary>
 /// Something the system proposed (a pod, a model, a spell type), as one chip: an optional arrow, LABEL · DETAIL,
-/// a confidence dot and a caret. The dot lights in <see cref="Accent"/> when the system is sure; a hand-picked or
-/// unsure value shows a ghost dot. Clicking opens the choices.
+/// a confidence dot and a chevron. The dot lights in <see cref="Accent"/> when the system is sure; a hand-picked or
+/// unsure value shows a ghost dot. It is FluidSelect's trigger (CP-32): clicking opens the choices in
+/// <see cref="FluidSelectDrop"/>, the chevron turns over in 120ms and the corner morphs from --radius-menu-closed to
+/// --radius-menu-open on the disclosure beat.
 /// </summary>
 internal class SuggestionChip : Control
 {
     private bool _hover;
+    private bool _open;
+    private long _openChangedAt = long.MinValue / 2;
+    private bool _ticking;
+    private DateTime _dropClosedAtUtc;
 
     public SuggestionChip()
     {
@@ -548,46 +561,68 @@ internal class SuggestionChip : Control
         Invalidate();
     }
 
-    /// <summary>Opens the choices above or below the chip with the Phosphor menu renderer.</summary>
+    /// <summary>
+    /// Opens the choices in the FluidSelect drop, above the chip by preference (it flips below when there is no
+    /// room). A click on the chip while the drop is open closes it: the outside click closes the drop first, so a
+    /// Click that lands just after it does not open it again.
+    /// </summary>
     public void ShowChoices(IEnumerable<ChipChoice> choices, bool above = true)
     {
-        var menu = new ContextMenuStrip { Renderer = new PhosphorMenuRenderer(), ShowImageMargin = false };
-        foreach (var c in choices)
-        {
-            if (c.IsHeader)
-            {
-                menu.Items.Add(new ToolStripSeparator());
-                menu.Items.Add(new PhosphorMenuEyebrow(c.Text));
-                continue;
-            }
-            var item = new ToolStripMenuItem(c.Text) { Checked = c.Selected, ToolTipText = c.Tip };
-            if (!string.IsNullOrEmpty(c.Note)) item.ShortcutKeyDisplayString = c.Note;
-            var pick = c.Pick;
-            item.Click += (_, _) => pick();
-            menu.Items.Add(item);
-        }
-        // WinForms closes a dropdown whenever focus changes. Omniwand's own windows (a tooltip, a toast, a widget a
-        // gesture summoned) can take focus while the menu is open, which closed it under the operator's hand. Keep
-        // it open for those; any other app taking focus, a click outside, Esc or a pick still close it.
-        menu.Closing += (_, e) =>
-        {
-            bool ours = GetWindowThreadProcessId(GetForegroundWindow(), out uint pid) != 0 && pid == (uint)Environment.ProcessId;
-            if (e.CloseReason == ToolStripDropDownCloseReason.AppFocusChange && ours) e.Cancel = true;
-            LogMenuClose(Name, e.CloseReason, e.Cancel);
-        };
-        menu.Opened += (_, _) => PhosphorTips.Suppressed = true;
-        menu.Closed += (_, _) =>
-        {
-            PhosphorTips.Suppressed = false;
-            BeginInvoke(new Action(menu.Dispose));
-        };
+        if (_open || DateTime.UtcNow - _dropClosedAtUtc < TimeSpan.FromMilliseconds(250)) return;
         PhosphorTips.Hide();
-        if (above) menu.Show(this, new Point(0, 0), ToolStripDropDownDirection.AboveRight);
-        else menu.Show(this, new Point(0, Height), ToolStripDropDownDirection.BelowRight);
+        var drop = FluidSelectDrop.Open(this, choices.ToList(), above);
+        Drop = drop;
+        SetOpen(true);
+        drop.Closed += (_, _) =>
+        {
+            _dropClosedAtUtc = DateTime.UtcNow;
+            Drop = null;
+            SetOpen(false);
+        };
     }
 
+    /// <summary>The open drop, for the as-built capture.</summary>
+    internal FluidSelectDrop? Drop { get; private set; }
+
+    /// <summary>Whether the drop is open; the chevron and corner ease to the new state.</summary>
+    public bool IsOpen => _open;
+
+    private void SetOpen(bool open)
+    {
+        if (_open == open) return;
+        _open = open;
+        _openChangedAt = SurfaceMotion.Now;
+        if (!_ticking && !PhosphorMotion.ReducedMotion)
+        {
+            _ticking = true;
+            SurfaceMotion.Frame += OnFrame;
+        }
+        Invalidate();
+    }
+
+    private void OnFrame()
+    {
+        if (IsDisposed || SurfaceMotion.Now - _openChangedAt > FluidSelectSpec.PanelMs)
+        {
+            _ticking = false;
+            SurfaceMotion.Frame -= OnFrame;
+        }
+        if (!IsDisposed) Invalidate();
+    }
+
+    /// <summary>How open the trigger looks, 0 to 1, over <paramref name="ms"/> from the last change.</summary>
+    private float Openness(int ms)
+    {
+        float p = PhosphorMotion.ReducedMotion ? 1f : Math.Clamp((SurfaceMotion.Now - _openChangedAt) / (float)ms, 0f, 1f);
+        float e = PhosphorMotion.EaseDisclosure(p);
+        return _open ? e : 1f - e;
+    }
+
+    /// <summary>Whether the foreground window is one of Omniwand's own.</summary>
+    internal static bool OwnsForeground() => GetWindowThreadProcessId(GetForegroundWindow(), out uint pid) != 0 && pid == (uint)Environment.ProcessId;
+
     /// <summary>One line per chip-menu close (why, and whether it was kept open) in %TEMP%\omniwand-menu.log.</summary>
-    private static void LogMenuClose(string chip, ToolStripDropDownCloseReason reason, bool kept)
+    internal static void LogMenuClose(string chip, ToolStripDropDownCloseReason reason, bool kept)
     {
         try
         {
@@ -625,9 +660,10 @@ internal class SuggestionChip : Control
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        float r = PhosphorTheme.RadiusButton * s;
+        float morph = Openness(FluidSelectSpec.PanelMs);
+        float r = (FluidSelectSpec.RadiusClosed + (FluidSelectSpec.RadiusOpen - FluidSelectSpec.RadiusClosed) * morph) * s;
         PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
-        PhosphorPaint.StrokeRounded(g, rect, r, _hover ? PhosphorTheme.Ghost : PhosphorTheme.Line2);
+        PhosphorPaint.StrokeRounded(g, rect, r, _hover || _open ? PhosphorTheme.Ghost : PhosphorTheme.Line2);
         if (Focused) PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), Math.Max(1f, r - 2f), Color.FromArgb(160, PhosphorTheme.Patina));
 
         float cy = Height / 2f;
@@ -641,16 +677,21 @@ internal class SuggestionChip : Control
         }
 
         using (var font = PhosphorFonts.Mono(10.5f))
-        using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Cream))
+        using (var ink = new SolidBrush(_hover || _open ? PhosphorTheme.Bone : PhosphorTheme.Cream))
             x += PhosphorPaint.DrawTracked(g, Text2, font, ink, x, cy - font.GetHeight(g) / 2f, 1f * s);
 
         float dot = 6f * s;
         x += 8f * s;
         using (var b = new SolidBrush(DotColor ?? (Confident ? Accent : PhosphorTheme.Ghost))) g.FillEllipse(b, x, cy - dot / 2f, dot, dot);
 
+        // ChevronDown, turning over (180 degrees) in 120ms while the drop is open.
         float cx = Width - 16f * s;
-        using var caret = new Pen(PhosphorTheme.Dim, 1.5f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        g.DrawLines(caret, new[] { new PointF(cx - 4f * s, cy + 2f * s), new PointF(cx, cy - 2f * s), new PointF(cx + 4f * s, cy + 2f * s) });
+        using var caret = new Pen(_hover || _open ? PhosphorTheme.Bone : PhosphorTheme.Dim, 1.5f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+        var turn = g.Save();
+        g.TranslateTransform(cx, cy);
+        g.RotateTransform(180f * Openness(FluidSelectSpec.ChevronMs));
+        g.DrawLines(caret, new[] { new PointF(-4f * s, -2f * s), new PointF(0, 2f * s), new PointF(4f * s, -2f * s) });
+        g.Restore(turn);
     }
 }
 

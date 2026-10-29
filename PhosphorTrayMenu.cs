@@ -189,6 +189,8 @@ internal sealed class PhosphorTrayMenu : ContextMenuStrip
         var before = Page;
         bool turning = Visible && !_measuring && before != page;
         if (turning) before.RaiseHidden();
+        // The row swap and its two layouts reach the screen as one frame, not as an empty panel and then row by row.
+        using var frozen = turning ? PhosphorPaint.FreezeRedraw(this) : null;
 
         SuspendLayout();
         Items.Clear();
@@ -209,10 +211,52 @@ internal sealed class PhosphorTrayMenu : ContextMenuStrip
         else PerformLayout();
         if (turning)
         {
-            // A page turn swaps every row at once; the new page settles in from a dim panel instead of snapping.
-            SurfaceMotion.FadeIn(this, from: 0.45f);
+            // DropdownMenu's drill-down (CP-31, dropdown-menu.css .rp-menu__page): the page comes in from 20% of the
+            // width on the side it lies, forward from the right and back from the left, on the disclosure beat.
+            StartTurn(forward: page.Parent == before);
             page.RaiseShown();
         }
+    }
+
+    // The page turn: how far the rows are drawn from their place, easing to 0.
+    private float _pageOffset;
+    private long _turnAt;
+    private int _turnDirection;
+    private bool _turning;
+
+    private void StartTurn(bool forward)
+    {
+        if (PhosphorMotion.ReducedMotion) return;
+        _turnDirection = forward ? 1 : -1;
+        _turnAt = SurfaceMotion.Now;
+        TurnFrame();
+        if (_turning) return;
+        _turning = true;
+        SurfaceMotion.Frame += TurnFrame;
+    }
+
+    private void TurnFrame()
+    {
+        float p = Math.Clamp((SurfaceMotion.Now - _turnAt) / (float)PhosphorMotion.DurDisclosure, 0f, 1f);
+        float e = PhosphorMotion.EaseDisclosure(p);
+        _pageOffset = _turnDirection * 0.2f * Width * (1f - e);
+        // The page's own fade, on the panel: a native dropdown cannot fade its rows apart from its surface.
+        Opacity = 0.85 + 0.15 * e;
+        if (p >= 1f || IsDisposed || !Visible)
+        {
+            _pageOffset = 0;
+            Opacity = 1;
+            _turning = false;
+            SurfaceMotion.Frame -= TurnFrame;
+        }
+        if (!IsDisposed) Invalidate();
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        // The panel's surface and border stay put (OnPaintBackground); only the rows slide.
+        if (_pageOffset != 0) e.Graphics.TranslateTransform(_pageOffset, 0);
+        base.OnPaint(e);
     }
 
     /// <summary>Rows that can be checked get the 33px check gutter; otherwise labels start 12px in (--aura-lead).</summary>

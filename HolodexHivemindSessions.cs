@@ -52,7 +52,8 @@ public sealed partial class HolodexLiteDrawerForm
     private IEnumerable<ChipChoice> RosterChoices()
     {
         foreach (var ag in _roster)
-            yield return new ChipChoice($"{ag.Name}  ·  {ag.Role}", ag.Pod, _openSession == null && ag.Id == _selectedSyndicateTarget, () => SetSyndicateTarget(ag.Id));
+            yield return new ChipChoice($"{ag.Name}  ·  {ag.Role}", ag.Pod, _openSession == null && ag.Id == _selectedSyndicateTarget, () => SetSyndicateTarget(ag.Id),
+                Tone: ag.Accent, SeparatorAfter: ag.Id == "all");
         if (_ark.Hivemind.State != HivemindState.Connected) yield break;
         // Refreshed in the background, so the next open lists any Session started in the web app meanwhile.
         _ = RefreshRecentSessionsAsync();

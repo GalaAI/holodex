@@ -271,6 +271,42 @@ internal static class PhosphorPaint
     }
 
     public static void UseDarkScrollbars(IntPtr hwnd) => SetWindowTheme(hwnd, "DarkMode_Explorer", null);
+
+    [DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool RedrawWindow(IntPtr hWnd, IntPtr rect, IntPtr region, uint flags);
+    private const int WmSetRedraw = 0x000B;
+    private const uint RdwInvalidate = 0x0001, RdwErase = 0x0004, RdwAllChildren = 0x0080, RdwUpdateNow = 0x0100, RdwFrame = 0x0400;
+
+    /// <summary>
+    /// Holds <paramref name="c"/> and everything in it on the frame it shows now until the scope closes, then paints
+    /// the result once: a tab swap or a list rebuild reaches the screen as one frame, not as an empty host and then
+    /// card by card. A hidden control is left alone (WM_SETREDRAW TRUE would show it).
+    /// </summary>
+    public static IDisposable FreezeRedraw(Control c)
+    {
+        if (!c.IsHandleCreated || !c.Visible) return NoFreeze.Instance;
+        SendMessage(c.Handle, WmSetRedraw, IntPtr.Zero, IntPtr.Zero);
+        return new Frozen(c);
+    }
+
+    private sealed class NoFreeze : IDisposable
+    {
+        public static readonly NoFreeze Instance = new();
+        public void Dispose() { }
+    }
+
+    private sealed class Frozen(Control c) : IDisposable
+    {
+        private bool _done;
+        public void Dispose()
+        {
+            if (_done) return;
+            _done = true;
+            if (!c.IsHandleCreated) return;
+            SendMessage(c.Handle, WmSetRedraw, (IntPtr)1, IntPtr.Zero);
+            RedrawWindow(c.Handle, IntPtr.Zero, IntPtr.Zero, RdwInvalidate | RdwErase | RdwFrame | RdwAllChildren | RdwUpdateNow);
+        }
+    }
 }
 
 /// <summary>Eyebrow: uppercase JetBrains Mono, Omniwand eyebrow size and tracking, ghost. Route copy uses //.</summary>

@@ -64,6 +64,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private bool _tokenBarOpen;
 
     private readonly Dictionary<string, RailButton> _tabButtons = new();
+    /// <summary>The rail's tabs, top to bottom.</summary>
+    private string[] TabOrder { get; } = Array.Empty<string>();
     private readonly Panel _contentHost;
 
     // Tab panels
@@ -255,6 +257,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             ("grimx",   "GrimX",   PhosphorGlyph.Sparkles),
             ("mods",    "Mods",    PhosphorGlyph.WandSparkles)
         };
+        TabOrder = tabs.Select(t => t.Id).ToArray();
         foreach (var (id, label, glyph) in tabs.Reverse())
         {
             string capturedId = id;
@@ -717,6 +720,20 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _contentHost.Controls.Add(_modsPanel);
     }
 
+    private Panel PanelFor(string tabId) => tabId switch
+    {
+        "ainbox" => _ainboxPanel,
+        "codex" => _codexPanel,
+        "grimx" => _grimxPanel,
+        "mods" => _modsPanel,
+        _ => _sessionPanel
+    };
+
+    /// <summary>
+    /// Shows <paramref name="tabId"/>'s panel. The swap is one frame: the content host holds the old tab on screen
+    /// while the new one is shown (before the old one hides, so the host is never empty) and its list catches up,
+    /// then paints once. Codex and GrimX rebuild their cards only when what they list has changed.
+    /// </summary>
     public void SwitchTab(string tabId)
     {
         // Unknown tab names (for example holodex:tab:bogus) keep the current tab.
@@ -725,27 +742,129 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _activeTab = tabId;
         foreach (var (id, btn) in _tabButtons)
         {
+            if (btn.Selected == (id == tabId)) continue;
             btn.Selected = id == tabId;
             btn.Invalidate();
         }
-        _sessionPanel.Visible = tabId == "session";
-        _ainboxPanel.Visible = tabId == "ainbox";
-        _codexPanel.Visible = tabId == "codex";
-        _grimxPanel.Visible = tabId == "grimx";
-        _modsPanel.Visible = tabId == "mods";
 
-        if (tabId == "codex") RefreshCodexEntries();
-        if (tabId == "grimx") RefreshGrimXMacroReadout();
+        var show = PanelFor(tabId);
+        using (PhosphorPaint.FreezeRedraw(_contentHost))
+        {
+            _contentHost.SuspendLayout();
+            show.Visible = true;
+            foreach (string id in TabOrder)
+                if (PanelFor(id) != show) PanelFor(id).Visible = false;
+            _contentHost.ResumeLayout(true);
+            if (tabId == "codex") RefreshCodexEntries();
+            if (tabId == "grimx") RefreshGrimXMacroReadout();
+        }
+    }
+
+    /// <summary>Steps the rail one tab down (<paramref name="step"/> 1) or up (-1), wrapping at either end.</summary>
+    private void StepTab(int step)
+    {
+        int at = Array.IndexOf(TabOrder, _activeTab);
+        SwitchTab(TabOrder[((at < 0 ? 0 : at) + step + TabOrder.Length) % TabOrder.Length]);
+    }
+
+    /// <summary>Ctrl+1 to Ctrl+5 open a tab; Ctrl+Tab and Ctrl+PageDown step down the rail, with Shift or PageUp up it.</summary>
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        switch (keyData)
+        {
+            case Keys.Control | Keys.Tab:
+            case Keys.Control | Keys.PageDown:
+                StepTab(1);
+                return true;
+            case Keys.Control | Keys.Shift | Keys.Tab:
+            case Keys.Control | Keys.PageUp:
+                StepTab(-1);
+                return true;
+        }
+        if ((keyData & Keys.Modifiers) == Keys.Control)
+        {
+            int n = (keyData & Keys.KeyCode) - Keys.D1;
+            if (n < 0 || n >= TabOrder.Length) n = (keyData & Keys.KeyCode) - Keys.NumPad1;
+            if (n >= 0 && n < TabOrder.Length)
+            {
+                SwitchTab(TabOrder[n]);
+                return true;
+            }
+        }
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    /// <summary>
+    /// For pipe holodex:tabs:time: each tab's switch through its first paint, in ms, over <paramref name="rounds"/>
+    /// passes of the rail from top to bottom. The drawer must be on screen for the paint to count.
+    /// </summary>
+    internal string TimeTabSwitches(int rounds)
+    {
+        var times = TabOrder.ToDictionary(id => id, _ => new List<long>());
+        for (int r = 0; r < rounds; r++)
+            foreach (string id in TabOrder)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                SwitchTab(id);
+                Update();
+                times[id].Add(sw.ElapsedMilliseconds);
+            }
+        SwitchTab(TabOrder[0]);
+        return string.Join(",", TabOrder.Select(id => $"{id}={string.Join("/", times[id])}ms"));
+    }
+
+    /// <summary>The captures the Codex list shows now; null forces the next refresh to rebuild.</summary>
+    private IReadOnlyList<CodexCaptureEntry>? _codexShown;
+
+    /// <summary>
+    /// For pipe holodex:roster:shoot: opens the Send-to picker, presses <paramref name="keys"/> (comma-separated, for
+    /// example Down,Down), waits <paramref name="settleMs"/>, captures the chip and its drop to <paramref name="file"/>,
+    /// then closes it.
+    /// </summary>
+    internal string ShootRoster(string file, string keys, int settleMs)
+    {
+        if (!Visible) return "error:holodex:roster:drawer is not open";
+        SwitchTab("session");
+        void Pump(int ms)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < ms) { Application.DoEvents(); System.Threading.Thread.Sleep(10); }
+        }
+        // A drop still running its exit (the last shot's) finishes first.
+        while (_rosterChip.IsOpen) Pump(50);
+        Pump(300);
+        _rosterChip.ShowChoices(RosterChoices().ToList());
+        if (_rosterChip.Drop is not { } drop) return "error:holodex:roster:no drop";
+        Pump(350);
+        foreach (string k in keys.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            if (Enum.TryParse<Keys>(k, true, out var key)) { drop.Press(key); Pump(60); }
+        Pump(settleMs);
+        var area = Rectangle.Union(drop.Bounds, _rosterChip.RectangleToScreen(_rosterChip.ClientRectangle));
+        area.Inflate(24, 24);
+        area.Intersect(Screen.FromRectangle(drop.Bounds).Bounds);
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file))!);
+        using (var bmp = new Bitmap(area.Width, area.Height))
+        {
+            using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(area.Location, Point.Empty, area.Size);
+            bmp.Save(file, System.Drawing.Imaging.ImageFormat.Png);
+        }
+        string at = $"drop={drop.Bounds.X},{drop.Bounds.Y},{drop.Width}x{drop.Height}";
+        drop.Close(ToolStripDropDownCloseReason.CloseCalled);
+        return $"ok:holodex:roster:{file}:{at}";
     }
 
     public void RefreshCodexEntries()
     {
         if (_codexList == null) return;
-        ShowCodexEntries(ScreenSnipAndElementPickerForm.LoadCodexEntries());
+        var entries = ScreenSnipAndElementPickerForm.LoadCodexEntries();
+        if (_codexShown != null && _codexShown.SequenceEqual(entries)) return;
+        ShowCodexEntries(entries);
     }
 
     private void ShowCodexEntries(IReadOnlyList<CodexCaptureEntry> entries)
     {
+        _codexShown = entries;
+        using var batch = _codexList.Batch();
         _codexList.Clear();
         _codexList.AddSection("Codex // lasso captures and element picks");
         if (entries.Count == 0) _codexList.Add(ThreadTone.Intro, "None yet", ScreenSnipAndElementPickerForm.CodexEmptyStateText);
@@ -781,11 +900,18 @@ public sealed partial class HolodexLiteDrawerForm : Form
         (PhosphorTheme.Patina, $"Speed {speed} of 20"),
         (PhosphorTheme.Ghost, ConnectedMouse.CanSetDpi ? "DPI SET HERE" : "DPI IS SET IN YOUR MOUSE'S OWN APP"));
 
+    /// <summary>What the GrimX list shows now (the mouse and each binding's words), so a switch back skips an unchanged rebuild.</summary>
+    private string? _grimxShown;
+
     public void RefreshGrimXMacroReadout()
     {
         if (_macroList == null) return;
         var hw = ConnectedMouse;
         var macros = MouseHardwareAndWandEngine.LoadOrCreateMacroBindings(hw);
+        string shown = hw.Name + "\u0001" + string.Join("\u0001", macros.Select(m => $"{m.TriggerLabel}\u0002{m.ActionLabel}\u0002{m.Parameter}"));
+        if (shown == _grimxShown) return;
+        _grimxShown = shown;
+        using var batch = _macroList.Batch();
         _macroList.Clear();
         // The full model is on the Mods tab; each binding names the device it reads.
         _macroList.AddSection($"Buttons // {hw.Name}");
@@ -822,6 +948,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private void RefreshWorkOrdersText()
     {
         // The panel stays: one empty-state card, or a card per order, two tall before it scrolls.
+        using var batch = _workOrdersList.Batch();
         _workOrdersList.Clear();
         if (_workOrders.Count == 0)
             _workOrdersList.Add(ThreadTone.Intro, "NONE YET", _ark.Hivemind.State == HivemindState.Connected

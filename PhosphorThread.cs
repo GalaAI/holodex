@@ -485,6 +485,35 @@ internal sealed class ThreadView : FlowLayoutPanel
     /// <summary>A conversation follows its newest card; a list (Codex, bindings) stays at its top.</summary>
     public bool FollowNewest { get; set; } = true;
 
+    private int _batch;
+
+    /// <summary>
+    /// Rebuilds the list in one pass: cards added while the scope is open are laid out and painted once when it
+    /// closes. Without it every Add lays out every card already there, so a list of n cards costs n squared
+    /// measures (the GrimX list took most of a second to switch to).
+    /// </summary>
+    public IDisposable Batch()
+    {
+        if (_batch++ > 0) return new BatchScope(this, null);
+        var frozen = PhosphorPaint.FreezeRedraw(this);
+        SuspendLayout();
+        return new BatchScope(this, frozen);
+    }
+
+    private sealed class BatchScope(ThreadView view, IDisposable? frozen) : IDisposable
+    {
+        private bool _done;
+        public void Dispose()
+        {
+            if (_done) return;
+            _done = true;
+            if (--view._batch > 0) return;
+            view.ResumeLayout(false);
+            view.Relayout();
+            frozen?.Dispose();
+        }
+    }
+
     /// <summary>An eyebrow between groups of cards, for lists that hold more than one kind.</summary>
     public void AddSection(string eyebrow)
     {
@@ -497,7 +526,7 @@ internal sealed class ThreadView : FlowLayoutPanel
         var card = new ThreadCard(tone, kicker, body, glyph, leds);
         Controls.Add(card);
         Relayout();
-        if (FollowNewest) ScrollControlIntoView(card);
+        if (FollowNewest && _batch == 0) ScrollControlIntoView(card);
         return card;
     }
 
@@ -511,7 +540,7 @@ internal sealed class ThreadView : FlowLayoutPanel
         card.BeginPending();
         Controls.Add(card);
         Relayout();
-        if (FollowNewest) ScrollControlIntoView(card);
+        if (FollowNewest && _batch == 0) ScrollControlIntoView(card);
         return card;
     }
 
@@ -556,6 +585,8 @@ internal sealed class ThreadView : FlowLayoutPanel
 
     public void Relayout()
     {
+        // A batch lays the list out once, when it closes.
+        if (_batch > 0) return;
         Invalidate();
         int w = LayoutWidth();
         SuspendLayout();

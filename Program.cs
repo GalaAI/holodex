@@ -678,6 +678,25 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ => _holodexDrawer.SummonDrawer(pt), null);
             return "ok:holodex:summon";
         }
+        // holodex:roster:shoot:<file>[|keys[|settleMs]] captures the Send-to picker open, after pressing keys in it.
+        if (cmd.StartsWith("holodex:roster:shoot:", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] parts = cmd["holodex:roster:shoot:".Length..].Split('|');
+            string result = "error:holodex:roster:not run";
+            int settle = parts.Length > 2 && int.TryParse(parts[2], out int ms) ? ms : 400;
+            _uiSync.Send(_ => result = _holodexDrawer.ShootRoster(parts[0].Trim(), parts.Length > 1 ? parts[1] : "", settle), null);
+            return result;
+        }
+        // holodex:tabs:time[:rounds] switches through every tab on the open drawer and reports each switch's ms to its first paint.
+        if (cmd.StartsWith("holodex:tabs:time", StringComparison.OrdinalIgnoreCase))
+        {
+            int rounds = int.TryParse(cmd["holodex:tabs:time".Length..].TrimStart(':'), out int n) ? Math.Clamp(n, 1, 20) : 3;
+            string result = "error:holodex:tabs:time:not run";
+            _uiSync.Send(_ => result = _holodexDrawer.Visible
+                ? $"ok:holodex:tabs:time:{_holodexDrawer.TimeTabSwitches(rounds)}"
+                : "error:holodex:tabs:time:drawer is not open", null);
+            return result;
+        }
         if (cmd.StartsWith("holodex:tab:", StringComparison.OrdinalIgnoreCase))
         {
             string tab = cmd["holodex:tab:".Length..].Trim().ToLowerInvariant();
