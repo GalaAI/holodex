@@ -99,7 +99,7 @@ internal sealed class CaptureWellControl : ComposerSurface
 {
     private static readonly float[,] Idle = { { -52, 5, -12 }, { -26, 1, -5 }, { 0, 0, 0 }, { 26, 1, 5 }, { 52, 5, 12 } };
     private static readonly float[,] Open = { { -76, -7, -14 }, { -38, 2, -6 }, { 0, 3, 0 }, { 38, 2, 6 }, { 76, -2, 14 } };
-    private static readonly Color Hot = Color.FromArgb(0xF6, 0xDC, 0xCD);
+    private static Color Hot => PhosphorTheme.Cream;
     private const float SpreadMs = 500f;
     private const float OrbitMs = 2200f;
 
@@ -167,7 +167,7 @@ internal sealed class CaptureWellControl : ComposerSurface
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
         var well = WellRect;
-        float r = 12f * s;
+        float r = PhosphorTheme.RadiusTile * s;
         PhosphorPaint.FillRounded(g, well, r, PhosphorTheme.Surface2);
 
         var fanCenter = new PointF(well.X + well.Width / 2f, well.Y + well.Height * 0.4f);
@@ -209,11 +209,11 @@ internal sealed class CaptureWellControl : ComposerSurface
             g.RotateTransform(rot);
             g.ScaleTransform(scale, scale);
             var rect = new RectangleF(-tile / 2, -tile / 2, tile, tile);
-            float rr = 11f * s;
+            float rr = PhosphorTheme.RadiusTile * s;
             using (var shadow = PhosphorTheme.CreateRoundedRect(new RectangleF(rect.X, rect.Y + (lifted ? 6f : 3f) * s, rect.Width, rect.Height), rr))
             using (var sb = new SolidBrush(Color.FromArgb(lifted ? 120 : 80, 0, 0, 0)))
                 g.FillPath(sb, shadow);
-            PhosphorPaint.FillRounded(g, rect, rr, lifted ? Color.FromArgb(0x1B, 0x1B, 0x1A) : PhosphorTheme.Surface);
+            PhosphorPaint.FillRounded(g, rect, rr, lifted ? PhosphorTheme.Surface2 : PhosphorTheme.Surface);
             Color border = lifted ? PhosphorTheme.Coral : more ? PhosphorTheme.Line : PhosphorTheme.Line2;
             PhosphorPaint.StrokeRounded(g, rect, rr, border, lifted ? 1.5f * s : 1f);
             if (lifted && reduced)

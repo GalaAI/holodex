@@ -325,7 +325,7 @@ internal sealed class IconToolButton : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(2.5f * s, 2.5f * s, Width - 5f * s, Height - 5f * s);
-        float r = 10f * s;
+        float r = PhosphorTheme.RadiusBadge * s;
         if (_selected)
         {
             PhosphorPaint.FillRounded(g, rect, r, Color.FromArgb(28, PhosphorTheme.Patina));
@@ -403,7 +403,7 @@ internal sealed class RailButton : Control
         g.PixelOffsetMode = PixelOffsetMode.Half;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f * s, 0.5f * s, Width - 1f * s, Height - 1f * s);
-        float r = 14f * s;
+        float r = PhosphorTheme.RadiusButton * s;
         if (_selected)
         {
             PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
@@ -557,7 +557,7 @@ internal class SuggestionChip : Control
         AccessibleName = Detail.Length > 0 ? $"{Label}, {Detail}" : Label;
         float s = PhosphorPaint.Scale(this);
         using var g = PhosphorPaint.MeasureGraphics(s);
-        using var font = PhosphorFonts.Mono(10.5f);
+        using var font = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx);
         float text = PhosphorPaint.MeasureTracked(g, Text2, font, 1f * s);
         int want = (int)Math.Ceiling(text + Chrome(s));
         // A row can cap the chip (MaximumSize); the text then ends in an ellipsis inside it, chevron kept.
@@ -889,7 +889,7 @@ internal sealed class DisclosureRow : Control
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        float r = 10f * s;
+        float r = PhosphorTheme.RadiusBadge * s;
         if (_hover) PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
         PhosphorPaint.StrokeRounded(g, rect, r, _hover ? PhosphorTheme.Line2 : PhosphorTheme.Line);
         if (Focused) PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), r - 2f, Color.FromArgb(160, PhosphorTheme.Patina));
@@ -898,13 +898,13 @@ internal sealed class DisclosureRow : Control
 
         float cy = Height / 2f;
         float x = 14f * s;
-        using (var mono = PhosphorFonts.Mono(9.5f))
+        using (var mono = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx))
         using (var ghost = new SolidBrush(PhosphorTheme.Ghost))
             x += PhosphorPaint.DrawTracked(g, Kicker, mono, ghost, x, cy - mono.GetHeight(g) / 2f, 1.1f * s) + 12f * s;
 
         string action = Expanded ? "CLOSE" : OpenWord;
         float actionW;
-        using (var mono = PhosphorFonts.Mono(9.5f))
+        using (var mono = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx))
         using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Dim))
         {
             actionW = PhosphorPaint.MeasureTracked(g, action, mono, 1.1f * s);
