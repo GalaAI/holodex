@@ -39,6 +39,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private readonly Action<Point> _openAInbox;
     private readonly Action<Point, WandCaptureTool> _openSnipOrPicker;
     private readonly Action _runWizOnboardingTutorial;
+    /// <summary>Opens the Augment Inventory window (Program owns it).</summary>
+    internal Action? OpenAugmentInventory { get; set; }
     private readonly Action<CursorIconStyle> _onCursorStyleChanged;
 
     private string _activeTab = "session";
@@ -669,6 +671,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         onboardBtn.Click += (_, _) => _runWizOnboardingTutorial();
 
+        // Every Augment by Shell: the one inventory page from Ark, in its own window.
+        var inventoryBtn = new PhosphorButton("Augment Inventory")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.AugmentInventoryBtn"
+        };
+        inventoryBtn.Click += (_, _) => OpenAugmentInventory?.Invoke();
+
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
         modsInfoBox.AddSection("Spells you draw");
@@ -693,6 +704,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _modsPanel.Controls.Add(modsInfoBox);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(onboardBtn);
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+        _modsPanel.Controls.Add(inventoryBtn);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(styleLabeled);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));

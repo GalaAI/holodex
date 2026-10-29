@@ -37,6 +37,8 @@
     <PackageReference Include="ModelContextProtocol.Core" Version="2.3.0" />
     <!-- SVG.NET: the one SVG path reader (SvgPaths) for the emblem geometry and the lucide icons. -->
     <PackageReference Include="Svg" Version="3.4.8" />
+    <!-- WebView2 (WinForms host) for the Augment Inventory, the one inventory page served by the Ark API. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,4 +55,11 @@
     <None Include="assets\fonts\JetBrainsMono-Regular.ttf;assets\fonts\ArchivoBlack-Regular.ttf;assets\fonts\JetBrainsMono-OFL.txt;assets\fonts\OFL-ArchivoBlack.txt" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The WebView2 package references its WPF host on every .NET 5+ target with no switch to turn it off. Holodex is
+       WinForms only, and the WPF assembly pulls in a second WindowsBase that conflicts (MSB3277), so it is dropped. -->
+  <Target Name="DropWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
 </Project>

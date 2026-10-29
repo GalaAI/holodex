@@ -335,6 +335,7 @@ internal static class PhosphorTips
         ["Holodex.Tab.codex"] = new("Codex", "What you saved from the lasso and the element picker."),
         ["Holodex.Tab.grimx"] = new("GrimX", "Mouse bindings and the eight Spell Orb slots."),
         ["Holodex.Tab.mods"] = new("Mods", "Mouse, pointer speed, cursor style, the spellbook and the equipped mods."),
+        ["Holodex.AugmentInventoryBtn"] = new("Augment Inventory", "Every Augment by Shell, Phosphor or Bandit, opened from your Ark in its own window."),
         ["Holodex.RailMark"] = new("Holodex", "ArkStation's desktop face of Hivemind: the tabs below, your profile at the foot."),
         ["Holodex.ProfileButton"] = new("Profile", "Your account, at the foot of the rail: the Hivemind sign-in, the Nebius key and the gateway. Its ring is green while Hivemind is live."),
         ["Holodex.ProfileIdentity"] = new("Signed in as", "The Windows account Holodex runs as on this machine."),

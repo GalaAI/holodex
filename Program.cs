@@ -157,6 +157,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly AInboxIntakeWidgetForm _ainboxWidget;
     private readonly ScreenSnipAndElementPickerForm _snipWidget;
     private readonly HolodexLiteDrawerForm _holodexDrawer;
+    private readonly AugmentInventoryForm _inventory = new();
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
@@ -265,6 +266,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 MouseHardwareAndWandEngine.ActiveCursorStyle = style;
                 _overlay?.ForceCursorRedraw();
             });
+        _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -319,6 +321,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
+
+        var inventoryItem = home.Add(new ToolStripMenuItem("Augment Inventory") { Name = "Tray.AugmentInventory", ToolTipText = "Every Augment by Shell, Phosphor or Bandit, from your Ark." });
+        inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
 
         var capturePage = new TrayPage("Grab from the screen");
         var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Alt+S", ToolTipText = "Lasso: draw around anything on the screen." });
@@ -958,6 +963,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _hud.Hide();
                 _wizWidget.Hide();
                 _ainboxWidget.Hide();
+                _inventory.Hide();
                 _holodexDrawer.Hide();
                 _snipWidget.Hide();
                 _tutorialTooltip.Hide();
@@ -973,6 +979,35 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SurfaceMotion.Dismiss(_wizWidget), null);
             return "ok:wiz:close";
+        }
+        // inventory:summon[:<base>] opens the Augment Inventory on the Ark API at base (default the live :8788).
+        if (cmd.StartsWith("inventory:summon", StringComparison.OrdinalIgnoreCase))
+        {
+            string baseUrl = cmd.Length > "inventory:summon:".Length ? cmd["inventory:summon:".Length..].Trim() : "";
+            _uiSync.Post(_ => _inventory.Summon(pt, baseUrl.Length > 0 ? baseUrl : null), null);
+            return "ok:inventory:summon";
+        }
+        if (cmd.StartsWith("inventory:shell:", StringComparison.OrdinalIgnoreCase))
+        {
+            string id = cmd["inventory:shell:".Length..].Trim();
+            _uiSync.Post(_ => _inventory.ShowShell(id), null);
+            return $"ok:inventory:shell:{id}";
+        }
+        if (cmd.StartsWith("inventory:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string png = cmd["inventory:capture:".Length..].Trim();
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try { done.SetResult("ok:inventory:capture:" + await _inventory.CaptureAsync(png)); }
+                catch (Exception ex) { done.SetResult("error:inventory:capture:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:inventory:capture:timeout";
+        }
+        if (string.Equals(cmd, "inventory:close", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_inventory), null);
+            return "ok:inventory:close";
         }
         if (string.Equals(cmd, "ainbox:close", StringComparison.OrdinalIgnoreCase))
         {
