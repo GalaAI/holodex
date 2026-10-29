@@ -373,12 +373,13 @@ public sealed partial class HolodexLiteDrawerForm : Form
         var agent = _roster.FirstOrDefault(a => a.Id == id) ?? _roster[0];
         _selectedSyndicateTarget = agent.Id;
         _rosterChip.Label = agent.Name;
-        _rosterChip.Detail = agent.Id == "all" ? "" : agent.Pod;
+        // Signed out, the chip names the Nemotron model that will answer.
+        _rosterChip.Detail = agent.Id == "all" ? "" : agent == SignedOutRoster[0] ? ModelChip.ShortName(_ark.SelectedModel) : agent.Pod;
         _rosterChip.Accent = agent.Accent;
         _rosterChip.Confident = true;
         _rosterChip.Fit();
         string who = agent.Id == "all" ? "all" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(agent.Name.ToLowerInvariant());
-        _sessionSendBtn.Text = $"Send to {who}";
+        _sessionSendBtn.Text = agent == SignedOutRoster[0] ? "Send" : $"Send to {who}";
         ShowTargetLine();
     }
 
@@ -395,7 +396,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         string error = _ark.Hivemind.LastError;
         (Color, string) status = _ark.Hivemind.State switch
         {
-            HivemindState.Connected => (PhosphorTheme.Moss, "Hivemind live"),
+            HivemindState.Connected => (PhosphorTheme.Moss, _roster == SignedOutRoster ? "Hivemind connected: loading your agents" : "Hivemind live"),
             HivemindState.SigningIn => (PhosphorTheme.Seal, "Signing in: finish in the browser"),
             HivemindState.Connecting => (PhosphorTheme.Ghost, "Connecting to Hivemind"),
             HivemindState.Unreachable => (PhosphorTheme.Rust, $"Hivemind unreachable{(error.Length > 0 ? $" ({(error.Length > 48 ? error[..47] + "\u2026" : error)})" : "")}: Nemotron answers"),

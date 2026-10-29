@@ -166,7 +166,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         Controls.Add(chipRow);
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 4, BackColor = Color.Transparent });
         Controls.Add(hostRow);
-        WidgetChrome.Attach(this, "4GE // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, null);
+        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? "4GE // GRIMX SPELLS" : "WIZ // GRIMX SPELLS", "Wiz", PhosphorTheme.Coral, null);
         WidgetDrag.Enable(this);
 
         SetLens("flow", confident: false);
