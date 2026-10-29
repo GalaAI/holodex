@@ -109,14 +109,17 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     /// <summary>For the as-built render: draw the lasso and the element card together, as the board shows them.</summary>
     internal bool PreviewAllMarks { get; set; }
 
+    // Only models that read the image: a text-only model (Nemotron Nano) would answer about a picture it never saw.
     public static readonly string[] VisionModels =
     {
         "nvidia/Nemotron-3.5-Super-VL",
-        "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
         "openbmb/MiniCPM-V-4_5",
-        "google/gemma-3-27b-it",
-        "ark/kimi"
+        "google/gemma-3-27b-it"
     };
+
+    /// <summary>The picker's list: the Token Factory vision models, plus the Ark gateway's on an owner's Ark.</summary>
+    private static string[] VisionModelsFor(ArkStationClient ark) =>
+        ark.ArkInstalled ? VisionModels.Append("ark/kimi").ToArray() : VisionModels;
 
     public ScreenSnipAndElementPickerForm(
         ArkStationClient ark,
@@ -259,7 +262,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         var footer = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "Snip.Footer" };
         _visionModel = VisionModels[0];
-        _visionModelChip = new ModelChip(_ark, VisionModels, () => _visionModel, m => _visionModel = m) { Dock = DockStyle.Left, Name = "Snip.VisionModelSelect" };
+        _visionModelChip = new ModelChip(_ark, VisionModelsFor(_ark), () => _visionModel, m => _visionModel = m) { Dock = DockStyle.Left, Name = "Snip.VisionModelSelect" };
         _visionModelChip.ModelChanged += (_, _) => SyncAskLabel();
         _analyzeBtn = new PhosphorButton("Ask", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Snip.AnalyzeButton" };
         _analyzeBtn.Click += async (_, _) => await RunLiveVisionAnalysisAsync();

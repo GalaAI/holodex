@@ -457,11 +457,19 @@ internal sealed class SyncStatus : LedRow
     public int Pending { get; set; }
     public int SentToday { get; set; }
     public bool? Online { get; set; }
+    /// <summary>A public install: Scrolls are saved on this PC, so there is no service to sync with.</summary>
+    public bool LocalOnly { get; set; }
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        if (LocalOnly)
+        {
+            Leds = new[] { (PhosphorTheme.Moss, $"SAVED ON THIS PC // {SentToday} TODAY") };
+            base.OnPaint(e);
+            return;
+        }
         var sync = (Online == true ? PhosphorTheme.Moss : Online == false ? PhosphorTheme.Ember : PhosphorTheme.Ghost,
-            Online == true ? $"SYNCED // {SentToday} TO AINBOX TODAY" : Online == false ? "AINBOX :8840 OFFLINE" : "AINBOX // CHECKING");
+            Online == true ? $"SYNCED // {SentToday} TO AINBOX TODAY" : Online == false ? "AINBOX OFFLINE" : "AINBOX // CHECKING");
         Leds = Pending > 0 ? new[] { sync, (PhosphorTheme.Seal, $"QUEUED {Pending} // RETRYING") } : new[] { sync };
         base.OnPaint(e);
     }

@@ -322,8 +322,12 @@ internal sealed class OmniwandAppContext : ApplicationContext
         var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
 
-        var inventoryItem = home.Add(new ToolStripMenuItem("Augment Inventory") { Name = "Tray.AugmentInventory", ToolTipText = "Every Augment by Shell, Phosphor or Bandit, from your Ark." });
-        inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
+        // The Augment Inventory reads the owner's Ark API; a public install has none to open.
+        if (_ark.ArkInstalled)
+        {
+            var inventoryItem = home.Add(new ToolStripMenuItem("Augment Inventory") { Name = "Tray.AugmentInventory", ToolTipText = "Every Augment by Shell, Phosphor or Bandit, from your Ark." });
+            inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
+        }
 
         var capturePage = new TrayPage("Grab from the screen");
         var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Alt+S", ToolTipText = "Lasso: draw around anything on the screen." });

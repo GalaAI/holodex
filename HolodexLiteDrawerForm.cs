@@ -686,12 +686,19 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
         modsInfoBox.AddSection("Spells you draw");
+        // Name only the arming keys that are switched on (tray: Spells // hold a key, then draw).
+        string arm = (OmniwandSpellGestureEngine.HoldCtrlToArm, OmniwandSpellGestureEngine.HoldRightMouseToArm) switch
+        {
+            (true, true) => "Hold Ctrl or right-click",
+            (false, true) => "Hold right-click",
+            _ => "Hold Ctrl"
+        };
         foreach (var (spell, gesture, does) in new[]
         {
-            ("Time Splitter", "Hold Ctrl or right-click, then shake side to side.", "Asks Wiz about it"),
-            ("Copycat", "Hold Ctrl or right-click, then shake up and down.", "Cuts out a picture"),
-            ("Mutation", "Hold Ctrl or right-click, then draw a circle.", "Casts a spell"),
-            ("Synthesize", "Hold Ctrl or right-click, then sweep to the right.", "Opens Holodex")
+            ("Time Splitter", $"{arm}, then shake side to side.", "Asks Wiz about it"),
+            ("Copycat", $"{arm}, then shake up and down.", "Cuts out a picture"),
+            ("Mutation", $"{arm}, then draw a circle.", "Casts a spell"),
+            ("Synthesize", $"{arm}, then sweep to the right.", "Opens Holodex")
         })
             modsInfoBox.Add(ThreadTone.Action, $"Spell // {spell}", gesture, leds: new[] { (PhosphorTheme.Patina, does) });
         modsInfoBox.AddSection("What is turned on");
@@ -707,8 +714,12 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _modsPanel.Controls.Add(modsInfoBox);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(onboardBtn);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
-        _modsPanel.Controls.Add(inventoryBtn);
+        // The Augment Inventory reads the owner's Ark API; a public install has none to open.
+        if (_ark.ArkInstalled)
+        {
+            _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+            _modsPanel.Controls.Add(inventoryBtn);
+        }
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(styleLabeled);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
@@ -1169,8 +1180,9 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // Connecting is the moment before the saved sign-in is tried: nothing opens until it succeeds or fails.
         if (state == _shownHivemindState || state == HivemindState.Connecting) return;
         _shownHivemindState = state;
-        // Signing in is done from the profile, so it opens when Hivemind needs it.
-        if (state is HivemindState.NotSignedIn or HivemindState.Unreachable) ShowProfile(true);
+        // A lost connection opens the profile to reconnect. Signed out is a normal state: the session's status line
+        // says so and the composer stays usable, with Sign in one click away on the avatar.
+        if (state == HivemindState.Unreachable) ShowProfile(true);
         RefreshWorkOrdersText();
     }
 
