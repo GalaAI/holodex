@@ -379,7 +379,7 @@ internal static class SurfaceCapture
             ("BLOCKED · RUST", WindowsCursorRole.No, false)
         };
 
-        using var labelFont = PhosphorFonts.Mono(8.5f);
+        using var labelFont = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx);
         using var labelBrush = new SolidBrush(PhosphorTheme.Dim);
         using var cardBrush = new SolidBrush(PhosphorTheme.Surface);
         using var borderPen = new Pen(PhosphorTheme.Line, 1f);

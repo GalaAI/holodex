@@ -232,7 +232,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             float ps = PhosphorPaint.Scale(_profilePanel);
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            PhosphorPaint.StrokeRounded(e.Graphics, new RectangleF(0.5f, 0.5f, _profilePanel.Width - 1f, _profilePanel.Height - 1f), 14f * ps, PhosphorTheme.Line2);
+            PhosphorPaint.StrokeRounded(e.Graphics, new RectangleF(0.5f, 0.5f, _profilePanel.Width - 1f, _profilePanel.Height - 1f), PhosphorTheme.RadiusButton * ps, PhosphorTheme.Line2);
         };
         _profilePanel.Controls.Add(_tokenBar);
         _profilePanel.Controls.Add(_tokenGap);

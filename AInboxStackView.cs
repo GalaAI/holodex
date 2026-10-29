@@ -17,7 +17,7 @@ internal static class StackPaint
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(c);
         var rect = new RectangleF(0.5f, 0.5f, c.Width - 1f, c.Height - 1f);
-        float r = 14f * s;
+        float r = PhosphorTheme.RadiusButton * s;
         PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
         PhosphorPaint.StrokeRounded(g, rect, r, active ? PhosphorTheme.Ghost : PhosphorTheme.Line);
         if (edge is Color e)
