@@ -936,20 +936,20 @@ public sealed class AInboxIntakeWidgetForm : Form
                 break;
             case "stack":
             case "review":
-                var chrome = new CaptureOrigin("Google Chrome", "Pull Request #1068 · GalaAI/ark - Google Chrome", "https://github.com/GalaAI/ark/pull/1068/files", "div.diff-file", "GalaAI/ark", "GalaAI repository");
+                var chrome = new CaptureOrigin("Google Chrome", "Pull Request #214 · acme/storefront - Google Chrome", "https://github.com/acme/storefront/pull/214/files", "div.diff-file", "acme/storefront", null);
                 var exports = new CaptureOrigin("File", "exports", Element: "CSV");
                 _items.Add(new StackItem { Kind = CaptureKind.Pick, Name = "div.diff-file, line 42", DataUrl = SampleShot(), Meta = "PICK // CHROME // 540x92", Origin = chrome });
-                var snippet = new StackItem { Kind = CaptureKind.Snippet, Name = "if (verdict.paused) return hold(pr);", Text = "if (verdict.paused) return hold(pr);\nconst token = \"ghp_4f2c91d0aa7e93b1c6d2e8f0\";\nreturn report(pr, verdict);", Meta = "SNIPPET // 3 LINES", Origin = chrome };
+                var snippet = new StackItem { Kind = CaptureKind.Snippet, Name = "button.disabled = false;", Text = "button.disabled = false;\nconst token = \"ghp_4f2c91d0aa7e93b1c6d2e8f0\";\nawait submitOrder(cart);", Meta = "SNIPPET // 3 LINES", Origin = chrome };
                 Scan(snippet);
                 _items.Add(snippet);
-                var link = new StackItem { Kind = CaptureKind.Link, Name = "github.com/GalaAI/ark/pull/1068", Url = "https://github.com/GalaAI/ark/pull/1068", Meta = "LINK", Origin = chrome };
+                var link = new StackItem { Kind = CaptureKind.Link, Name = "github.com/acme/storefront/pull/214", Url = "https://github.com/acme/storefront/pull/214", Meta = "LINK", Origin = chrome };
                 Scan(link);
                 _items.Add(link);
                 _items.Add(new StackItem { Kind = CaptureKind.File, Name = "bookings-oct.csv", Path = "bookings-oct.csv", Meta = "FILE // 48.2 KB // 1,204 ROWS", Origin = exports });
                 var sql = new StackItem { Kind = CaptureKind.Snippet, Name = "select * from bookings where month = 10", Text = "select * from bookings where month = 10", Meta = "SNIPPET // 39 CHARS", Origin = exports };
                 Scan(sql);
                 _items.Add(sql);
-                _intentBox.Text = "Why does Navigate hold this PR without saying why?";
+                _intentBox.Text = "Why does checkout submit the order twice?";
                 Rebuild();
                 if (state == "review")
                 {

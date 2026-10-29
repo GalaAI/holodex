@@ -656,17 +656,17 @@ public sealed class OmniwandHudForm : Form
         _answers.Clear();
         string model = ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant();
         if (state is "asking" or "answered" or "failed")
-            _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why would this hold the PR?", PhosphorGlyph.Screen);
-        const string question = "Why would this hold the PR?";
+            _answers.Add(ThreadTone.You, "YOU // WITH THE SCREEN", "Why does this submit twice?", PhosphorGlyph.Screen);
+        const string question = "Why does this submit twice?";
         if (state == "asking")
             _answers.AddPending("ASKING GALA // HIVEMIND").SetFooter("", StopAction());
         else if (state == "answered")
         {
             // The honest fallback as a live ask draws it: Gala's real failure, linked to the model that answered.
             FailFooterGala(_answers.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND",
-                "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY."));
+                "Gala did not answer in time, so Nemotron answered directly."));
             var answer = _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA DID NOT ANSWER",
-                "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
+                "The button is re-enabled before submitOrder resolves, so a second click sends the order again. Keep it disabled until the response returns.");
             answer.LinkedAbove = true;
             AnswerFooter(answer, question, "", gala: false); // a render has no latency to report
         }

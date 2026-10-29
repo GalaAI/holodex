@@ -327,15 +327,15 @@ internal static class SurfaceCapture
             thread.AddPending("ASKING GALA // HIVEMIND").SetFooter("", Noop("Thread.Stop", PhosphorGlyph.Stop, "Stop"));
 
             thread.AddSection("HONEST FALLBACK // TWO LINKED CARDS, NEVER A DISGUISED ANSWER");
-            thread.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.")
+            thread.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", "Gala did not answer in time, so Nemotron answered directly.")
                 .SetFooter("", Noop("Thread.Copy", PhosphorGlyph.Copy, "Copy"), Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind"));
-            var fallback = thread.Add(ThreadTone.Agent, "ANSWERED BY NEMOTRON 3 NANO // GALA DID NOT ANSWER", "A paused Verify lane holds the PR until the release resumes; the diff itself is not the reason.");
+            var fallback = thread.Add(ThreadTone.Agent, "ANSWERED BY NEMOTRON 3 NANO // GALA DID NOT ANSWER", "The button is re-enabled before submitOrder resolves, so a second click sends the order again.");
             fallback.LinkedAbove = true;
             fallback.SetFooter("2.4 S", answerActions);
 
             thread.AddSection("AGENT ANSWER // MODEL, RECEIPT AND SOURCES");
             thread.Add(ThreadTone.Agent, "GALA // NEMOTRON 3 SUPER // HIVEMIND",
-                    "SolaTree grafts verified work automatically; the PR checklist is at https://github.com/GalaAI/ark/pull/1255")
+                    "Fix drafted and tested: the button stays disabled until the order responds. Diff at https://github.com/acme/storefront/pull/215")
                 .SetFooter("RECEIPT SAMPLE01 // 41.2 S", answerActions.Append(Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind")).ToArray());
 
             thread.AddSection("FAILURE // THE REAL CAUSE, COPY AND RETRY");
