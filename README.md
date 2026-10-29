@@ -10,7 +10,7 @@
 More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https://arkomnitek.com)**
 
 ### Why I Built This
-> *"I needed help managing my business so I built my shop's app and website from scratch. I learned how to do all of this and built it myself using AI in the past 10 months and fell in love with the process. I wanted to build something I could give to my dad to help him run his shop, but if it didn't help mine, what good was it? Once my analytics proved it worked on my shop first, I knew I could confidently give him something that works and put it out there in the world."*  
+> *"I needed help managing my business so I built my shop's app and website from scratch. I taught myself how to develop, build and ship full stack applications using AI. What I didn't expect was to fall in love with the process of architecting orchestrated software and now am founding a tech company called Ark Omnitek made by a tattooer, built for artists and creators. I also wanted to build something that would help other tattooers like my dad. But if it didn't help mine, what good would that do? Once my analytics proved it worked on my shop first, I knew I could confidently give him something that works and put it out there in the world."*  
 > **Justin Walker**
 
 ---
