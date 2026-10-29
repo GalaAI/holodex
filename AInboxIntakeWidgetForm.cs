@@ -150,7 +150,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         Controls.Add(WidgetChrome.Spacer(6));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, "AINBOX // INTAKE // 7 PODS", "AInbox", PhosphorTheme.Seal, null);
+        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? $"AINBOX // INTAKE // {ArkStationClient.PodInboxes.Count} PODS" : "AINBOX // INTAKE // SAVED ON THIS PC", "AInbox", PhosphorTheme.Seal, null);
         WidgetDrag.Enable(this);
 
         // Drops land anywhere; a leave settles after a beat so moving between targets does not flicker.
@@ -747,7 +747,7 @@ public sealed class AInboxIntakeWidgetForm : Form
             if (ArkStationClient.TryWriteWindowsCredential(target, f.Secret)) stowed++;
         }
         PhosphorToast.Show(stowed == found.Count ? $"Stowed {stowed} in the vault" : $"Stowed {stowed} of {found.Count}",
-            "Windows Credential Manager, targets Omniwand:Aegis:*. The handoff still carries them redacted.", "AEGIS // VAULTSTOW", 3600,
+            "Windows Credential Manager, targets Omniwand:Aegis:*. The handoff still carries them redacted.", $"{AegisCard.GateName} // VAULT", 3600,
             stowed == found.Count ? ToastTone.Success : ToastTone.Warning);
     }
 
@@ -841,7 +841,7 @@ public sealed class AInboxIntakeWidgetForm : Form
                 delivered
                     ? $"Handoff Scroll sent to {pod.Label} and its inbox pulsed. Seal sha256:{seal[..12]}."
                     : $"AInbox is not ready, so the Handoff Scroll waits on disk and retries. Seal sha256:{seal[..12]}.",
-                $"AINBOX // POD {pod.PodId.ToUpperInvariant()}", 3600, delivered ? ToastTone.Success : ToastTone.Info);
+                ArkStationClient.ArkOnThisPc ? $"AINBOX // POD {pod.PodId.ToUpperInvariant()}" : $"AINBOX // {pod.Label.ToUpperInvariant()}", 3600, delivered ? ToastTone.Success : ToastTone.Info);
             ClearSent(g);
         }
         catch (Exception ex)
@@ -936,20 +936,20 @@ public sealed class AInboxIntakeWidgetForm : Form
                 break;
             case "stack":
             case "review":
-                var chrome = new CaptureOrigin("Google Chrome", "Pull Request #1068 · GalaAI/ark - Google Chrome", "https://github.com/GalaAI/ark/pull/1068/files", "div.diff-file", "GalaAI/ark", "GalaAI repository");
+                var chrome = new CaptureOrigin("Google Chrome", "Pull Request #42 · octocat/Hello-World - Google Chrome", "https://github.com/octocat/Hello-World/pull/42/files", "div.diff-file", "octocat/Hello-World");
                 var exports = new CaptureOrigin("File", "exports", Element: "CSV");
                 _items.Add(new StackItem { Kind = CaptureKind.Pick, Name = "div.diff-file, line 42", DataUrl = SampleShot(), Meta = "PICK // CHROME // 540x92", Origin = chrome });
-                var snippet = new StackItem { Kind = CaptureKind.Snippet, Name = "if (verdict.paused) return hold(pr);", Text = "if (verdict.paused) return hold(pr);\nconst token = \"ghp_4f2c91d0aa7e93b1c6d2e8f0\";\nreturn report(pr, verdict);", Meta = "SNIPPET // 3 LINES", Origin = chrome };
+                var snippet = new StackItem { Kind = CaptureKind.Snippet, Name = "if (verdict.paused) return hold(pr);", Text = "if (verdict.paused) return hold(pr);\nconst token = \"example-not-a-real-secret-0000\";\nreturn report(pr, verdict);", Meta = "SNIPPET // 3 LINES", Origin = chrome };
                 Scan(snippet);
                 _items.Add(snippet);
-                var link = new StackItem { Kind = CaptureKind.Link, Name = "github.com/GalaAI/ark/pull/1068", Url = "https://github.com/GalaAI/ark/pull/1068", Meta = "LINK", Origin = chrome };
+                var link = new StackItem { Kind = CaptureKind.Link, Name = "github.com/octocat/Hello-World/pull/42", Url = "https://github.com/octocat/Hello-World/pull/42", Meta = "LINK", Origin = chrome };
                 Scan(link);
                 _items.Add(link);
                 _items.Add(new StackItem { Kind = CaptureKind.File, Name = "bookings-oct.csv", Path = "bookings-oct.csv", Meta = "FILE // 48.2 KB // 1,204 ROWS", Origin = exports });
                 var sql = new StackItem { Kind = CaptureKind.Snippet, Name = "select * from bookings where month = 10", Text = "select * from bookings where month = 10", Meta = "SNIPPET // 39 CHARS", Origin = exports };
                 Scan(sql);
                 _items.Add(sql);
-                _intentBox.Text = "Why does Navigate hold this PR without saying why?";
+                _intentBox.Text = "Why does CI hold this PR without saying why?";
                 Rebuild();
                 if (state == "review")
                 {

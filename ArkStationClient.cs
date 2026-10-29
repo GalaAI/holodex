@@ -69,28 +69,96 @@ public sealed class ArkStationClient
         Environment.GetEnvironmentVariable("ARK_RUNTIMES_ROOT") ?? Path.Combine(Path.GetDirectoryName(DefaultArkRoot.TrimEnd('\\', '/')) ?? DefaultArkRoot, "runtimes");
     public static readonly string DefaultCursorsDir = Path.Combine(RuntimesRoot, "cursors");
     public static readonly string DefaultInputStudioStateDir = Path.Combine(RuntimesRoot, "input-studio");
-    public const string DefaultGatewayUrl = "http://127.0.0.1:8788";
+    /// <summary>The Ark API (Arkhive) when no ARK_API_BASE_URL says otherwise.</summary>
+    public const string DefaultArkApiBaseUrl = "http://127.0.0.1:8788";
     public const string DefaultInputSpineUrl = "http://127.0.0.1:8842";
     public const string DefaultPcModzUrl = "http://127.0.0.1:8830";
     public const string DefaultNebiusBaseUrl = "https://api.tokenfactory.nebius.com/v1";
-    public const string DefaultModelSlug = "ark/kimi";
+    /// <summary>The Ark API route a non-Nemotron selection falls back to (Wiz's gateway fallback).</summary>
+    public const string DefaultGatewayModelSlug = "ark/nemotron-3-super";
     /// <summary>Gemini 4 Argon as Antigravity names it (`agy models`); "gemini-argon" was never a real id.</summary>
     public const string DefaultWizModelSlug = "gemini-4-argon-medium";
 
     /// <summary>Default NVIDIA Nemotron models on Nebius Token Factory (fast tier first for cursor &amp; dictation calls).</summary>
     public const string DefaultNemotronFastModel = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B";
     public const string DefaultNemotronSuperModel = "nvidia/nemotron-3-super-120b-a12b";
+    public const string DefaultNemotronVisionModel = "nvidia/Nemotron-3.5-Super-VL";
 
     public static readonly IReadOnlyList<string> BuiltInNemotronModels = new[]
     {
         DefaultNemotronFastModel,
         "nvidia/Nemotron-3_5-Lightning",
         DefaultNemotronSuperModel,
-        "nvidia/Nemotron-3.5-Super-VL",
+        DefaultNemotronVisionModel,
         "nvidia/Nemotron-3-Ultra-550b-a55b"
     };
 
-    public static readonly IReadOnlyList<ArkPodInboxInfo> PodInboxes = new List<ArkPodInboxInfo>
+    /// <summary>
+    /// The Ark API's Nemotron routes (packages/model-gateway-core, provider "nebius") and the Token Factory id each
+    /// one serves. The Ark path asks by the route; the Nebius direct path asks by the id.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> ArkNemotronRoutes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ark/nemotron-3-nano"] = DefaultNemotronFastModel,
+        ["ark/nemotron-3-super"] = DefaultNemotronSuperModel,
+        ["ark/nemotron-3-ultra"] = "nvidia/Nemotron-3-Ultra-550b-a55b",
+        ["ark/nemotron-3.5-super-vl"] = DefaultNemotronVisionModel,
+    };
+
+    /// <summary>The Ark API base: ARK_API_BASE_URL, else the local Ark API. Read on every call so a run can point it elsewhere.</summary>
+    public static string ArkApiBaseUrl
+    {
+        get
+        {
+            string? custom = Environment.GetEnvironmentVariable("ARK_API_BASE_URL");
+            return string.IsNullOrWhiteSpace(custom) ? DefaultArkApiBaseUrl : custom.Trim().TrimEnd('/');
+        }
+    }
+
+    /// <summary>
+    /// True when this PC runs its owner's Ark (not OMNIWAND_STANDALONE, and an Ark root or a gateway inbound key is
+    /// present), read once at startup. Surfaces that name the owner's private Ark (its pods, agents and gates) show
+    /// them only then; a public install sees neutral names.
+    /// </summary>
+    public static bool ArkOnThisPc => ArkOnThisPcLazy.Value;
+
+    private static readonly Lazy<bool> ArkOnThisPcLazy = new(() =>
+        !StandaloneRequested() &&
+        (Directory.Exists(DefaultArkRoot) ||
+         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARK_MODEL_GATEWAY_INBOUND_KEY")) ||
+         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ARK_HIVEMIND_TOKEN")) ||
+         !string.IsNullOrWhiteSpace(TryReadWindowsCredential(GatewayInboundKeyTarget))));
+
+    private static bool StandaloneRequested() =>
+        Environment.GetEnvironmentVariable("OMNIWAND_STANDALONE") is { } v &&
+        (v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Where an AInbox Handoff Scroll can go: the owner's Ark pods on an Ark, neutral destinations saved on this PC otherwise.</summary>
+    public static IReadOnlyList<ArkPodInboxInfo> PodInboxes => ArkOnThisPc ? ArkPods : LocalDestinations;
+
+    /// <summary>
+    /// A public install's destinations. Their ids match the pods' ids so routing is the same; a Scroll sent to one is
+    /// saved under Documents\Holodex\Scrolls (OutboundQueue local mode).
+    /// </summary>
+    private static readonly IReadOnlyList<ArkPodInboxInfo> LocalDestinations = new List<ArkPodInboxInfo>
+    {
+        new("nexus", "Briefs", "holodex:scrolls:briefs", "local", "Local", "operate", "patina",
+            "Briefs, documents and anything that needs a decision."),
+        new("eden", "Code & Infra", "holodex:scrolls:code", "local", "Local", "operate", "patina",
+            "Scripts, schemas, adapters and infrastructure changes."),
+        new("cortex", "Research", "holodex:scrolls:research", "local", "Local", "operate", "patina",
+            "Research digests, datasets and study material."),
+        new("magixlab", "Media", "holodex:scrolls:media", "local", "Local", "create", "coral",
+            "Images, video, audio and visual references."),
+        new("forge", "Automations", "holodex:scrolls:automations", "local", "Local", "create", "coral",
+            "Spells, workflows and UI components to build."),
+        new("anvl", "Hardware", "holodex:scrolls:hardware", "local", "Local", "create", "coral",
+            "CAD, 3D print files and physical builds."),
+        new("bazaar", "Publishing", "holodex:scrolls:publishing", "local", "Local", "distribute", "seal",
+            "Content to publish or share.")
+    };
+
+    private static readonly IReadOnlyList<ArkPodInboxInfo> ArkPods = new List<ArkPodInboxInfo>
     {
         new("nexus", "Nexus", "ainbox:pod:nexus", "gala", "Gala (Co-op Orchestrator)", "operate", "patina",
             "Command control, Veritas canon records, Aegis gates, and Hivemind session routing."),
@@ -123,9 +191,7 @@ public sealed class ArkStationClient
         SelectedModel = DefaultNemotronFastModel;
     }
 
-    public bool ForceStandaloneMode =>
-        string.Equals(Environment.GetEnvironmentVariable("OMNIWAND_STANDALONE"), "1", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(Environment.GetEnvironmentVariable("OMNIWAND_STANDALONE"), "true", StringComparison.OrdinalIgnoreCase);
+    public bool ForceStandaloneMode => StandaloneRequested();
 
     /// <summary>
     /// True when this machine runs its owner's Ark: a configured Ark root or a gateway inbound key. A public install
@@ -133,15 +199,24 @@ public sealed class ArkStationClient
     /// </summary>
     public bool ArkInstalled => !ForceStandaloneMode && (Directory.Exists(ArkRoot) || HasArkGatewayCredentials());
 
-    public string GetNebiusBaseUrl()
+    /// <summary>
+    /// Token Factory's base. NEBIUS_BASE_URL or TOKEN_FACTORY_BASE_URL may point at another Nebius region, but the
+    /// bearer key goes only to an https host under nebius.com; any other override is ignored.
+    /// </summary>
+    public static string GetNebiusBaseUrl()
     {
         string? custom =
             Environment.GetEnvironmentVariable("NEBIUS_BASE_URL") ??
             Environment.GetEnvironmentVariable("TOKEN_FACTORY_BASE_URL");
-        return string.IsNullOrWhiteSpace(custom)
-            ? DefaultNebiusBaseUrl
-            : custom.Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(custom)) return DefaultNebiusBaseUrl;
+        return IsNebiusHost(custom.Trim()) ? custom.Trim().TrimEnd('/') : DefaultNebiusBaseUrl;
     }
+
+    internal static bool IsNebiusHost(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        uri.Scheme == Uri.UriSchemeHttps &&
+        (uri.Host.Equals("nebius.com", StringComparison.OrdinalIgnoreCase) ||
+         uri.Host.EndsWith(".nebius.com", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Reads the Nebius Token Factory API key from environment variables or Windows Credential Manager.
@@ -405,16 +480,11 @@ public sealed class ArkStationClient
     {
         string arkKey = ReadInboundKey();
         string nebiusKey = ReadNebiusApiKey();
-        bool gateway = !ForceStandaloneMode &&
-                       (await ProbeHttpAsync(DefaultGatewayUrl + "/model-gateway/health") ||
-                        await ProbeHttpAsync(DefaultGatewayUrl + "/health"));
-        bool spine = !ForceStandaloneMode && await ProbeHttpAsync(DefaultInputSpineUrl + "/api/spine/config");
-        bool pcModz = !ForceStandaloneMode && await ProbeHttpAsync(DefaultPcModzUrl + "/health");
+        bool gateway = await ProbeArkApiAsync();
+        bool spine = ArkInstalled && await ProbeHttpAsync(DefaultInputSpineUrl + "/api/spine/config");
+        bool pcModz = ArkInstalled && await ProbeHttpAsync(DefaultPcModzUrl + "/health");
 
-        LastGatewayOnline = gateway;
-        if (!gateway &&
-            (string.Equals(SelectedModel, DefaultWizModelSlug, StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(SelectedModel, DefaultModelSlug, StringComparison.OrdinalIgnoreCase)))
+        if (!gateway && !IsNemotronModel(SelectedModel))
         {
             SelectedModel = DefaultNemotronFastModel;
         }
@@ -431,6 +501,25 @@ public sealed class ArkStationClient
             ActiveCursorProfile = ActiveCursorProfile
         };
     }
+
+    /// <summary>
+    /// Whether the Ark API answers at <see cref="ArkApiBaseUrl"/>: never in standalone mode. Sets
+    /// <see cref="LastGatewayOnline"/>, which the pickers and LEDs read.
+    /// </summary>
+    public async Task<bool> ProbeArkApiAsync()
+    {
+        string baseUrl = ArkApiBaseUrl;
+        // A down Ark API is remembered for a few seconds, so asks in a row do not each wait out a refused connection.
+        if (_arkApiDownSince is { } down && down.BaseUrl == baseUrl && DateTime.UtcNow - down.At < ArkApiDownMemory)
+            return LastGatewayOnline = false;
+        bool online = !ForceStandaloneMode && await ProbeHttpAsync(baseUrl + "/model-gateway/health");
+        _arkApiDownSince = online ? null : (baseUrl, DateTime.UtcNow);
+        LastGatewayOnline = online;
+        return online;
+    }
+
+    private static readonly TimeSpan ArkApiDownMemory = TimeSpan.FromSeconds(15);
+    private (string BaseUrl, DateTime At)? _arkApiDownSince;
 
     private async Task<bool> ProbeHttpAsync(string url)
     {
@@ -645,30 +734,39 @@ public sealed class ArkStationClient
             }
         }
 
-        // 3. Fallback to Ark Model Gateway (:8788) when online, or Nebius Token Factory (Nemotron) in standalone mode.
-        bool gatewayOnline = !ForceStandaloneMode &&
-                             (await ProbeHttpAsync(DefaultGatewayUrl + "/model-gateway/health") ||
-                              await ProbeHttpAsync(DefaultGatewayUrl + "/health"));
-        if (gatewayOnline && !isNemotronSelected)
-        {
-            bool gatewayNative = selected.StartsWith("ark/", StringComparison.OrdinalIgnoreCase);
-            string gatewayModel = gatewayNative ? selected : DefaultModelSlug;
-            var (gwOk, gwOut) = await AskArkGatewayAsync(wizSystem, imageDataUrl, gatewayModel);
-            return (gwOk, gatewayNative ? "ark-model-gateway" : $"ark-model-gateway ({gatewayModel})", gatewayModel, gwOut);
-        }
-
-        string nemotronModel = ResolveNemotronModel(selected);
-        var (nbOk, nbOut) = await AskNebiusTokenFactoryAsync(wizSystem, imageDataUrl, nemotronModel);
-        return (nbOk, "nebius-token-factory", nemotronModel, nbOut);
+        // 3. Nemotron: through the Ark API when it is up, else Token Factory direct. AskAsync owns that choice and
+        // reports the route and model that answered.
+        var answer = await AskAsync(wizSystem, imageDataUrl, isNemotronSelected ? selected : DefaultGatewayModelSlug);
+        return (answer.Ok, answer.Route, answer.Model, answer.Output);
     }
 
+    /// <summary>A Nemotron model, by its Token Factory id (nvidia/...) or its Ark API route (ark/nemotron-...).</summary>
     public static bool IsNemotronModel(string? model) =>
         !string.IsNullOrWhiteSpace(model) &&
         (model.Contains("nemotron", StringComparison.OrdinalIgnoreCase) ||
          model.StartsWith("nvidia/", StringComparison.OrdinalIgnoreCase));
 
-    public static string ResolveNemotronModel(string? model) =>
-        IsNemotronModel(model) ? model! : DefaultNemotronFastModel;
+    /// <summary>
+    /// The Token Factory id for a selection: an Ark route maps to the Nemotron id it serves, a Token Factory id
+    /// (org/model, such as nvidia/... or openbmb/...) stays, and anything Token Factory does not serve is Nano.
+    /// </summary>
+    public static string TokenFactoryModelFor(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model)) return DefaultNemotronFastModel;
+        if (ArkNemotronRoutes.TryGetValue(model, out string? id)) return id;
+        bool tokenFactoryId = model.Contains('/') && !model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase);
+        return tokenFactoryId ? model : DefaultNemotronFastModel;
+    }
+
+    /// <summary>The Ark API route for a selection: an ark/ route as is, a Token Factory id by its route, or null when the Ark API has none.</summary>
+    public static string? ArkRouteFor(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model)) return null;
+        if (model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase)) return model;
+        foreach (var (route, id) in ArkNemotronRoutes)
+            if (string.Equals(id, model, StringComparison.OrdinalIgnoreCase)) return route;
+        return null;
+    }
 
     /// <summary>Model chosen in the HUD and other chat pickers; shared by those surfaces. Defaults to NVIDIA Nemotron fast tier. Wiz keeps its own agent model (WizAgent.DefaultReasoningModel).</summary>
     public string SelectedModel { get; set; } = DefaultNemotronFastModel;
@@ -680,65 +778,18 @@ public sealed class ArkStationClient
     private static string CliModelSlug(string model) =>
         model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase) ? model[4..] : model;
 
-    /// <summary>Gateway route form of the selection (always "ark/&lt;slug&gt;").</summary>
-    private string GatewayModelSlug() =>
-        SelectedModel.Contains('/') ? SelectedModel : "ark/" + SelectedModel;
-
     /// <summary>
-    /// Models offered by the pickers:
-    /// - Always puts NVIDIA Nemotron models on Nebius Token Factory first.
-    /// - When Ark Model Gateway (:8788) is reachable: appends live gateway `/v1/models` and `ark/kimi`.
+    /// Models offered by the pickers: Nemotron only, by its Token Factory id. One id answers through the Ark API when
+    /// it is up and through Token Factory direct when it is not (<see cref="AskAsync"/>), so the list does not change
+    /// with the Ark, and no private route (other providers, local or uncensored models) reaches a picker.
     /// </summary>
     public async Task<IReadOnlyList<string>> GetAvailableModelsAsync()
     {
-        bool gatewayOnline = !ForceStandaloneMode &&
-                             (await ProbeHttpAsync(DefaultGatewayUrl + "/model-gateway/health") ||
-                              await ProbeHttpAsync(DefaultGatewayUrl + "/health"));
-        LastGatewayOnline = gatewayOnline;
-
-        if (gatewayOnline)
-        {
-            var models = new List<string>(BuiltInNemotronModels);
-            if (!models.Contains(DefaultModelSlug, StringComparer.OrdinalIgnoreCase))
-                models.Add(DefaultModelSlug);
-            try
-            {
-                string key = ReadInboundKey();
-                if (!string.IsNullOrEmpty(key))
-                {
-                    using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(3));
-                    using var req = new HttpRequestMessage(HttpMethod.Get, $"{DefaultGatewayUrl}/v1/models");
-                    req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-                    using var resp = await _http.SendAsync(req, cts.Token);
-                    if (resp.IsSuccessStatusCode)
-                    {
-                        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-                        if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var item in data.EnumerateArray())
-                            {
-                                if (item.TryGetProperty("id", out var id) && id.GetString() is { Length: > 0 } s &&
-                                    !models.Contains(s, StringComparer.OrdinalIgnoreCase))
-                                {
-                                    models.Add(s);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Keep defaults
-            }
-            return models;
-        }
-
-        // Standalone mode: show NVIDIA Nemotron models from Nebius Token Factory
+        await ProbeArkApiAsync();
         var standaloneModels = new List<string>(BuiltInNemotronModels);
-        if (!IsNemotronModel(SelectedModel))
+        if (!IsNemotronModel(SelectedModel) || SelectedModel.StartsWith("ark/", StringComparison.OrdinalIgnoreCase))
         {
-            SelectedModel = DefaultNemotronFastModel;
+            SelectedModel = TokenFactoryModelFor(SelectedModel);
         }
 
         string nebiusKey = ReadNebiusApiKey();
@@ -853,214 +904,220 @@ public sealed class ArkStationClient
         catch { return null; }
     }
 
+    /// <summary>Route ids an answer reports: the Ark API (Arkhive orchestration) or Token Factory direct.</summary>
+    public const string RouteArkApi = "ark-api";
+    public const string RouteNebiusDirect = "nebius-direct";
+
     /// <summary>
-    /// Calls ArkStation Model Gateway (:8788) first when reachable. When unreachable (or when a Nemotron
-    /// model is explicitly chosen), calls Nebius Token Factory directly using NVIDIA Nemotron.
+    /// One model answer and where it came from: the model that answered (as the provider reported it), the route
+    /// (<see cref="RouteArkApi"/> or <see cref="RouteNebiusDirect"/>), the Ark API receipt when there is one, and
+    /// why the Ark API was passed over when it was.
     /// </summary>
-    public async Task<(bool Ok, string Output)> AskArkGatewayAsync(string prompt, string? imageDataUrl = null, string? model = null)
+    public sealed record ModelAnswer(bool Ok, string Output, string Model, string Route, string? ReceiptId = null, string? FallbackReason = null)
+    {
+        /// <summary>"VIA ARK API" or "NEBIUS DIRECT", for card kickers and status lines.</summary>
+        public string RouteLabel => Route == RouteArkApi ? "VIA ARK API" : "NEBIUS DIRECT";
+
+        /// <summary>One line for logs and the control pipe: ok, route, model, receipt, fallback reason.</summary>
+        public string Describe() =>
+            $"ok={Ok}:route={Route}:model={Model}:receipt={ReceiptId ?? "none"}:fallback={(FallbackReason ?? "none").Replace(':', ' ')}";
+    }
+
+    private const string HolodexSystemPrompt =
+        "You are Holodex, a native Windows desktop companion powered by NVIDIA Nemotron. Answer concisely, accurately, and directly.";
+
+    // Token Factory serves Nemotron with its thinking on by default; with a reply budget, Nano could spend all of it
+    // thinking and end at finish_reason=length with no answer. Holodex wants the answer, so thinking is off
+    // (chat_template_kwargs.enable_thinking=false, accepted by every built-in Nemotron id, checked 2026-10-29).
+    private const int AnswerMaxTokens = 2048;
+
+    /// <summary>
+    /// Asks a Nemotron model. When the Ark API is up and its inbound key is loaded, the ask goes through the Ark API's
+    /// Nemotron route (<see cref="ArkRouteFor"/>), which records a receipt; on a timeout, an HTTP error or an empty
+    /// answer it falls back to Token Factory direct with the matching Nemotron id. With no Ark API it asks Token
+    /// Factory direct. The answer names the model and route that actually answered.
+    /// </summary>
+    public async Task<ModelAnswer> AskAsync(string prompt, string? imageDataUrl = null, string? model = null, string? systemPrompt = null)
     {
         string chosen = model ?? SelectedModel;
-        bool gatewayOnline = !ForceStandaloneMode &&
-                             (await ProbeHttpAsync(DefaultGatewayUrl + "/model-gateway/health") ||
-                              await ProbeHttpAsync(DefaultGatewayUrl + "/health"));
-        LastGatewayOnline = gatewayOnline;
+        // A screen goes to a model that can read it: the VL model unless the choice already reads images.
+        if (!string.IsNullOrEmpty(imageDataUrl) && !ReadsImages(chosen)) chosen = DefaultNemotronVisionModel;
 
-        if (!gatewayOnline || IsNemotronModel(chosen))
+        string? fallbackReason = null;
+        string? route = ArkRouteFor(chosen);
+        string key = route == null ? string.Empty : ReadInboundKey();
+        if (route == null) fallbackReason = $"{chosen} has no Ark API route";
+        else if (!await ProbeArkApiAsync()) fallbackReason = $"Ark API at {ArkApiBaseUrl} is not reachable";
+        else if (string.IsNullOrEmpty(key)) fallbackReason = "no Ark API inbound key";
+        else
         {
-            return await AskNebiusTokenFactoryAsync(prompt, imageDataUrl, ResolveNemotronModel(chosen));
+            var viaArk = await AskArkApiAsync(prompt, imageDataUrl, route, key, systemPrompt ?? HolodexSystemPrompt);
+            if (viaArk.Ok) return viaArk;
+            fallbackReason = viaArk.Output;
         }
 
-        string key = ReadInboundKey();
-        if (string.IsNullOrEmpty(key))
-        {
-            return await AskNebiusTokenFactoryAsync(prompt, imageDataUrl, ResolveNemotronModel(chosen));
-        }
+        var direct = await AskNebiusTokenFactoryAsync(prompt, imageDataUrl, TokenFactoryModelFor(chosen), systemPrompt);
+        return direct with { FallbackReason = fallbackReason };
+    }
 
+    /// <summary>Models that read an attached image: Nemotron VL and the open vision models on Token Factory.</summary>
+    public static bool ReadsImages(string? model) =>
+        !string.IsNullOrWhiteSpace(model) &&
+        (model.Contains("-vl", StringComparison.OrdinalIgnoreCase) ||
+         model.Contains("omni", StringComparison.OrdinalIgnoreCase) ||
+         model.Contains("vision", StringComparison.OrdinalIgnoreCase) ||
+         model.Contains("minicpm", StringComparison.OrdinalIgnoreCase) ||
+         model.Contains("gemma-3", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>One chat completion through the Ark API (POST {ArkApiBaseUrl}/v1/chat/completions). Not ok on any failure, with the reason.</summary>
+    private async Task<ModelAnswer> AskArkApiAsync(string prompt, string? imageDataUrl, string route, string key, string systemPrompt)
+    {
         try
         {
-            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(25));
-            using var req = new HttpRequestMessage(HttpMethod.Post, $"{DefaultGatewayUrl}/v1/chat/completions");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"{ArkApiBaseUrl}/v1/chat/completions");
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-
-            object userContent = string.IsNullOrEmpty(imageDataUrl)
-                ? prompt
-                : new object[]
-                {
-                    new { type = "text", text = prompt },
-                    new { type = "image_url", image_url = new { url = imageDataUrl } }
-                };
-
-            var payload = new
-            {
-                model = model ?? GatewayModelSlug(),
-                messages = new object[]
-                {
-                    new
-                    {
-                        role = "system",
-                        content = "You are Holodex, the desktop companion for ArkStation. Focus on GrimX Spells and Phosphor Shell. Answer concisely and directly."
-                    },
-                    new
-                    {
-                        role = "user",
-                        content = userContent
-                    }
-                },
-                max_tokens = 1024,
-                temperature = 0.2
-            };
-
-            req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            req.Content = new StringContent(ChatPayload(route, systemPrompt, prompt, imageDataUrl).ToJsonString(), Encoding.UTF8, "application/json");
             using var resp = await _http.SendAsync(req, cts.Token);
             string body = await resp.Content.ReadAsStringAsync(cts.Token);
-
+            string? receipt = resp.Headers.TryGetValues("x-ark-gateway-receipt-id", out var values) ? values.FirstOrDefault() : null;
             if (!resp.IsSuccessStatusCode)
-            {
-                return (false, $"Ark Gateway HTTP {(int)resp.StatusCode}: {body}");
-            }
+                return new ModelAnswer(false, $"Ark API HTTP {(int)resp.StatusCode} on {route}: {Truncate(body, 200)}", route, RouteArkApi, receipt);
 
-            using var doc = JsonDocument.Parse(body);
-            var choices = doc.RootElement.GetProperty("choices");
-            if (choices.GetArrayLength() > 0)
-            {
-                string? content = choices[0].GetProperty("message").GetProperty("content").GetString();
-                return (true, content?.Trim() ?? "(empty response)");
-            }
-
-            return (false, "No choices returned by Ark Gateway.");
+            var (text, finish, answeredBy) = ReadCompletion(body);
+            if (string.IsNullOrWhiteSpace(text))
+                return new ModelAnswer(false, $"Ark API returned no answer on {route} (finish_reason={finish ?? "none"})", route, RouteArkApi, receipt);
+            return new ModelAnswer(true, text, answeredBy ?? route, RouteArkApi, receipt);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException)
         {
-            return (false, $"Ark Gateway connection error: {ex.Message}");
+            return new ModelAnswer(false, ex is TaskCanceledException
+                ? $"Ark API did not answer on {route} within 20s"
+                : $"Ark API error on {route}: {ex.Message}", route, RouteArkApi);
         }
     }
 
+    /// <summary>The OpenAI-compatible request both routes take, with Nemotron's thinking off so the budget goes to the answer.</summary>
+    private static JsonObject ChatPayload(string model, string systemPrompt, string prompt, string? imageDataUrl, int maxTokens = AnswerMaxTokens)
+    {
+        JsonNode userContent = string.IsNullOrEmpty(imageDataUrl)
+            ? JsonValue.Create(prompt)!
+            : new JsonArray
+            {
+                new JsonObject { ["type"] = "text", ["text"] = prompt },
+                new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject { ["url"] = imageDataUrl } }
+            };
+        var payload = new JsonObject
+        {
+            ["model"] = model,
+            ["messages"] = new JsonArray
+            {
+                new JsonObject { ["role"] = "system", ["content"] = systemPrompt },
+                new JsonObject { ["role"] = "user", ["content"] = userContent }
+            },
+            ["max_tokens"] = maxTokens,
+            ["temperature"] = 0.2
+        };
+        if (IsNemotronModel(model))
+            payload["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = false };
+        return payload;
+    }
+
+    /// <summary>The answer text, finish_reason and reporting model of a chat completion. Reasoning text is never the answer.</summary>
+    private static (string? Text, string? Finish, string? Model) ReadCompletion(string body)
+    {
+        using var doc = JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        string? model = root.TryGetProperty("model", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() : null;
+        if (!root.TryGetProperty("choices", out var choices) || choices.ValueKind != JsonValueKind.Array || choices.GetArrayLength() == 0)
+            return (null, "no choices", model);
+        var choice = choices[0];
+        string? finish = choice.TryGetProperty("finish_reason", out var f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null;
+        string? text = choice.TryGetProperty("message", out var msg) && msg.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String
+            ? c.GetString()?.Trim()
+            : null;
+        return (text, finish, model);
+    }
+
     /// <summary>
-    /// Calls Nebius Token Factory (`https://api.tokenfactory.nebius.com/v1/chat/completions`) directly
-    /// with an NVIDIA Nemotron open model. Never hangs; raises a PhosphorToast if the API key is missing.
+    /// Calls Nebius Token Factory (`https://api.tokenfactory.nebius.com/v1/chat/completions`) directly with an NVIDIA
+    /// Nemotron open model. An empty answer is a failure that names its finish_reason. Never hangs; raises a toast
+    /// when the key is missing or rejected.
     /// </summary>
-    public async Task<(bool Ok, string Output)> AskNebiusTokenFactoryAsync(
+    public async Task<ModelAnswer> AskNebiusTokenFactoryAsync(
         string prompt,
         string? imageDataUrl = null,
-        string? model = null)
+        string? model = null,
+        string? systemPrompt = null)
     {
+        string targetModel = TokenFactoryModelFor(model ?? SelectedModel);
+        // Text-only Nemotron models reject image_url arrays: an attached screen goes to the Nemotron VL model.
+        if (!string.IsNullOrEmpty(imageDataUrl) && !ReadsImages(targetModel)) targetModel = DefaultNemotronVisionModel;
+
         string apiKey = ReadNebiusApiKey();
         if (string.IsNullOrEmpty(apiKey))
         {
-            const string missingMsg =
-                "Nebius Token Factory API key not found. Set NEBIUS_API_KEY in your environment or add generic credential 'Omniwand:NebiusTokenFactory' in Windows Credential Manager.";
             PhosphorToast.Show(
                 "Token Factory Key Missing",
                 "Set NEBIUS_API_KEY or add Omniwand:NebiusTokenFactory in Windows Credential Manager to run NVIDIA Nemotron.",
-                "STANDALONE // NEBIUS TOKEN FACTORY",
+                "NEBIUS TOKEN FACTORY",
                 5200,
                 ToastTone.Warning);
-            return (false, missingMsg);
+            return new ModelAnswer(false,
+                "Nebius Token Factory API key not found. Set NEBIUS_API_KEY in your environment or add generic credential 'Omniwand:NebiusTokenFactory' in Windows Credential Manager.",
+                targetModel, RouteNebiusDirect);
         }
 
-        string targetModel = ResolveNemotronModel(model ?? SelectedModel);
-        string endpoint = $"{GetNebiusBaseUrl()}/chat/completions";
-
-        // Text-only Nemotron models reject image_url arrays. When the screen is attached, route this one request to
-        // the Nemotron VL model instead of silently dropping the image.
-        bool supportsVision = targetModel.Contains("omni", StringComparison.OrdinalIgnoreCase) ||
-                              targetModel.Contains("vl", StringComparison.OrdinalIgnoreCase) ||
-                              targetModel.Contains("vision", StringComparison.OrdinalIgnoreCase);
-        if (!string.IsNullOrEmpty(imageDataUrl) && !supportsVision)
-        {
-            targetModel = "nvidia/Nemotron-3.5-Super-VL";
-            supportsVision = true;
-        }
-
-        object userContent = (!string.IsNullOrEmpty(imageDataUrl) && supportsVision)
-            ? new object[]
-            {
-                new { type = "text", text = prompt },
-                new { type = "image_url", image_url = new { url = imageDataUrl } }
-            }
-            : prompt;
-
-        // Bounded retry (max 2 attempts per handoff rule: "Bounded retries, never hang. Fail twice, stop and report.")
+        string json = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl).ToJsonString();
+        // Bounded retry: two attempts on a 5xx or a dropped connection, never on auth or a bad request.
         string lastError = "Unknown error";
         for (int attempt = 1; attempt <= 2; attempt++)
         {
             try
             {
-                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(20));
-                using var req = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(24));
+                using var req = new HttpRequestMessage(HttpMethod.Post, $"{GetNebiusBaseUrl()}/chat/completions");
                 req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-
-                var payload = new
-                {
-                    model = targetModel,
-                    messages = new object[]
-                    {
-                        new
-                        {
-                            role = "system",
-                            content = "You are Holodex, a native Windows desktop companion and GrimX Spell wand powered by NVIDIA Nemotron on Nebius Token Factory. Answer concisely, accurately, and directly."
-                        },
-                        new
-                        {
-                            role = "user",
-                            content = userContent
-                        }
-                    },
-                    max_tokens = 1024,
-                    temperature = 0.2
-                };
-
-                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                req.Content = new StringContent(json, Encoding.UTF8, "application/json");
                 using var resp = await _http.SendAsync(req, cts.Token);
                 string body = await resp.Content.ReadAsStringAsync(cts.Token);
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    lastError = $"Nebius Token Factory HTTP {(int)resp.StatusCode} ({targetModel}): {body}";
+                    lastError = $"Nebius Token Factory HTTP {(int)resp.StatusCode} ({targetModel}): {Truncate(body, 300)}";
                     if ((int)resp.StatusCode is 401 or 403)
                     {
                         PhosphorToast.Show(
                             "Token Factory Auth Rejected",
                             $"Nebius Token Factory returned HTTP {(int)resp.StatusCode}. Verify your NEBIUS_API_KEY.",
-                            "STANDALONE // NEBIUS TOKEN FACTORY",
+                            "NEBIUS TOKEN FACTORY",
                             4800,
                             ToastTone.Error);
-                        return (false, lastError);
                     }
+                    if ((int)resp.StatusCode < 500) return new ModelAnswer(false, lastError, targetModel, RouteNebiusDirect);
                     continue;
                 }
 
-                using var doc = JsonDocument.Parse(body);
-                if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
-                {
-                    var msg = choices[0].GetProperty("message");
-                    string? content = msg.TryGetProperty("content", out var cProp) && cProp.ValueKind == JsonValueKind.String
-                        ? cProp.GetString()
-                        : null;
-                    if (string.IsNullOrWhiteSpace(content) &&
-                        msg.TryGetProperty("reasoning_content", out var rProp) &&
-                        rProp.ValueKind == JsonValueKind.String)
-                    {
-                        content = rProp.GetString();
-                    }
-                    return (true, content?.Trim() ?? "(empty response)");
-                }
-
-                return (false, "No choices returned by Nebius Token Factory.");
+                var (text, finish, answeredBy) = ReadCompletion(body);
+                if (string.IsNullOrWhiteSpace(text))
+                    return new ModelAnswer(false, $"{targetModel} returned no answer (finish_reason={finish ?? "none"}).", answeredBy ?? targetModel, RouteNebiusDirect);
+                return new ModelAnswer(true, text, answeredBy ?? targetModel, RouteNebiusDirect);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
             {
-                lastError = $"Nebius Token Factory connection error (attempt {attempt}/2): {ex.Message}";
+                lastError = ex is TaskCanceledException
+                    ? $"Nebius Token Factory did not answer within 24s (attempt {attempt}/2, {targetModel})."
+                    : $"Nebius Token Factory connection error (attempt {attempt}/2): {ex.Message}";
             }
         }
 
         PhosphorToast.Show(
             "Nebius Token Factory Unreachable",
             lastError,
-            "STANDALONE // NEMOTRON",
+            "NEBIUS TOKEN FACTORY",
             4500,
             ToastTone.Error);
-        return (false, lastError);
+        return new ModelAnswer(false, lastError, targetModel, RouteNebiusDirect);
     }
 
     // Agent turns can run longer than the shared client's 25s ceiling, so they get their own client and a per-call deadline.
@@ -1156,103 +1213,12 @@ public sealed class ArkStationClient
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "...";
 
     /// <summary>
-    /// Multi-model Live Vision router supporting NVIDIA Nemotron VL (`nvidia/Nemotron-3.5-Super-VL`),
-    /// open vision models on Nebius Token Factory (`openbmb/MiniCPM-V-4_5`,
-    /// `google/gemma-3-27b-it`), and Ark Model Gateway (`ark/kimi`), with automatic graceful fallback to
-    /// `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` when a vision tier is unavailable.
+    /// Live Vision for the lasso and element picker: NVIDIA Nemotron VL and the open vision models on Token Factory
+    /// (openbmb/MiniCPM-V-4_5, google/gemma-3-27b-it). Nemotron VL goes through the Ark API when it is up; every other
+    /// model answers Token Factory direct. There is no text-only fallback: a model that never saw the image would
+    /// invent an answer about it.
     /// </summary>
-    public async Task<(bool Ok, string Output)> AskVisionModelAsync(
-        string prompt,
-        string? imageDataUrl,
-        string preferredVisionModel)
-    {
-        if (preferredVisionModel.StartsWith("ark/", StringComparison.OrdinalIgnoreCase))
-        {
-            var (gwOk, gwOut) = await AskArkGatewayAsync(prompt, imageDataUrl, preferredVisionModel);
-            if (gwOk) return (true, gwOut);
-        }
-
-        string apiKey = ReadNebiusApiKey();
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            try
-            {
-                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(18));
-                using var req = new HttpRequestMessage(HttpMethod.Post, $"{GetNebiusBaseUrl()}/chat/completions");
-                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-
-                bool isVisionCapable =
-                    preferredVisionModel.Contains("vl", StringComparison.OrdinalIgnoreCase) ||
-                    preferredVisionModel.Contains("minicpm", StringComparison.OrdinalIgnoreCase) ||
-                    preferredVisionModel.Contains("gemma-3", StringComparison.OrdinalIgnoreCase);
-
-                object userContent = (!string.IsNullOrEmpty(imageDataUrl) && isVisionCapable)
-                    ? new object[]
-                    {
-                        new { type = "text", text = prompt },
-                        new { type = "image_url", image_url = new { url = imageDataUrl } }
-                    }
-                    : prompt;
-
-                var payload = new
-                {
-                    model = preferredVisionModel,
-                    messages = new object[]
-                    {
-                        new { role = "system", content = "You are Holodex Vision & Desktop UI Inspector. Analyze the screen capture, annotations, and element telemetry concisely." },
-                        new { role = "user", content = userContent }
-                    },
-                    max_tokens = 800,
-                    temperature = 0.2
-                };
-
-                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                using var resp = await _http.SendAsync(req, cts.Token);
-                if (resp.IsSuccessStatusCode)
-                {
-                    using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cts.Token));
-                    if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
-                    {
-                        var msg = choices[0].GetProperty("message");
-                        string? text = msg.TryGetProperty("content", out var cp) && cp.ValueKind == JsonValueKind.String ? cp.GetString() : null;
-                        if (string.IsNullOrWhiteSpace(text) && msg.TryGetProperty("reasoning_content", out var rp) && rp.ValueKind == JsonValueKind.String)
-                            text = rp.GetString();
-                        if (!string.IsNullOrWhiteSpace(text))
-                            return (true, $"[{preferredVisionModel}]\n{text.Trim()}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Vision request to {preferredVisionModel} failed: {ex.Message}");
-            }
-            if (!string.IsNullOrEmpty(imageDataUrl))
-                return (false, $"Vision request to {preferredVisionModel} returned no answer. Check the Nebius key and try again.");
-        }
-
-        var (fbOk, fbOut) = await AskNebiusTokenFactoryAsync(prompt, null, DefaultNemotronFastModel);
-        return (fbOk, fbOk ? $"[{DefaultNemotronFastModel} // text only, no image]\n{fbOut}" : fbOut);
-    }
-
-    /// <summary>
-    /// The Holodex session's offline fallback, used only while <see cref="Hivemind"/> is not connected: Nemotron
-    /// answers in the Syndicate's voice. It is role-play, not Hivemind, and returns the model so every card can say so.
-    /// </summary>
-    public async Task<(bool Ok, string Output, string Model)> AskOfflineSyndicateAsync(
-        string message,
-        string targetAgentId,
-        string targetAgentName,
-        string targetAgentRole)
-    {
-        string syndicatePrompt = targetAgentId == "all"
-            ? "You are role-playing the ArkStation Syndicate in Holodex's offline session (Hivemind is not connected). " +
-              "Reply with 2 concise, distinct in-character turns from the most relevant Syndicate conductors " +
-              "(choose from GALA // Co-op Orchestrator, WIZ // GrimX & Mouse Macro Conductor, SMITH // Architecture & Code Authority, ARBITER // Eden & SolaTree Conductor, SCHOLAR // Cortex Research, MUSE // MagiXLab Visuals). " +
-              $"Format each turn as 'AGENT_NAME // ROLE:\\n<concise actionable response>'.\n\nOperator message: {message}"
-            : $"You are {targetAgentName} ({targetAgentRole}), role-played in Holodex's offline session (Hivemind is not connected). " +
-              $"Reply in character as '{targetAgentName} // {targetAgentRole.ToUpperInvariant()}:' with a concise, high-signal operational response.\n\nOperator message: {message}";
-
-        var (ok, output) = await AskArkGatewayAsync(syndicatePrompt);
-        return (ok, output, ResolveNemotronModel(SelectedModel));
-    }
+    public Task<ModelAnswer> AskVisionModelAsync(string prompt, string? imageDataUrl, string preferredVisionModel) =>
+        AskAsync(prompt, imageDataUrl, preferredVisionModel,
+            "You are Holodex Vision & Desktop UI Inspector. Analyze the screen capture, annotations, and element telemetry concisely.");
 }

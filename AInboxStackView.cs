@@ -104,7 +104,7 @@ internal sealed class StackGroupView : Panel
                 Height = rowPx,
                 Kind = it.Kind,
                 ItemName = it.Name,
-                Meta = it.Meta + (it.Secrets.Count > 0 ? $" // AEGIS {it.Secrets.Count}" : ""),
+                Meta = it.Meta + (it.Secrets.Count > 0 ? $" // {AegisCard.GateName} {it.Secrets.Count}" : ""),
                 Prediction = it.Origin.Element is { Length: > 0 } el && it.Kind is CaptureKind.Pick ? el : ""
             };
             var captured = it;
@@ -341,6 +341,9 @@ internal sealed class AegisCard : Control
     }
 
     public IReadOnlyList<(string Where, AegisFinding Finding)> Findings { get; }
+
+    /// <summary>The gate's name on the card: Aegis on the owner's Ark, plain words on a public install.</summary>
+    public static string GateName => ArkStationClient.ArkOnThisPc ? "AEGIS" : "SECRET SCAN";
     public bool ImagesUnscanned { get; }
 
     public string Sentence => Findings.Count == 0
@@ -373,7 +376,7 @@ internal sealed class AegisCard : Control
         float x = 16f * s;
         float dot = 7f * s;
         using (var b = new SolidBrush(hit ? PhosphorTheme.Ember : PhosphorTheme.Moss)) g.FillEllipse(b, x, 15f * s, dot, dot);
-        StackPaint.Tracked(g, hit ? $"AEGIS // {Findings.Count} SECRET{(Findings.Count == 1 ? "" : "S")} FOUND" : "AEGIS // CLEAR", 9.5f, hit ? PhosphorTheme.Ember : PhosphorTheme.Moss, x + 14f * s, 12f * s, this);
+        StackPaint.Tracked(g, hit ? $"{GateName} // {Findings.Count} SECRET{(Findings.Count == 1 ? "" : "S")} FOUND" : $"{GateName} // CLEAR", 9.5f, hit ? PhosphorTheme.Ember : PhosphorTheme.Moss, x + 14f * s, 12f * s, this);
         float right = hit ? 166f * s : 0;
         StackPaint.Wrapped(g, Sentence, 12f, PhosphorTheme.Dim, new RectangleF(x, 32f * s, Width - 2 * x - right, Height - 34f * s), this);
     }

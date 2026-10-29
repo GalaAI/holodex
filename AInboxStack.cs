@@ -76,7 +76,7 @@ internal static class OriginScanner
             string window = title.ToString();
             string? url = Regex.Match(window, @"https?://\S+").Value is { Length: > 0 } u ? u : null;
             string? repo = Regex.Match(window, @"\b([A-Za-z0-9-]+/[A-Za-z0-9._-]+)\b.*(Pull Request|pull/|GitHub)", RegexOptions.IgnoreCase) is { Success: true } m ? m.Groups[1].Value : null;
-            return new CaptureOrigin(app, window, url, cls.ToString(), repo, repo != null && repo.StartsWith("GalaAI/", StringComparison.OrdinalIgnoreCase) ? "GalaAI repository" : null);
+            return new CaptureOrigin(app, window, url, cls.ToString(), repo, OwnerRepoTag(repo));
         }
         catch
         {
@@ -126,9 +126,13 @@ internal static class OriginScanner
             Url = url,
             Window = repo == null ? host : source.Window,
             Repo = repo ?? source.Repo,
-            KnownToArk = repo != null && repo.StartsWith("GalaAI/", StringComparison.OrdinalIgnoreCase) ? "GalaAI repository" : source.KnownToArk
+            KnownToArk = OwnerRepoTag(repo) ?? source.KnownToArk
         };
     }
+
+    /// <summary>The owner's own repositories are tagged on the owner's Ark only; a public install tags none.</summary>
+    private static string? OwnerRepoTag(string? repo) =>
+        ArkStationClient.ArkOnThisPc && repo != null && repo.StartsWith("GalaAI/", StringComparison.OrdinalIgnoreCase) ? "GalaAI repository" : null;
 
     /// <summary>A PNG of the whole top-level window under a screen point (the design target's WINDOW capture).</summary>
     public static (string? DataUrl, Size Size) WindowShotAt(Point screen)
@@ -266,7 +270,9 @@ internal static class IntentCatalog
 {
     public static readonly IntentShape[] All =
     {
-        new("fix", "Fix it in a Pod", "FIX IN A POD", new[] { "Context", "Goal", "Repro", "Evidence", "Acceptance" }),
+        ArkStationClient.ArkOnThisPc
+            ? new("fix", "Fix it in a Pod", "FIX IN A POD", new[] { "Context", "Goal", "Repro", "Evidence", "Acceptance" })
+            : new("fix", "Fix it", "FIX IT", new[] { "Context", "Goal", "Repro", "Evidence", "Acceptance" }),
         new("flow", "Build a Flow", "BUILD A FLOW", new[] { "Trigger", "Kind", "Steps", "Output", "Haptic" }),
         new("research", "Research digest", "RESEARCH", new[] { "Question", "Sources", "Depth", "Deliverable" }),
         new("absorb", "Absorb into dataset", "ABSORB DATASET", new[] { "Schema", "License", "Destination", "Refresh" }),
@@ -459,8 +465,9 @@ internal static class StackRefiner
             + "\"fields\":{<each field of the top intent>: \"<one line>\"}}. Fields per intent: "
             + string.Join("; ", IntentCatalog.All.Select(s => $"{s.Id}: {string.Join(", ", s.Fields)}")) + ".");
 
-        var (ok, output) = await ark.AskNebiusTokenFactoryAsync(sb.ToString(), null, Model).WaitAsync(TimeSpan.FromSeconds(30), ct);
-        if (!ok) return false;
+        var answer = await ark.AskAsync(sb.ToString(), null, Model).WaitAsync(TimeSpan.FromSeconds(30), ct);
+        if (!answer.Ok) return false;
+        string output = answer.Output;
         int a = output.IndexOf('{'), b = output.LastIndexOf('}');
         if (a < 0 || b <= a) return false;
         try
@@ -582,7 +589,7 @@ internal static class HandoffSeal
 
     public static string Markdown(StackHandoff h, ArkPodInboxInfo pod) =>
         $"# Handoff scroll: {h.IntentLabel} -> {pod.Label}\n\n" +
-        $"- Scroll: {h.ScrollId}\n- Seal: sha256:{h.Sha256}\n- Pod: {pod.Label} ({pod.InboxChannel}), orchestrator {pod.OrchestratorLabel}\n" +
+        $"- Scroll: {h.ScrollId}\n- Seal: sha256:{h.Sha256}\n- {(ArkStationClient.ArkOnThisPc ? "Pod" : "Destination")}: {pod.Label} ({pod.InboxChannel}), orchestrator {pod.OrchestratorLabel}\n" +
         $"- Stack {h.Group}: {h.GroupLabel}\n- Written: {h.CreatedAt}\n\n" +
         (h.Ask.Length > 0 ? $"## Ask\n\n{h.Ask}\n\n" : "") +
         string.Join("", h.Fields.Select(f => $"## {f.Label}\n\n{f.Value}\n\n_{f.Source.ToLowerInvariant()}_\n\n")) +

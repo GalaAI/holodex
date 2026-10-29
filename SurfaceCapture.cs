@@ -329,13 +329,13 @@ internal static class SurfaceCapture
             thread.AddSection("HONEST FALLBACK // TWO LINKED CARDS, NEVER A DISGUISED ANSWER");
             thread.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.")
                 .SetFooter("", Noop("Thread.Copy", PhosphorGlyph.Copy, "Copy"), Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind"));
-            var fallback = thread.Add(ThreadTone.Agent, "ANSWERED BY NEMOTRON 3 NANO // GALA DID NOT ANSWER", "A paused Verify lane holds the PR until the release resumes; the diff itself is not the reason.");
+            var fallback = thread.Add(ThreadTone.Agent, "ANSWERED BY NEMOTRON 3 NANO // GALA DID NOT ANSWER", "A paused check runner holds the PR until it resumes; the diff itself is not the reason.");
             fallback.LinkedAbove = true;
             fallback.SetFooter("2.4 S", answerActions);
 
             thread.AddSection("AGENT ANSWER // MODEL, RECEIPT AND SOURCES");
             thread.Add(ThreadTone.Agent, "GALA // NEMOTRON 3 SUPER // HIVEMIND",
-                    "SolaTree grafts verified work automatically; the PR checklist is at https://github.com/GalaAI/ark/pull/1255")
+                    "Merges run once checks pass; the PR checklist is at https://github.com/octocat/Hello-World/pull/42")
                 .SetFooter("RECEIPT SAMPLE01 // 41.2 S", answerActions.Append(Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind")).ToArray());
 
             thread.AddSection("FAILURE // THE REAL CAUSE, COPY AND RETRY");

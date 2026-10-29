@@ -51,10 +51,10 @@ public static class WizOnboardingEngine
             if (IsCommandOnPath(cli)) detectedClis.Add(cli);
         }
 
-        // 3. Provision ~/.ark/agents/omniwand and %LOCALAPPDATA%\Omniwand\agents\wiz
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string agentFolder = Path.Combine(userProfile, ".ark", "agents", "omniwand");
-        string wizSubFolder = Path.Combine(userProfile, ".ark", "agents", "wiz");
+        // 3. Provision %LOCALAPPDATA%\Omniwand\agents\omniwand and \wiz: Holodex's own folder, on any PC.
+        string agentsRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "agents");
+        string agentFolder = Path.Combine(agentsRoot, "omniwand");
+        string wizSubFolder = Path.Combine(agentsRoot, "wiz");
         Directory.CreateDirectory(agentFolder);
         Directory.CreateDirectory(wizSubFolder);
 

@@ -89,7 +89,8 @@ public sealed record HivemindAsk(string SessionId, string MessageId, string Stat
 public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyList<HivemindSessionMessage> Messages);
 
 /// <summary>
-/// Omniwand's connection to the real Hivemind: the remote MCP server at hivemind.arkomnitek.com/mcp, through the
+/// Omniwand's connection to the user's Hivemind: the remote MCP server at <see cref="Endpoint"/> (OMNIWAND_HIVEMIND_URL,
+/// else the hosted Hivemind), through the
 /// official MCP C# SDK (ModelContextProtocol.Core) and its OAuth 2.1 client. Sign-in is the server's public-client
 /// flow: dynamic registration, PKCE S256, and a browser sign-in that redirects to a fixed loopback port
 /// (Hivemind matches redirect URIs exactly, so the port never changes). Tokens and the registered client id live in
@@ -98,12 +99,44 @@ public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyLi
 /// </summary>
 public sealed class HivemindClient : IAsyncDisposable
 {
-    public static readonly Uri Endpoint = new("https://hivemind.arkomnitek.com/mcp");
-    public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
-    public const string CredentialTarget = "Omniwand:HivemindToken";
+    /// <summary>The hosted Hivemind, used when OMNIWAND_HIVEMIND_URL names no other.</summary>
+    public const string HostedHivemindUrl = "https://hivemind.arkomnitek.com/mcp";
 
-    /// <summary>The Hivemind web app's Sessions view (it addresses views, not single rooms).</summary>
-    public static readonly Uri WebSessionsView = new("https://hivemind.arkomnitek.com/?view=sessions");
+    /// <summary>
+    /// The Hivemind this install signs in to: OMNIWAND_HIVEMIND_URL (process, then user environment), else the hosted
+    /// one. A URL without a path gets Hivemind's /mcp. An unusable value falls back to the hosted Hivemind.
+    /// </summary>
+    public static readonly Uri Endpoint = ResolveEndpoint(
+        Environment.GetEnvironmentVariable("OMNIWAND_HIVEMIND_URL") ??
+        Environment.GetEnvironmentVariable("OMNIWAND_HIVEMIND_URL", EnvironmentVariableTarget.User));
+
+    public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
+
+    /// <summary>
+    /// The Credential Manager slot for the sign-in: <c>Omniwand:HivemindToken</c> for the hosted Hivemind, and one
+    /// per host for any other, so two Hiveminds never share tokens or a registered client id.
+    /// </summary>
+    public static readonly string CredentialTarget = Endpoint.AbsoluteUri == HostedHivemindUrl
+        ? "Omniwand:HivemindToken"
+        : $"Omniwand:HivemindToken:{Endpoint.Authority}";
+
+    /// <summary>The Hivemind web app's Sessions view (it addresses views, not single rooms), on the same host.</summary>
+    public static readonly Uri WebSessionsView = new(Endpoint, "/?view=sessions");
+
+    /// <summary>The host the profile names, such as hivemind.arkomnitek.com or 127.0.0.1:18788.</summary>
+    public static string EndpointHost => Endpoint.Authority;
+
+    internal static Uri ResolveEndpoint(string? configured)
+    {
+        if (string.IsNullOrWhiteSpace(configured) ||
+            !Uri.TryCreate(configured.Trim(), UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && !(uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback)))
+        {
+            // Only https, or http on this PC (a local Hivemind), carries a sign-in.
+            return new Uri(HostedHivemindUrl);
+        }
+        return uri.AbsolutePath is "" or "/" ? new Uri(uri, "/mcp") : uri;
+    }
 
     /// <summary>"Open in Hivemind": hands over to the web app's Sessions, where every Holodex Session lives too.</summary>
     public static void OpenWebSessions()
@@ -169,7 +202,7 @@ public sealed class HivemindClient : IAsyncDisposable
                 Str(a, "id"),
                 FirstNonEmpty(Str(a, "displayName"), Str(a, "name"), Str(a, "id")),
                 Str(a, "role"),
-                Str(a, "provider"),
+                FirstNonEmpty(Str(a, "runtimeProvider"), Str(a, "provider")),
                 !a.TryGetProperty("dispatchReady", out var ready) || ready.ValueKind != JsonValueKind.False))
             .ToList();
     }
@@ -294,14 +327,15 @@ public sealed class HivemindClient : IAsyncDisposable
 
             _client = await CreateClientAsync(interactive
                 ? BrowserSignInAsync
-                : (_, _) => throw new InvalidOperationException("Hivemind needs a new sign-in. Use Sign in to Hivemind in Holodex."), ct);
+                : (_, _) => throw new InvalidOperationException($"{NeedsNewSignIn} Use Sign in to Hivemind in Holodex."), ct);
             SetState(HivemindState.Connected, string.Empty);
             return true;
         }
         catch (Exception ex)
         {
             _client = null;
-            SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
+            if (!EndSignInIfRevoked(ex))
+                SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
             return false;
         }
         finally
@@ -388,10 +422,33 @@ public sealed class HivemindClient : IAsyncDisposable
         {
             // A dropped session or an expired sign-in: the next call reconnects (silently, with the saved tokens).
             await DropClientAsync();
-            SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
+            if (!EndSignInIfRevoked(ex))
+                SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
             return null;
         }
     }
+
+    /// <summary>The words a signed-out state carries after Hivemind refused the saved sign-in.</summary>
+    public const string SignInEndedMessage = "Your Hivemind sign-in ended. Sign in again.";
+
+    /// <summary>
+    /// When Hivemind refused the saved sign-in itself (invalid_grant, invalid_token, or a refresh that needs the
+    /// browser), the saved tokens can never work again: they are deleted and the state is Signed out, not
+    /// Unreachable with the SDK's raw message. True when that happened.
+    /// </summary>
+    private bool EndSignInIfRevoked(Exception ex)
+    {
+        string text = ex.ToString();
+        bool revoked = text.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase) ||
+                       text.Contains("invalid_token", StringComparison.OrdinalIgnoreCase) ||
+                       text.Contains(NeedsNewSignIn, StringComparison.Ordinal);
+        if (!revoked || !HasSavedSignIn) return false;
+        ArkStationClient.TryDeleteWindowsCredential(CredentialTarget);
+        SetState(HivemindState.NotSignedIn, SignInEndedMessage);
+        return true;
+    }
+
+    private const string NeedsNewSignIn = "Hivemind needs a new sign-in.";
 
     /// <summary>
     /// The SDK hands over the authorization URL; this opens it in the default browser and catches the redirect on

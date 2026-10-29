@@ -18,8 +18,15 @@ namespace Omniwand;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
+        // A headless ask for proofs and telemetry: no window, no tray, no pipe, so it runs beside the live app.
+        if (args.Length > 0 && args[0] == "--ask")
+        {
+            Environment.ExitCode = HeadlessAsk.Run(args);
+            return;
+        }
+
         using var mutex = new Mutex(true, "ArkStation_Omniwand_SingleInstance_Mutex", out bool isNewInstance);
         if (!isNewInstance)
         {
@@ -329,8 +336,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
 
-        // The Augment Inventory reads the owner's Ark API; a public install has none to open.
-        if (_ark.ArkInstalled)
+        // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
+        if (AugmentInventoryForm.FeedAvailable(_ark))
         {
             var inventoryItem = home.Add(new ToolStripMenuItem("Augment Inventory") { Name = "Tray.AugmentInventory", ToolTipText = "Every Augment by Shell, Phosphor or Bandit, from your Ark." });
             inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
@@ -596,7 +603,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                         PipeDirection.InOut,
                         NamedPipeServerStream.MaxAllowedServerInstances,
                         PipeTransmissionMode.Byte,
-                        PipeOptions.Asynchronous);
+                        // Only this Windows user's processes can open the control pipe.
+                        PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 
                     await pipe.WaitForConnectionAsync().ConfigureAwait(false);
                     var connectedPipe = pipe;
@@ -656,8 +664,33 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
     }
 
+    /// <summary>
+    /// Developer pipe commands (work orders, session sends, sign-out, an Inventory on another base, files written
+    /// anywhere) run on the owner's Ark or with OMNIWAND_DEV_PIPE=1. A public install refuses them, and writes
+    /// renders only under %LOCALAPPDATA%\Omniwand.
+    /// </summary>
+    private static readonly bool DevPipe = ArkStationClient.ArkOnThisPc || Environment.GetEnvironmentVariable("OMNIWAND_DEV_PIPE") == "1";
+
+    private static readonly string[] DevOnlyPrefixes =
+    {
+        "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:"
+    };
+
+    private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
+
+    /// <summary>Whether a render may write to <paramref name="path"/>: anywhere for the developer pipe, else under RenderRoot.</summary>
+    private static bool RenderPathAllowed(string path)
+    {
+        if (DevPipe) return true;
+        try { return Path.GetFullPath(path).StartsWith(RenderRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
+    }
+
     private string HandleControlPipeCommand(string cmd)
     {
+        if (!DevPipe && DevOnlyPrefixes.Any(prefix => cmd.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            return "error:pipe:developer command; set OMNIWAND_DEV_PIPE=1 to allow it";
         var pt = GetCursorPoint();
         if (string.Equals(cmd, "orb:toggle", StringComparison.OrdinalIgnoreCase))
         {
@@ -784,6 +817,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             // As-built captures of every surface, drawn by the running app (SurfaceCapture).
             string dir = cmd.Substring("render:".Length).Trim();
             if (dir.Length == 0) return "error:render:folder required";
+            if (!RenderPathAllowed(dir)) return $"error:render:renders go under {RenderRoot}";
             string result = "error:render:not run";
             _uiSync.Send(_ =>
             {
@@ -894,6 +928,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             // form:render:<hud|wiz|ainbox|holodex|snip>:<png>, drawn offscreen from the live form at its own DPI.
             string[] parts = cmd["form:render:".Length..].Split(':', 2);
             if (parts.Length < 2) return "error:form:render:name and path required";
+            if (!RenderPathAllowed(parts[1].Trim())) return $"error:form:render:renders go under {RenderRoot}";
             Form? form = parts[0].ToLowerInvariant() switch
             {
                 "hud" => _hud, "wiz" => _wizWidget, "ainbox" => _ainboxWidget, "holodex" => _holodexDrawer, "snip" => _snipWidget, _ => null
@@ -977,7 +1012,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
         if (cmd.StartsWith("holodex:say:", StringComparison.OrdinalIgnoreCase))
         {
-            // The session's Send button: a Hivemind mission when signed in, labelled Nemotron role-play when not.
+            // The session's Send button: a Hivemind mission when signed in, Nemotron (named on its card) when not.
             string[] parts = cmd["holodex:say:".Length..].Split('|', 2);
             if (parts.Length < 2) return "error:holodex:say:use holodex:say:<agent>|<message>";
             _uiSync.Post(_ => _holodexDrawer.SendSessionMessage(parts[0], parts[1]), null);
@@ -1075,8 +1110,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         if (cmd.StartsWith("hud:ask:", StringComparison.OrdinalIgnoreCase))
         {
             string q = cmd["hud:ask:".Length..].Trim();
-            var res = _ark.AskArkGatewayAsync(string.IsNullOrEmpty(q) ? "Say hello in one sentence." : q).GetAwaiter().GetResult();
-            return $"ok:hud:ask:ok={res.Ok}:output={res.Output.Replace('\r', ' ').Replace('\n', ' ')}";
+            var res = _ark.AskAsync(string.IsNullOrEmpty(q) ? "Say hello in one sentence." : q).GetAwaiter().GetResult();
+            return $"ok:hud:ask:{res.Describe()}:output={res.Output.Replace('\r', ' ').Replace('\n', ' ')}";
         }
         if (cmd.StartsWith("slot:", StringComparison.OrdinalIgnoreCase))
         {
@@ -1340,7 +1375,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 try
                 {
                     string? snap = ArkStationClient.CaptureRegionAroundCursor(origin.X, origin.Y);
-                    await _ark.AskArkGatewayAsync($"[GhostTrailer Voice-Wand over {role}]: {transcript}", snap);
+                    await _ark.AskAsync($"[GhostTrailer Voice-Wand over {role}]: {transcript}", snap);
                 }
                 finally
                 {

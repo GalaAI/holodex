@@ -17,7 +17,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 
 ## How the Trilogy Fits Together (`Holodex` vs. `Hivemind` vs. `Ryozan`)
 
-**Holodex** is one of three standalone, open-source entries in the **ArkOmnitek Trilogy**. All three connect as one end-to-end ecosystem led by **NVIDIA Nemotron on Nebius Token Factory**, while each repository owns a separate layer of the stack:
+**Holodex** is one of three standalone, open-source entries in the **ArkOmnitek Trilogy**. All three run on **NVIDIA Nemotron on Nebius Token Factory** and share one design system, while each repository owns a separate layer of the stack. Holodex connects to Hivemind over MCP (sign in from the drawer). Ryozan is a separate app: Holodex does not call it.
 
 | Product & Track | What It Is | How It Differs From the Other Two |
 | :--- | :--- | :--- |
@@ -100,7 +100,9 @@ Holodex supports two operating modes out of the box:
 | Mode | What You Need | What Works |
 | --- | --- | --- |
 | **1. Standalone Mode** *(Default for Judges)* | Only a **Nebius Token Factory API Key** (`NEBIUS_API_KEY` or `wincred://Omniwand:NebiusTokenFactory`). Zero local servers required. | Full 240Hz cursor morphs, spell gestures, `Alt+Space` HUD, `Alt+S` Free-Form Lasso (`Nemotron-3.5-Super-VL`), `Alt+E` Element Picker, `Alt+I` AInbox Nemotron re-ranking & Aegis secret redaction, `Alt+W` Wiz agent tool calls (`Nemotron-3-Super-120B-A12B`), and `Alt+H` Holodex Drawer. |
-| **2. Hivemind Connected Mode** (`Alt+H`) | Click **Sign in** in the **Holodex Drawer (`Alt+H`)** profile header (OAuth 2.1 + PKCE against `https://hivemind.arkomnitek.com/mcp` or a local `GalaAI/hivemind` server). | Connects your desktop wand to **Hivemind** (`GalaAI/hivemind`) and **Ryozan** (`GalaAI/ryozan`): live 36-agent Syndicate roster, real-time `@Gala` Maestro session relay, asynchronous Work Order mission dispatch & polling, and SHA-256-sealed AInbox Pod Handoffs. |
+| **2. Hivemind Connected Mode** (`Alt+H`) | Click **Sign in** in the **Holodex Drawer (`Alt+H`)** profile header (OAuth 2.1 + PKCE against `https://hivemind.arkomnitek.com/mcp` or a local `GalaAI/hivemind` server). | Connects your desktop wand to your **Hivemind** (`GalaAI/hivemind`): your Hivemind's live agent roster, Session relay, and asynchronous Work Order mission dispatch & polling. Set `OMNIWAND_HIVEMIND_URL` (for example `http://127.0.0.1:18788/mcp` for a local Hivemind) to sign in to your own Hivemind instead of the hosted one. |
+
+**Which route answered.** Every answer card names the Nemotron model that answered and its route. If an Ark API is running at `ARK_API_BASE_URL` (default `http://127.0.0.1:8788`) with an inbound key, Holodex asks Nemotron through its `ark/nemotron-*` routes and the card reads **VIA ARK API** with the gateway receipt. Otherwise, or when that call fails, Holodex asks Token Factory directly and the card reads **NEBIUS DIRECT**. A judge's PC needs only the Nebius key. To check either route from a terminal: `Omniwand.exe --ask "Say hello" --count 5` prints one JSON line per answer (route, model, receipt, latency) and a p50/p95 summary.
 
 ### Step 1: Download or Build Holodex (Windows 10/11 x64)
 

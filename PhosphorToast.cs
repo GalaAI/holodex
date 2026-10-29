@@ -140,8 +140,12 @@ internal sealed class PhosphorToast : Form
         return SurfaceCapture.Render(toast);
     }
 
+    /// <summary>True in the headless ask (HeadlessAsk), which has no desktop surface to show a toast on.</summary>
+    public static bool Suppressed { get; set; }
+
     public static void Show(string title, string body, string eyebrow = "HOLODEX", int durationMs = 4200, ToastTone tone = ToastTone.Info)
     {
+        if (Suppressed) return;
         void Create()
         {
             _current?.Close();

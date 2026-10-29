@@ -357,12 +357,12 @@ internal sealed class WizAgent
             thread.Vision(VisionModel, failed);
             return failed;
         }
-        var (ok, output) = await _ark.AskNebiusTokenFactoryAsync(
+        var answer = await _ark.AskAsync(
             "Describe this screen region for an agent that will plan work from it: the app, what is open, visible text that matters, and any errors or state. Be concrete and brief.",
             dataUrl,
             VisionModel).WaitAsync(ct);
-        string text = ok ? output.Trim() : $"The vision model could not describe the screen: {output}";
-        thread.Vision(VisionModel, text);
+        string text = answer.Ok ? answer.Output : $"The vision model could not describe the screen: {answer.Output}";
+        thread.Vision($"{answer.Model} // {answer.RouteLabel}", text);
         return text;
     }
 

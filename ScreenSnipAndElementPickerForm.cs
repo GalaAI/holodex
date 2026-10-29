@@ -117,10 +117,6 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         "google/gemma-3-27b-it"
     };
 
-    /// <summary>The picker's list: the Token Factory vision models, plus the Ark gateway's on an owner's Ark.</summary>
-    private static string[] VisionModelsFor(ArkStationClient ark) =>
-        ark.ArkInstalled ? VisionModels.Append("ark/kimi").ToArray() : VisionModels;
-
     public ScreenSnipAndElementPickerForm(
         ArkStationClient ark,
         Action<bool> setThinkingState,
@@ -262,7 +258,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         var footer = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "Snip.Footer" };
         _visionModel = VisionModels[0];
-        _visionModelChip = new ModelChip(_ark, VisionModelsFor(_ark), () => _visionModel, m => _visionModel = m) { Dock = DockStyle.Left, Name = "Snip.VisionModelSelect" };
+        _visionModelChip = new ModelChip(_ark, VisionModels,() => _visionModel, m => _visionModel = m) { Dock = DockStyle.Left, Name = "Snip.VisionModelSelect" };
         _visionModelChip.ModelChanged += (_, _) => SyncAskLabel();
         _analyzeBtn = new PhosphorButton("Ask", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Snip.AnalyzeButton" };
         _analyzeBtn.Click += async (_, _) => await RunLiveVisionAnalysisAsync();
@@ -986,8 +982,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             string header = pick != null
                 ? $"[Holodex Vision & Element Inspector | Tool={_activeTool} | Element={pick.Title} ({pick.Class}, {pick.Process}) | Geometry={pick.Rect.Width}x{pick.Rect.Height} | Palette={pick.Hex}]"
                 : $"[Holodex Vision | Tool={_activeTool} | Region={capture.Width}x{capture.Height} | Marks={_annotations.Count}]";
-            var (ok, output) = await _ark.AskVisionModelAsync($"{header}\n{prompt}", dataUrl, chosenVisionModel);
-            if (session == _session) ShowAnswer(ok ? ThreadTone.Agent : ThreadTone.Fail, AnswerKicker(chosenVisionModel, ok ? "" : " // not answered"), output);
+            var answer = await _ark.AskVisionModelAsync($"{header}\n{prompt}", dataUrl, chosenVisionModel);
+            // The kicker names the model that answered and how it was reached, not the picker's choice.
+            if (session == _session)
+                ShowAnswer(answer.Ok ? ThreadTone.Agent : ThreadTone.Fail,
+                    $"{ModelChip.ShortName(answer.Model)} // {answer.RouteLabel}{(answer.Ok ? "" : " // not answered")}", answer.Output);
         }
         catch (Exception ex)
         {

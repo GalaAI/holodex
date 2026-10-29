@@ -17,7 +17,7 @@ internal sealed class AugmentInventoryForm : Form
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
     private readonly WebView2 _web;
     private readonly ThreadView _fail;
-    private string _base = ArkStationClient.DefaultGatewayUrl;
+    private string _base = ArkStationClient.ArkApiBaseUrl;
     private string _shell = "phosphor";
     private string? _feedJson;
     private bool _initialized;
@@ -55,6 +55,25 @@ internal sealed class AugmentInventoryForm : Form
     /// <summary>The page's own URL for the Shell shown, on the Ark API this window reads.</summary>
     private string PageUrl => $"{_base}/api/omnitek/augment-inventory?shell={Uri.EscapeDataString(_shell)}";
     private string FeedUrl => $"{_base}/api/omnitek/shells";
+
+    /// <summary>
+    /// Whether the Ark API serves the Shell registry this window shows (GET /api/omnitek/shells answers 2xx), checked
+    /// once at startup on the owner's Ark. The tray and drawer offer the Inventory only then: no window that can
+    /// only say the feed is missing.
+    /// </summary>
+    public static bool FeedAvailable(ArkStationClient ark) => ark.ArkInstalled && FeedAvailableLazy.Value;
+
+    private static readonly Lazy<bool> FeedAvailableLazy = new(() =>
+    {
+        try
+        {
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(1500));
+            using var res = Http.GetAsync($"{ArkStationClient.ArkApiBaseUrl}/api/omnitek/shells", HttpCompletionOption.ResponseHeadersRead, cts.Token)
+                .GetAwaiter().GetResult();
+            return res.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    });
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {

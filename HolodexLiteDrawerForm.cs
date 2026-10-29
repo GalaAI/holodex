@@ -96,8 +96,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
     private readonly List<SyndicateWorkOrder> _workOrders = new();
 
-    // Who the session reaches: Hivemind's live roster once signed in, the offline roster until then.
-    private IReadOnlyList<SyndicateAgentInfo> _roster = OfflineRoster;
+    // Who the session reaches: Hivemind's live roster once signed in, Nemotron alone until then.
+    private IReadOnlyList<SyndicateAgentInfo> _roster = SignedOutRoster;
     private HivemindState? _shownHivemindState;
     /// <summary>The composer, its footer and the roster line: they step aside while the profile is open over them.</summary>
     private Control[] _sessionComposerParts = Array.Empty<Control>();
@@ -108,21 +108,13 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private bool HasNebiusKey => !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
 
     /// <summary>
-    /// The roster shown while Hivemind is not reachable. Replies to it are Nemotron role-play and say so
-    /// (<see cref="ArkStationClient.AskOfflineSyndicateAsync"/>); once signed in, <see cref="LoadLiveRosterAsync"/>
-    /// replaces it with Hivemind's ark_agents.
+    /// Who the session reaches while Hivemind is not connected: one assistant, Nemotron itself, answering through
+    /// <see cref="ArkStationClient.AskAsync"/>; each reply card names the model and route that answered. Once signed
+    /// in, <see cref="LoadLiveRosterAsync"/> replaces it with the user's own Hivemind agents (ark_agents).
     /// </summary>
-    public static readonly SyndicateAgentInfo[] OfflineRoster =
+    public static readonly SyndicateAgentInfo[] SignedOutRoster =
     {
-        new("all",     "ALL SYNDICATE", "Co-op Group Session",          "Nexus",    PhosphorTheme.Patina),
-        new("gala",    "GALA",          "Co-op Orchestrator",           "Nexus",    PhosphorTheme.Patina),
-        new("wiz",     "WIZ",           "GrimX & Mouse Macro Conductor","4GE",      PhosphorTheme.Coral),
-        new("smith",   "SMITH",         "Architecture & Code Authority","4GE",      PhosphorTheme.Coral),
-        new("arbiter", "ARBITER",       "Eden & SolaTree Conductor",    "Eden",     PhosphorTheme.Patina),
-        new("scholar", "SCHOLAR",       "Research & Codex Conductor",   "Cortex",   PhosphorTheme.Patina),
-        new("muse",    "MUSE",          "Visual & Motion Conductor",    "MagiXLab", PhosphorTheme.Coral),
-        new("fabrix",  "FABRIX",        "Hardware & Gear Coordinator",  "Anvl",     PhosphorTheme.Seal),
-        new("herald",  "HERALD",        "Bazaar & Pack Distribution",   "Bazaar",   PhosphorTheme.Seal)
+        new("nemotron", "NEMOTRON", "Answers here until you sign in to Hivemind", "Token Factory", PhosphorTheme.Patina)
     };
 
     public HolodexLiteDrawerForm(
@@ -322,7 +314,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // Composer: the message, a bar with + work order, then who it goes to and Send.
         var composer = new ComposerSurface { Dock = DockStyle.Bottom, Name = "Holodex.SessionComposer" };
-        _sessionInputBox = new PromptTextBox { Dock = DockStyle.Top, Height = 44, Prompt = "Message the Syndicate. /order queues a work order.", Name = "Holodex.SessionInput" };
+        _sessionInputBox = new PromptTextBox { Dock = DockStyle.Top, Height = 44, Prompt = "Send a message. /order queues a work order.", Name = "Holodex.SessionInput" };
         _sessionInputBox.KeyDown += async (_, e) =>
         {
             if (e.KeyCode == Keys.Enter && !e.Shift)
@@ -406,12 +398,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
             HivemindState.Connected => (PhosphorTheme.Moss, "Hivemind live"),
             HivemindState.SigningIn => (PhosphorTheme.Seal, "Signing in: finish in the browser"),
             HivemindState.Connecting => (PhosphorTheme.Ghost, "Connecting to Hivemind"),
-            HivemindState.Unreachable => (PhosphorTheme.Rust, $"Hivemind unreachable{(error.Length > 0 ? $" ({(error.Length > 48 ? error[..47] + "\u2026" : error)})" : "")}: replies are role-play"),
-            _ => (PhosphorTheme.Ember, "Signed out: replies are role-play, orders stay here")
+            HivemindState.Unreachable => (PhosphorTheme.Rust, $"Hivemind unreachable{(error.Length > 0 ? $" ({(error.Length > 48 ? error[..47] + "\u2026" : error)})" : "")}: Nemotron answers"),
+            _ => (PhosphorTheme.Ember, error.Length > 0 ? error : "Signed out of Hivemind: Nemotron answers, orders stay here")
         };
         var leds = new List<(Color, string)> { status };
         if (agent.Id != "all") leds.Add((agent.Accent, agent.Role));
-        else if (_roster == OfflineRoster) leds.AddRange(_roster.Where(a => a.Id != "all").Select(a => (a.Accent, a.Name)));
         else leds.Add((PhosphorTheme.Patina, $"Goes to {MissionTarget(agent)}, who orchestrates the group"));
         _activeRosterLabel.Set(leds.ToArray());
     }
@@ -497,14 +488,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // A card per pod inbox in its zone accent: what the pod handles, then its channel and conductor as LEDs.
         var podBox = CardList("Holodex.PodInboxList");
-        podBox.AddSection("Pod inboxes // Handoff Scroll routing");
+        bool ark = ArkStationClient.ArkOnThisPc;
+        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Handoff Scrolls saved on this PC");
         foreach (var p in ArkStationClient.PodInboxes)
         {
             Color accent = PodAccent(p.AccentToken);
             var card = podBox.Add(ThreadTone.Action, $"{p.Label} // {p.Zone}", p.Description, leds: new[]
             {
                 (accent, p.InboxChannel),
-                (PhosphorTheme.Patina, $"Conductor {p.OrchestratorLabel}")
+                ark ? (PhosphorTheme.Patina, $"Conductor {p.OrchestratorLabel}") : (PhosphorTheme.Patina, "Documents\\Holodex\\Scrolls")
             });
             card.EdgeOverride = accent;
         }
@@ -707,15 +699,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
             ("Shape-changing pointer", "It turns into a line when you can type, glows on links, and spins while it waits.", new[] { (PhosphorTheme.Moss, "Smooth") }),
             ("Knows your mouse", "Finds the mouse you are moving and uses its own speed and buttons.", new[] { (PhosphorTheme.Moss, "Switches by itself") }),
             ("Safe key keeper", "Keeps your model key locked in Windows, never in a file.", new[] { (PhosphorTheme.Patina, "Windows vault") }),
-            ("Hivemind session bridge", "Messages and work orders become real Hivemind missions over MCP. Signed out or offline, replies are Nemotron role-play and are labelled so.", new[] { (PhosphorTheme.Patina, "hivemind.arkomnitek.com/mcp"), (PhosphorTheme.Ghost, "Offline: Nemotron 3 Nano") })
+            ("Hivemind session bridge", "Messages and work orders become real Hivemind missions over MCP. Signed out, Nemotron answers and every card names its model.", new[] { (PhosphorTheme.Patina, HivemindClient.EndpointHost), (PhosphorTheme.Ghost, "Signed out: Nemotron") })
         })
             modsInfoBox.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
 
         _modsPanel.Controls.Add(modsInfoBox);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(onboardBtn);
-        // The Augment Inventory reads the owner's Ark API; a public install has none to open.
-        if (_ark.ArkInstalled)
+        // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
+        if (AugmentInventoryForm.FeedAvailable(_ark))
         {
             _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
             _modsPanel.Controls.Add(inventoryBtn);
@@ -1154,7 +1146,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// <summary>The Hivemind row's LED: whether the session reaches the real agents (the intro card says the rest).</summary>
     private (Color, string) HivemindLed() => _ark.Hivemind.State switch
     {
-        HivemindState.Connected => (PhosphorTheme.Moss, _roster == OfflineRoster ? "HIVEMIND // LIVE" : $"HIVEMIND // LIVE // {_roster.Count - 1} AGENTS"),
+        HivemindState.Connected => (PhosphorTheme.Moss, _roster == SignedOutRoster ? "HIVEMIND // CONNECTED // LOADING AGENTS" : $"HIVEMIND // LIVE // {_roster.Count - 1} AGENTS"),
         HivemindState.SigningIn => (PhosphorTheme.Seal, "HIVEMIND // FINISH IN THE BROWSER"),
         HivemindState.Connecting => (PhosphorTheme.Ghost, "HIVEMIND // CONNECTING"),
         HivemindState.Unreachable => (PhosphorTheme.Rust, "HIVEMIND // UNREACHABLE"),
@@ -1172,7 +1164,9 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _hivemindBtn.Text = state == HivemindState.Unreachable ? "Reconnect" : "Sign in";
         _hivemindBtn.Enabled = state != HivemindState.SigningIn;
         _signOutBtn.Visible = state is HivemindState.Connected or HivemindState.Unreachable;
-        if (state != HivemindState.Connected && _roster != OfflineRoster) SetRoster(OfflineRoster);
+        if (state != HivemindState.Connected && _roster != SignedOutRoster) SetRoster(SignedOutRoster);
+        // Every arrival at Connected loads the user's agents, whichever path connected (sign-in, reconnect, a call).
+        if (state == HivemindState.Connected && _roster == SignedOutRoster) _ = LoadLiveRosterAsync();
         var led = HivemindLed();
         _hivemindLine.Set(led);
         _profileBtn.Status = led.Item1;
@@ -1270,29 +1264,17 @@ public sealed partial class HolodexLiteDrawerForm : Form
             return;
         }
 
-        // Offline: Nemotron answers in the Syndicate's voice, and every card says it is role-play and which model.
+        // Signed out: Nemotron answers as itself, and the card names the model and the route that answered.
         _setThinkingState(true);
-        var pending = _sessionThread.AddPending($"{agent.Name.ToUpperInvariant()} // OFFLINE ROLE-PLAY // ANSWERING");
+        var pending = _sessionThread.AddPending($"{ModelChip.ShortName(_ark.SelectedModel).ToUpperInvariant()} // ANSWERING");
         try
         {
-            var (ok, reply, model) = await _ark.AskOfflineSyndicateAsync(msg, agent.Id, agent.Name, agent.Role);
-            string label = $"OFFLINE ROLE-PLAY // {ModelChip.ShortName(model).ToUpperInvariant()}";
-            if (!ok) pending.Resolve(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED // {label}", reply);
-            else
-            {
-                // The first turn takes the pending card's place; the rest follow it.
-                bool first = true;
-                foreach (var (who, text) in SplitTurns(reply, agent.Name))
-                {
-                    if (first) pending.Resolve(ThreadTone.Agent, $"{who} // {label}", text);
-                    else _sessionThread.Add(ThreadTone.Agent, $"{who} // {label}", text);
-                    first = false;
-                }
-                if (first) pending.Resolve(ThreadTone.Agent, $"{agent.Name.ToUpperInvariant()} // {label}", reply);
-            }
+            var answer = await _ark.AskAsync(msg);
+            string label = $"{ModelChip.ShortName(answer.Model).ToUpperInvariant()} // {answer.RouteLabel}";
+            pending.Resolve(answer.Ok ? ThreadTone.Agent : ThreadTone.Fail, answer.Ok ? label : $"NOT ANSWERED // {label}", answer.Output);
             if (!Visible || !_sessionPanel.Visible)
-                PhosphorToast.Show(ok ? $"{agent.Name} replied (offline role-play)" : $"{agent.Name} did not answer", Clip(reply),
-                    "HOLODEX // SESSION // ALT+H", 4200, ok ? ToastTone.Info : ToastTone.Warning);
+                PhosphorToast.Show(answer.Ok ? $"{ModelChip.ShortName(answer.Model)} replied" : "Not answered", Clip(answer.Output),
+                    "HOLODEX // SESSION // ALT+H", 4200, answer.Ok ? ToastTone.Info : ToastTone.Warning);
         }
         catch (Exception ex)
         {
@@ -1302,38 +1284,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             _setThinkingState(false);
         }
-    }
-
-    /// <summary>
-    /// The session asks agents to answer as "NAME // ROLE:" lines; each turn becomes its own card. A reply with no
-    /// such line is one turn from the agent it was sent to.
-    /// </summary>
-    internal static List<(string Who, string Text)> SplitTurns(string reply, string fallbackName)
-    {
-        var turns = new List<(string Who, string Text)>();
-        string? who = null;
-        var body = new System.Text.StringBuilder();
-        void Flush()
-        {
-            if (who == null && body.Length == 0) return;
-            turns.Add((who ?? fallbackName.ToUpperInvariant(), body.ToString().Trim()));
-            body.Clear();
-        }
-        foreach (var raw in reply.Replace("\r", "").Split('\n'))
-        {
-            string line = raw.Trim().Trim('*').Trim();
-            var head = System.Text.RegularExpressions.Regex.Match(line, @"^([A-Za-z][A-Za-z0-9 .]{0,40}) // ([^:]{1,60}):\s*(.*)$");
-            if (head.Success)
-            {
-                Flush();
-                who = $"{head.Groups[1].Value.Trim().ToUpperInvariant()} // {head.Groups[2].Value.Trim().ToUpperInvariant()}";
-                if (head.Groups[3].Value.Length > 0) body.AppendLine(head.Groups[3].Value);
-                continue;
-            }
-            body.AppendLine(raw);
-        }
-        Flush();
-        return turns.Where(t => t.Text.Length > 0 || turns.Count == 1).ToList();
     }
 
     private async Task SaveTokenLoginAsync()

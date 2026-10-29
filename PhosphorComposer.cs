@@ -740,11 +740,11 @@ internal sealed class ModelChip : SuggestionChip
     /// <summary>After a run, the runtime that actually answered (for example ANTIGRAVITY CLI) replaces the guess.</summary>
     public void ShowRuntime(string runtime)
     {
-        // Runtimes come back as ids like "ark-model-gateway (nvidia/...)"; the chip names the host.
+        // Runtimes come back as route ids ("ark-api", "nebius-direct") or CLI names; the chip names the host.
         string r = runtime.ToLowerInvariant();
         _runtime = r.Contains("gemini") ? "Gemini"
-            : r.Contains("gateway") ? "Ark gateway"
-            : r.Contains("nebius") || r.Contains("token") ? "Nebius"
+            : r == ArkStationClient.RouteArkApi ? "Ark API"
+            : r == ArkStationClient.RouteNebiusDirect ? "Nebius direct"
             : runtime.Split(' ', '(')[0];
         Sync();
     }
@@ -765,9 +765,10 @@ internal sealed class ModelChip : SuggestionChip
         }
     }
 
-    private string Host(string model) => model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase) || (_ark.LastGatewayOnline && !ArkStationClient.IsNemotronModel(model))
-        ? "Ark gateway"
-        : "Nebius";
+    /// <summary>Where the next ask with this model goes: the Ark API when it is up and has a route for it, else Token Factory direct.</summary>
+    private string Host(string model) => _ark.LastGatewayOnline && ArkStationClient.ArkRouteFor(model) != null
+        ? "Ark API"
+        : "Nebius direct";
 
     /// <summary>"nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B" reads "Nemotron 3 Nano": vendor, sizes and tuning tags dropped.</summary>
     public static string ShortName(string model)

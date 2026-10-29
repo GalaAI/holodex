@@ -221,16 +221,17 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         model ??= _agentModel;
         string host = runtime != null
             ? HostName(runtime)
-            : ArkStationClient.IsNemotronModel(model) || !_ark.LastGatewayOnline ? "NEBIUS TOKEN FACTORY" : "ANTIGRAVITY CLI";
+            : !ArkStationClient.IsNemotronModel(model) && _ark.LastGatewayOnline ? "ANTIGRAVITY CLI"
+            : _ark.LastGatewayOnline && ArkStationClient.ArkRouteFor(model) != null ? "VIA ARK API" : "NEBIUS DIRECT";
         _hostLine.Set((PhosphorTheme.Moss, host));
     }
 
-    /// <summary>Runtime ids from AskWizGeminiArgonAsync ("nebius-token-factory", "subscription-gemini (agy)", "ark-model-gateway") as hosts.</summary>
+    /// <summary>Runtime ids from AskWizGeminiArgonAsync ("nebius-direct", "ark-api", "subscription-gemini (agy)") as hosts.</summary>
     private static string HostName(string runtime)
     {
         string r = runtime.ToLowerInvariant();
-        if (r.Contains("nebius") || r.Contains("token-factory")) return "NEBIUS TOKEN FACTORY";
-        if (r.Contains("gateway")) return "ARK MODEL GATEWAY";
+        if (r == ArkStationClient.RouteNebiusDirect) return "NEBIUS DIRECT";
+        if (r == ArkStationClient.RouteArkApi) return "VIA ARK API";
         if (r.Contains("gemini") || r.Contains("agy") || r.Contains("antigravity")) return "ANTIGRAVITY CLI";
         return runtime.Replace('-', ' ').ToUpperInvariant();
     }
@@ -493,12 +494,12 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         _threadStarted = true;
         _starterRow.Visible = false;
         _thread.Clear();
-        Say(ThreadTone.You, "YOU // RITUAL", "Queue a nightly worktree cleanup Ritual for Arbiter and keep a note of it.");
+        Say(ThreadTone.You, "YOU // RITUAL", "Queue a nightly downloads-folder cleanup Ritual and keep a note of it.");
         t.Step(1, model, "Check which Spell Orb slot performs Rituals before queuing anything.");
         t.Action("list_spell_slots()");
         t.Result("[2] RITUAL // PERFORM // Scheduled cadence", true);
-        t.Step(2, model, "Slot 2 performs Rituals; queue the cleanup for Arbiter.");
-        const string queue = "queue_work_order(agent=\"arbiter\", task=\"Nightly worktree cleanup Ritual\")";
+        t.Step(2, model, "Slot 2 performs Rituals; queue the nightly cleanup.");
+        const string queue = "queue_work_order(agent=\"wiz\", task=\"Nightly downloads-folder cleanup Ritual\")";
         t.Action(queue);
         BeginApproval(queue, "QUEUES A HOLODEX WORK ORDER");
         SetWorking(true);

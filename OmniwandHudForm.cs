@@ -47,7 +47,7 @@ public sealed class OmniwandHudForm : Form
     /// <summary>The Hivemind Session Gala answers in: opened by the first ask, continued by the rest.</summary>
     private string? _galaSessionId;
     /// <summary>Whether Gala can take a turn, as the telemetry line's first LED says it.</summary>
-    private (Color Led, string Text) _galaLed = (PhosphorTheme.Ghost, "GALA");
+    private (Color Led, string Text) _galaLed = (PhosphorTheme.Ghost, "HIVEMIND");
     private static readonly TimeSpan GalaReplyTimeout = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan GalaPollInterval = TimeSpan.FromSeconds(2);
     /// <summary>The ask under way, cancelled by a pending card's Stop.</summary>
@@ -220,15 +220,13 @@ public sealed class OmniwandHudForm : Form
         : true);
 
     /// <summary>
-    /// The model that actually answers: on the Nebius path a text-only Nemotron hands an attached screen to
-    /// Nemotron 3.5 Super VL (ArkStationClient.AskNebiusTokenFactoryAsync), so say that rather than the chip's model.
+    /// The model that will answer: a text-only Nemotron hands an attached screen to Nemotron 3.5 Super VL
+    /// (ArkStationClient.AskAsync), so say that rather than the chip's model. The answer card names the model that did.
     /// </summary>
     private string AnsweringModel(bool withScreen)
     {
         string model = _ark.SelectedModel;
-        bool nebiusPath = !_ark.LastGatewayOnline || ArkStationClient.IsNemotronModel(model);
-        bool vision = model.Contains("vl", StringComparison.OrdinalIgnoreCase) || model.Contains("omni", StringComparison.OrdinalIgnoreCase) || model.Contains("vision", StringComparison.OrdinalIgnoreCase);
-        return withScreen && nebiusPath && !vision ? "nvidia/Nemotron-3.5-Super-VL" : model;
+        return withScreen && !ArkStationClient.ReadsImages(model) ? ArkStationClient.DefaultNemotronVisionModel : model;
     }
 
     private void SyncVisionHint() => _visionHint.Text = _visionToggle.Selected
@@ -313,7 +311,7 @@ public sealed class OmniwandHudForm : Form
     private void SyncTelemetry()
     {
         bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
-        var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "GATEWAY ONLINE")
+        var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "ARK API ONLINE")
             : keyed ? (PhosphorTheme.Patina, "NEMOTRON // TOKEN FACTORY")
             : (PhosphorTheme.Ember, "NO MODEL KEY // ALT+H ADDS ONE");
         var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
@@ -445,6 +443,13 @@ public sealed class OmniwandHudForm : Form
     /// </summary>
     private async Task<string?> GalaUnavailableReasonAsync()
     {
+        // Gala is the owner's orchestrator, on the owner's Ark. A public install asks Nemotron, and its LED is the
+        // user's own Hivemind sign-in.
+        if (!_ark.ArkInstalled)
+        {
+            _galaLed = HivemindClient.HasSavedSignIn ? (PhosphorTheme.Moss, "HIVEMIND SIGNED IN") : (PhosphorTheme.Ghost, "HIVEMIND SIGNED OUT");
+            return _galaLed.Text;
+        }
         (Color Led, string Text)? state = null;
         if (!HivemindClient.HasSavedSignIn) state = (PhosphorTheme.Ghost, "HIVEMIND SIGNED OUT");
         else if (await _ark.Hivemind.ListAgentsAsync() is not { } agents) state = (PhosphorTheme.Rust, "HIVEMIND UNREACHABLE");
@@ -472,10 +477,12 @@ public sealed class OmniwandHudForm : Form
             reading.SetFooter("", StopAction());
             try
             {
-                var (seen, description) = await _ark.AskArkGatewayAsync(
+                var read = await _ark.AskAsync(
                     $"Describe, in a few plain sentences, what on this screen bears on the question below. Do not answer it.\n\nQuestion: {prompt}", snapshot).WaitAsync(ct);
-                reading.Resolve(seen ? ThreadTone.Action : ThreadTone.Fail, seen ? $"SCREEN READ BY {reader}" : $"SCREEN NOT READ // {reader}", description);
-                if (seen) content = $"{prompt}\n\nWhat is on my screen, as {ModelChip.ShortName(readerId)} read it:\n{description}";
+                reader = ModelChip.ShortName(read.Model).ToUpperInvariant();
+                reading.Resolve(read.Ok ? ThreadTone.Action : ThreadTone.Fail,
+                    read.Ok ? $"SCREEN READ BY {reader} // {read.RouteLabel}" : $"SCREEN NOT READ // {reader} // {read.RouteLabel}", read.Output);
+                if (read.Ok) content = $"{prompt}\n\nWhat is on my screen, as {ModelChip.ShortName(read.Model)} read it:\n{read.Output}";
             }
             catch (OperationCanceledException)
             {
@@ -550,16 +557,28 @@ public sealed class OmniwandHudForm : Form
         pending.SetFooter("", StopAction());
         bool ok = false;
         string output;
-        try { (ok, output) = await _ark.AskArkGatewayAsync(prompt, snapshot).WaitAsync(ct); }
+        string route = "";
+        string receipt = "";
+        try
+        {
+            var answer = await _ark.AskAsync(prompt, snapshot).WaitAsync(ct);
+            (ok, output) = (answer.Ok, answer.Output);
+            // The card names the model and route that actually answered, which a fallback can change.
+            answeredBy = ModelChip.ShortName(answer.Model).ToUpperInvariant();
+            route = answer.RouteLabel;
+            if (answer.ReceiptId is { Length: > 8 } id) receipt = $"RECEIPT {id[..8]} // ";
+        }
         catch (OperationCanceledException)
         {
             pending.Resolve(ThreadTone.Fail, "STOPPED BY YOU", $"Holodex stopped waiting for {answeredBy}.");
             return (false, "STOPPED", "STOPPED BY YOU");
         }
         catch (Exception ex) { output = ex.Message; }
-        string kicker = ok ? $"ANSWERED BY {answeredBy} // {because}" : $"NOT ANSWERED // {answeredBy}";
+        // On the owner's Ark the card also says why Gala did not answer; a public install has no Gala to explain.
+        string why = _ark.ArkInstalled ? $" // {because}" : "";
+        string kicker = ok ? $"ANSWERED BY {answeredBy} // {route}{why}" : $"NOT ANSWERED // {answeredBy}{(route.Length > 0 ? " // " + route : "")}";
         pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, kicker, output);
-        if (ok) AnswerFooter(pending, prompt, Seconds(clock), gala: false);
+        if (ok) AnswerFooter(pending, prompt, $"{receipt}{Seconds(clock)}", gala: false);
         else FailFooter(pending, prompt);
         return (ok, output, kicker);
     }
@@ -666,7 +685,7 @@ public sealed class OmniwandHudForm : Form
             FailFooterGala(_answers.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND",
                 "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY."));
             var answer = _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA DID NOT ANSWER",
-                "Navigate holds it because the Verify lane is paused, not because of the diff: the check reads \"could not execute this validation lane\". Resume the release, then re-request the check.");
+                "CI holds it because the check runner is paused, not because of the diff: the check reads \"could not run this job\". Resume the runner, then re-run the check.");
             answer.LinkedAbove = true;
             AnswerFooter(answer, question, "", gala: false); // a render has no latency to report
         }
