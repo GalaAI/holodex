@@ -723,7 +723,30 @@ internal sealed class ModelChip : SuggestionChip
         Accent = PhosphorTheme.Patina;
         Click += (_, _) => ShowChoices(_models.Select(m => new ChipChoice(ShortName(m), Host(m), string.Equals(m, _get(), StringComparison.OrdinalIgnoreCase), () => { _set(m); _runtime = null; Sync(); }, m)));
         _models.Add(_get());
+        _ark.ArkApiStateChanged += OnArkApiStateChanged;
         Sync();
+    }
+
+    /// <summary>The Ark API came up or went down: the next ask takes the other route, so the chip stops naming the last one.</summary>
+    private void OnArkApiStateChanged(object? sender, EventArgs e)
+    {
+        if (IsDisposed) return;
+        void Resync() { if (IsDisposed) return; _runtime = null; Sync(); }
+        if (InvokeRequired) { if (IsHandleCreated) BeginInvoke(Resync); }
+        else Resync();
+    }
+
+    /// <summary>A route change before the chip had a handle could not be marshalled; read the current route now.</summary>
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        Sync();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _ark.ArkApiStateChanged -= OnArkApiStateChanged;
+        base.Dispose(disposing);
     }
 
     /// <summary>Reloads the model list (gateway models when reachable, unless the list is fixed) and the ready state.</summary>

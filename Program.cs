@@ -584,6 +584,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
         }
 
+        // One Ark API probe at start, so every model chip names the route the first ask takes before any surface opens.
+        _ = _ark.ProbeArkApiAsync();
+
         // Last: the pipe answers only once every widget, the tray and its menu exist, so a command sent the
         // moment the pipe is up never meets a half-built app.
         StartControlPipeServer();

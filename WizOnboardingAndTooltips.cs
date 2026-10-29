@@ -25,7 +25,7 @@ public sealed record WizEnvironmentScanReport(
 /// <summary>
 /// Zero-manual Wiz automated onboarding engine + Animated Phosphor Tooltip Tutorial overlay.
 /// Scans environment, detects mouse brand/model &amp; DPI, sets up dependencies, creates the local
-/// ~/.ark/agents/omniwand workspace folder &amp; .bamf manifest, and walks the user through Omniwand
+/// %LOCALAPPDATA%\Omniwand\agents\omniwand workspace folder &amp; .bamf manifest, and walks the user through Omniwand
 /// with animated Phosphor tooltips.
 /// </summary>
 public static class WizOnboardingEngine

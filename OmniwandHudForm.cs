@@ -190,13 +190,24 @@ public sealed class OmniwandHudForm : Form
         Controls.Add(WidgetChrome.Spacer(2));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, "ARK // WAND", "Holodex", PhosphorTheme.Patina, headerTools);
+        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? "ARK // WAND" : "HOLODEX // WAND", "Holodex", PhosphorTheme.Patina, headerTools);
         WidgetDrag.Enable(this);
-        ShowWandStatus(gatewayOnline: false);
+        ShowWandStatus(gatewayOnline: _ark.LastGatewayOnline);
+        // Any probe (an ask, the pickers, the drawer) can find the Ark API up or down; the LED follows it.
+        EventHandler onArkApi = (_, _) => { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => ShowWandStatus(_ark.LastGatewayOnline)); };
+        _ark.ArkApiStateChanged += onArkApi;
+        Disposed += (_, _) => _ark.ArkApiStateChanged -= onArkApi;
         SyncVisionHint();
         SyncAskLabel();
         FitToAnswer();
         ResumeLayout(false);
+    }
+
+    /// <summary>A probe before the HUD's first show could not reach the LED; it reads the current state once it has a handle.</summary>
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ShowWandStatus(_ark.LastGatewayOnline);
     }
 
     private bool HasAnswer => _answers.Cards.Any();

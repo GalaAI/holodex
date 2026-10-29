@@ -945,8 +945,8 @@ public sealed class AInboxIntakeWidgetForm : Form
                 var link = new StackItem { Kind = CaptureKind.Link, Name = "github.com/octocat/Hello-World/pull/42", Url = "https://github.com/octocat/Hello-World/pull/42", Meta = "LINK", Origin = chrome };
                 Scan(link);
                 _items.Add(link);
-                _items.Add(new StackItem { Kind = CaptureKind.File, Name = "bookings-oct.csv", Path = "bookings-oct.csv", Meta = "FILE // 48.2 KB // 1,204 ROWS", Origin = exports });
-                var sql = new StackItem { Kind = CaptureKind.Snippet, Name = "select * from bookings where month = 10", Text = "select * from bookings where month = 10", Meta = "SNIPPET // 39 CHARS", Origin = exports };
+                _items.Add(new StackItem { Kind = CaptureKind.File, Name = "orders-oct.csv", Path = "orders-oct.csv", Meta = "FILE // 48.2 KB // 1,204 ROWS", Origin = exports });
+                var sql = new StackItem { Kind = CaptureKind.Snippet, Name = "select * from orders where month = 10", Text = "select * from orders where month = 10", Meta = "SNIPPET // 37 CHARS", Origin = exports };
                 Scan(sql);
                 _items.Add(sql);
                 _intentBox.Text = "Why does CI hold this PR without saying why?";

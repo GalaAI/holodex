@@ -183,6 +183,17 @@ public sealed class ArkStationClient
     public string ActiveCursorProfile { get; private set; } = "smooth-cursor";
     public bool LastGatewayOnline { get; private set; }
 
+    /// <summary>Raised (on the probing thread) when <see cref="LastGatewayOnline"/> changes, so a model chip names the route the next ask takes.</summary>
+    public event EventHandler? ArkApiStateChanged;
+
+    private bool SetArkApiOnline(bool online)
+    {
+        bool changed = LastGatewayOnline != online;
+        LastGatewayOnline = online;
+        if (changed) ArkApiStateChanged?.Invoke(this, EventArgs.Empty);
+        return online;
+    }
+
     public ArkStationClient(string? arkRoot = null)
     {
         ArkRoot = !string.IsNullOrWhiteSpace(arkRoot) && Directory.Exists(arkRoot)
@@ -511,11 +522,10 @@ public sealed class ArkStationClient
         string baseUrl = ArkApiBaseUrl;
         // A down Ark API is remembered for a few seconds, so asks in a row do not each wait out a refused connection.
         if (_arkApiDownSince is { } down && down.BaseUrl == baseUrl && DateTime.UtcNow - down.At < ArkApiDownMemory)
-            return LastGatewayOnline = false;
+            return SetArkApiOnline(false);
         bool online = !ForceStandaloneMode && await ProbeHttpAsync(baseUrl + "/model-gateway/health");
         _arkApiDownSince = online ? null : (baseUrl, DateTime.UtcNow);
-        LastGatewayOnline = online;
-        return online;
+        return SetArkApiOnline(online);
     }
 
     private static readonly TimeSpan ArkApiDownMemory = TimeSpan.FromSeconds(15);
@@ -740,11 +750,9 @@ public sealed class ArkStationClient
         return (answer.Ok, answer.Route, answer.Model, answer.Output);
     }
 
-    /// <summary>A Nemotron model, by its Token Factory id (nvidia/...) or its Ark API route (ark/nemotron-...).</summary>
+    /// <summary>A Nemotron model, by its Token Factory id (nvidia/...Nemotron...) or its Ark API route (ark/nemotron-...). Other NVIDIA models are not.</summary>
     public static bool IsNemotronModel(string? model) =>
-        !string.IsNullOrWhiteSpace(model) &&
-        (model.Contains("nemotron", StringComparison.OrdinalIgnoreCase) ||
-         model.StartsWith("nvidia/", StringComparison.OrdinalIgnoreCase));
+        !string.IsNullOrWhiteSpace(model) && model.Contains("nemotron", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// The Token Factory id for a selection: an Ark route maps to the Nemotron id it serves, a Token Factory id
@@ -923,8 +931,15 @@ public sealed class ArkStationClient
             $"ok={Ok}:route={Route}:model={Model}:receipt={ReceiptId ?? "none"}:fallback={(FallbackReason ?? "none").Replace(':', ' ')}";
     }
 
+    // Grounding: a small model asked about the stack it runs on otherwise guesses (a live Nano answer once said Token
+    // Factory "enables users to generate custom AI tokens"). These are the facts a judge is likely to ask about.
     private const string HolodexSystemPrompt =
-        "You are Holodex, a native Windows desktop companion powered by NVIDIA Nemotron. Answer concisely, accurately, and directly.";
+        "You are Holodex, a Windows desktop companion that answers with NVIDIA Nemotron open models. " +
+        "Facts about your own stack: NVIDIA Nemotron is a family of open models from NVIDIA. Nebius Token Factory is " +
+        "Nebius's hosted inference service that serves open models such as Nemotron through an OpenAI-compatible API; " +
+        "Holodex calls it directly, or through the owner's Ark API when one runs on the PC. Hivemind is the user's own " +
+        "agent hub that Holodex can sign in to. " +
+        "Answer concisely, accurately and directly. If you do not know something, say so instead of guessing.";
 
     // Token Factory serves Nemotron with its thinking on by default; with a reply budget, Nano could spend all of it
     // thinking and end at finish_reason=length with no answer. Holodex wants the answer, so thinking is off
@@ -947,6 +962,7 @@ public sealed class ArkStationClient
         string? route = ArkRouteFor(chosen);
         string key = route == null ? string.Empty : ReadInboundKey();
         if (route == null) fallbackReason = $"{chosen} has no Ark API route";
+        else if (ForceStandaloneMode) fallbackReason = "standalone mode does not use the Ark API";
         else if (!await ProbeArkApiAsync()) fallbackReason = $"Ark API at {ArkApiBaseUrl} is not reachable";
         else if (string.IsNullOrEmpty(key)) fallbackReason = "no Ark API inbound key";
         else

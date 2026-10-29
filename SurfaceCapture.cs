@@ -21,12 +21,12 @@ internal static class SurfaceCapture
     internal static readonly (string File, string Title, string Body, string Eyebrow, ToastTone Tone)[] ToastCatalog =
     {
         ("toast-info", "Holodex Active", "Actions Ring casts the eight Spell Orb slots. Right-click the tray mark for settings.", "PHOSPHOR SHELL // GRIMX WAND", ToastTone.Info),
-        ("toast-success", "Cast: Quick Cast", "Quick Cast dispatched through Input Spine.", "GRIMX SPELL // CAST", ToastTone.Success),
-        ("toast-warning", "Ritual not cast", "No Input Spine binding for grimx/ritual, so nothing was cast. Bind it in Input Studio.", "GRIMX SPELL // PERFORM", ToastTone.Warning),
-        ("toast-error", "Input Spine unreachable", "Input Spine (:8842) is unreachable, so nothing was cast. Start the Ark runtime and cast again.", "GRIMX SPELL // CAST", ToastTone.Error),
+        ("toast-success", "Cast: Quick Cast", "Quick Cast ran. Wiz drafted the Spell on Nemotron.", "GRIMX SPELL // CAST", ToastTone.Success),
+        ("toast-warning", "Ritual not cast", "No Spell is bound to this slot, so nothing was cast. Pick one for the slot and cast again.", "GRIMX SPELL // PERFORM", ToastTone.Warning),
+        ("toast-error", "Not answered", "Nebius Token Factory did not answer within 24 seconds, so nothing was cast. Cast again.", "GRIMX SPELL // CAST", ToastTone.Error),
         ("toast-cursor-profile", "Cursor profile", "Active Input Studio profile: Precision", "MX MASTER 4", ToastTone.Info),
         ("toast-vr-mode", "VR mode", "Air Link detected. Native cursor hidden, wand enlarged.", "HOLODEX // VR", ToastTone.Info),
-        ("toast-gateway", "Gateway unavailable", "No inbound key in Keymaster, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work.", "GATEWAY // KEYMASTER", ToastTone.Info),
+        ("toast-gateway", "Gateway unavailable", "No Ark API on this PC, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work.", "NEMOTRON // TOKEN FACTORY", ToastTone.Info),
         ("toast-ghosttrailer", "GhostTrailer on", "Streaming the ribbon. F16 stops it.", "GHOSTTRAILER // F16", ToastTone.Info),
         ("toast-cursor-shown", "Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "HOLODEX // CURSOR", ToastTone.Info),
         ("toast-intake", "Intake submitted", "Handoff Scroll sent to Eden and its inbox pulsed. Seal sha256:3f9a1c07b2de.", "AINBOX // POD EDEN", ToastTone.Success),

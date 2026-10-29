@@ -275,7 +275,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Controls.Add(_contentHost);
         Controls.Add(WidgetChrome.Spacer(Gutter));
         Controls.Add(_profilePanel);
-        var header = WidgetChrome.Attach(this, "ARK // HOLODEX", "Holodex", PhosphorTheme.Patina, null, mark: false);
+        var header = WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? "ARK // HOLODEX" : "HOLODEX // DRAWER", "Holodex", PhosphorTheme.Patina, null, mark: false);
         header.Height = 48;
         // The rail's divider is the gutter's first pixel column, outside the rail, so the rail's whole width is the
         // column its items centre on.
