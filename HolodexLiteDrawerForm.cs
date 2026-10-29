@@ -41,6 +41,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private readonly Action _runWizOnboardingTutorial;
     /// <summary>Opens the Augment Inventory window (Program owns it).</summary>
     internal Action? OpenAugmentInventory { get; set; }
+    /// <summary>Opens the Input Studio window (Program owns it).</summary>
+    internal Action? OpenInputStudio { get; set; }
     private readonly Action<CursorIconStyle> _onCursorStyleChanged;
 
     private string _activeTab = "session";
@@ -688,6 +690,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         inventoryBtn.Click += (_, _) => OpenAugmentInventory?.Invoke();
 
+        // Design the pointer and the bindings: Input Studio from Ark, in its own window.
+        var studioBtn = new PhosphorButton("Input Studio")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.InputStudioBtn"
+        };
+        studioBtn.Click += (_, _) => OpenInputStudio?.Invoke();
+
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
         modsInfoBox.AddSection("Spells you draw");
@@ -724,6 +735,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
             _modsPanel.Controls.Add(inventoryBtn);
+        }
+        if (InputStudioForm.Available(_ark))
+        {
+            _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+            _modsPanel.Controls.Add(studioBtn);
         }
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(styleLabeled);
