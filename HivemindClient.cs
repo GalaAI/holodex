@@ -98,12 +98,13 @@ public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyLi
 /// </summary>
 public sealed class HivemindClient : IAsyncDisposable
 {
-    public static readonly Uri Endpoint = new("https://hivemind.arkomnitek.com/mcp");
+    /// <summary>The MCP endpoint under the Hivemind connector slot's address (OMNIWAND_HIVEMIND_URL overrides it).</summary>
+    public static readonly Uri Endpoint = new(RealmConnectors.HivemindDefault.ResolvedBaseUrl + "/mcp");
     public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
     public const string CredentialTarget = "Omniwand:HivemindToken";
 
     /// <summary>The Hivemind web app's Sessions view (it addresses views, not single rooms).</summary>
-    public static readonly Uri WebSessionsView = new("https://hivemind.arkomnitek.com/?view=sessions");
+    public static readonly Uri WebSessionsView = new(RealmConnectors.HivemindDefault.ResolvedBaseUrl + "/?view=sessions");
 
     /// <summary>"Open in Hivemind": hands over to the web app's Sessions, where every Holodex Session lives too.</summary>
     public static void OpenWebSessions()

@@ -174,6 +174,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private string? _vrStreamName;
     private float _preVrScaleMultiplier = 1.25f;
     private System.Threading.Timer? _vrTimer;
+    private System.Threading.Timer? _modelTimer;
+    private readonly TrayPage _modelsPage;
+    private bool _modelsBaselined;
     private ToolStripMenuItem? _vrStatusItem;
     private const float VrScaleBoost = 1.6f;
     private volatile RotationMode _rotationMode = RotationMode.SubtleBank;
@@ -465,6 +468,11 @@ internal sealed class OmniwandAppContext : ApplicationContext
         FillYourMouseMenu();
         settingsPage.AddPage("Your mouse", _yourMousePage, "Holodex uses the mouse you are moving. Pick one to keep it.");
 
+        // Models: everything Holodex can reach, grouped by provider, with the task each one is routed to.
+        _modelsPage = new TrayPage("Models // what Holodex can use");
+        FillModelsMenu();
+        settingsPage.AddPage("Models", _modelsPage, "Every model Holodex found. New ones show up here by themselves.");
+
         var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Alt+T" });
         tutorialItem.Click += (_, _) => SummonTutorialTooltips();
 
@@ -497,6 +505,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         arrowHeader.Name = "Tray.VrArrowTestHeader";
         diagItem.Name = "Tray.VrPointerLog";
         _vrTimer = new System.Threading.Timer(_ => VrTick(), null, 600, 1500);
+        // First pass learns what is already there; later passes announce new models (every 5 minutes).
+        _modelTimer = new System.Threading.Timer(_ => _ = RefreshModelsAsync(), null, 4000, 300_000);
 
         home.Add(new ToolStripSeparator());
         var exitItem = home.Add(new ToolStripMenuItem("Quit Holodex") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
@@ -1514,6 +1524,64 @@ internal sealed class OmniwandAppContext : ApplicationContext
     }
 
     /// <summary>Lists every mouse found, the one in use checked, and the Switch by itself toggle.</summary>
+    private async Task RefreshModelsAsync()
+    {
+        IReadOnlyList<ModelEntry> added;
+        try { added = await _ark.Models.Refresh(); }
+        catch { return; }
+        bool announce = _modelsBaselined;
+        _modelsBaselined = true;
+        _uiSync.Post(_ =>
+        {
+            FillModelsMenu();
+            if (!announce || added.Count == 0) return;
+            string where = string.Join(", ", added.Select(m => m.ProviderId).Distinct());
+            string body = added.Count == 1
+                ? $"{added[0].ModelId} on {where}. It is in Settings, Models."
+                : $"{added.Count} new models on {where}. They are in Settings, Models.";
+            PhosphorToast.Show(added.Count == 1 ? "New model found" : "New models found", body, "HOLODEX // MODELS", 4200, ToastTone.Info);
+        }, null);
+    }
+
+    /// <summary>Rebuilds the Models page: which model each task goes to, then every model by provider.</summary>
+    private void FillModelsMenu()
+    {
+        _modelsPage.Clear();
+        foreach (var kind in new[] { TaskKind.Reason, TaskKind.Chat, TaskKind.Vision, TaskKind.Detect, TaskKind.Segment, TaskKind.Code })
+        {
+            var route = _ark.Router.Route(kind);
+            _modelsPage.Add(new ToolStripMenuItem(kind.ToString())
+            {
+                Enabled = false,
+                ShortcutKeyDisplayString = route.Available ? ShortModelName(route.ModelId) : "NONE YET",
+                ToolTipText = route.Reason
+            });
+        }
+        var models = _ark.Models.Models;
+        foreach (var provider in _ark.Models.Providers)
+        {
+            var mine = models.Where(m => m.ProviderId == provider.Id).ToList();
+            if (mine.Count == 0) continue;
+            _modelsPage.Add(new ToolStripSeparator());
+            _modelsPage.Add(new ToolStripMenuItem(provider.Label) { Enabled = false, ShortcutKeyDisplayString = mine.Count.ToString() });
+            foreach (var m in mine.Take(24))
+                _modelsPage.Add(new ToolStripMenuItem(ShortModelName(m.ModelId)) { Enabled = false, ToolTipText = m.ModelId, ShortcutKeyDisplayString = CapabilityTag(m.Capabilities) });
+        }
+        _modelsPage.Add(new ToolStripSeparator());
+        var look = _modelsPage.AddSetting(new ToolStripMenuItem("Look for new models") { ToolTipText = "Asks every provider for its model list now." });
+        look.Click += (_, _) => _ = RefreshModelsAsync();
+        _trayMenu?.Refresh(_modelsPage);
+    }
+
+    private static string ShortModelName(string id) => id.Contains('/') ? id[(id.LastIndexOf('/') + 1)..] : id;
+
+    private static string CapabilityTag(ModelCapability c) =>
+        c.HasFlag(ModelCapability.Detect) ? "DETECT" :
+        c.HasFlag(ModelCapability.Segment) ? "SEGMENT" :
+        c.HasFlag(ModelCapability.Vision) ? "VISION" :
+        c.HasFlag(ModelCapability.Code) ? "CODE" :
+        c.HasFlag(ModelCapability.Reason) ? "REASON" : "CHAT";
+
     private void FillYourMouseMenu()
     {
         var active = MouseHardwareAndWandEngine.ActiveMouse;
@@ -1889,6 +1957,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     {
         _running = false;
         _vrTimer?.Dispose();
+        _modelTimer?.Dispose();
         NativeCursorManager.RestoreSystemCursors();
         MouseHardwareAndWandEngine.RestoreOriginalSpeed();
         _trayIcon.Visible = false;
