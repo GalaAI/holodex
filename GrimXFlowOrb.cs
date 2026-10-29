@@ -213,7 +213,8 @@ public sealed class GrimXFlowOrb
 
             g.DrawString($"{i + 1} · {slot.Verb}", verbFont, verbBrush, textLeft, cardRect.Top + 4 * dpiScale);
             g.DrawString(slot.Title, titleFont, titleBrush, textLeft, cardRect.Top + 15 * dpiScale);
-            g.DrawString(slot.Subtitle, subFont, subBrush, textLeft, cardRect.Top + 30 * dpiScale);
+            // The picked Spell names what this slot will cast; with no pick the slot keeps its kind's description.
+            g.DrawString(SpellPicks.Get(slot.Id)?.Name ?? slot.Subtitle, subFont, subBrush, textLeft, cardRect.Top + 30 * dpiScale);
         }
 
         // Center Phosphor Core with ratified ArkMark emblem

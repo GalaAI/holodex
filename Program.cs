@@ -171,6 +171,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly ToolStripMenuItem _hideNativeMenuItem;
     private readonly PhosphorMenuHeader _trayTitle;
     private readonly TrayPage _yourMousePage;
+    private readonly TrayPage _spellPicksPage = new("Choose a Spell for each slot");
     private readonly PhosphorTrayMenu _trayMenu;
     private readonly Thread _renderThread;
 
@@ -362,6 +363,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             var slotItem = orbPage.Add(new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle });
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
         }
+        orbPage.Add(new ToolStripSeparator());
+        orbPage.AddPage("Choose Spells", _spellPicksPage, "Pick which Spell each slot casts, from the Spells your Ark holds.");
+        _spellPicksPage.Shown += async (_, _) => await FillSpellPicksAsync();
         home.AddPage("Spell Orb", orbPage);
 
         // ── Settings page ────────────────────────────────────────────────────
@@ -1324,13 +1328,19 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _isAiThinking = true;
             try
             {
-                var (outcome, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString());
-                string spell = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
+                var pick = SpellPicks.Get(slot.Id);
+                string spell = pick?.Name ?? System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
                 string eyebrow = $"GRIMX SPELL // {slot.Verb}";
+                // A cast can run for many seconds (the bound action finishes before Spine answers), so say it started.
+                PhosphorToast.Show($"Casting {spell}", "Waiting for the Spell to finish.", eyebrow, 60000, ToastTone.Info);
+                var (outcome, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString(), pick?.Slug);
                 switch (outcome)
                 {
                     case SpellCastOutcome.Cast:
-                        PhosphorToast.Show($"Cast: {spell}", message, eyebrow, 2400, ToastTone.Success);
+                        PhosphorToast.Show($"Cast: {spell}", message, eyebrow, 3600, ToastTone.Success);
+                        break;
+                    case SpellCastOutcome.Failed:
+                        PhosphorToast.Show($"{spell} failed", message, eyebrow, 5200, ToastTone.Error);
                         break;
                     case SpellCastOutcome.NoBinding:
                     case SpellCastOutcome.Refused:
@@ -1553,6 +1563,44 @@ internal sealed class OmniwandAppContext : ApplicationContext
             catch (Exception ex) { done.TrySetException(ex); }
         }, null);
         done.Task.Wait(TimeSpan.FromMinutes(3));
+    }
+
+    /// <summary>
+    /// Lists the Spells Input Spine holds for each Orb slot, the one the slot casts checked. Picking one keeps it
+    /// (SpellPicks) and the slot casts it from then on; with no pick a slot casts its kind's first Spell.
+    /// </summary>
+    private async Task FillSpellPicksAsync()
+    {
+        var spells = await _ark.GetGrimXSpellsAsync();
+        _spellPicksPage.Clear();
+        bool any = false;
+        foreach (var slot in GrimXFlowOrb.Slots)
+        {
+            if (!spells.TryGetValue(slot.Id, out var choices) || choices.Count == 0) continue;
+            any = true;
+            string current = SpellPicks.Get(slot.Id)?.Slug ?? choices[0].Slug;
+            _spellPicksPage.Add(new PhosphorMenuEyebrow(System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant())));
+            foreach (var choice in choices)
+            {
+                var c = choice;
+                var s = slot;
+                var item = _spellPicksPage.AddSetting(new ToolStripMenuItem(c.Name)
+                {
+                    Checked = c.Slug == current,
+                    Enabled = c.Enabled,
+                    ShortcutKeyDisplayString = c.Slug == current ? $"{s.Index + 1} // {s.Verb}" : "",
+                    ToolTipText = c.Description ?? c.Name
+                });
+                item.Click += async (_, _) =>
+                {
+                    SpellPicks.Set(s.Id, c.Slug, c.Name);
+                    await FillSpellPicksAsync();
+                };
+            }
+        }
+        if (!any)
+            _spellPicksPage.Add(new ToolStripMenuItem("No Spells to choose") { Enabled = false, ToolTipText = "Input Spine is offline or holds no Spells yet." });
+        _trayMenu?.Refresh(_spellPicksPage);
     }
 
     /// <summary>Lists every mouse found, the one in use checked, and the Switch by itself toggle.</summary>
