@@ -268,7 +268,8 @@ public sealed class OmniwandHudForm : Form
         var status = await _ark.CheckStatusAsync();
         _spineOnline = status.InputSpineOnline;
         ShowWandStatus(status.GatewayOnline);
-        if (!_gatewayNoticeShown && !status.GatewayOnline && !_ark.HasGatewayInboundKey && !_ark.ForceStandaloneMode)
+        // Only an owner's Ark has a gateway to miss; a public install asks Nemotron directly and the LED says so.
+        if (!_gatewayNoticeShown && !status.GatewayOnline && !_ark.HasGatewayInboundKey && _ark.ArkInstalled)
         {
             _gatewayNoticeShown = true;
             PhosphorToast.Show("Gateway unavailable",
@@ -313,17 +314,23 @@ public sealed class OmniwandHudForm : Form
     {
         bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
         var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "GATEWAY ONLINE")
-            : keyed ? (PhosphorTheme.Patina, "NEBIUS DIRECT")
+            : keyed ? (PhosphorTheme.Patina, "NEMOTRON // TOKEN FACTORY")
             : (PhosphorTheme.Ember, "NO MODEL KEY // ALT+H ADDS ONE");
+        var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
+            : _mouseModel.Length == 0 ? (PhosphorTheme.Ember, "NO MOUSE")
+            : (PhosphorTheme.Moss, ShortMouse(_mouseModel));
+        // Input Spine exists only on an owner's Ark; a public install shows no LED for it.
+        if (!_ark.ArkInstalled)
+        {
+            _telemetryLine.Set(_galaLed, gateway, mouse);
+            return;
+        }
         var spine = _spineOnline switch
         {
             true => (PhosphorTheme.Moss, "SPINE 8842"),
             false => (PhosphorTheme.Ember, "SPINE 8842 DOWN"),
             null => (PhosphorTheme.Ghost, "SPINE 8842")
         };
-        var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
-            : _mouseModel.Length == 0 ? (PhosphorTheme.Ember, "NO MOUSE")
-            : (PhosphorTheme.Moss, ShortMouse(_mouseModel));
         _telemetryLine.Set(_galaLed, gateway, spine, mouse);
     }
 

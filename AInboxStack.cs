@@ -397,21 +397,21 @@ internal static class ScrollPredictor
                 ["Question"] = (ask.Length > 0 ? ask : $"What {(g.Items.Count > 1 ? "do" : "does")} {names} say, and what should we do about it?", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Sources"] = (names, fromStack),
                 ["Depth"] = ("One-page digest with citations.", "PREDICTED"),
-                ["Deliverable"] = ("A Holodex research digest in Cortex.", "PREDICTED"),
+                ["Deliverable"] = ($"A research digest from {pod.Label}.", "PREDICTED"),
             },
             "absorb" => new()
             {
                 ["Schema"] = (CsvHeader(g) ?? "Detect on ingest.", CsvHeader(g) != null ? fromStack : "PREDICTED"),
                 ["License"] = ("Owner data, internal use.", "PREDICTED"),
-                ["Destination"] = ($@"E:\ArkStation\library\{Slug(where.Length > 0 ? where : first)}", "PREDICTED"),
+                ["Destination"] = ($"{pod.Label} library: {Slug(where.Length > 0 ? where : first)}", "PREDICTED"),
                 ["Refresh"] = (time.Length > 0 ? time : "One-time import.", time.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
             },
             _ => new()
             {
-                ["Audience"] = ("Builders following ArkStation.", "PREDICTED"),
+                ["Audience"] = ("People who follow your work.", "PREDICTED"),
                 ["Angle"] = (ask.Length > 0 ? ask : $"What {first} shows, and why it matters.", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Format"] = (g.Items.Any(i => i.MediaType.StartsWith("video")) ? "Short video post" : "Image post with a caption", fromStack),
-                ["Channel"] = ("Bazaar card and social, drafted for review.", "PREDICTED"),
+                ["Channel"] = ("Social post, drafted for your review.", "PREDICTED"),
             },
         };
 
@@ -603,17 +603,37 @@ internal sealed class OutboundQueue
     private static readonly string BlobDir = Path.Combine(Root, "blobs");
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
+    /// <summary>Where a public install keeps sealed Scrolls: one Markdown file each, in the user's Documents.</summary>
+    public static readonly string SavedDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Holodex", "Scrolls");
+
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
     private readonly System.Windows.Forms.Timer _retry = new() { Interval = 30_000 };
     private readonly SemaphoreSlim _drainLock = new(1, 1);
 
-    public OutboundQueue()
+    /// <param name="localOnly">No AInbox service exists (a public install): Send saves the sealed Scroll on this PC.</param>
+    public OutboundQueue(bool localOnly = false)
     {
+        LocalOnly = localOnly;
         Directory.CreateDirectory(PendingDir);
         Directory.CreateDirectory(SentDir);
         Directory.CreateDirectory(BlobDir);
+        if (LocalOnly) return;
         _retry.Tick += async (_, _) => await DrainAsync();
         _retry.Start();
+    }
+
+    public bool LocalOnly { get; }
+    public int SavedToday => Directory.Exists(SavedDir) ? Directory.GetFiles(SavedDir, "*.md").Count(f => File.GetLastWriteTime(f).Date == DateTime.Today) : 0;
+
+    /// <summary>Writes the sealed Scroll (its Markdown, captures listed by seal) to <see cref="SavedDir"/> and returns the file.</summary>
+    public async Task<string> SaveLocallyAsync(StackHandoff h)
+    {
+        Directory.CreateDirectory(SavedDir);
+        string markdown = h.Items.FirstOrDefault(i => i.Id == "scroll")?.Text ?? "";
+        string path = Path.Combine(SavedDir, $"{DateTime.Now:yyyyMMdd-HHmmss}-{SafeName(h.IntentLabel)}-{h.Sha256[..12]}.md");
+        await File.WriteAllTextAsync(path, markdown);
+        Changed?.Invoke(this, EventArgs.Empty);
+        return path;
     }
 
     public int Pending => SafeCount(PendingDir);
@@ -643,6 +663,7 @@ internal sealed class OutboundQueue
 
     public async Task DrainAsync()
     {
+        if (LocalOnly) return;
         if (!await _drainLock.WaitAsync(0)) return;
         try
         {

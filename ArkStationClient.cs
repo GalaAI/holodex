@@ -95,7 +95,7 @@ public sealed class ArkStationClient
         new("nexus", "Nexus", "ainbox:pod:nexus", "gala", "Gala (Co-op Orchestrator)", "operate", "patina",
             "Command control, Veritas canon records, Aegis gates, and Hivemind session routing."),
         new("eden", "Eden", "ainbox:pod:eden", "arbiter", "Arbiter (Eden & SolaTree Conductor)", "operate", "patina",
-            "Living architecture, SolaTree worktree lanes, infrastructure topology, and Navigate grafts."),
+            "Living architecture, SolaTree worktree lanes, infrastructure topology, and grafts."),
         new("cortex", "Cortex", "ainbox:pod:cortex", "scholar", "Scholar (Research & Curriculum Conductor)", "operate", "patina",
             "Deep research, literature synthesis, datasets, training curricula, and memory indexing."),
         new("magixlab", "MagiXLab", "ainbox:pod:magixlab", "muse", "Muse (Creative & Media Conductor)", "create", "coral",
@@ -126,6 +126,12 @@ public sealed class ArkStationClient
     public bool ForceStandaloneMode =>
         string.Equals(Environment.GetEnvironmentVariable("OMNIWAND_STANDALONE"), "1", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(Environment.GetEnvironmentVariable("OMNIWAND_STANDALONE"), "true", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True when this machine runs its owner's Ark: a configured Ark root or a gateway inbound key. A public install
+    /// has neither, so Ark-only surfaces (Input Spine, the Ark gateway, Augment Inventory) stay out of its way.
+    /// </summary>
+    public bool ArkInstalled => !ForceStandaloneMode && (Directory.Exists(ArkRoot) || HasArkGatewayCredentials());
 
     public string GetNebiusBaseUrl()
     {
@@ -493,9 +499,9 @@ public sealed class ArkStationClient
         Point cursorPos,
         string? cursorRole = null)
     {
-        if (ForceStandaloneMode)
+        if (!ArkInstalled)
         {
-            return (SpellCastOutcome.Standalone, $"Standalone mode: Input Studio (:8842) is optional and offline. Use Wiz (Alt+W) or HUD (Alt+Space) to craft {flowKind} with Nemotron.");
+            return (SpellCastOutcome.Standalone, $"No local Spell runtime, so Wiz crafts {flowKind} with Nemotron.");
         }
 
         try

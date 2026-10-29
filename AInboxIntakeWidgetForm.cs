@@ -25,7 +25,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
-    private readonly OutboundQueue _queue = new();
+    private readonly OutboundQueue _queue;
 
     private readonly FlowLayoutPanel _body;
     private readonly CaptureWellControl _composer;
@@ -68,6 +68,8 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         _ark = ark;
         _setThinkingState = setThinkingState;
+        // Without the owner's Ark there is no AInbox service, so a sent Scroll is saved on this PC instead.
+        _queue = new OutboundQueue(localOnly: !ark.ArkInstalled);
 
         PhosphorFonts.EnsureLoaded();
         // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
@@ -821,6 +823,16 @@ public sealed class AInboxIntakeWidgetForm : Form
             var draft = new StackHandoff(scrollId, g.Letter, g.Label, pod.PodId, g.ChosenIntent, IntentCatalog.Shape(g.ChosenIntent).Label, ask, fields, items, seal, DateTime.UtcNow.ToString("O"));
             items.Add(new QueuedItem("scroll", "handoff-scroll.md", "Scroll", "text", "text/markdown", null, HandoffSeal.Markdown(draft, pod), null, null, new()));
             foreach (var it in g.Items) items.Add(ToQueued(it));
+            if (_queue.LocalOnly)
+            {
+                string saved = await _queue.SaveLocallyAsync(draft);
+                SetStatus($"SAVED {g.Letter} // DOCUMENTS\\HOLODEX\\SCROLLS // sha256:{seal[..12]}", PhosphorTheme.Moss);
+                PhosphorToast.Show("Scroll saved",
+                    $"{Path.GetFileName(saved)} is sealed sha256:{seal[..12]} and saved in Documents\\Holodex\\Scrolls.",
+                    "AINBOX // SCROLL", 4200, ToastTone.Success);
+                ClearSent(g);
+                return;
+            }
             var sent = await _queue.EnqueueAsync(draft);
             bool delivered = sent.Items.All(i => i.AInboxItemId != null);
             string head = delivered ? $"SENT {g.Letter} // {items.Count} TO AINBOX // {pod.Label.ToUpperInvariant()}" : $"QUEUED {g.Letter} // AINBOX NOT READY, RETRYING";
@@ -830,13 +842,7 @@ public sealed class AInboxIntakeWidgetForm : Form
                     ? $"Handoff Scroll sent to {pod.Label} and its inbox pulsed. Seal sha256:{seal[..12]}."
                     : $"AInbox is not ready, so the Handoff Scroll waits on disk and retries. Seal sha256:{seal[..12]}.",
                 $"AINBOX // POD {pod.PodId.ToUpperInvariant()}", 3600, delivered ? ToastTone.Success : ToastTone.Info);
-            foreach (var it in g.Items.ToList()) _items.Remove(it);
-            _refinedSig.Remove(g.Key);
-            if (g == _virtualAsk) _virtualAsk = null;
-            _intentBox.Text = "";
-            _scrollOpen = false;
-            _summary.Expanded = false;
-            Rebuild();
+            ClearSent(g);
         }
         catch (Exception ex)
         {
@@ -853,6 +859,18 @@ public sealed class AInboxIntakeWidgetForm : Form
         }
     }
 
+    /// <summary>A sent stack leaves the composer: its captures, refinement and draft scroll are cleared.</summary>
+    private void ClearSent(StackGroup g)
+    {
+        foreach (var it in g.Items.ToList()) _items.Remove(it);
+        _refinedSig.Remove(g.Key);
+        if (g == _virtualAsk) _virtualAsk = null;
+        _intentBox.Text = "";
+        _scrollOpen = false;
+        _summary.Expanded = false;
+        Rebuild();
+    }
+
     /// <summary>A capture as it leaves: secrets redacted, images decoded to PNG bytes, origin attached.</summary>
     private static QueuedItem ToQueued(StackItem it)
     {
@@ -867,8 +885,9 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private void SyncQueueStatus()
     {
-        _sync.Pending = _queue.Pending;
-        _sync.SentToday = _queue.SentToday;
+        _sync.LocalOnly = _queue.LocalOnly;
+        _sync.Pending = _queue.LocalOnly ? 0 : _queue.Pending;
+        _sync.SentToday = _queue.LocalOnly ? _queue.SavedToday : _queue.SentToday;
         _sync.Online = _queue.ServiceOnline;
         _sync.Invalidate();
     }
