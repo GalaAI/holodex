@@ -15,14 +15,17 @@ namespace Omniwand;
 /// </summary>
 internal static class FluidSelectSpec
 {
-    public const float U = 4f;
-    public const float RadiusClosed = 8f, RadiusOpen = 12f;
+    public static float U => PhosphorTheme.N("u");
+    public static float RadiusClosed => PhosphorTheme.N("omniwand-select-radius-closed");
+    public static float RadiusOpen => PhosphorTheme.N("omniwand-select-radius-open");
     /// <summary>The drop sits --s2 from the trigger.</summary>
-    public const float Gap = 8f;
+    public static float Gap => PhosphorTheme.N("omniwand-select-gap");
     /// <summary>The list scrolls past --u * 72.</summary>
-    public const float MaxListHeight = U * 72f;
-    public const float RowHeight = 44f;
-    public const int ChevronMs = 120, StaggerMs = 12, StaggerCap = 10;
+    public static float MaxListHeight => U * 72f;
+    public static float RowHeight => Math.Max(24f, PhosphorTheme.N("omniwand-select-row"));
+    public static int ChevronMs => Math.Max(1, PhosphorTheme.Px("omniwand-select-chevron"));
+    public static int StaggerMs => Math.Max(0, PhosphorTheme.Px("omniwand-select-stagger"));
+    public const int StaggerCap = 10;
     public static int PanelMs => PhosphorMotion.DurDisclosure;
     public static int ItemMs => PhosphorMotion.DurDisclosureItem;
 }

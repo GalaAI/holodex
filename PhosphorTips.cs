@@ -18,10 +18,16 @@ internal static class PhosphorMotion
     public static int DurDisclosureItem => Math.Max(1, PhosphorTheme.Px("dur-disclosure-item"));
     public static int DurBloom => Math.Max(1, PhosphorTheme.Px("dur-bloom"));
 
+    /// <summary>Whether to skip motion: omniwand-reduced-motion "on" or "off" forces it, "auto" follows Windows.</summary>
     public static bool ReducedMotion
     {
         get
         {
+            switch (PhosphorTheme.Value("omniwand-reduced-motion"))
+            {
+                case "on": return true;
+                case "off": return false;
+            }
             try { return !SystemInformation.UIEffectsEnabled; }
             catch { return false; }
         }
@@ -285,7 +291,7 @@ internal sealed record PhosphorTipInfo(string Title, string Body, string? Keys =
 internal static class PhosphorTips
 {
     /// <summary>CP-34's open delay (AnimatedTooltip.tsx, Tooltip.Trigger delay={180}).</summary>
-    private const int DwellMs = 180;
+    private static int DwellMs => Math.Max(1, PhosphorTheme.Px("omniwand-tip-dwell"));
 
     private static readonly Dictionary<string, PhosphorTipInfo> Catalog = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -577,10 +583,10 @@ internal static class PhosphorTips
     private sealed class TipForm : Form
     {
         /// <summary>CP-34's sideOffset: the --s2 spacing token.</summary>
-        private const float GapPx = 8f;
+        private static float GapPx => PhosphorTheme.N("omniwand-tip-gap");
         /// <summary>The one-unit shift (--u) toward the trigger at the start and end of the motion.</summary>
-        private const float ShiftPx = 4f;
-        private const float FromScale = 0.96f;
+        private static float ShiftPx => PhosphorTheme.N("omniwand-tip-shift");
+        private static float FromScale => Math.Clamp(PhosphorTheme.N("omniwand-tip-from-scale"), 0.5f, 1f);
         /// <summary>Where the trigger is from the tip: the scale origin and the direction of the shift.</summary>
         private Point _toward;
         private float _scale = 1f;

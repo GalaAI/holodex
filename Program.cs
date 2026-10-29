@@ -213,6 +213,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _uiSync = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         Win32.timeBeginPeriod(1);
 
+        // A tuning overlay change (canvas Tune board, pipe or hand edit) repaints every open window at once.
+        PhosphorTheme.Tuned += () => _uiSync.Post(_ =>
+        {
+            foreach (Form f in Application.OpenForms) f.Invalidate(true);
+        }, null);
+        PhosphorTuning.Watch();
+
         // Zero-manual Wiz automated onboarding & environment/hardware scan
         bool isFirstRun = !WizOnboardingEngine.HasCompletedOnboarding();
         _onboardingReport = WizOnboardingEngine.RunZeroManualProvisioning(_ark);
@@ -686,6 +693,26 @@ internal sealed class OmniwandAppContext : ApplicationContext
             int settle = parts.Length > 2 && int.TryParse(parts[2], out int ms) ? ms : 400;
             _uiSync.Send(_ => result = _holodexDrawer.ShootRoster(parts[0].Trim(), parts.Length > 1 ? parts[1] : "", settle), null);
             return result;
+        }
+        // holodex:tune:get | holodex:tune:set:<json> | holodex:tune:reset reads and changes the live tuning overlay (PhosphorTuning).
+        if (cmd.StartsWith("holodex:tune:", StringComparison.OrdinalIgnoreCase))
+        {
+            string rest = cmd["holodex:tune:".Length..];
+            try
+            {
+                if (rest.Equals("get", StringComparison.OrdinalIgnoreCase)) return $"ok:holodex:tune:{PhosphorTuning.Snapshot()}";
+                if (rest.Equals("reset", StringComparison.OrdinalIgnoreCase)) { PhosphorTuning.Reset(); return $"ok:holodex:tune:{PhosphorTuning.Snapshot()}"; }
+                if (rest.StartsWith("set:", StringComparison.OrdinalIgnoreCase))
+                {
+                    string refused = PhosphorTuning.Set(rest[4..]);
+                    return refused.Length == 0 ? $"ok:holodex:tune:{PhosphorTuning.Snapshot()}" : $"ok:holodex:tune:{refused}:{PhosphorTuning.Snapshot()}";
+                }
+                return "error:holodex:tune:use get, set:<json> or reset";
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                return $"error:holodex:tune:{ex.Message}";
+            }
         }
         // holodex:tabs:time[:rounds] switches through every tab on the open drawer and reports each switch's ms to its first paint.
         if (cmd.StartsWith("holodex:tabs:time", StringComparison.OrdinalIgnoreCase))
