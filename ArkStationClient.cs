@@ -1084,7 +1084,13 @@ public sealed class ArkStationClient
                 targetModel, RouteNebiusDirect);
         }
 
-        string json = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl).ToJsonString();
+        var payload = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl);
+        // With a Tavily key in the Vault, Nemotron may call web_search (WebSearch.cs); each round is a new request.
+        bool searching = string.IsNullOrEmpty(imageDataUrl) && WebSearch.Available;
+        if (searching) WebSearch.Offer(payload);
+        var sources = new List<string>();
+        int rounds = 0;
+        string json = payload.ToJsonString();
         // Bounded retry: two attempts on a 5xx or a dropped connection, never on auth or a bad request.
         string lastError = "Unknown error";
         for (int attempt = 1; attempt <= 2; attempt++)
@@ -1115,9 +1121,17 @@ public sealed class ArkStationClient
                 }
 
                 var (text, finish, answeredBy) = ReadCompletion(body);
+                if (searching && finish == "tool_calls" && rounds < WebSearch.MaxRounds && await WebSearch.RunToolCallsAsync(payload, body, sources))
+                {
+                    // The last round offers no tool, so the model answers from what it has.
+                    if (++rounds == WebSearch.MaxRounds) { payload.Remove("tools"); payload.Remove("tool_choice"); }
+                    json = payload.ToJsonString();
+                    attempt = 0;
+                    continue;
+                }
                 if (string.IsNullOrWhiteSpace(text))
                     return new ModelAnswer(false, $"{targetModel} returned no answer (finish_reason={finish ?? "none"}).", answeredBy ?? targetModel, RouteNebiusDirect);
-                return new ModelAnswer(true, text, answeredBy ?? targetModel, RouteNebiusDirect);
+                return new ModelAnswer(true, WebSearch.WithSources(text, sources), answeredBy ?? targetModel, RouteNebiusDirect);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
             {

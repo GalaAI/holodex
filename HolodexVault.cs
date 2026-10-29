@@ -90,6 +90,7 @@ internal static class HolodexVault
     }
 
     public const string GroupModels = "Models";
+    public const string GroupSearch = "Web search";
     public const string GroupCloud = "Cloud and dev";
     public const string GroupApps = "Apps you sign in to";
     public const string GroupLocal = "On this PC";
@@ -133,6 +134,9 @@ internal static class HolodexVault
             KeysUrl: "https://replicate.com/account/api-tokens"),
         new("elevenlabs", "ElevenLabs", GroupModels, VaultKind.ApiKey, "Voices and speech.", "ELEVENLABS_API_KEY",
             KeysUrl: "https://elevenlabs.io/app/settings/api-keys", Probe: k => Header("https://api.elevenlabs.io/v1/user", "xi-api-key", k)),
+
+        new("tavily", "Tavily", GroupSearch, VaultKind.ApiKey, "Live web search for Nemotron. Answers list the pages they used.", "TAVILY_API_KEY", new[] { "tvly-" },
+            KeysUrl: "https://app.tavily.com/home", Probe: k => Bearer("https://api.tavily.com/usage", k)),
 
         new("github", "GitHub", GroupCloud, VaultKind.ApiKey, "Repositories and pull requests (token).", "GITHUB_TOKEN", new[] { "github_pat_", "ghp_", "gho_" },
             KeysUrl: "https://github.com/settings/personal-access-tokens", Probe: k => Header("https://api.github.com/user", "Authorization", $"Bearer {k}")),
