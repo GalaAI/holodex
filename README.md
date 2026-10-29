@@ -108,7 +108,7 @@ Holodex supports two operating modes out of the box:
 
 #### Option A: Run the Self-Contained Release `.zip` (Recommended)
 1. Download **`Holodex-v0.3.0-win-x64.zip`** from the [GitHub Releases](../../releases) page and extract it to any folder.
-2. Set your `NEBIUS_API_KEY` (see Step 2 below).
+2. Add your Nebius key in the Vault (see Step 2 below).
 3. Launch **`Omniwand.exe`**. The Phosphor emblem appears in the Windows system tray and the 240Hz wand cursor activates immediately.
 
 #### Option B: Build & Test from Source (`.NET 10 SDK`)
@@ -122,22 +122,33 @@ dotnet build Omniwand.csproj -c Release --disable-build-servers -p:UseSharedComp
 dotnet publish Omniwand.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish-win-x64 --disable-build-servers -p:UseSharedCompilation=false -nologo
 ```
 
-### Step 2: Configure Standalone Mode (`NEBIUS_API_KEY`)
+### Step 2: Add your Nebius key in the Vault (`NEBIUS_API_KEY`)
 
-Holodex never stores API keys in source code, config files, logs, or screenshots. Provide your Nebius Token Factory key via environment variable or Windows Credential Manager (`DPAPI` / `wincred://`):
+Holodex ships with no keys. Each user brings their own, and every key stays on their own PC in Windows Credential Manager (`wincred://Omniwand:*`), never in source, config files, logs or screenshots.
+
+1. Get a key at [tokenfactory.nebius.com](https://tokenfactory.nebius.com/).
+2. Launch Holodex. On a PC with no Nebius key, the **Vault** opens by itself, ready for it (later: tray menu **Vault**, or **Vault and adapters** in the drawer).
+3. Paste the key into **Universal intake** and press **Add to vault**. Holodex checks it against Token Factory and marks it **Works**. That key is now the default model for every surface.
+
+Prefer environment variables? Holodex reads them first, and the Vault lists them under **From your environment**:
 
 ```powershell
-# Option 1: Environment variable (current PowerShell session)
-$env:NEBIUS_API_KEY = "your-nebius-token-factory-key"
-
-# Or persist for your Windows user profile
 [Environment]::SetEnvironmentVariable("NEBIUS_API_KEY", "your-nebius-token-factory-key", "User")
-
-# Option 2: Store in Windows Credential Manager (KeyMaster DPAPI Vault)
-cmdkey /generic:Omniwand:NebiusTokenFactory /user:nebius /pass:your-nebius-token-factory-key
 ```
 
-You can also paste your Nebius Token Factory key inside the **Holodex Drawer (`Alt+H`)** profile popover (**Replace key**) to seal it in `wincred://Omniwand:NebiusTokenFactory`.
+### Step 2b: Turn on web search *(optional)*
+
+Add a [Tavily](https://app.tavily.com/home) key the same way (paste it into the Vault, or set `TAVILY_API_KEY`). Nemotron then gets a `web_search` tool: it decides when to search the live web, and the answer lists the pages it used. Without a Tavily key Holodex answers from the model alone.
+
+### Your Vault: apps, services and keys
+
+The **Vault** (Inventory // Adapters) connects the rest of your tools, with or without a Hivemind account:
+
+| Paste or pick | What happens |
+| --- | --- |
+| An API key or an `ENV_NAME=value` line | Recognized by its prefix or name (OpenAI, Anthropic, Gemini, OpenRouter, GitHub, Stripe and more), or by asking each provider's read-only endpoint, then checked and stored in Credential Manager. Copy (clipboard clears after 30 s), Rotate in place, Check and Delete on every key. |
+| An MCP server link, or **Sign in** on a catalog card | The server's own OAuth sign-in (protected resource metadata, dynamic client registration, PKCE) in your browser: Linear, Notion, Figma, Canva, Vercel, Railway, Supabase, Cloudflare, Sentry, Stripe, PayPal, Webflow, Wix. Hugging Face needs no sign-in. |
+| **Connect** on a local service | Ollama, LM Studio or ComfyUI running on this PC. |
 
 ### Step 3: Connect to Hivemind (`Alt+H`) *(Optional Connected Mode)*
 

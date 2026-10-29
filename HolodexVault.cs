@@ -231,6 +231,27 @@ internal static class HolodexVault
         }
     }
 
+    /// <summary>An environment variable's value from the process, the user or the machine, or null when unset.</summary>
+    public static string? FromEnvironment(string name)
+    {
+        foreach (var scope in new[] { EnvironmentVariableTarget.Process, EnvironmentVariableTarget.User, EnvironmentVariableTarget.Machine })
+        {
+            string? value = Environment.GetEnvironmentVariable(name, scope);
+            if (!string.IsNullOrWhiteSpace(value)) return value.Trim();
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Catalog keys set by environment variable (NEBIUS_API_KEY, TAVILY_API_KEY and the rest) and not saved in the
+    /// vault: Holodex uses them, so the Vault shows them. Only the names are read here, never shown values.
+    /// </summary>
+    public static IReadOnlyList<VaultProvider> EnvironmentKeys(IEnumerable<VaultEntry> saved)
+    {
+        var inVault = saved.Select(e => e.ProviderId).ToHashSet();
+        return Catalog.Where(p => p.Kind == VaultKind.ApiKey && p.EnvName.Length > 0 && !inVault.Contains(p.Id) && FromEnvironment(p.EnvName) != null).ToList();
+    }
+
     // ---- universal intake ----
 
     /// <summary>

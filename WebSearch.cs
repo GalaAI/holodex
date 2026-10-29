@@ -21,7 +21,11 @@ internal static class WebSearch
     private const string ToolName = "web_search";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
 
-    public static bool Available => !string.IsNullOrWhiteSpace(ArkStationClient.TryReadWindowsCredential(Target));
+    public static bool Available => !string.IsNullOrWhiteSpace(ReadKey());
+
+    /// <summary>TAVILY_API_KEY (process, user, machine) first, as NEBIUS_API_KEY is read, then the Vault.</summary>
+    private static string? ReadKey() =>
+        HolodexVault.FromEnvironment("TAVILY_API_KEY") ?? ArkStationClient.TryReadWindowsCredential(Target);
 
     /// <summary>Offers the web_search tool on a chat payload and tells the model when to use it and to cite.</summary>
     public static void Offer(JsonObject payload)
@@ -95,8 +99,8 @@ internal static class WebSearch
     /// <summary>One Tavily search, as numbered results for the model. Failures come back as text the model can report.</summary>
     public static async Task<string> SearchAsync(string query, string topic, List<string> sources, CancellationToken ct = default)
     {
-        string? key = ArkStationClient.TryReadWindowsCredential(Target);
-        if (string.IsNullOrWhiteSpace(key)) return "Web search is not connected: no Tavily key in the Vault.";
+        string? key = ReadKey();
+        if (string.IsNullOrWhiteSpace(key)) return "Web search is not connected: no Tavily key in the Vault or TAVILY_API_KEY.";
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.tavily.com/search");

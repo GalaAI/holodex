@@ -131,6 +131,13 @@ internal sealed class VaultForm : Form
         if (Visible && !_showCatalog) ShowTab(catalog: false);
     }
 
+    /// <summary>Opens the Vault on the Catalog with the intake set for one provider (first run with no Nebius key).</summary>
+    public void SummonFor(Point cursorPos, string providerId)
+    {
+        Summon(cursorPos, catalog: true);
+        if (HolodexVault.Find(providerId) is { } provider) PinProvider(provider);
+    }
+
     // ---- intake ----
 
     private void PinProvider(VaultProvider provider)
@@ -292,19 +299,36 @@ internal sealed class VaultForm : Form
         _connectedTab.Selected = !catalog;
         _catalogTab.Selected = catalog;
         var entries = HolodexVault.Load();
-        _connectedTab.Text = $"Connected ({entries.Count})";
+        var fromEnv = HolodexVault.EnvironmentKeys(entries);
+        _connectedTab.Text = $"Connected ({entries.Count + fromEnv.Count})";
         using (_list.Batch())
         {
             _list.Clear();
             if (catalog) BuildCatalog(entries);
-            else BuildConnected(entries);
+            else BuildConnected(entries, fromEnv);
         }
         _list.Relayout();
         _list.AutoScrollPosition = Point.Empty;
     }
 
-    private void BuildConnected(List<VaultEntry> entries)
+    private void BuildConnected(List<VaultEntry> entries, IReadOnlyList<VaultProvider> fromEnv)
     {
+        if (fromEnv.Count > 0)
+        {
+            _list.AddSection("FROM YOUR ENVIRONMENT");
+            foreach (var provider in fromEnv)
+            {
+                var leds = new List<(Color, string)> { (PhosphorTheme.Ghost, "Environment variable") };
+                if (provider.Id == "nebius") leds.Insert(0, (PhosphorTheme.Patina, "Default model"));
+                var card = _list.Add(ThreadTone.Step, $"KEY // {provider.Label.ToUpperInvariant()}",
+                    provider.Id is "nebius" or "tavily"
+                        ? $"Set by {provider.EnvName}, which Holodex reads before the vault. Change or remove it where you set it."
+                        : $"Found in {provider.EnvName}. Paste it above to keep it in the vault, where it can be copied, rotated and checked.",
+                    PhosphorGlyph.Vault, leds);
+                card.Name = $"Vault.Env.{provider.Id}";
+            }
+        }
+        if (entries.Count == 0 && fromEnv.Count > 0) return;
         if (entries.Count == 0)
         {
             var empty = _list.Add(ThreadTone.Intro, "VAULT // EMPTY",

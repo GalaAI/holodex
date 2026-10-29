@@ -591,6 +591,18 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
         }
 
+        // A public install with no Nebius key yet: open the Vault ready for it, since every answer needs one.
+        if (string.IsNullOrEmpty(_ark.ReadNebiusApiKey()) && !_ark.ArkInstalled)
+        {
+            var firstKey = new System.Windows.Forms.Timer { Interval = 2500 };
+            firstKey.Tick += (_, _) =>
+            {
+                firstKey.Dispose();
+                _vault.SummonFor(Screen.PrimaryScreen?.WorkingArea.Location + new Size(200, 200) ?? Point.Empty, "nebius");
+            };
+            firstKey.Start();
+        }
+
         // One Ark API probe at start, so every model chip names the route the first ask takes before any surface opens.
         _ = _ark.ProbeArkApiAsync();
 
