@@ -178,6 +178,7 @@ public sealed class HivemindClient : IAsyncDisposable
         try
         {
             await DropClientAsync();
+            await RevokeSavedSignInAsync();
             ArkStationClient.TryDeleteWindowsCredential(CredentialTarget);
             SetState(HivemindState.NotSignedIn, string.Empty);
         }
@@ -187,12 +188,46 @@ public sealed class HivemindClient : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Ends the saved sign-in on the server before the local copy is deleted: an RFC 7009 revoke of the refresh token
+    /// (which ends its whole token family) at this Hivemind's /revoke. Best effort, bounded to 5 seconds: a Hivemind
+    /// that is unreachable or predates /revoke still gets its local sign-in removed.
+    /// </summary>
+    private async Task RevokeSavedSignInAsync()
+    {
+        TokenContainer? saved = null;
+        try
+        {
+            string? json = ArkStationClient.TryReadWindowsCredential(CredentialTarget);
+            if (!string.IsNullOrWhiteSpace(json)) saved = JsonSerializer.Deserialize<TokenContainer>(json);
+        }
+        catch (JsonException) { }
+        string token = saved?.RefreshToken ?? saved?.AccessToken ?? string.Empty;
+        string clientId = saved?.ClientId ?? string.Empty;
+        if (token.Length == 0 || clientId.Length == 0) return;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["token"] = token,
+                ["token_type_hint"] = saved?.RefreshToken is { Length: > 0 } ? "refresh_token" : "access_token",
+                ["client_id"] = clientId
+            });
+            // Always this install's own Hivemind origin, never an issuer read back from storage.
+            using var response = await _http.PostAsync(new Uri(Endpoint, "/revoke"), form, cts.Token);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException) { }
+    }
+
     /// <summary>Connects with the saved sign-in only; false (and no browser) when there is none or it no longer works.</summary>
     public Task<bool> EnsureConnectedAsync(CancellationToken ct = default) => ConnectAsync(interactive: false, ct);
 
     public async Task<IReadOnlyList<HivemindAgent>?> ListAgentsAsync(CancellationToken ct = default)
     {
-        var data = await CallAsync("ark_agents", new Dictionary<string, object?>(), ct);
+        // The public roster: verified agents with public names, Gala first, no private vessel agents. A Hivemind
+        // that predates the audience argument ignores it and returns its full roster.
+        var data = await CallAsync("ark_agents", new Dictionary<string, object?> { ["audience"] = "public" }, ct);
         if (data is not JsonElement root) return null;
         var agents = FindArray(root, "agents");
         if (agents is not JsonElement list) return Array.Empty<HivemindAgent>();
@@ -321,6 +356,8 @@ public sealed class HivemindClient : IAsyncDisposable
             {
                 // A browser sign-in registers afresh: the saved client id keeps the name it was registered under
                 // (Omniwand, before the rename), and Hivemind's Authorize page and client lists show that name.
+                // The replaced sign-in is revoked on the server first so its refresh token does not outlive it.
+                await RevokeSavedSignInAsync();
                 ArkStationClient.TryDeleteWindowsCredential(CredentialTarget);
                 SetState(HivemindState.SigningIn, string.Empty);
             }
