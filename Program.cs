@@ -176,6 +176,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private System.Threading.Timer? _vrTimer;
     private System.Threading.Timer? _modelTimer;
     private readonly TrayPage _modelsPage;
+    private HolodexProgressionService? _progression;
     private bool _modelsBaselined;
     private ToolStripMenuItem? _vrStatusItem;
     private const float VrScaleBoost = 1.6f;
@@ -254,6 +255,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 _holodexDrawer?.RefreshCodexEntries();
                 PhosphorToast.Show("Saved to Codex", entry.Title, "WIZ // CODEX", 2600, ToastTone.Success);
+                _progression?.Activity(Skill.Learning, "Saved to Codex: " + entry.Title);
             }
         });
         _ainboxWidget = new AInboxIntakeWidgetForm(_ark, thinking => _isAiThinking = thinking);
@@ -264,6 +266,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // The AInbox well's Pick and Lasso chips open the snip tools, and Send to AInbox brings the capture back.
         _ainboxWidget.RequestCapture = tool => _snipWidget.SummonAt(GetCursorPoint(), tool);
         _snipWidget.OnSendToAInbox = (pt, dataUrl, name) => _ainboxWidget.SummonAt(pt, dataUrl, name);
+        _progression = new HolodexProgressionService(_ark, _uiSync);
         _holodexDrawer = new HolodexLiteDrawerForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -275,7 +278,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 MouseHardwareAndWandEngine.ActiveCursorStyle = style;
                 _overlay?.ForceCursorRedraw();
-            });
+            },
+            _progression);
         _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
@@ -1958,6 +1962,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _running = false;
         _vrTimer?.Dispose();
         _modelTimer?.Dispose();
+        _progression?.Dispose();
         NativeCursorManager.RestoreSystemCursors();
         MouseHardwareAndWandEngine.RestoreOriginalSpeed();
         _trayIcon.Visible = false;

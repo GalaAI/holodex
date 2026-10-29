@@ -77,7 +77,45 @@ public sealed class RealmConnectors
         Accepts = new[] { TaskKind.Publish, TaskKind.Summarize }
     };
 
-    public static readonly IReadOnlyList<RealmConnector> Defaults = new[] { HivemindDefault, RyozanDefault };
+    /// <summary>ArkHub, the Guild's channel in Hivemind. Herald posts shares here once the Hivemind tab is live.</summary>
+    public static readonly RealmConnector ArkHubDefault = new()
+    {
+        Id = "arkhub",
+        Label = "ArkHub",
+        BaseUrl = "https://hivemind.arkomnitek.com/arkhub",
+        HealthPath = "/health",
+        CredentialTarget = "Omniwand:ArkHubToken",
+        UrlEnvVar = "OMNIWAND_ARKHUB_URL",
+        Enabled = false,
+        Accepts = new[] { TaskKind.Publish }
+    };
+
+    /// <summary>Social Mod, Herald's route to the social accounts connected in Hivemind.</summary>
+    public static readonly RealmConnector SocialModDefault = new()
+    {
+        Id = "social-mod",
+        Label = "Social Mod",
+        BaseUrl = "https://hivemind.arkomnitek.com/social",
+        HealthPath = "/health",
+        CredentialTarget = "Omniwand:SocialModToken",
+        UrlEnvVar = "OMNIWAND_SOCIAL_MOD_URL",
+        Enabled = false,
+        Accepts = new[] { TaskKind.Publish }
+    };
+
+    /// <summary>Skool has no public posting API, so this slot stays off until one exists or a Zapier route is chosen.</summary>
+    public static readonly RealmConnector SkoolDefault = new()
+    {
+        Id = "skool",
+        Label = "Skool",
+        BaseUrl = "https://www.skool.com",
+        HealthPath = "/",
+        UrlEnvVar = "OMNIWAND_SKOOL_URL",
+        Enabled = false,
+        Accepts = new[] { TaskKind.Publish }
+    };
+
+    public static readonly IReadOnlyList<RealmConnector> Defaults = new[] { HivemindDefault, RyozanDefault, ArkHubDefault, SocialModDefault, SkoolDefault };
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

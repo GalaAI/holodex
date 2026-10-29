@@ -74,6 +74,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private Panel _codexPanel = null!;
     private Panel _grimxPanel = null!;
     private Panel _modsPanel = null!;
+    private HolodexStatsPanel? _statsPanel;
+    private readonly HolodexProgressionService? _progression;
 
     // Session controls
     private ThreadView _sessionThread = null!;
@@ -132,9 +134,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Action<Point> openAInbox,
         Action<Point, WandCaptureTool> openSnipOrPicker,
         Action runWizOnboardingTutorial,
-        Action<CursorIconStyle> onCursorStyleChanged)
+        Action<CursorIconStyle> onCursorStyleChanged,
+        HolodexProgressionService? progression = null)
     {
         _ark = ark;
+        _progression = progression;
         _setThinkingState = setThinkingState;
         _openWiz = openWiz;
         _openAInbox = openAInbox;
@@ -255,8 +259,10 @@ public sealed partial class HolodexLiteDrawerForm : Form
             ("ainbox",  "AInbox",  PhosphorGlyph.Inbox),
             ("codex",   "Codex",   PhosphorGlyph.BookOpen),
             ("grimx",   "GrimX",   PhosphorGlyph.Sparkles),
+            ("stats",   "Stats",   PhosphorGlyph.Stats),
             ("mods",    "Mods",    PhosphorGlyph.WandSparkles)
         };
+        if (_progression is null) tabs = tabs.Where(t => t.Id != "stats").ToArray();
         TabOrder = tabs.Select(t => t.Id).ToArray();
         foreach (var (id, label, glyph) in tabs.Reverse())
         {
@@ -270,13 +276,18 @@ public sealed partial class HolodexLiteDrawerForm : Form
         rail.Controls.Add(new RailMark("Holodex.RailMark") { Dock = DockStyle.Top, Height = 52 });
         rail.Controls.Add(_profileBtn);
 
-        // 3. Content Host for the 5 tabs
+        // 3. Content Host for the tabs
         _contentHost = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.ContentHost" };
         BuildSessionTab();
         BuildAInboxTab();
         BuildCodexTab();
         BuildGrimXTab();
         BuildModsTab();
+        if (_progression != null)
+        {
+            _statsPanel = new HolodexStatsPanel(_progression);
+            _contentHost.Controls.Add(_statsPanel);
+        }
 
         // Docking runs from the last control added: the rail first (the full height), then the gutter beside it, then
         // the header across the content column, then one gutter under it, then the content fills the rest.
@@ -726,6 +737,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         "codex" => _codexPanel,
         "grimx" => _grimxPanel,
         "mods" => _modsPanel,
+        "stats" when _statsPanel != null => _statsPanel,
         _ => _sessionPanel
     };
 
@@ -757,6 +769,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             _contentHost.ResumeLayout(true);
             if (tabId == "codex") RefreshCodexEntries();
             if (tabId == "grimx") RefreshGrimXMacroReadout();
+            if (tabId == "stats") _statsPanel?.Refresh();
         }
     }
 
@@ -940,7 +953,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         ShowCodexEntries(new[]
         {
             new CodexCaptureEntry("codex:preview", "wand.element", "ArkStation: ArkStation // Holodex Drawer",
-                "A docked drawer with five tabs. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
+                "A docked drawer with a tab for each part of Holodex. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
                 "Chrome_WidgetWin_1", "270x184 @ (450,92)", "#79C4B7", "nvidia/Nemotron-3.5-Super-VL", null, DateTime.UtcNow.ToString("O"))
         });
     }

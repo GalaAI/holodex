@@ -25,7 +25,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
-    private readonly OutboundQueue _queue = new();
+    private readonly OutboundQueue _queue = OutboundQueue.Shared;
 
     private readonly FlowLayoutPanel _body;
     private readonly CaptureWellControl _composer;
@@ -822,6 +822,7 @@ public sealed class AInboxIntakeWidgetForm : Form
             items.Add(new QueuedItem("scroll", "handoff-scroll.md", "Scroll", "text", "text/markdown", null, HandoffSeal.Markdown(draft, pod), null, null, new()));
             foreach (var it in g.Items) items.Add(ToQueued(it));
             var sent = await _queue.EnqueueAsync(draft);
+            if (g.ChosenIntent == "proof") OutboundQueue.RaiseProofQueued(sent);
             bool delivered = sent.Items.All(i => i.AInboxItemId != null);
             string head = delivered ? $"SENT {g.Letter} // {items.Count} TO AINBOX // {pod.Label.ToUpperInvariant()}" : $"QUEUED {g.Letter} // AINBOX NOT READY, RETRYING";
             SetStatus($"{head} // sha256:{seal[..12]}", delivered ? PhosphorTheme.Moss : PhosphorTheme.Seal);

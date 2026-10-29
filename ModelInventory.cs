@@ -80,12 +80,12 @@ public sealed class ModelInventory
         BaseUrl = "http://127.0.0.1:1234/v1"
     };
 
-    /// <summary>A local vision server (YOLO detection, SAM 2 segmentation) that lists its models the same way.</summary>
+    /// <summary>A local vision server (YOLO detection, SAM 2 segmentation) that lists its models the same way. 8856, because Ark agent dispatch owns 8850.</summary>
     public static readonly ModelProvider LocalVisionDefault = new()
     {
         Id = "local-vision",
         Label = "Local vision",
-        BaseUrl = "http://127.0.0.1:8850/v1"
+        BaseUrl = "http://127.0.0.1:8856/v1"
     };
 
     public static readonly IReadOnlyList<ModelProvider> Defaults = new[] { NebiusDefault, LmStudioDefault, LocalVisionDefault };

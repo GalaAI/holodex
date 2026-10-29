@@ -51,7 +51,7 @@ public class RouterTests
     public async Task A_new_local_vision_server_is_announced_once_and_takes_detect_and_segment()
     {
         var (inventory, fake) = Make();
-        fake.Lists["http://127.0.0.1:8850/v1/models"] = new[] { "yolo11n", "sam2.1-hiera-small" };
+        fake.Lists["http://127.0.0.1:8856/v1/models"] = new[] { "yolo11n", "sam2.1-hiera-small" };
 
         var added = await inventory.Refresh();
         Assert.Equal(2, added.Count);
