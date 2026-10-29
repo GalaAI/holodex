@@ -9,6 +9,22 @@
 
 More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https://arkomnitek.com)**
 
+### Why I Built This
+> *"I'm a traditional tattooer and shop owner. Ten months ago, I didn't know how to code—I just needed help running my business without letting admin work and social algorithms swallow the actual craft. So I taught myself how to build my shop's app, website, and agent infrastructure from scratch using AI over the past 10 months, and I fell in love with the process. My real goal was to build something I could give to my dad to help him run his shop, but if it didn't work on mine first, what good was it? Once our own production analytics proved it worked in my studio every day, I knew I could confidently hand it to him—and open-source the three pieces of the stack here so any builder or shop owner can use them."*  
+> — **Justin Walker**
+
+---
+
+## How the Trilogy Fits Together (`Holodex` vs. `Hivemind` vs. `Ryozan`)
+
+**Holodex** is one of three standalone, open-source entries in the **ArkOmnitek Trilogy**. They connect seamlessly as one end-to-end ecosystem led by **NVIDIA Nemotron on Nebius Token Factory**, while each repository owns a completely separate layer of the stack:
+
+| Product & Track | What It Is | How It Differs From the Other Two |
+| :--- | :--- | :--- |
+| **[Holodex](https://github.com/GalaAI/holodex)** *(This Repo)*<br>*Track: Personal AI* | **The Desktop Cursor & Vision Wand.** A native 240Hz Windows AI cursor (`Alt+Space` HUD, `Alt+S` Free-Form screen lasso, `Alt+E` HWND window picker, `Alt+H` drawer) that lets you point at or lasso anything on your screen and act on it instantly. | **Pure OS-level cursor interaction & screen vision (`.NET 10 / C# / Win32`).** Holodex doesn't manage OAuth vaults or run shop accounting—it captures live visual context from any desktop window and beams it to **Hivemind** or **Nemotron-3.5-Super-VL**. |
+| **[Hivemind](https://github.com/GalaAI/hivemind)**<br>*Track: Coding & Agentic Engineering* | **The Shared Multi-Agent Brain, MCP Broker & OAuth Hub.** The command center where **NVIDIA Nemotron** leads **ArkHive local models** and **subscription CLI agents** (`Antigravity`, `Claude`, `Codex`), paired with clean Google/Pinterest/TikTok OAuth adapters. | **Pure orchestration, security, and agentic engineering infrastructure (`TypeScript / Bun / MCP`).** Hivemind is the engine room that routes models, isolates Git worktrees (**SolaTree**), enforces policy (**Aegis**), and syncs credentials (**KeyMaster**). |
+| **[Ryozan](https://github.com/GalaAI/ryozan)**<br>*Track: Best Apps & Agents* | **The Brick-and-Mortar Studio & Shop Operating System.** Carbon-copied from the production system proven at Blind Tiger Tattoo Co., reimagined in a **Neo-Ukiyo-e Phosphor** portal where **8 Ryōzanpaku Bandit NPCs** deal **MTG Action Cards** to run bookings, deposits, double-entry bookkeeping (`ryozan-econ`), DMs, and social posts. | **Pure business & creator operations (`Python FastAPI + React 19`).** Built for a working artist or shop owner (like Justin's dad) who never wants to touch a terminal or write prompt essays—they talk to their Bandit crew and tap cards to run the shop. |
+
 ---
 
 ## Screenshots
