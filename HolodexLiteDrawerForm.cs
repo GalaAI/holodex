@@ -96,8 +96,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
     // Codex: a card per saved capture.
     private ThreadView _codexList = null!;
 
-    // GrimX: a card per mouse binding, then a card per Spell orb slot.
-    private ThreadView _macroList = null!;
+    // Spells: an orb per Spell kind over the Wiz composer.
+    private SpellsTab _spellsTab = null!;
+
+    // Mods: the mouse's buttons, the gesture Spells, the Spell Orb ring and what is turned on, a card each.
+    private ThreadView _modsList = null!;
 
     // Mods / Hardware controls
 
@@ -726,16 +729,27 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private void BuildGrimXTab()
     {
         _grimxPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.GrimXPanel" };
+        _spellsTab = new SpellsTab(_ark, () => _openWiz(Location));
+        _grimxPanel.Controls.Add(_spellsTab);
+        _contentHost.Controls.Add(_grimxPanel);
+    }
 
-        var wizBtnRow = new Panel { Dock = DockStyle.Top, Height = 42, BackColor = PhosphorTheme.Surface };
-        var openWizBtn = new PhosphorButton("Open Wiz")
+    /// <summary>The Spells tab (its orbs and composer), for the as-built render and tests.</summary>
+    internal SpellsTab Spells => _spellsTab;
+
+    private void BuildModsTab()
+    {
+        _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
+
+        // Wiz Automated Onboarding & Animated Tooltip Tutorial button, beside the mouse's button reset.
+        var onboardRow = new Panel { Dock = DockStyle.Top, Height = 42, BackColor = PhosphorTheme.Surface };
+        var onboardBtn = new PhosphorButton("Show me around")
         {
             Dock = DockStyle.Left,
             Width = 224,
-            Name = "Holodex.OpenWizButton"
+            Name = "Holodex.RunOnboardingBtn"
         };
-        openWizBtn.Click += (_, _) => _openWiz(Location);
-
+        onboardBtn.Click += (_, _) => _runWizOnboardingTutorial();
         var autoMacroBtn = new PhosphorButton("Reset my buttons")
         {
             Dock = DockStyle.Right,
@@ -760,7 +774,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
                     ToastTone.Warning);
                 return;
             }
-            RefreshGrimXMacroReadout();
+            RefreshModsList();
             PhosphorToast.Show(
                 "Buttons reset",
                 $"Your {hw.Name} has its starting buttons back.",
@@ -768,30 +782,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
                 3400,
                 ToastTone.Success);
         };
-        wizBtnRow.Controls.Add(autoMacroBtn);
-        wizBtnRow.Controls.Add(openWizBtn);
-
-        _macroList = CardList("Holodex.GrimXList");
-        RefreshGrimXMacroReadout();
-
-        _grimxPanel.Controls.Add(_macroList);
-        _grimxPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
-        _grimxPanel.Controls.Add(wizBtnRow);
-        _contentHost.Controls.Add(_grimxPanel);
-    }
-
-    private void BuildModsTab()
-    {
-        _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
-
-        // Wiz Automated Onboarding & Animated Tooltip Tutorial button
-        var onboardBtn = new PhosphorButton("Show me around")
-        {
-            Dock = DockStyle.Top,
-            Height = 42,
-            Name = "Holodex.RunOnboardingBtn"
-        };
-        onboardBtn.Click += (_, _) => _runWizOnboardingTutorial();
+        onboardRow.Controls.Add(autoMacroBtn);
+        onboardRow.Controls.Add(onboardBtn);
 
         // Every Augment by Shell: the one inventory page from Ark, in its own window.
         var inventoryBtn = new PhosphorButton("Augment Inventory")
@@ -819,37 +811,13 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         vaultBtn.Click += (_, _) => OpenVault?.Invoke();
 
-        // What is equipped: the spellbook's gesture casts, then the mods, a card each.
-        var modsInfoBox = CardList("Holodex.ModsInfoBox");
-        modsInfoBox.AddSection("Spells you draw");
-        // Name only the arming keys that are switched on (tray: Spells // hold a key, then draw).
-        string arm = (OmniwandSpellGestureEngine.HoldCtrlToArm, OmniwandSpellGestureEngine.HoldRightMouseToArm) switch
-        {
-            (true, true) => "Hold Ctrl or right-click",
-            (false, true) => "Hold right-click",
-            _ => "Hold Ctrl"
-        };
-        foreach (var (spell, gesture, does) in new[]
-        {
-            ("Time Splitter", $"{arm}, then shake side to side.", "Asks Wiz about it"),
-            ("Copycat", $"{arm}, then shake up and down.", "Cuts out a picture"),
-            ("Mutation", $"{arm}, then draw a circle.", "Casts a spell"),
-            ("Synthesize", $"{arm}, then sweep to the right.", "Opens Holodex")
-        })
-            modsInfoBox.Add(ThreadTone.Action, $"Spell // {spell}", gesture, leds: new[] { (PhosphorTheme.Patina, does) });
-        modsInfoBox.AddSection("What is turned on");
-        foreach (var (mod, what, leds) in new (string, string, (Color, string)[])[]
-        {
-            ("Shape-changing pointer", "It turns into a line when you can type, glows on links, and spins while it waits.", new[] { (PhosphorTheme.Moss, "Smooth") }),
-            ("Knows your mouse", "Finds the mouse you are moving and uses its own speed and buttons.", new[] { (PhosphorTheme.Moss, "Switches by itself") }),
-            ("Safe key keeper", "Keeps your model key locked in Windows, never in a file.", new[] { (PhosphorTheme.Patina, "Windows vault") }),
-            ("Hivemind session bridge", "Messages and work orders become real Hivemind missions over MCP. Signed out, Nemotron answers and every card names its model.", new[] { (PhosphorTheme.Patina, HivemindClient.EndpointHost), (PhosphorTheme.Ghost, "Signed out: Nemotron") })
-        })
-            modsInfoBox.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
+        // What is equipped: the mouse's buttons, the spellbook's gesture casts, the ring, then the mods, a card each.
+        _modsList = CardList("Holodex.ModsInfoBox");
+        RefreshModsList();
 
-        _modsPanel.Controls.Add(modsInfoBox);
+        _modsPanel.Controls.Add(_modsList);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
-        _modsPanel.Controls.Add(onboardBtn);
+        _modsPanel.Controls.Add(onboardRow);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
         _modsPanel.Controls.Add(vaultBtn);
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
@@ -880,7 +848,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// <summary>
     /// Shows <paramref name="tabId"/>'s panel. The swap is one frame: the content host holds the old tab on screen
     /// while the new one is shown (before the old one hides, so the host is never empty) and its list catches up,
-    /// then paints once. Codex and GrimX rebuild their cards only when what they list has changed.
+    /// then paints once. Codex and Mods rebuild their cards only when what they list has changed; Spells rereads its orbs.
     /// </summary>
     public void SwitchTab(string tabId)
     {
@@ -904,7 +872,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
                 if (PanelFor(id) != show) PanelFor(id).Visible = false;
             _contentHost.ResumeLayout(true);
             if (tabId == "codex") RefreshCodexEntries();
-            if (tabId == "grimx") RefreshGrimXMacroReadout();
+            if (tabId == "grimx") _ = _spellsTab.RefreshAsync();
+            if (tabId == "mods") RefreshModsList();
             if (tabId == "stats") _statsPanel?.Refresh();
         }
     }
@@ -1035,36 +1004,67 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }
     }
 
-    /// <summary>The GrimX buttons for the mouse in use now.</summary>
-    public void ShowActiveMouse() => RefreshGrimXMacroReadout();
+    /// <summary>The Mods list for the mouse in use now.</summary>
+    public void ShowActiveMouse() => RefreshModsList();
 
-    /// <summary>What the GrimX list shows now (the mouse and each binding's words), so a switch back skips an unchanged rebuild.</summary>
-    private string? _grimxShown;
+    /// <summary>What the Mods list shows now (the mouse, each binding's words, the arming keys, the ring picks), so a switch back skips an unchanged rebuild.</summary>
+    private string? _modsShown;
 
-    public void RefreshGrimXMacroReadout()
+    /// <summary>
+    /// The Mods list: the buttons of the mouse in use, the Spells you draw (naming only the arming keys that are on),
+    /// the eight Spell Orb ring slots, then what is turned on.
+    /// </summary>
+    public void RefreshModsList()
     {
-        if (_macroList == null) return;
+        if (_modsList == null) return;
         var hw = ConnectedMouse;
         var macros = MouseHardwareAndWandEngine.LoadOrCreateMacroBindings(hw);
-        string shown = hw.Name + "\u0001" + string.Join("\u0001", macros.Select(m => $"{m.TriggerLabel}\u0002{m.ActionLabel}\u0002{m.Parameter}"));
-        if (shown == _grimxShown) return;
-        _grimxShown = shown;
-        using var batch = _macroList.Batch();
-        _macroList.Clear();
-        // The full model is on the Mods tab; each binding names the device it reads.
-        _macroList.AddSection($"Buttons // {hw.Name}");
+        // Name only the arming keys that are switched on (tray: Spells // hold a key, then draw).
+        string arm = (OmniwandSpellGestureEngine.HoldCtrlToArm, OmniwandSpellGestureEngine.HoldRightMouseToArm) switch
+        {
+            (true, true) => "Hold Ctrl or right-click",
+            (false, true) => "Hold right-click",
+            _ => "Hold Ctrl"
+        };
+        string shown = hw.Name + "\u0001" + arm + "\u0001" + string.Join("\u0001", macros.Select(m => $"{m.TriggerLabel}\u0002{m.ActionLabel}\u0002{m.Parameter}"))
+            + "\u0001" + string.Join("\u0001", GrimXFlowOrb.Slots.Select(slot => SpellPicks.Get(slot.Id)?.Name ?? ""));
+        if (shown == _modsShown) return;
+        _modsShown = shown;
+        using var batch = _modsList.Batch();
+        _modsList.Clear();
+        // The full model is in the Mouse Mod Station; each binding names the device it reads.
+        _modsList.AddSection($"Buttons // {hw.Name}");
         foreach (var m in macros)
-            _macroList.Add(ThreadTone.Action, m.TriggerLabel, m.ActionLabel,
+            _modsList.Add(ThreadTone.Action, m.TriggerLabel, m.ActionLabel,
                 leds: string.IsNullOrWhiteSpace(m.Parameter) ? null : new[] { (PhosphorTheme.Patina, m.Parameter) });
 
-        _macroList.AddSection("Spell Orb // 8 slots // Ctrl+Shift+Space");
-        foreach (var s in GrimXFlowOrb.Slots)
+        _modsList.AddSection("Spells you draw");
+        foreach (var (spell, gesture, does) in new[]
         {
-            string slotLabel = string.Equals(s.Verb, s.Title, StringComparison.OrdinalIgnoreCase) ? s.Title : $"{s.Verb} {s.Title}";
-            var card = _macroList.Add(ThreadTone.Step, $"Slot {s.Index + 1} // {slotLabel}", s.Subtitle,
-                leds: null);
-            card.EdgeOverride = s.AccentColor;
+            ("Time Splitter", $"{arm}, then shake side to side.", "Asks Wiz about it"),
+            ("Copycat", $"{arm}, then shake up and down.", "Cuts out a picture"),
+            ("Mutation", $"{arm}, then draw a circle.", "Casts a spell"),
+            ("Synthesize", $"{arm}, then sweep to the right.", "Opens Holodex")
+        })
+            _modsList.Add(ThreadTone.Action, $"Spell // {spell}", gesture, leds: new[] { (PhosphorTheme.Patina, does) });
+
+        _modsList.AddSection("Spell Orb // 8 slots // Ctrl+Shift+Space");
+        foreach (var slot in GrimXFlowOrb.Slots)
+        {
+            string slotLabel = string.Equals(slot.Verb, slot.Title, StringComparison.OrdinalIgnoreCase) ? slot.Title : $"{slot.Verb} {slot.Title}";
+            var card = _modsList.Add(ThreadTone.Step, $"Slot {slot.Index + 1} // {slotLabel}", SpellPicks.Get(slot.Id)?.Name ?? slot.Subtitle, leds: null);
+            card.EdgeOverride = slot.AccentColor;
         }
+
+        _modsList.AddSection("What is turned on");
+        foreach (var (mod, what, leds) in new (string, string, (Color, string)[])[]
+        {
+            ("Shape-changing pointer", "It turns into a line when you can type, glows on links, and spins while it waits.", new[] { (PhosphorTheme.Moss, "Smooth") }),
+            ("Knows your mouse", "Finds the mouse you are moving and uses its own speed and buttons.", new[] { (PhosphorTheme.Moss, "Switches by itself") }),
+            ("Safe key keeper", "Keeps your model key locked in Windows, never in a file.", new[] { (PhosphorTheme.Patina, "Windows vault") }),
+            ("Hivemind session bridge", "Messages and work orders become real Hivemind missions over MCP. Signed out, Nemotron answers and every card names its model.", new[] { (PhosphorTheme.Patina, HivemindClient.EndpointHost), (PhosphorTheme.Ghost, "Signed out: Nemotron") })
+        })
+            _modsList.Add(ThreadTone.Step, $"Mod // {mod}", what, leds: leds);
     }
 
     /// <summary>For the as-built render: "codex" shows one saved element pick as a card; "reset" reloads the real list.</summary>

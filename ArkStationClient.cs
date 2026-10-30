@@ -791,7 +791,7 @@ public sealed class ArkStationClient
     }
 
     /// <summary>The spine gesture for a slot, or for one picked Spell of that slot.</summary>
-    private static string SpellTrigger(string flowKind, string? spellSlug) =>
+    internal static string SpellTrigger(string flowKind, string? spellSlug) =>
         string.IsNullOrWhiteSpace(spellSlug)
             ? $"grimx/{flowKind.ToLowerInvariant()}"
             : $"grimx/{flowKind.ToLowerInvariant()}/{spellSlug.ToLowerInvariant()}";

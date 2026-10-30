@@ -52,7 +52,8 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     private bool _working;
     private bool _threadStarted;
 
-    private static readonly (string Id, string Title, string Verb)[] FlowLenses =
+    /// <summary>The Spell kinds, in order, with what each does: the one GrimX type list (the Spells tab orbs read it too).</summary>
+    internal static readonly (string Id, string Title, string Verb)[] FlowLenses =
     {
         ("flow",     "Spell",      "any Spell type"),
         ("spell",    "Quick Cast", "one-shot execution"),
