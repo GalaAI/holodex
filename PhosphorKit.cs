@@ -1218,8 +1218,7 @@ internal sealed class SpecCardPanel : Panel
         var prevClip = g.Clip;
         g.SetClip(path, CombineMode.Intersect);
         using (var edgeBrush = new SolidBrush(Color.FromArgb(230, Edge))) g.FillRectangle(edgeBrush, rect.X, rect.Y, 3f * s, rect.Height);
-        using (var glow = new LinearGradientBrush(new RectangleF(rect.X, rect.Y, 18f * s, rect.Height), Color.FromArgb(50, Edge), Color.FromArgb(0, Edge), LinearGradientMode.Horizontal))
-            g.FillRectangle(glow, rect.X, rect.Y, 18f * s, rect.Height);
+        PhosphorTheme.FillEdgeBloom(g, new RectangleF(rect.X, rect.Y, 18f * s, rect.Height), Edge, 50);
 
         float x = PhosphorTheme.S6 * s;
         float y = PhosphorTheme.S4 * s;

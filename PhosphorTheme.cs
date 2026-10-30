@@ -233,7 +233,7 @@ public static class PhosphorTheme
         LinearGradientBrush Falloff(Color c, int alpha)
         {
             var brush = new LinearGradientBrush(new Rectangle(bounds.Left - 1, bounds.Top, bounds.Width + 2, bounds.Height),
-                Color.FromArgb(alpha, c), Color.FromArgb(0, c), LinearGradientMode.Horizontal);
+                Color.FromArgb(alpha, c), Color.FromArgb(0, c), LinearGradientMode.Horizontal) { WrapMode = WrapMode.TileFlipX };
             brush.InterpolationColors = new ColorBlend(4)
             {
                 Colors = new[] { Color.FromArgb(alpha, c), Color.FromArgb(alpha, c), Color.FromArgb(0, c), Color.FromArgb(0, c) },
@@ -250,17 +250,30 @@ public static class PhosphorTheme
         int bloomAlpha = (int)Math.Clamp(0.28f * 255 * intensity, 0, 255);
         int bloomW = Math.Min(bounds.Width, S5);
         var bloomRect = new Rectangle(bounds.Left, bounds.Top, bloomW, bounds.Height);
-        using (var bloom = new LinearGradientBrush(new Rectangle(bloomRect.Left - 1, bloomRect.Top, bloomRect.Width + 1, bloomRect.Height),
-            Color.FromArgb(bloomAlpha, sidelight), Color.FromArgb(0, sidelight), LinearGradientMode.Horizontal))
-        {
-            g.FillRectangle(bloom, bloomRect);
-        }
+        FillEdgeBloom(g, bloomRect, sidelight, bloomAlpha);
 
         // Side light: inset calc(var(--u) / 2), the full height of the leading edge.
         using (var bar = new SolidBrush(Color.FromArgb((int)Math.Clamp(255 * intensity, 0, 255), sidelight)))
             g.FillRectangle(bar, bounds.Left, bounds.Top, 2, bounds.Height);
 
         g.Clip = prevClip;
+    }
+
+    /// <summary>
+    /// The leading-edge glow of an aura (packages/ui aura.css, inset 12px 0 16px -8px): <paramref name="alpha"/> at the
+    /// left edge of <paramref name="rect"/>, fading on a gaussian-like ease to nothing at its right edge. The brush runs
+    /// past the fill and mirrors instead of tiling, so GDI+ never wraps the start color into the last column.
+    /// </summary>
+    public static void FillEdgeBloom(Graphics g, RectangleF rect, Color color, int alpha)
+    {
+        if (rect.Width <= 0 || rect.Height <= 0 || alpha <= 0) return;
+        using var brush = new LinearGradientBrush(new RectangleF(rect.Left - 1, rect.Top, rect.Width + 3, rect.Height),
+            Color.FromArgb(alpha, color), Color.FromArgb(0, color), LinearGradientMode.Horizontal)
+        {
+            WrapMode = WrapMode.TileFlipX,
+            Blend = new Blend(5) { Positions = new[] { 0f, 0.25f, 0.5f, 0.75f, 1f }, Factors = new[] { 0f, 0.3f, 0.68f, 0.93f, 1f } }
+        };
+        g.FillRectangle(brush, rect);
     }
 
     /// <summary>The ArkMark, drawn from the approved emblem geometry (packages/ui/src/brand). Green variant.</summary>

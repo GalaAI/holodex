@@ -160,6 +160,10 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // the rail's own surface ran on to the window edge, so its icons sat right of the column's middle.
         var frame = WidgetChrome.FramePadding();
         frame.Left = 3;
+        // The content column's right and bottom margins match the rail gutter on its left, so the column sits
+        // centred between the rail and the window edge instead of 12 px from one and 20 px from the other.
+        frame.Right = Gutter;
+        frame.Bottom = Gutter;
         Padding = frame;
 
         bool hasNebiusKey = HasNebiusKey;
@@ -352,7 +356,12 @@ public sealed partial class HolodexLiteDrawerForm : Form
         composer.Content.Controls.Add(_sessionInputBox);
         composer.Height = composer.HeightFor(_sessionInputBox.Height + bar.Height);
 
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionFooter" };
+        // One column edge for the session: the composer keeps its TraceBeam ring room (ComposerSurface.InsetPx), and
+        // the cards, the footer and the roster line take the same inset, so every row starts and ends on the well.
+        var column = new Padding((int)ComposerSurface.InsetPx, 0, (int)ComposerSurface.InsetPx, 0);
+        // ThreadView keeps 2 px free on the right of its cards (no horizontal scroll), so its right inset is 2 less.
+        _sessionThread.Padding = new Padding(column.Left, 0, Math.Max(0, column.Right - 2), 0);
+        var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = PhosphorTheme.Surface, Padding = column, Name = "Holodex.SessionFooter" };
         _rosterChip = new SuggestionChip { Dock = DockStyle.Left, Name = "Holodex.RosterSelect" };
         // The chip picks where the message goes: an agent, or one of the owner's Hivemind Sessions.
         _rosterChip.Click += (_, _) => _rosterChip.ShowChoices(RosterChoices().ToList());
@@ -363,7 +372,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // Roster: who the message reaches, under the chip, one LED per agent in its accent. It wraps rather than
         // dropping anyone, and refits its height when the target changes.
-        _activeRosterLabel = new LedRow { Dock = DockStyle.Bottom, Height = 20, Wrap = true, Name = "Holodex.RosterLine" };
+        _activeRosterLabel = new LedRow { Dock = DockStyle.Bottom, Height = 20, Wrap = true, Padding = column, Name = "Holodex.RosterLine" };
         void FitRoster() => _activeRosterLabel.Height = _activeRosterLabel.HeightFor(Math.Max(80, _sessionPanel.ClientSize.Width));
         _activeRosterLabel.LedsChanged += (_, _) => FitRoster();
         _sessionPanel.Resize += (_, _) => FitRoster();

@@ -177,7 +177,7 @@ internal static class PhosphorIcons
 /// </summary>
 internal class ComposerSurface : Control
 {
-    protected const float InsetPx = 5f; // room for an outer ring (the TraceBeam) inside the control bounds
+    internal const float InsetPx = 5f; // room for an outer ring (the TraceBeam) inside the control bounds
     private const float PadXPx = 10f;
     private const float PadYPx = 8f;
 

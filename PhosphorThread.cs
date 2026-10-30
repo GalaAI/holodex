@@ -559,13 +559,13 @@ internal sealed class ThreadView : FlowLayoutPanel
     public event EventHandler? ContentChanged;
 
     /// <summary>Card width: the client width less a scrollbar's, always reserved so text never rewraps under it.</summary>
-    public int CardWidth => Math.Max(80, ClientSize.Width - SystemInformation.VerticalScrollBarWidth - 2);
+    public int CardWidth => Math.Max(80, ClientSize.Width - Padding.Horizontal - SystemInformation.VerticalScrollBarWidth - 2);
 
     /// <summary>
     /// The width to measure the thread at when a form sizes to it: the full width when no scrollbar is reserved, so
     /// the cards line up with the composer above them instead of stopping a scrollbar short of it.
     /// </summary>
-    public int FitWidth => ReserveScrollbar ? CardWidth : Math.Max(80, ClientSize.Width - 2);
+    public int FitWidth => ReserveScrollbar ? CardWidth : Math.Max(80, ClientSize.Width - Padding.Horizontal - 2);
 
     /// <summary>
     /// True (the default) keeps a scrollbar's width free even when nothing scrolls, for threads that size their
@@ -577,7 +577,7 @@ internal sealed class ThreadView : FlowLayoutPanel
     private int LayoutWidth()
     {
         if (ReserveScrollbar) return CardWidth;
-        int full = Math.Max(80, ClientSize.Width - 2);
+        int full = Math.Max(80, ClientSize.Width - Padding.Horizontal - 2);
         // A shown scrollbar already narrows the client area; one about to show needs its width kept free.
         if (VerticalScroll.Visible) return full;
         return ContentHeight(full) > ClientSize.Height ? CardWidth : full;
@@ -683,13 +683,15 @@ internal class LedRow : Control
     public int HeightFor(int width)
     {
         float s = PhosphorPaint.Scale(this);
-        return (int)Math.Ceiling(Math.Max(LedPaint.LinePx * s, LedPaint.Measure(Leds, width, s, Wrap)));
+        return (int)Math.Ceiling(Math.Max(LedPaint.LinePx * s, LedPaint.Measure(Leds, Math.Max(1, width - Padding.Horizontal), s, Wrap)));
     }
 
     protected override void OnPaint(PaintEventArgs e)
     {
         float s = PhosphorPaint.Scale(this);
-        float h = Wrap ? LedPaint.Measure(Leds, Width, s, true) : LedPaint.LinePx * s;
-        LedPaint.Draw(e.Graphics, Leds, new RectangleF(0, Math.Max(0, (Height - h) / 2f), Width, h), s, Wrap);
+        // Padding insets the row from its sides, so it can share a column edge with the controls around it.
+        float w = Math.Max(1, Width - Padding.Horizontal);
+        float h = Wrap ? LedPaint.Measure(Leds, w, s, true) : LedPaint.LinePx * s;
+        LedPaint.Draw(e.Graphics, Leds, new RectangleF(Padding.Left, Math.Max(0, (Height - h) / 2f), w, h), s, Wrap);
     }
 }

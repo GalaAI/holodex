@@ -25,8 +25,7 @@ internal static class StackPaint
             var st = g.Save();
             using (var clip = PhosphorTheme.CreateRoundedRect(rect, r)) g.SetClip(clip);
             using (var b = new SolidBrush(Color.FromArgb(200, e))) g.FillRectangle(b, 0, 0, 3f * s, c.Height);
-            using (var glow = new LinearGradientBrush(new RectangleF(0, 0, 16f * s, c.Height), Color.FromArgb(46, e), Color.FromArgb(0, e), LinearGradientMode.Horizontal))
-                g.FillRectangle(glow, 0, 0, 16f * s, c.Height);
+            PhosphorTheme.FillEdgeBloom(g, new RectangleF(0, 0, 16f * s, c.Height), e, 46);
             g.Restore(st);
         }
     }
