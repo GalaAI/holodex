@@ -64,7 +64,7 @@ You need Windows 10 or 11 (x64). A Nebius key is optional.
 2. Check it: `(Get-FileHash .\Holodex-<version>-win-x64.zip -Algorithm SHA256).Hash.ToLower()` must match the `.sha256` file. Extract it anywhere.
 3. Run `Omniwand.exe`. (The executable, the `Omniwand:*` credential names and the `%LOCALAPPDATA%\Omniwand` folder keep the project's earlier name so existing installs keep working.)
 4. On a fresh install the Holodex drawer opens on three first steps. **Sign in with Hivemind** is the one answers need; then ask Nemotron in the box below.
-5. **Your ArkStation** (tray menu, or the third first step) scans this PC: apps, local models, MCP servers, services and hardware. Nothing connects without your OK; each row has its own Connect.
+5. **Your PC** (tray menu, or the third first step) scans this PC: apps, local models, MCP servers, services and hardware. Nothing connects without your OK; each row has its own Connect.
 
 **Optional key.** To call Token Factory directly (images on any Hivemind, and tools: web search with a Tavily key, files, the approved PC command line, bridged MCP servers), open **Vault** from the tray and paste your key from [tokenfactory.nebius.com](https://tokenfactory.nebius.com/). Keys stay in Windows Credential Manager, never in a file or a log. Holodex also reads `NEBIUS_API_KEY` from the environment.
 
@@ -79,10 +79,10 @@ dotnet publish Omniwand.csproj -c Release -r win-x64 --self-contained true -o ar
 ## What it does
 
 - **HUD (`Ctrl+Alt+Space`).** Ask about whatever is under the cursor; the screen around it can go with the question.
-- **Snip and Lasso (`Ctrl+Alt+S`), Pick a thing (`Ctrl+Alt+E`).** Cut out any shape, mark it up, ask about it, or save it to the Codex.
-- **AInbox (`Ctrl+Alt+I`).** Stack captures, let Nemotron rank them, and send a sealed Handoff Scroll. Text is scanned and secrets are redacted before anything leaves.
+- **Snip and Lasso (`Ctrl+Alt+S`), Pick a thing (`Ctrl+Alt+E`).** Cut out any shape, mark it up, ask about it, or save it to your Library.
+- **AInbox (`Ctrl+Alt+I`).** Stack captures, let Nemotron rank them, and send a sealed handoff. Text is scanned and secrets are redacted before anything leaves.
 - **Wiz (`Ctrl+Alt+W`).** An agent on Nemotron Super that plans and, with a Nebius key, acts with tools, asking before it changes anything.
-- **Holodex drawer (`Ctrl+Alt+H`).** Session chat, AInbox, Codex, Spells and settings.
+- **Holodex drawer (`Ctrl+Alt+H`).** Session chat, AInbox, Library, Spells and settings.
 - **Vault (tray).** Keys, MCP sign-ins and local services in one place. Each connected MCP server says whether answers use its tools yet.
 - **The wand cursor.** Drawn every frame, four looks. If Holodex is ever killed, its next start puts your Windows cursors and mouse speed back first.
 
