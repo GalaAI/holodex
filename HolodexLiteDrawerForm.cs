@@ -451,6 +451,19 @@ public sealed partial class HolodexLiteDrawerForm : Form
                 };
                 card.Name = step.Name;
                 _firstSteps.Add(card);
+                // The whole card is the step's button, not only its footer icon.
+                Action? go = step.Name switch
+                {
+                    "Holodex.FirstStep.SignIn" when !signedIn => () => _ = _ark.Hivemind.SignInAsync(),
+                    "Holodex.FirstStep.Ask" => () => { ShowProfile(false); _sessionInputBox.Focus(); },
+                    "Holodex.FirstStep.Scan" => () => OpenYourArkStation?.Invoke(),
+                    _ => null
+                };
+                if (go != null)
+                {
+                    card.Cursor = Cursors.Hand;
+                    card.Click += (_, _) => go();
+                }
                 switch (step.Name)
                 {
                     case "Holodex.FirstStep.SignIn" when !signedIn:

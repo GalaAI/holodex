@@ -557,13 +557,17 @@ internal class SuggestionChip : Control
         AccessibleName = Detail.Length > 0 ? $"{Label}, {Detail}" : Label;
         float s = PhosphorPaint.Scale(this);
         using var g = PhosphorPaint.MeasureGraphics(s);
-        using var font = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx);
+        // Measured in the face and size the chip paints in, so a label that fits is never cut with an ellipsis.
+        using var font = PhosphorFonts.Mono(ChipTextPx);
         float text = PhosphorPaint.MeasureTracked(g, Text2, font, 1f * s);
         int want = (int)Math.Ceiling(text + Chrome(s));
         // A row can cap the chip (MaximumSize); the text then ends in an ellipsis inside it, chevron kept.
         Width = MaximumSize.Width > 0 ? Math.Min(want, MaximumSize.Width) : want;
         Invalidate();
     }
+
+    /// <summary>The chip's text size: Fit measures and OnPaint draws at the same size.</summary>
+    private const float ChipTextPx = 10.5f;
 
     /// <summary>Everything on the chip but its text: padding, the dot and the chevron.</summary>
     private float Chrome(float s) => (ShowArrow ? 88f : 66f) * s;
@@ -693,7 +697,7 @@ internal class SuggestionChip : Control
             x += 22f * s;
         }
 
-        using (var font = PhosphorFonts.Mono(10.5f))
+        using (var font = PhosphorFonts.Mono(ChipTextPx))
         using (var ink = new SolidBrush(_hover || _open ? PhosphorTheme.Bone : PhosphorTheme.Cream))
             x += PhosphorPaint.DrawTracked(g, FittedText(g, font, s), font, ink, x, cy - font.GetHeight(g) / 2f, 1f * s);
 

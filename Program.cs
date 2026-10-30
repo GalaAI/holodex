@@ -387,7 +387,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         signOutItem.Click += async (_, _) => await _ark.Hivemind.SignOutAsync();
         var accountRow = home.AddPage("Signed in", accountPage, $"Signed in to {HivemindClient.EndpointHost}.");
         accountRow.Name = "Tray.HivemindAccount";
-        accountRow.ShortcutKeyDisplayString = HivemindClient.EndpointHost;
+        // The host is in the tooltip; the right column stays short so it never runs into the chevron.
+        accountRow.ShortcutKeyDisplayString = "Hivemind";
         void SyncAccountRows()
         {
             bool signedIn = HivemindClient.HasSavedSignIn;
