@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Omniwand</AssemblyName>
     <RootNamespace>Omniwand</RootNamespace>
-    <Version>0.4.1</Version>
+    <Version>0.4.2</Version>
     <!-- The product is Holodex. AssemblyName stays Omniwand: the Input Studio runtime task and the Logi plugin launch and watch Omniwand.exe. -->
     <Product>Holodex</Product>
     <AssemblyTitle>Holodex</AssemblyTitle>
