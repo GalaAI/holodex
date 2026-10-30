@@ -381,10 +381,120 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _sessionPanel.Controls.Add(_activeRosterLabel);
         _sessionComposerParts = new Control[] { composer, composerGap, footer, rosterGap, _activeRosterLabel };
 
+        // An empty session shows three first steps instead of a blank chat; the first real card clears them.
+        _sessionThread.ControlAdded += (_, e) =>
+        {
+            if (_addingSteps || e.Control is not ThreadCard card || _firstSteps.Contains(card) || _firstSteps.Count == 0) return;
+            if (IsHandleCreated) BeginInvoke(ClearFirstSteps);
+            else ClearFirstSteps();
+        };
+        _ark.Hivemind.StateChanged += () => { if (IsHandleCreated && !IsDisposed) BeginInvoke(RefreshFirstSteps); };
+        ShowFirstSteps();
+
         SetSyndicateTarget("all");
         RefreshWorkOrdersText();
         ShowHivemindState();
         _contentHost.Controls.Add(_sessionPanel);
+    }
+
+    // ---- First steps (empty session) ----
+
+    private readonly HashSet<ThreadCard> _firstSteps = new();
+    private bool _addingSteps;
+
+    /// <summary>Opens Your ArkStation (the PC scan); set by Program.</summary>
+    public Action? OpenYourArkStation { get; set; }
+
+    /// <summary>True while the session has no conversation and shows the first steps instead.</summary>
+    internal bool ShowingFirstSteps => _firstSteps.Count > 0;
+
+    /// <summary>The first steps a session shows before any message, in order, as (name, kicker, done).</summary>
+    internal static IReadOnlyList<(string Name, string Kicker, bool Done)> FirstStepsFor(bool signedIn) => new[]
+    {
+        ("Holodex.FirstStep.SignIn", signedIn ? "DONE // SIGNED IN WITH HIVEMIND" : "1 // SIGN IN WITH HIVEMIND", signedIn),
+        ("Holodex.FirstStep.Ask", "2 // ASK NEMOTRON", false),
+        ("Holodex.FirstStep.Scan", "3 // SCAN YOUR PC", false),
+    };
+
+    /// <summary>
+    /// The empty session's three steps, each one real: Sign in with Hivemind (marked done once signed in), Ask
+    /// Nemotron (puts the cursor in the composer) and Scan your PC (opens Your ArkStation).
+    /// </summary>
+    private void ShowFirstSteps()
+    {
+        if (_sessionThread.Cards.Any(c => !_firstSteps.Contains(c))) return;
+        bool signedIn = HivemindClient.HasSavedSignIn;
+        _addingSteps = true;
+        try { AddFirstStepCards(signedIn); }
+        finally { _addingSteps = false; }
+    }
+
+    private void AddFirstStepCards(bool signedIn)
+    {
+        using (_sessionThread.Batch())
+        {
+            foreach (var step in FirstStepsFor(signedIn))
+            {
+                ThreadCard card = step.Name switch
+                {
+                    "Holodex.FirstStep.SignIn" => _sessionThread.Add(signedIn ? ThreadTone.Ok : ThreadTone.Action, step.Kicker,
+                        signedIn
+                            ? $"Nemotron answers through {HivemindClient.EndpointHost}. No key needed."
+                            : $"Answers need no key. {HivemindClient.SignInHelp}",
+                        PhosphorGlyph.Holodex),
+                    "Holodex.FirstStep.Ask" => _sessionThread.Add(ThreadTone.Action, step.Kicker,
+                        "Type a question below and press Enter. NVIDIA Nemotron answers here, and the card names the model.",
+                        PhosphorGlyph.Sparkles),
+                    _ => _sessionThread.Add(ThreadTone.Action, step.Kicker,
+                        "Your ArkStation finds the apps, local models, MCP servers and hardware on this PC and connects what Holodex can use.",
+                        PhosphorGlyph.Box)
+                };
+                card.Name = step.Name;
+                _firstSteps.Add(card);
+                switch (step.Name)
+                {
+                    case "Holodex.FirstStep.SignIn" when !signedIn:
+                        card.SetFooter("", new CardAction("Holodex.FirstStep.SignInButton", PhosphorGlyph.Link, "Sign in with Hivemind", async (c, _) =>
+                        {
+                            c.SetMeta("FINISH IN YOUR BROWSER");
+                            bool ok = await _ark.Hivemind.SignInAsync();
+                            if (!ok && !c.IsDisposed) c.SetMeta("NOT SIGNED IN // TRY AGAIN");
+                        }));
+                        break;
+                    case "Holodex.FirstStep.Ask":
+                        card.SetFooter("", new CardAction("Holodex.FirstStep.AskButton", PhosphorGlyph.Sparkles, "Ask Nemotron", (_, _) =>
+                        {
+                            ShowProfile(false);
+                            _sessionInputBox.Focus();
+                        }));
+                        break;
+                    case "Holodex.FirstStep.Scan":
+                        card.SetFooter("", new CardAction("Holodex.FirstStep.ScanButton", PhosphorGlyph.Box, "Scan your PC", (_, _) => OpenYourArkStation?.Invoke()));
+                        break;
+                }
+            }
+        }
+    }
+
+    /// <summary>A sign-in or sign-out while the steps show redraws them (step 1 turns done, or back).</summary>
+    private void RefreshFirstSteps()
+    {
+        if (!ShowingFirstSteps) return;
+        ClearFirstSteps();
+        ShowFirstSteps();
+    }
+
+    private void ClearFirstSteps()
+    {
+        if (_firstSteps.Count == 0) return;
+        var steps = _firstSteps.ToList();
+        _firstSteps.Clear();
+        foreach (var card in steps)
+        {
+            _sessionThread.Controls.Remove(card);
+            card.Dispose();
+        }
+        _sessionThread.Relayout();
     }
 
     /// <summary>A header eyebrow: the Ark wording only while the Ark route is really present, else the Holodex one.</summary>
@@ -938,8 +1048,14 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// <summary>For the as-built render: "codex" shows one saved element pick as a card; "reset" reloads the real list.</summary>
     internal void PreviewState(string state)
     {
+        if (state is "session-empty" or "session-conversation")
+        {
+            PreviewSession(state == "session-conversation");
+            return;
+        }
         if (state != "codex")
         {
+            RestoreSession();
             RefreshCodexEntries();
             return;
         }
@@ -949,6 +1065,42 @@ public sealed partial class HolodexLiteDrawerForm : Form
                 "A docked drawer with a tab for each part of Holodex. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
                 "Chrome_WidgetWin_1", "270x184 @ (450,92)", "#79C4B7", "nvidia/Nemotron-3.5-Super-VL", null, DateTime.UtcNow.ToString("O"))
         });
+    }
+
+    private List<Control>? _stashedSession;
+
+    /// <summary>
+    /// For the as-built render: the session as a new user sees it (the first steps) or with a short conversation.
+    /// The live session's cards are set aside and come back on reset.
+    /// </summary>
+    private void PreviewSession(bool conversation)
+    {
+        if (_stashedSession == null)
+        {
+            _stashedSession = _sessionThread.Controls.Cast<Control>().Where(c => c is not ThreadCard card || !_firstSteps.Contains(card)).ToList();
+            foreach (var c in _stashedSession) _sessionThread.Controls.Remove(c);
+        }
+        ClearFirstSteps();
+        foreach (var c in _sessionThread.Controls.Cast<Control>().ToList()) { _sessionThread.Controls.Remove(c); c.Dispose(); }
+        if (!conversation)
+        {
+            ShowFirstSteps();
+            return;
+        }
+        _sessionThread.Add(ThreadTone.You, "YOU // TO NEMOTRON", "What can Holodex do on this PC?");
+        _sessionThread.Add(ThreadTone.Agent, "NEMOTRON 3 NANO // VIA HIVEMIND",
+            "Ask about anything on your screen, cut out a picture and ask about it, and send captures to AInbox. Your ArkStation lists the tools on this PC Holodex can connect.");
+    }
+
+    private void RestoreSession()
+    {
+        if (_stashedSession == null) return;
+        ClearFirstSteps();
+        foreach (var c in _sessionThread.Controls.Cast<Control>().ToList()) { _sessionThread.Controls.Remove(c); c.Dispose(); }
+        foreach (var c in _stashedSession) _sessionThread.Controls.Add(c);
+        _stashedSession = null;
+        _sessionThread.Relayout();
+        if (!_sessionThread.Cards.Any()) ShowFirstSteps();
     }
 
     private void RefreshWorkOrdersText()

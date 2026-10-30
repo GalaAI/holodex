@@ -322,6 +322,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _vault = new VaultForm(_ark);
         _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
         _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
+        _holodexDrawer.OpenYourArkStation = OpenYourArkStation;
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -367,6 +368,35 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _trayTitle = titleItem;
         home.Add(titleItem);
 
+        // Hivemind: "Sign in with Hivemind" while signed out; once signed in, a "Signed in" row (the host on the right)
+        // whose page holds Sign out. Hivemind's sign-in does not name the account, so the row does not invent one.
+        var signInItem = home.Add(new ToolStripMenuItem("Sign in with Hivemind")
+        {
+            Name = "Tray.HivemindSignIn",
+            ToolTipText = "Answers with no key. " + HivemindClient.SignInHelp
+        });
+        signInItem.Click += async (_, _) =>
+        {
+            bool ok = await _ark.Hivemind.SignInAsync();
+            PhosphorToast.Show(ok ? "Signed in with Hivemind" : "Not signed in",
+                ok ? "Nemotron answers through your Hivemind now. No key needed." : "The sign-in did not finish. Try again from the tray.",
+                "HOLODEX // HIVEMIND", 3600, ok ? ToastTone.Success : ToastTone.Warning);
+        };
+        var accountPage = new TrayPage("Hivemind account");
+        var signOutItem = accountPage.Add(new ToolStripMenuItem("Sign out") { Name = "Tray.HivemindSignOut", Tag = PhosphorMenuRenderer.DangerTag, ToolTipText = "Ends this PC's Hivemind sign-in." });
+        signOutItem.Click += async (_, _) => await _ark.Hivemind.SignOutAsync();
+        var accountRow = home.AddPage("Signed in", accountPage, $"Signed in to {HivemindClient.EndpointHost}.");
+        accountRow.Name = "Tray.HivemindAccount";
+        accountRow.ShortcutKeyDisplayString = HivemindClient.EndpointHost;
+        void SyncAccountRows()
+        {
+            bool signedIn = HivemindClient.HasSavedSignIn;
+            signInItem.Available = !signedIn;
+            accountRow.Available = signedIn;
+        }
+        SyncAccountRows();
+        _ark.Hivemind.StateChanged += () => _uiSync.Post(_ => SyncAccountRows(), null);
+
         var summonItem = home.Add(new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Ask), ToolTipText = "Opens the HUD ask box." });
         summonItem.Click += (_, _) => SummonHud();
 
@@ -379,6 +409,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // The Vault needs no Ark and no Hivemind account: keys, MCP sign-ins and local services on this PC.
         var vaultItem = home.Add(new ToolStripMenuItem("Vault") { Name = "Tray.Vault", ToolTipText = "Connect apps, services and keys. Keys stay in Windows Credential Manager." });
         vaultItem.Click += (_, _) => _vault.Summon(GetCursorPoint());
+
+        // Your ArkStation: the whole-PC scan (software, services, engines, MCP servers, hardware) and its connections.
+        var arkStationItem = home.Add(new ToolStripMenuItem("Your ArkStation") { Name = "Tray.YourArkStation", ToolTipText = "Scan this PC and connect what Holodex can use." });
+        arkStationItem.Click += (_, _) => OpenYourArkStation();
 
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
@@ -679,8 +713,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
             firstSignIn.Tick += (_, _) =>
             {
                 firstSignIn.Dispose();
+                // The session opens on its first steps; Sign in with Hivemind is step 1.
                 _holodexDrawer.SummonDrawer(Screen.PrimaryScreen?.WorkingArea.Location + new Size(200, 200) ?? Point.Empty, "session");
-                _holodexDrawer.SetProfileOpen(true);
             };
             firstSignIn.Start();
         }
@@ -2214,6 +2248,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _spinAngleDeg,
                 nowSec);
         }
+    }
+
+    /// <summary>Opens Your ArkStation (Set up this PC), with the shared model inventory so found engines join it.</summary>
+    private void OpenYourArkStation()
+    {
+        PcSetupScan.Models ??= _ark.Models;
+        _ = PcSetupScan.ShowAsync();
     }
 
     /// <summary>The welcome toast's body: the shortcuts this PC really registered, one per line, else the tray.</summary>

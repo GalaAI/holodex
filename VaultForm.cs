@@ -42,18 +42,34 @@ internal sealed class VaultForm : Form
 
         _list = new ThreadView("Vault.List") { Dock = DockStyle.Fill, FollowNewest = false };
 
-        _connectedTab = new PhosphorButton("Connected") { Name = "Vault.ConnectedTab", Width = 170, Left = 0, Top = 0 };
-        _catalogTab = new PhosphorButton("Catalog") { Name = "Vault.CatalogTab", Width = 150, Top = 0 };
+        // Real tabs (no boxes, the selected one underlined) and, on the same row, Set up this PC one click away.
+        _connectedTab = new PhosphorButton("Connected", PhosphorButtonVariant.Tab) { Name = "Vault.ConnectedTab", Width = 170, Left = 0, Top = 0 };
+        _catalogTab = new PhosphorButton("Catalog", PhosphorButtonVariant.Tab) { Name = "Vault.CatalogTab", Width = 130, Top = 0 };
         _connectedTab.Click += (_, _) => ShowTab(catalog: false);
         _catalogTab.Click += (_, _) => ShowTab(catalog: true);
+        var setUpPc = new PhosphorButton("Set up this PC") { Name = "Vault.SetUpPcButton", Width = 190, Top = 0 };
+        setUpPc.Click += (_, _) => _ = OpenPcSetupAsync();
         var tabs = new Panel { Dock = DockStyle.Top, Height = PhosphorTheme.TouchMin, BackColor = Color.Transparent, Name = "Vault.Tabs" };
         tabs.Controls.Add(_connectedTab);
         tabs.Controls.Add(_catalogTab);
-        tabs.Layout += (_, _) => _catalogTab.Left = _connectedTab.Right + PhosphorTheme.S2;
+        tabs.Controls.Add(setUpPc);
+        tabs.Layout += (_, _) =>
+        {
+            _catalogTab.Left = _connectedTab.Right;
+            setUpPc.Left = tabs.ClientSize.Width - setUpPc.Width;
+            setUpPc.Height = _connectedTab.Height - (int)Math.Round(6 * PhosphorPaint.Scale(tabs));
+        };
+        // The baseline under the tabs, so they read as one strip.
+        tabs.Paint += (_, e) =>
+        {
+            using var line = new Pen(PhosphorTheme.Line2);
+            e.Graphics.DrawLine(line, 0, tabs.Height - 1, _catalogTab.Right, tabs.Height - 1);
+        };
 
         _status = new DataLabel(IdleStatus) { Name = "Vault.IntakeStatus", Height = 22 };
 
-        _forBadge = new PhosphorBadge("DETECT AUTOMATICALLY", PhosphorBadgeState.Unstated) { Name = "Vault.IntakeFor", Width = 260, Left = 0 };
+        // Shown only while the intake is set for one provider or a rotation; detection itself is said once, in the prompt.
+        _forBadge = new PhosphorBadge("", PhosphorBadgeState.Accent) { Name = "Vault.IntakeFor", Width = 260, Left = 0, Visible = false };
         _cancel = new PhosphorButton("Cancel") { Name = "Vault.IntakeCancel", Width = 120, Visible = false };
         _submit = new PhosphorButton("Add to vault", PhosphorButtonVariant.Primary) { Name = "Vault.IntakeButton", Width = 170 };
         _cancel.Click += (_, _) => ResetIntake();
@@ -69,7 +85,7 @@ internal sealed class VaultForm : Form
             _forBadge.Top = (actions.ClientSize.Height - _forBadge.Height) / 2;
         };
 
-        _field = new PhosphorField("Paste an API key, an ENV_NAME=value line, or an MCP server link", multiline: false, PhosphorTheme.TouchMin, mono: true)
+        _field = new PhosphorField(IdlePrompt, multiline: false, PhosphorTheme.TouchMin, mono: true)
         { Name = "Vault.IntakeField" };
         _field.Box.Name = "Vault.IntakeBox";
         _field.Box.UseSystemPasswordChar = false;
@@ -79,7 +95,7 @@ internal sealed class VaultForm : Form
             e.SuppressKeyPress = true;
             await SubmitAsync();
         };
-        var intake = WidgetChrome.Labeled("UNIVERSAL INTAKE // KEY, ENV LINE OR MCP LINK", _field, PhosphorTheme.TouchMin);
+        var intake = WidgetChrome.Labeled("PASTE ANYTHING // UNIVERSAL INTAKE", _field, PhosphorTheme.TouchMin);
         intake.Name = "Vault.Intake";
 
         Controls.Add(_list);
@@ -92,7 +108,7 @@ internal sealed class VaultForm : Form
         Controls.Add(WidgetChrome.Spacer(PhosphorTheme.S2));
         Controls.Add(intake);
         Controls.Add(WidgetChrome.Spacer(6));
-        WidgetChrome.Attach(this, "INVENTORY // ADAPTERS // KEYMASTER VAULT", "Vault", PhosphorTheme.Coral, null);
+        WidgetChrome.Attach(this, "APPS, SERVICES AND KEYS // KEYMASTER", "Vault", PhosphorTheme.Coral, null);
         WidgetDrag.Enable(this);
         ResumeLayout(false);
     }
@@ -113,9 +129,9 @@ internal sealed class VaultForm : Form
     public void Summon(Point cursorPos, bool? catalog = null)
     {
         var screen = Screen.FromPoint(cursorPos).WorkingArea;
-        Size = new Size(Math.Min(Width, screen.Width - 40), Math.Min(Height, screen.Height - 40));
-        Location = new Point(screen.Left + (screen.Width - Width) / 2, screen.Top + (screen.Height - Height) / 2);
+        Width = Math.Min(Width, screen.Width - 40);
         ShowTab(catalog ?? HolodexVault.Load().Count == 0);
+        Location = new Point(screen.Left + (screen.Width - Width) / 2, screen.Top + (screen.Height - Height) / 2);
         if (!Visible) SurfaceMotion.Present(this);
         Activate();
         _field.Box.Focus();
@@ -146,6 +162,7 @@ internal sealed class VaultForm : Form
         _pinned = provider;
         _forBadge.Text = $"FOR // {provider.Label.ToUpperInvariant()}";
         _forBadge.State = PhosphorBadgeState.Accent;
+        _forBadge.Visible = true;
         _field.Box.PlaceholderText = $"Paste your {provider.Label} key";
         _submit.Text = "Add to vault";
         _cancel.Visible = true;
@@ -159,6 +176,7 @@ internal sealed class VaultForm : Form
         _rotating = entry;
         _forBadge.Text = $"ROTATE // {entry.Label.ToUpperInvariant()}";
         _forBadge.State = PhosphorBadgeState.Accent;
+        _forBadge.Visible = true;
         _field.Box.PlaceholderText = $"Paste the new {entry.Label} key";
         _submit.Text = "Rotate";
         _cancel.Visible = true;
@@ -171,15 +189,17 @@ internal sealed class VaultForm : Form
         _pinned = null;
         _rotating = null;
         _field.Box.Clear();
-        _forBadge.Text = "DETECT AUTOMATICALLY";
-        _forBadge.State = PhosphorBadgeState.Unstated;
-        _field.Box.PlaceholderText = "Paste an API key, an ENV_NAME=value line, or an MCP server link";
+        _forBadge.Visible = false;
+        _field.Box.PlaceholderText = IdlePrompt;
         _submit.Text = "Add to vault";
         _cancel.Visible = false;
         SetStatus(IdleStatus);
     }
 
     private const string IdleStatus = "Keys stay in Credential Manager on this PC, never in a file or a log.";
+
+    /// <summary>The intake prompt, and the one place the Vault says detection is automatic.</summary>
+    internal const string IdlePrompt = "Paste a key, an ENV_NAME=value line or an MCP link. Holodex works out which.";
 
     private void SetStatus(string text) => _status.Text = text;
 
@@ -352,7 +372,26 @@ internal sealed class VaultForm : Form
         }
         _list.Relayout();
         _list.AutoScrollPosition = Point.Empty;
+        SizeToContent();
     }
+
+    /// <summary>
+    /// The window is as tall as what it holds: the header, intake and tabs plus the list's own height, between a
+    /// floor that keeps the tabs and one card in view and the screen's working area. No empty window.
+    /// </summary>
+    private void SizeToContent()
+    {
+        int chrome = Padding.Vertical;
+        foreach (Control c in Controls)
+            if (c.Dock is DockStyle.Top or DockStyle.Bottom) chrome += c.Height;
+        int listWidth = Math.Max(1, ClientSize.Width - Padding.Horizontal);
+        int wanted = chrome + _list.ContentHeight(listWidth) + PhosphorTheme.S3;
+        var area = (Visible ? Screen.FromControl(this) : Screen.FromPoint(Location)).WorkingArea;
+        Height = VaultHeight(wanted, area.Height);
+    }
+
+    /// <summary>The height rule on its own, for tests: at least 360, at most the screen less 40.</summary>
+    internal static int VaultHeight(int wanted, int screenHeight) => Math.Max(360, Math.Min(wanted, screenHeight - 40));
 
     private void BuildConnected(List<VaultEntry> entries, IReadOnlyList<VaultProvider> fromEnv)
     {

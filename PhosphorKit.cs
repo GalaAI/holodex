@@ -379,7 +379,8 @@ internal sealed class DataLabel : Control
     }
 }
 
-internal enum PhosphorButtonVariant { Default, Primary, Danger }
+/// <summary>Tab: a label on the surface with no box; the selected one reads bone over a coral underline (Vault Connected and Catalog).</summary>
+internal enum PhosphorButtonVariant { Default, Primary, Danger, Tab }
 
 /// <summary>Button contract (packages/ui button.css): uppercase Inter 800 at text-size-btn, 0.16em, touch-min tall, radius-btn. One primary per region, filled bone, never ember.</summary>
 internal sealed class PhosphorButton : Control
@@ -445,6 +446,12 @@ internal sealed class PhosphorButton : Control
             return;
         }
 
+        if (Variant == PhosphorButtonVariant.Tab)
+        {
+            PaintTab(g, s);
+            return;
+        }
+
         Color fill, border, ink;
         switch (Variant)
         {
@@ -492,6 +499,33 @@ internal sealed class PhosphorButton : Control
             PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), Math.Max(1f, radius - 2f), Color.FromArgb(160, PhosphorTheme.Patina));
         }
 
+        using var inkBrush = new SolidBrush(ink);
+        float px = PhosphorTheme.TextButton;
+        using var font = PhosphorFonts.Ui(px, heavy: true);
+        string label = Text.ToUpperInvariant();
+        float tracking = px * TrackingEm * s;
+        float w = PhosphorPaint.MeasureTracked(g, label, font, tracking) - tracking;
+        float h = font.GetHeight(g);
+        PhosphorPaint.DrawTracked(g, label, font, inkBrush, (Width - w) / 2f, (Height - h) / 2f, tracking);
+    }
+
+    /// <summary>
+    /// A tab: no fill and no box, so the row reads as tabs, not buttons. Selected is bone ink over a 2px coral
+    /// underline with the highlight aura; the rest are dim and go bone on hover. The strip draws its own baseline.
+    /// </summary>
+    private void PaintTab(Graphics g, float s)
+    {
+        bool lit = Selected || (_hover && Enabled);
+        var ink = !Enabled ? PhosphorTheme.Ghost : lit ? PhosphorTheme.Bone : PhosphorTheme.Dim;
+        if (Selected)
+        {
+            var bar = new Rectangle(0, Height - (int)Math.Round(2 * s), Width, (int)Math.Round(2 * s));
+            PhosphorTheme.DrawHighlightAura(g, new Rectangle(0, 0, Width, Height), PhosphorTheme.Coral, 0.6f, 0);
+            using var coral = new SolidBrush(PhosphorTheme.Coral);
+            g.FillRectangle(coral, bar);
+        }
+        if (Focused && !_hover)
+            PhosphorPaint.StrokeRounded(g, new RectangleF(1.5f, 1.5f, Width - 3f, Height - 5f * s), PhosphorTheme.RadiusButton * s, Color.FromArgb(160, PhosphorTheme.Patina));
         using var inkBrush = new SolidBrush(ink);
         float px = PhosphorTheme.TextButton;
         using var font = PhosphorFonts.Ui(px, heavy: true);

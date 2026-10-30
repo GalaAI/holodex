@@ -58,9 +58,24 @@ internal static class SurfaceCapture
 
         foreach (var (name, form) in widgets)
         {
+            if (form is VaultForm vaultForm)
+            {
+                // Both tabs, each sized to what it holds.
+                vaultForm.CaptureTo(Path.Combine(dir, "vault.png"), catalog: false);
+                written.Add(Path.Combine(dir, "vault.png"));
+                vaultForm.CaptureTo(Path.Combine(dir, "vault-catalog.png"), catalog: true);
+                written.Add(Path.Combine(dir, "vault-catalog.png"));
+                continue;
+            }
             Save(RenderForm(form), Path.Combine(dir, $"{name}.png"), written);
             if (form is HolodexLiteDrawerForm holodex)
             {
+                // The session as a new user meets it (first steps) and once a conversation exists.
+                holodex.PreviewState("session-empty");
+                Save(RenderForm(holodex), Path.Combine(dir, "holodex-first-steps.png"), written);
+                holodex.PreviewState("session-conversation");
+                Save(RenderForm(holodex), Path.Combine(dir, "holodex-conversation.png"), written);
+                holodex.PreviewState("reset");
                 foreach (var tab in new[] { "ainbox", "codex", "grimx", "mods" })
                 {
                     holodex.SwitchTab(tab);
