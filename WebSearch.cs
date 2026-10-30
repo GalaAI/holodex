@@ -30,8 +30,8 @@ internal static class WebSearch
     /// <summary>Offers the web_search tool on a chat payload and tells the model when to use it and to cite.</summary>
     public static void Offer(JsonObject payload)
     {
-        payload["tools"] = new JsonArray
-        {
+        if (payload["tools"] is not JsonArray tools) payload["tools"] = tools = new JsonArray();
+        tools.Add(
             new JsonObject
             {
                 ["type"] = "function",
@@ -50,8 +50,7 @@ internal static class WebSearch
                         ["required"] = new JsonArray("query")
                     }
                 }
-            }
-        };
+            });
         payload["tool_choice"] = "auto";
         if (payload["messages"] is JsonArray messages && messages.Count > 0 && messages[0] is JsonObject system && system["role"]?.GetValue<string>() == "system")
             system["content"] = system["content"]?.GetValue<string>() +
@@ -78,7 +77,13 @@ internal static class WebSearch
             string id = call["id"]?.GetValue<string>() ?? "";
             string name = call["function"]?["name"]?.GetValue<string>() ?? "";
             string result;
-            if (name != ToolName) result = $"Unknown tool {name}.";
+            if (name != ToolName)
+            {
+                JsonNode? local = null;
+                try { local = JsonNode.Parse(call["function"]?["arguments"]?.GetValue<string>() ?? "{}"); }
+                catch (JsonException) { }
+                result = await HolodexTools.RunAsync(name, local, ct);
+            }
             else
             {
                 string query = "", topic = "general";

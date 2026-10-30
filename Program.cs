@@ -579,6 +579,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorToast.UiContext = _uiSync;
         // Follow the mouse that moves: its speed, buttons and name come with it.
         MouseHardwareAndWandEngine.UiContext = _uiSync;
+        HolodexTools.Ui = _uiSync;
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(

@@ -166,6 +166,10 @@ internal static class HolodexVault
         new("mcp-wix", "Wix", GroupApps, VaultKind.McpServer, "Sites and stores.", Url: "https://mcp.wix.com/mcp"),
         new("mcp-huggingface", "Hugging Face", GroupApps, VaultKind.McpServer, "Models, datasets and Spaces. No sign-in needed.", Url: "https://huggingface.co/mcp"),
 
+        new(HolodexTools.FilesId, "Files", GroupLocal, VaultKind.LocalService, "A folder Nemotron and your destinations can read and write. Nothing outside it.",
+            Url: "folder"),
+        new(HolodexTools.CliId, "PC command line", GroupLocal, VaultKind.LocalService, "Nemotron runs PowerShell to configure PC Mod and other mods. You approve every command first.",
+            Url: "cli"),
         new("local-ollama", "Ollama", GroupLocal, VaultKind.LocalService, "Local models.", Url: "http://127.0.0.1:11434/api/tags"),
         new("local-lmstudio", "LM Studio", GroupLocal, VaultKind.LocalService, "Local models, OpenAI-compatible.", Url: "http://127.0.0.1:1234/v1/models"),
         new("local-comfyui", "ComfyUI", GroupLocal, VaultKind.LocalService, "Local image workflows.", Url: "http://127.0.0.1:8188/system_stats"),
@@ -404,7 +408,9 @@ internal static class HolodexVault
     {
         var provider = Find(entry.ProviderId);
         string? problem;
-        if (entry.Kind == VaultKind.LocalService) problem = await LocalProbeAsync(entry.Url, ct);
+        if (entry.ProviderId == HolodexTools.FilesId) problem = Directory.Exists(entry.Url) ? null : "the folder is gone";
+        else if (entry.ProviderId == HolodexTools.CliId) problem = null;
+        else if (entry.Kind == VaultKind.LocalService) problem = await LocalProbeAsync(entry.Url, ct);
         else if (entry.Kind == VaultKind.McpServer) problem = (await ListMcpToolsAsync(entry, interactive: false, ct)).Problem;
         else if (provider?.Probe == null) problem = "unchecked";
         else
@@ -437,12 +443,12 @@ internal static class HolodexVault
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { return "not running on this PC"; }
     }
 
-    public static async Task<VaultEntry> ConnectLocalAsync(VaultProvider provider, CancellationToken ct = default)
+    public static async Task<VaultEntry> ConnectLocalAsync(VaultProvider provider, CancellationToken ct = default, string? url = null)
     {
         var entry = new VaultEntry
         {
             Id = provider.Id, ProviderId = provider.Id, Label = provider.Label, Kind = VaultKind.LocalService,
-            Url = provider.Url, AddedAt = DateTimeOffset.Now
+            Url = url ?? provider.Url, AddedAt = DateTimeOffset.Now
         };
         return await VerifyAsync(entry, ct);
     }

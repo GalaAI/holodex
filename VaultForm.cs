@@ -250,7 +250,7 @@ internal sealed class VaultForm : Form
 
     private async Task ConnectUrlAsync(Uri uri)
     {
-        var local = HolodexVault.Catalog.FirstOrDefault(p => p.Kind == VaultKind.LocalService && new Uri(p.Url).Port == uri.Port && uri.IsLoopback);
+        var local = HolodexVault.Catalog.FirstOrDefault(p => p.Kind == VaultKind.LocalService && p.Url.StartsWith("http", StringComparison.Ordinal) && new Uri(p.Url).Port == uri.Port && uri.IsLoopback);
         if (local != null)
         {
             await ConnectLocalAsync(local);
@@ -272,6 +272,29 @@ internal sealed class VaultForm : Form
 
     private async Task ConnectLocalAsync(VaultProvider provider)
     {
+        if (provider.Id == HolodexTools.FilesId)
+        {
+            Directory.CreateDirectory(HolodexTools.DefaultRoot);
+            using var pick = new FolderBrowserDialog
+            {
+                Description = "The folder Nemotron and your destinations may read and write. Nothing outside it is reachable.",
+                UseDescriptionForTitle = true,
+                InitialDirectory = HolodexTools.DefaultRoot,
+                SelectedPath = HolodexTools.DefaultRoot
+            };
+            if (pick.ShowDialog(this) != DialogResult.OK) return;
+            var files = await HolodexVault.ConnectLocalAsync(provider, url: pick.SelectedPath);
+            ShowTab(catalog: false);
+            SetStatus($"Files connected: {files.Url}.");
+            return;
+        }
+        if (provider.Id == HolodexTools.CliId)
+        {
+            await HolodexVault.ConnectLocalAsync(provider, url: "powershell");
+            ShowTab(catalog: false);
+            SetStatus("PC command line connected. Holodex asks before every command.");
+            return;
+        }
         SetStatus($"Looking for {provider.Label} on this PC...");
         var entry = await HolodexVault.ConnectLocalAsync(provider);
         ShowTab(catalog: false);
@@ -367,6 +390,8 @@ internal sealed class VaultForm : Form
         {
             VaultKind.ApiKey => $"{(entry.EnvName.Length > 0 ? entry.EnvName : "Key")} in Credential Manager. Fingerprint {entry.Fingerprint}.",
             VaultKind.McpServer => $"{entry.Url}. {(entry.Detail.Length > 0 ? entry.Detail + ". " : "")}Sign-in {entry.Fingerprint}, saved in Credential Manager.",
+            _ when entry.ProviderId == HolodexTools.FilesId => $"{entry.Url}. Nemotron and your destinations reach only this folder.",
+            _ when entry.ProviderId == HolodexTools.CliId => "PowerShell on this PC. Every command waits for your Run.",
             _ => $"{new Uri(entry.Url).GetLeftPart(UriPartial.Authority)} on this PC. No key needed."
         };
         if (entry.Status == "failed" && entry.Detail.Length > 0 && entry.Kind == VaultKind.ApiKey) body += $" Last check: {entry.Detail}.";
@@ -460,7 +485,8 @@ internal sealed class VaultForm : Form
         {
             VaultKind.ApiKey => provider.EnvName.Length > 0 ? provider.EnvName : "API key",
             VaultKind.McpServer => provider.Blurb.Contains("No sign-in") ? "MCP link" : "Sign-in link",
-            _ => new Uri(provider.Url).GetLeftPart(UriPartial.Authority)
+            _ => provider.Url.StartsWith("http", StringComparison.Ordinal) ? new Uri(provider.Url).GetLeftPart(UriPartial.Authority)
+                : provider.Id == HolodexTools.FilesId ? "Folder you choose" : "Approve each command"
         }));
         if (provider.Id == "nebius") leds.Insert(0, (PhosphorTheme.Patina, "Default model"));
 

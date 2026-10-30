@@ -1086,8 +1086,12 @@ public sealed class ArkStationClient
 
         var payload = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl);
         // With a Tavily key in the Vault, Nemotron may call web_search (WebSearch.cs); each round is a new request.
-        bool searching = string.IsNullOrEmpty(imageDataUrl) && WebSearch.Available;
-        if (searching) WebSearch.Offer(payload);
+        // The same loop runs the local tools a Vault adapter switched on (HolodexTools: files, PC command line).
+        bool webSearch = string.IsNullOrEmpty(imageDataUrl) && WebSearch.Available;
+        bool localTools = string.IsNullOrEmpty(imageDataUrl) && HolodexTools.Any;
+        bool searching = webSearch || localTools;
+        if (webSearch) WebSearch.Offer(payload);
+        if (localTools) HolodexTools.Offer(payload);
         var sources = new List<string>();
         int rounds = 0;
         string json = payload.ToJsonString();
