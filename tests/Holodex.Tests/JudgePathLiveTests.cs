@@ -16,7 +16,8 @@ namespace Holodex.Tests;
 /// saved as a PNG there.
 /// Runs only with HOLODEX_LIVE_HIVEMIND=1 and OMNIWAND_HIVEMIND_URL set to a loopback gateway (set in the environment
 /// of the test run, before any Holodex type loads). Needs PLAYWRIGHT_CORE and HOLODEX_SIGNUP_INVITE. It signs out and
-/// revokes after. The generated password is never printed.
+/// revokes after. The generated password is never printed. HOLODEX_SIGNUP_EMAIL and HOLODEX_SIGNUP_PASSWORD reuse an
+/// account (signed up on first use); HOLODEX_SIGNED_OUT_ONLY=1 stops after the signed-out states.
 /// </summary>
 public class JudgePathLiveTests(ITestOutputHelper output)
 {
@@ -35,12 +36,40 @@ public class JudgePathLiveTests(ITestOutputHelper output)
         PhosphorFonts.EnsureLoaded();
         string? renders = Environment.GetEnvironmentVariable("HOLODEX_RENDER");
         if (renders != null) Directory.CreateDirectory(renders);
-        void Render(Form form, string name)
+        void Render(Form form, string name, Action? whileShown = null)
         {
             if (renders == null) return;
-            // The as-built render: drawn far off-screen without activation, so nothing appears on the desktop.
-            var size = SurfaceCapture.SaveForm(form, Path.Combine(renders, name));
-            output.WriteLine($"render {name} {size.Width}x{size.Height}");
+            // Shown far off-screen without activation (as the as-built render does), so nothing appears on the
+            // desktop and no focus moves; panels that size to their visible rows (the drawer's profile) fit first.
+            var home = form.Location;
+            try
+            {
+                form.Location = new System.Drawing.Point(-32000, -32000);
+                ShowWindow(form.Handle, 4); // SW_SHOWNOACTIVATE
+                form.PerformLayout();
+                whileShown?.Invoke();
+                form.Refresh();
+                string path = Path.Combine(renders, name);
+                var size = SurfaceCapture.SaveForm(form, path);
+                // DrawToBitmap paints sibling children in reverse z-order, so the drawer's floating profile panel came
+                // out under the content it floats over. It is drawn on its own and laid over at its place.
+                if (form.Controls.Find("Holodex.ProfilePanel", true).FirstOrDefault() is { Visible: true } panel)
+                {
+                    System.Drawing.Bitmap composed;
+                    using (var file = System.Drawing.Image.FromFile(path)) composed = new System.Drawing.Bitmap(file);
+                    using (var over = SurfaceCapture.Render(panel))
+                    using (var g = System.Drawing.Graphics.FromImage(composed))
+                        g.DrawImageUnscaled(over, panel.Left, panel.Top);
+                    composed.Save(path, ImageFormat.Png);
+                    composed.Dispose();
+                }
+                output.WriteLine($"render {name} {size.Width}x{size.Height}");
+            }
+            finally
+            {
+                ShowWindow(form.Handle, 0); // SW_HIDE
+                form.Location = home;
+            }
         }
 
         var ark = new ArkStationClient { SimulateFreshInstall = true };
@@ -55,15 +84,14 @@ public class JudgePathLiveTests(ITestOutputHelper output)
         try
         {
             // 1. First run: nothing answers yet, so the drawer opens on its profile with Sign in (as Program does).
-            drawer.PerformLayout();
             await drawer.RefreshConnectionHeaderAsync();
-            drawer.SetProfileOpen(true);
-            Render(drawer, "judge-1-first-run-drawer.png");
+            Render(drawer, "judge-1-first-run-drawer.png", () => drawer.SetProfileOpen(true));
             drawer.SetProfileOpen(false);
             await hud.AskForCaptureAsync("What is NVIDIA Nemotron?");
             output.WriteLine($"signed-out HUD: {hud.DescribeLastCard()}");
             Assert.Contains("NOT CONNECTED", hud.DescribeLastCard());
             Render(hud, "judge-2-hud-signed-out.png");
+            if (Environment.GetEnvironmentVariable("HOLODEX_SIGNED_OUT_ONLY") == "1") return;
 
             // 2. Sign up and consent headlessly; Holodex's own client finishes the sign-in.
             // A new account each run, unless HOLODEX_SIGNUP_EMAIL and HOLODEX_SIGNUP_PASSWORD name one made earlier
@@ -130,8 +158,7 @@ public class JudgePathLiveTests(ITestOutputHelper output)
 
             // 5. The drawer after sign-in: the profile says Nemotron answers through Hivemind, and the session answers.
             await drawer.RefreshConnectionHeaderAsync();
-            drawer.SetProfileOpen(true);
-            Render(drawer, "judge-5-drawer-signed-in.png");
+            Render(drawer, "judge-5-drawer-signed-in.png", () => drawer.SetProfileOpen(true));
             drawer.SetProfileOpen(false);
             drawer.SendSessionMessage("nemotron", "In one sentence, what can Holodex do?");
             string thread = "";
@@ -153,6 +180,9 @@ public class JudgePathLiveTests(ITestOutputHelper output)
             drawer.Dispose();
         }
     }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     /// <summary>Runs <paramref name="work"/> on an STA thread with a WinForms message loop, as the app's UI thread.</summary>
     private static void RunOnUiThread(Func<Task> work)
