@@ -1,0 +1,30 @@
+/* Copied from GalaAI/ark packages/tokens/src/typography.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Ark Omnitek: typography tokens. Four roles, four faces. */
+:root {
+  --font-display:
+    "Archivo Black", "Archivo", ui-sans-serif, sans-serif; /* display/hero titles ONLY, 900 */
+  --font-ui:
+    "Inter", ui-sans-serif, sans-serif; /* workhorse: nav, buttons, headings (600/800) */
+  --font-mono:
+    "JetBrains Mono", ui-monospace, monospace; /* data, telemetry, routes, eyebrows (400/500) */
+  --font-body:
+    "Space Grotesk", ui-sans-serif, sans-serif; /* prose, longform (400/500) */
+  /* Explicit tooltip faces remain stable when a host overrides general roles. */
+  --font-tooltip-title: "Archivo Black", ui-sans-serif, sans-serif;
+  --font-tooltip-description: "JetBrains Mono", ui-monospace, monospace;
+  /* Eyebrow motif: uppercase mono, wide tracking, ghost color */
+  --eyebrow-size: 12px;
+  --eyebrow-tracking: 0.12em;
+  /* Common UI text sizes lifted from source */
+  --text-size-section: 16px; /* compact section headings */
+  --text-size-body: 13px; /* operational descriptions */
+  --text-size-data: 12px; /* mono telemetry / LED labels */
+  --text-size-badge: 10px; /* lifecycle badges, triage tags */
+  --text-size-btn: 12px; /* button label (uppercase, 0.16em) */
+  /* Added 2026-10-27 so components stop hand-rolling sizes */
+  --text-size-micro: 8px; /* accent tile labels */
+  --text-size-caption: 11px; /* card meta and hints */
+  --text-size-lead: 14px; /* card titles in agent cards */
+  --text-size-value: 22px; /* accent tile values */
+  --text-size-metric: clamp(1.7rem, 2.5vw, 2.6rem); /* hero metric values */
+}

@@ -1,0 +1,173 @@
+/* 4GE studio shell. Every value resolves through @4ge/kit tokens; no raw hex.
+   Phosphor: dark matte ground, mono // eyebrows, one primary action per
+   surface, decoration only when it carries data. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-bone);
+  font-family: var(--font-body);
+  font-size: var(--text-size-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.studio {
+  display: grid;
+  grid-template-columns: calc(var(--u) * 56) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.studio-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: var(--s4) var(--s3);
+  background: var(--color-surface);
+  border-right: var(--border-hair) solid var(--color-line);
+  min-height: 0;
+}
+
+.studio-rail__brand {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3) var(--s4);
+  border-bottom: var(--border-hair) solid var(--color-line);
+}
+
+.studio-rail__mark {
+  font-family: var(--font-display);
+  font-size: var(--text-size-lead);
+  letter-spacing: 0.08em;
+  color: var(--color-bone);
+}
+
+.studio-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--u);
+}
+
+.studio-rail__link {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: var(--touch-min);
+  padding: 0 var(--s3);
+  border-radius: var(--radius-btn);
+  color: var(--color-dim);
+  text-decoration: none;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  transition:
+    color var(--dur-bloom) var(--ease-analog),
+    background-color var(--dur-bloom) var(--ease-analog);
+}
+
+.studio-rail__link:hover {
+  color: var(--color-bone);
+  background: var(--color-surface-2);
+}
+
+.studio-rail__link.is-active {
+  color: var(--color-bone);
+  background: var(--color-surface-2);
+  box-shadow: inset calc(var(--u) / 2) 0 0 var(--color-patina);
+}
+
+.studio-rail__link:focus-visible {
+  outline: var(--focus-ring) solid var(--color-patina);
+  outline-offset: var(--focus-offset);
+}
+
+.studio-rail__foot {
+  margin-top: auto;
+  padding: var(--s3);
+  border-top: var(--border-hair) solid var(--color-line);
+}
+
+.studio-main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.studio-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--color-dim);
+}
+
+.studio-pending {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: var(--s8) var(--s6);
+}
+
+.studio-pending__panel {
+  width: min(100%, calc(var(--u) * 140));
+  padding: var(--pad-surface);
+  display: grid;
+  gap: var(--s3);
+}
+
+.studio-pending__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-size-section);
+  color: var(--color-bone);
+}
+
+.studio-pending__body {
+  margin: 0;
+  color: var(--color-dim);
+  font-size: var(--text-size-lead);
+  line-height: 1.5;
+}
+
+.studio-pending__layers {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+}
+
+@media (max-width: 720px) {
+  .studio {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .studio-rail {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: var(--border-hair) solid var(--color-line);
+  }
+  .studio-rail__brand,
+  .studio-rail__foot {
+    display: none;
+  }
+  .studio-rail__list {
+    display: flex;
+  }
+}

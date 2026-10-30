@@ -83,12 +83,19 @@ internal abstract class ArkPageForm : Form
         WidgetChrome.PaintFrame(this, e.Graphics, PhosphorTheme.Line2);
     }
 
-    /// <summary>Opens the window centred on the screen under the cursor and loads the page.</summary>
+    /// <summary>True for a page that takes the whole screen under the cursor (the 4GE studio) instead of a centred window.</summary>
+    protected virtual bool FullScreen => false;
+
+    /// <summary>Opens the window centred on the screen under the cursor (or over all of it) and loads the page.</summary>
     protected async Task PresentAsync(Point cursorPos)
     {
-        var screen = Screen.FromPoint(cursorPos).WorkingArea;
-        Size = new Size(Math.Min(Width, screen.Width - 40), Math.Min(Height, screen.Height - 40));
-        Location = new Point(screen.Left + (screen.Width - Width) / 2, screen.Top + (screen.Height - Height) / 2);
+        if (FullScreen) Bounds = Screen.FromPoint(cursorPos).Bounds;
+        else
+        {
+            var screen = Screen.FromPoint(cursorPos).WorkingArea;
+            Size = new Size(Math.Min(Width, screen.Width - 40), Math.Min(Height, screen.Height - 40));
+            Location = new Point(screen.Left + (screen.Width - Width) / 2, screen.Top + (screen.Height - Height) / 2);
+        }
         if (!Visible) SurfaceMotion.Present(this);
         Activate();
         await LoadAsync();

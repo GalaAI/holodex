@@ -1,0 +1,28 @@
+{
+  "name": "@4ge/mods",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "4GE mods, adapters and augments: catalogs, the Windows Credential Manager store, CLI detection and runners, mod manifests and the Library.",
+  "exports": {
+    ".": {
+      "@4ge/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src", "skills", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@4ge/contracts": "workspace:*",
+    "execa": "^10.2.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6"
+  }
+}

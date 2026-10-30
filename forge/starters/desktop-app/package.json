@@ -1,0 +1,54 @@
+{
+  "name": "my-desktop-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Notes that stay on your machine.",
+  "packageManager": "pnpm@11.7.0",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "pnpm build && electron .",
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.json && vite build",
+    "start": "electron .",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json",
+    "package": "pnpm build && electron-builder --publish never",
+    "package:win": "pnpm build && electron-builder --win --publish never",
+    "package:mac": "pnpm build && electron-builder --mac --publish never",
+    "package:linux": "pnpm build && electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "build": {
+    "appId": "app.local.my-desktop-app",
+    "productName": "My Desktop App",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
+  }
+}

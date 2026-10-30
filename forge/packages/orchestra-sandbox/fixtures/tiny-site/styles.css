@@ -1,0 +1,6 @@
+body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #f6f3ec; color: #1b1b18; }
+header { padding: 12px 24px; border-bottom: 1px solid #d8d2c4; }
+nav a { margin-right: 16px; color: inherit; }
+main { max-width: 40rem; padding: 24px; }
+form { display: grid; gap: 8px; }
+input, textarea, button { font: inherit; padding: 6px 8px; }

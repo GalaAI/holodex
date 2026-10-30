@@ -1,0 +1,62 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/aura.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Highlight Aura: the one global highlight for a lit row, option or header.
+   A leading side light (coral by default, --sidelight overrides it), a bloom
+   into the row, and a fade toward the right edge through the shared
+   --aura-falloff mask. Decoration only: it never masks labels or hit targets.
+   Hosts keep at least --aura-lead (--s3) between the side light and their
+   content, on the leading side only; each host sets it in its own CSS.
+
+   .rp-aura                the element itself is the aura layer (the host
+                           positions it, for example a gliding highlight).
+   .rp-aura--fill          optional layout for a standalone aura layer: it
+                           covers its .rp-aura-host row, behind the content.
+   .rp-aura--behind        the host keeps its content and the aura sits behind
+                           it on ::before. Light it with data-aura="lit" or a
+                           component state selector. The host must be
+                           position: relative and keep its text above. */
+.rp-aura,
+.rp-aura--behind::before {
+  background: var(--color-surface-2);
+  box-shadow:
+    inset calc(var(--u) / 2) 0 0 var(--sidelight, var(--color-coral)),
+    inset var(--s3) 0 var(--s4) calc(-1 * var(--s2))
+      color-mix(in srgb, var(--sidelight, var(--color-coral)) 28%, transparent),
+    calc(-1 * var(--u) / 2) 0 var(--s2)
+      color-mix(in srgb, var(--sidelight, var(--color-coral)) 35%, transparent);
+  /* Oversized masks preserve the external leading glow. */
+  mask-image: var(--aura-falloff);
+  mask-size: calc(100% + var(--s4) * 2) calc(100% + var(--s4) * 2);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-clip: no-clip;
+  pointer-events: none;
+}
+/* The standalone layer sits below in-flow content so it can never cover a
+   label. .rp-aura-host gives it a stacking context to sit in; without one
+   the layer drops behind the row and the label still reads. */
+.rp-aura-host {
+  position: relative;
+  isolation: isolate;
+}
+.rp-aura--fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-badge);
+}
+.rp-aura--behind::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-badge);
+  opacity: 0;
+  transition: opacity var(--dur-disclosure-item) var(--ease-disclosure);
+}
+.rp-aura--behind[data-aura="lit"]::before {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-aura--behind::before {
+    transition: none;
+  }
+}

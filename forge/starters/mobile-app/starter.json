@@ -1,0 +1,82 @@
+{
+  "name": "mobile-app",
+  "title": "Mobile app (Expo React Native)",
+  "description": "Expo SDK 58 and React Native with TypeScript: one real list screen, runs on iOS, Android and the web. Adapted from Expo's official expo-template-blank-typescript.",
+  "kind": "mobile-app",
+  "platforms": [
+    "ios",
+    "android",
+    "web"
+  ],
+  "install": "pnpm install",
+  "build": "pnpm build",
+  "dev": "pnpm start",
+  "output": "dist",
+  "placeholders": [
+    {
+      "key": "appName",
+      "description": "The app's display name",
+      "default": "My App"
+    },
+    {
+      "key": "appSlug",
+      "description": "Lowercase kebab-case package and Expo slug",
+      "default": "my-app"
+    },
+    {
+      "key": "appTagline",
+      "description": "One line under the name",
+      "default": "Keep track of what matters."
+    }
+  ],
+  "fields": [
+    {
+      "file": "package.json",
+      "path": "name",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "package.json",
+      "path": "description",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "app.json",
+      "path": "expo.name",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "app.json",
+      "path": "expo.slug",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "name",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "tagline",
+      "value": "{{appTagline}}"
+    }
+  ],
+  "replace": [
+    {
+      "file": "README.md",
+      "find": "# My App",
+      "value": "# {{appName}}",
+      "escape": "none"
+    },
+    {
+      "file": "README.md",
+      "find": "Keep track of what matters.",
+      "value": "{{appTagline}}",
+      "escape": "none"
+    }
+  ],
+  "sourceRefs": [
+    "https://github.com/expo/expo/tree/main/templates/expo-template-blank-typescript",
+    "https://docs.expo.dev/more/create-expo/"
+  ]
+}

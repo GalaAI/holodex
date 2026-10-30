@@ -1,0 +1,6 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/panel.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Panel: the standard dark surface. Panels cast onto the field, never
+   dissolve into it. The ::before carries the edge vignette so the panel keeps
+   a lit top edge and a settled bottom. */
+.rp-panel{position:relative;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-widget);box-shadow:var(--shadow-cast)}
+.rp-panel::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:var(--edge-vignette)}

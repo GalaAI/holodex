@@ -1,0 +1,78 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/focal-card.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* FocalCard: the one interruption. A Panel with a coloured left edge:
+   gate = ember (a human decides), stop = rust (blocked), live = patina.
+   Enters with the bloom duration as a translate only (the Panel stage enter
+   rule, no fade); reduced motion removes the entry. */
+.rp-focal {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--pad-surface);
+  border-left: calc(var(--u) * 0.75) solid var(--color-ember);
+  animation: rp-focal-in var(--dur-bloom) var(--ease-analog);
+}
+.rp-focal--stop {
+  border-left-color: var(--color-rust);
+}
+.rp-focal--live {
+  border-left-color: var(--color-patina);
+}
+@keyframes rp-focal-in {
+  from {
+    transform: translateY(calc(var(--s2) * -1));
+  }
+}
+.rp-focal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--eyebrow-size);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--color-ember);
+}
+.rp-focal--stop .rp-focal__eyebrow {
+  color: var(--color-rust);
+}
+.rp-focal--live .rp-focal__eyebrow {
+  color: var(--color-patina);
+}
+.rp-focal__title {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--text-size-lead);
+  line-height: 1.2;
+  color: var(--color-bone);
+}
+.rp-focal__plain {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-size-body);
+  line-height: 1.5;
+  color: var(--color-dim);
+}
+.rp-focal__tech {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  line-height: 1.4;
+  color: var(--color-ghost);
+}
+.rp-focal__outcome {
+  font-family: var(--font-body);
+  font-size: var(--text-size-data);
+  line-height: 1.5;
+  color: var(--color-bone);
+}
+/* The outcome live region stays mounted so later outcomes are announced; while
+   empty it leaves the grid flow instead of adding a gap row. */
+.rp-focal__outcome:empty {
+  position: absolute;
+}
+.rp-focal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  margin-top: var(--u);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-focal {
+    animation: none;
+  }
+}

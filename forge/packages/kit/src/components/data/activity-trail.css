@@ -1,0 +1,16 @@
+/* Copied from GalaAI/ark packages/ui/src/data/activity-trail.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+.rp-activity-trail {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rp-activity-trail li {
+  padding: var(--s2) 0 var(--s2) var(--s3);
+  border-left: thin solid var(--color-patina);
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  line-height: 1.5;
+}

@@ -1,0 +1,103 @@
+/* Copied from GalaAI/ark packages/ui/src/controls/text-field.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* TextField and TextArea: the typed entry box. Label above, hint below, the
+   box itself is surface-2 inside a line-2 border like NumberField. The border
+   blooms patina only while the operator is in it (Law 05). Sizing resolves
+   through the spacing tokens; the value face inherits the host's type unless
+   the mono variant is asked for. */
+.rp-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s2);
+  width: 100%;
+  min-width: 0;
+}
+.rp-field__label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--text-size-data);
+  color: var(--color-dim);
+}
+.rp-field__box {
+  display: grid;
+  min-width: 0;
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-btn);
+  background: var(--color-surface-2);
+  transition:
+    border-color var(--dur-bloom) var(--ease-analog),
+    box-shadow var(--dur-bloom) var(--ease-analog);
+}
+.rp-field__box:hover {
+  border-color: var(--color-ghost);
+}
+.rp-field__box:focus-within {
+  border-color: var(--color-patina);
+  box-shadow: var(--bloom-patina);
+}
+.rp-field__input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--touch-min);
+  box-sizing: border-box;
+  padding: var(--s2) var(--s3);
+  border: none;
+  background: transparent;
+  color: var(--color-bone);
+  font: inherit;
+  line-height: 1.4;
+}
+.rp-field__input:focus {
+  outline: none;
+}
+.rp-field__input::placeholder {
+  color: var(--color-ghost);
+}
+.rp-field__input--mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  letter-spacing: 0.02em;
+}
+.rp-field__input--area {
+  resize: vertical;
+  min-height: calc(var(--touch-min) * 2);
+}
+.rp-field__hint {
+  font-family: var(--font-body);
+  font-size: var(--text-size-data);
+  line-height: 1.5;
+  color: var(--color-ghost);
+}
+.rp-field:has(.rp-field__input:disabled) {
+  opacity: 0.4;
+}
+.rp-field__input:disabled {
+  cursor: not-allowed;
+}
+
+/* Boolean entry shares the existing labeled-field owner and touch target. */
+.rp-field--checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch-min);
+  cursor: pointer;
+}
+.rp-field__checkbox {
+  width: var(--s4);
+  height: var(--s4);
+  margin: 0;
+  accent-color: var(--color-bone);
+}
+.rp-field__checkbox:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: var(--u);
+}
+.rp-field--checkbox:has(:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-field__box {
+    transition: none;
+  }
+}

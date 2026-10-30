@@ -1,0 +1,72 @@
+{
+  "name": "records-app",
+  "title": "Business records (CRM or ERP)",
+  "description": "A records app for running a business: accounts with roles (owner, manager, staff, viewer), contacts, deals moving through a pipeline with stage totals, and an activity log. Hono API on Node with SQLite (node:sqlite) and a React client. ERP builds extend it with products, stock, orders and invoices.",
+  "kind": "crm",
+  "platforms": [
+    "web"
+  ],
+  "install": "pnpm install",
+  "build": "pnpm build",
+  "dev": "pnpm dev",
+  "test": "pnpm test",
+  "output": "dist",
+  "placeholders": [
+    {
+      "key": "appName",
+      "description": "The workspace name",
+      "default": "My Records"
+    },
+    {
+      "key": "appSlug",
+      "description": "Lowercase kebab-case package name",
+      "default": "my-records"
+    },
+    {
+      "key": "appTagline",
+      "description": "One line on the sign-in screen",
+      "default": "Every customer and deal in one place."
+    }
+  ],
+  "fields": [
+    {
+      "file": "package.json",
+      "path": "name",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "package.json",
+      "path": "description",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "name",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "tagline",
+      "value": "{{appTagline}}"
+    }
+  ],
+  "replace": [
+    {
+      "file": "index.html",
+      "find": "<title>My Records</title>",
+      "value": "<title>{{appName}}</title>",
+      "escape": "html"
+    },
+    {
+      "file": "index.html",
+      "find": "content=\"Every customer and deal in one place.\"",
+      "value": "content=\"{{appTagline}}\"",
+      "escape": "html"
+    }
+  ],
+  "sourceRefs": [
+    "https://hono.dev/docs/getting-started/nodejs",
+    "https://nodejs.org/api/sqlite.html",
+    "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+  ]
+}

@@ -1,0 +1,3 @@
+# Lets pnpm run esbuild's install script (tsx uses esbuild for the dev server).
+allowBuilds:
+  esbuild: true

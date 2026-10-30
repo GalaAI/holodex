@@ -1,0 +1,90 @@
+/* Copied from GalaAI/ark packages/ui/src/actions/button.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Button: ONE primary per region, filled neutral bone. Never ember:
+   ember is reserved for warnings and gates. Accent is the zone pill and is
+   the one always-lit element; every other bloom is hover only (Law 05). */
+.rp-btn {
+  min-height: var(--touch-min);
+  padding: 0 var(--pad-control-x);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-line-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: var(--color-surface-2);
+  color: var(--color-bone);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--text-size-btn);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    box-shadow var(--dur-bloom) var(--ease-analog),
+    border-color var(--dur-bloom) var(--ease-analog),
+    transform 120ms var(--ease-analog);
+}
+.rp-btn:hover {
+  border-color: var(--color-ghost);
+}
+.rp-btn:active {
+  transform: translateY(1px);
+}
+.rp-btn:focus-visible {
+  outline: 2px solid var(--color-patina);
+  outline-offset: 3px;
+}
+.rp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-icon-btn {
+  flex: 0 0 auto;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  padding: 0;
+  border-radius: var(--radius-pill, 999px);
+}
+.rp-btn--primary {
+  background: var(--color-bone);
+  border-color: var(--color-bone);
+  color: var(--color-ground);
+}
+.rp-btn--primary:hover {
+  background: color-mix(in srgb, var(--color-bone), white 45%);
+  border-color: color-mix(in srgb, var(--color-bone), white 45%);
+  box-shadow: var(--bloom-bone);
+}
+.rp-btn--danger {
+  background: var(--color-surface-2);
+  border-color: var(--color-rust);
+  color: var(--color-rust);
+}
+.rp-btn--danger:hover {
+  box-shadow: var(--bloom-rust);
+}
+.rp-btn--accent {
+  background: var(--rp-accent);
+  color: var(--rp-accent-ink);
+  border: none;
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--rp-accent) 45%, transparent),
+    0 0 14px color-mix(in srgb, var(--rp-accent) 22%, transparent),
+    0 0 32px color-mix(in srgb, var(--rp-accent) 9%, transparent);
+}
+.rp-btn--accent:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--rp-accent) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--rp-accent) 30%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-btn--accent:hover {
+    transform: none;
+  }
+}

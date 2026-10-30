@@ -1,0 +1,109 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/stage-canvas.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* StageCanvas (CP-24): matte ground with a dot grid that moves and scales with
+   the view, registration marks on the frame, and a mono readout. */
+.rp-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+  border: calc(var(--u) / 4) solid var(--color-line);
+  border-radius: var(--radius-btn);
+  background-color: var(--color-ground);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-bone) 8%, transparent) calc(var(--u) / 4),
+    transparent calc(var(--u) * 0.375)
+  );
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.rp-stage:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: calc(var(--u) * 0.75);
+}
+.rp-stage:active {
+  cursor: grabbing;
+}
+.rp-stage__board {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  box-shadow: var(--shadow-cast);
+  border-radius: var(--radius-badge);
+  overflow: hidden;
+  cursor: default;
+}
+.rp-stage__marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.rp-stage__mark {
+  position: absolute;
+  width: calc(var(--u) * 3.5);
+  height: calc(var(--u) * 3.5);
+}
+.rp-stage__mark::before,
+.rp-stage__mark::after {
+  content: "";
+  position: absolute;
+  background: var(--color-ghost);
+}
+.rp-stage__mark::before {
+  left: 50%;
+  top: 0;
+  width: calc(var(--u) / 4);
+  height: 100%;
+}
+.rp-stage__mark::after {
+  top: 50%;
+  left: 0;
+  height: calc(var(--u) / 4);
+  width: 100%;
+}
+.rp-stage__mark--tl {
+  top: var(--s2);
+  left: var(--s2);
+}
+.rp-stage__mark--tr {
+  top: var(--s2);
+  right: var(--s2);
+}
+.rp-stage__mark--bl {
+  bottom: var(--s2);
+  left: var(--s2);
+}
+.rp-stage__mark--br {
+  bottom: var(--s2);
+  right: var(--s2);
+}
+.rp-stage__label,
+.rp-stage__readout {
+  position: absolute;
+  font: var(--text-label-eyebrow);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--color-ghost);
+  pointer-events: none;
+}
+.rp-stage__label {
+  top: var(--s2);
+  left: calc(var(--s8) + var(--s2));
+}
+.rp-stage__readout {
+  bottom: var(--s2);
+  right: calc(var(--s8) + var(--s2));
+  display: flex;
+  gap: var(--s3);
+  align-items: center;
+}
+.rp-stage__readout b {
+  font-weight: 400;
+  color: var(--color-dim);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-stage__board {
+    transition: none;
+  }
+}

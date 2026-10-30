@@ -1,0 +1,49 @@
+/* @4ge/kit component styles, in one import. Adapted from GalaAI/ark
+   packages/ui/src/ui.css at 0f4b55c6: same order, narrowed to the components
+   @4ge/kit carries. Import "@4ge/kit/tokens.css" FIRST, then this file. */
+@import "./components/actions/button.css";
+@import "./components/actions/text-link.css";
+@import "./components/actions/action-pill.css";
+@import "./components/controls/text-field.css";
+@import "./components/controls/fluid-select.css";
+@import "./components/status/led.css";
+@import "./components/status/badge.css";
+@import "./components/surfaces/panel.css";
+@import "./components/surfaces/intake-composer.css";
+@import "./components/surfaces/plate.css";
+@import "./components/surfaces/accent-tile.css";
+@import "./components/surfaces/metric.css";
+@import "./components/surfaces/focal-card.css";
+@import "./components/layout/workspace-frame.css";
+@import "./components/data/activity-trail.css";
+@import "./components/brand/eyebrow.css";
+@import "./components/surfaces/aura.css";
+@import "./components/surfaces/stage-canvas.css";
+@import "./components/brand/spine-label.css";
+@import "./components/status/cadence.css";
+@import "./components/surfaces/thinking.css";
+@import "./components/surfaces/gate-card.css";
+
+/* Disclosure motion for FluidSelect options (ui.css trailing rules; the
+   menu and accordion rules stay in Ark because @4ge/kit does not carry them). */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rp-disclosure-item-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(-1 * var(--s2)));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .rp-fluid__option,
+  .rp-fluid__rule {
+    animation: rp-disclosure-item-in var(--dur-disclosure-item)
+      var(--ease-disclosure) backwards;
+    animation-delay: min(
+      calc(var(--disclosure-index, 0) * var(--disclosure-stagger-step)),
+      var(--disclosure-stagger-cap)
+    );
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "name": "desktop-app",
+  "title": "Desktop app (Electron for Windows, Linux and macOS)",
+  "description": "A secure Electron app in TypeScript: typed main and preload processes with context isolation and a sandboxed renderer, a Vite-built page with a strict CSP, notes saved to the user's app data through IPC, and electron-builder targets for Windows (NSIS), macOS (DMG) and Linux (AppImage, deb).",
+  "kind": "desktop-app",
+  "platforms": [
+    "windows",
+    "linux",
+    "macos"
+  ],
+  "install": "pnpm install",
+  "build": "pnpm build",
+  "dev": "pnpm dev",
+  "output": "dist",
+  "placeholders": [
+    {
+      "key": "appName",
+      "description": "The app's product name",
+      "default": "My Desktop App"
+    },
+    {
+      "key": "appSlug",
+      "description": "Lowercase kebab-case package name and app id tail",
+      "default": "my-desktop-app"
+    },
+    {
+      "key": "appTagline",
+      "description": "One line in the window",
+      "default": "Notes that stay on your machine."
+    }
+  ],
+  "fields": [
+    {
+      "file": "package.json",
+      "path": "name",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "package.json",
+      "path": "description",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "package.json",
+      "path": "build.productName",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "package.json",
+      "path": "build.appId",
+      "value": "app.local.{{appSlug}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "name",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "tagline",
+      "value": "{{appTagline}}"
+    }
+  ],
+  "replace": [
+    {
+      "file": "index.html",
+      "find": "<title>My Desktop App</title>",
+      "value": "<title>{{appName}}</title>",
+      "escape": "html"
+    }
+  ],
+  "sourceRefs": [
+    "https://www.electronjs.org/docs/latest/tutorial/security",
+    "https://www.electronjs.org/docs/latest/tutorial/context-isolation",
+    "https://www.electron.build/configuration"
+  ]
+}

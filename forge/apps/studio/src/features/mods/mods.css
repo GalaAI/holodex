@@ -1,0 +1,150 @@
+/* Mods: the minimal inventory rail, one mod's adapters and augments, the
+   create form. Builds on ../library/library.css. @4ge/kit tokens only. */
+
+.mods__body {
+  display: grid;
+  grid-template-columns: calc(var(--u) * 64) minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+.mods__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s3);
+  border-right: var(--border-hair) solid var(--color-line);
+  background: var(--color-surface);
+  overflow-y: auto;
+}
+.mods__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--u);
+}
+.mods__item {
+  display: grid;
+  gap: var(--u);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--radius-btn);
+  color: var(--color-dim);
+  text-decoration: none;
+}
+.mods__item:hover,
+.mods__item.is-active {
+  background: var(--color-surface-2);
+  color: var(--color-bone);
+}
+.mods__item--plus {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch-min);
+  border: var(--border-hair) dashed var(--color-line-2);
+  color: var(--color-bone);
+}
+.mods__main {
+  padding: var(--s4) var(--s5, var(--s4));
+  overflow-y: auto;
+  min-height: 0;
+}
+.mods__intro {
+  padding: var(--pad-surface);
+  max-width: calc(var(--u) * 160);
+}
+.mods__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  max-width: calc(var(--u) * 200);
+}
+.mods__adapter {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--pad-surface);
+}
+.mods__adapter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+.mods__adapter-head > div {
+  display: grid;
+  gap: var(--u);
+}
+.mods__link {
+  color: var(--color-patina);
+}
+.mods__code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--color-bone);
+  overflow-wrap: anywhere;
+}
+.mods__actions > summary {
+  cursor: pointer;
+  font-family: var(--font-ui);
+  color: var(--color-bone);
+  min-height: var(--touch-min);
+  display: flex;
+  align-items: center;
+}
+.mods__action {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3) 0;
+  border-top: var(--border-hair) solid var(--color-line);
+}
+.mods__output {
+  margin: 0;
+  max-height: calc(var(--u) * 60);
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  white-space: pre-wrap;
+}
+.mods__augments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.mods__augment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--u) var(--s3);
+  padding: var(--s2) var(--s3);
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-btn);
+}
+.mods__kind {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  color: var(--color-dim);
+}
+.mods__pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--u) * 60), 1fr));
+  gap: var(--s2);
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-btn);
+  padding: var(--s3);
+}
+.mods__pick > legend {
+  font-family: var(--font-ui);
+  color: var(--color-bone);
+  padding: 0 var(--s2);
+}
+
+@media (max-width: 900px) {
+  .mods__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mods__rail {
+    border-right: 0;
+    border-bottom: var(--border-hair) solid var(--color-line);
+  }
+}

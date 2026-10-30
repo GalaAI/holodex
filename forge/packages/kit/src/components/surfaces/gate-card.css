@@ -1,0 +1,444 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/gate-card.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* GateCard // Phosphor chassis layer (locked 2026-10-13). Composition only, token colors only.
+   A gate is a static status edge, not an agent edge: inset calc(var(--u) * 0.75) at .9 plus inner glow .2 plus a leading halo while it waits.
+   Pending ember glows (it is waiting on you, so it is alive). Held grey. Approved moss unlit. Rejected rust unlit.
+   Hatch as state: ember bands while pending, rust bands when rejected, none once approved, faint bone while held. */
+.rp-gate-card {
+  --rp-gate-card-tone: var(--color-ember);
+  --rp-gate-card-a: 0.9;
+  --rp-gate-card-in: 0.2;
+  --rp-gate-card-halo: 1;
+  position: relative;
+  isolation: isolate;
+  height: max-content;
+}
+.rp-gate-card[data-state="held"] {
+  --rp-gate-card-tone: var(--color-line-2);
+  --rp-gate-card-a: 1;
+  --rp-gate-card-in: 0;
+  --rp-gate-card-halo: 0;
+}
+.rp-gate-card[data-state="approved"] {
+  --rp-gate-card-tone: var(--color-moss);
+  --rp-gate-card-a: 1;
+  --rp-gate-card-in: 0;
+  --rp-gate-card-halo: 0;
+}
+.rp-gate-card[data-state="rejected"] {
+  --rp-gate-card-tone: var(--color-rust);
+  --rp-gate-card-a: 0.82;
+  --rp-gate-card-in: 0;
+  --rp-gate-card-halo: 0;
+}
+.rp-gate-card::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--u) / 2) calc(var(--u) * 1.5) 0 calc(var(--u) / 2);
+  border-radius: var(--s4);
+  z-index: -1;
+  pointer-events: none;
+  box-shadow: var(--shadow-cast);
+}
+.rp-gate-card__halo {
+  position: absolute;
+  left: 0;
+  top: calc(var(--u) * 2.5);
+  bottom: calc(var(--u) * 2.5);
+  width: calc(var(--u) * 0.75);
+  border-radius: calc(var(--u) * 0.75);
+  pointer-events: none;
+  z-index: -1;
+  opacity: var(--rp-gate-card-halo);
+  box-shadow:
+    0 0 var(--u) color-mix(in srgb, var(--rp-gate-card-tone) 50%, transparent),
+    calc(var(--u) * -0.5) 0 var(--s3)
+      color-mix(in srgb, var(--rp-gate-card-tone) 26%, transparent),
+    calc(var(--u) * -1) 0 calc(var(--u) * 6.5)
+      color-mix(in srgb, var(--rp-gate-card-tone) 13%, transparent);
+  transition: opacity var(--dur-bloom) var(--ease-analog);
+}
+.rp-gate-card__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: calc(var(--u) / 4) solid var(--color-line);
+  border-radius: var(--radius-widget);
+  background: var(--color-surface);
+  color: var(--color-bone);
+  overflow: hidden;
+  box-shadow:
+    inset calc(var(--u) * 0.75) 0 0
+      color-mix(
+        in srgb,
+        var(--rp-gate-card-tone) calc(var(--rp-gate-card-a) * 100%),
+        transparent
+      ),
+    inset calc(var(--u) * 3.5) 0 calc(var(--u) * 4.5) calc(var(--u) * -2.5)
+      color-mix(
+        in srgb,
+        var(--rp-gate-card-tone) calc(var(--rp-gate-card-in) * 100%),
+        transparent
+      ),
+    inset 0 calc(var(--u) / 4) 0 var(--highlight-top);
+  -webkit-mask-image: linear-gradient(
+    225deg,
+    transparent calc(var(--u) * 3.75),
+    black calc(var(--u) * 3.9)
+  );
+  mask-image: linear-gradient(
+    225deg,
+    transparent calc(var(--u) * 3.75),
+    black calc(var(--u) * 3.9)
+  );
+  transition: box-shadow var(--dur-bloom) var(--ease-analog);
+}
+.rp-gate-card__ear {
+  position: absolute;
+  top: calc(var(--u) * 1.75);
+  right: calc(var(--u) * -1);
+  width: calc(var(--u) * 5.5);
+  height: calc(var(--u) / 4);
+  background: var(--color-line-2);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.rp-gate-card__hatch {
+  height: calc(var(--u) * 2.5);
+  flex-shrink: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-ember) 22%, transparent) 0
+      calc(var(--u) * 1.5),
+    transparent calc(var(--u) * 1.5) calc(var(--u) * 3.5)
+  );
+}
+.rp-gate-card[data-state="rejected"] .rp-gate-card__hatch {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-rust) 24%, transparent) 0
+      calc(var(--u) * 1.5),
+    transparent calc(var(--u) * 1.5) calc(var(--u) * 3.5)
+  );
+}
+.rp-gate-card[data-state="held"] .rp-gate-card__hatch {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-bone) 7%, transparent) 0 calc(var(--u) * 1.5),
+    transparent calc(var(--u) * 1.5) calc(var(--u) * 3.5)
+  );
+}
+.rp-gate-card[data-state="approved"] .rp-gate-card__hatch {
+  display: none;
+}
+
+.rp-gate-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s4) calc(var(--u) * 6.5) var(--s3) var(--s6);
+}
+.rp-gate-card__titles {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.5);
+  min-width: 0;
+}
+.rp-gate-card__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ghost);
+}
+.rp-gate-card__title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--text-size-section);
+  line-height: 1.3;
+  color: var(--color-bone);
+}
+.rp-gate-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 2.5);
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 2.75);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+  padding-top: calc(var(--u) / 2);
+}
+.rp-gate-card__led {
+  width: calc(var(--u) * 2.25);
+  height: calc(var(--u) * 2.25);
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-ghost);
+}
+.rp-gate-card__led.rp-gate-card__led--warn {
+  background: var(--color-ember);
+  box-shadow: var(--bloom-ember);
+}
+.rp-gate-card__led.rp-gate-card__led--ok {
+  background: var(--color-moss);
+}
+.rp-gate-card__led.rp-gate-card__led--err {
+  background: var(--color-rust);
+}
+
+.rp-gate-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: 0 var(--s6) calc(var(--u) * 4.5) var(--s6);
+}
+.rp-gate-card__summary {
+  margin: 0;
+  font-size: calc(var(--u) * 3.5);
+  line-height: 1.55;
+  color: var(--color-dim);
+  max-width: 62ch;
+}
+.rp-gate-card__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--s4) var(--s6);
+}
+.rp-gate-card__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+.rp-gate-card__files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--u) * 1.5);
+}
+.rp-gate-card__files span {
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 2.625);
+  padding: calc(var(--u) * 0.75) var(--s2);
+  border-radius: var(--radius-badge);
+  border: calc(var(--u) / 4) solid var(--color-line-2);
+  color: var(--color-dim);
+  overflow-wrap: anywhere;
+}
+.rp-gate-card__files b {
+  font-weight: 400;
+  color: var(--color-moss);
+  margin-left: calc(var(--u) * 1.5);
+}
+.rp-gate-card__files i {
+  font-style: normal;
+  color: var(--color-rust-ink);
+  margin-left: var(--u);
+}
+.rp-gate-card__checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1.5);
+}
+.rp-gate-card__checks li {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 2.25);
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 2.75);
+  color: var(--color-dim);
+}
+.rp-gate-card__checks li .rp-gate-card__led {
+  width: calc(var(--u) * 1.75);
+  height: calc(var(--u) * 1.75);
+}
+.rp-gate-card__checks li .rp-gate-card__led.rp-gate-card__led--warn {
+  box-shadow: none;
+}
+.rp-gate-card__risk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+}
+.rp-gate-card__tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: calc(var(--u) * 0.75) var(--s2);
+  border-radius: var(--radius-badge);
+  border: calc(var(--u) / 4) solid var(--color-line-2);
+  color: var(--color-dim);
+}
+.rp-gate-card__tag.rp-gate-card__tag--write {
+  border-color: var(--color-ember);
+  color: var(--color-ember);
+}
+.rp-gate-card__tag.rp-gate-card__tag--danger {
+  border-color: var(--color-rust);
+  color: var(--color-rust-ink);
+}
+
+/* diff disclosure, same 180ms height ease as RunCard steps */
+.rp-gate-card__diff-toggle {
+  appearance: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 2.625);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.rp-gate-card__diff-toggle:hover {
+  color: var(--color-bone);
+}
+.rp-gate-card__diff-toggle:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: calc(var(--u) * 0.75);
+  border-radius: var(--u);
+}
+.rp-gate-card__chev {
+  width: calc(var(--u) * 3.5);
+  height: calc(var(--u) * 3.5);
+  transition: transform var(--dur-bloom) var(--ease-analog);
+}
+.rp-gate-card__chev path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rp-gate-card__panel[data-diff="true"] .rp-gate-card__chev {
+  transform: rotate(90deg);
+}
+.rp-gate-card__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-bloom) var(--ease-analog);
+}
+.rp-gate-card__panel[data-diff="true"] .rp-gate-card__more {
+  grid-template-rows: 1fr;
+}
+.rp-gate-card__more-in {
+  min-height: 0;
+  overflow: hidden;
+}
+.rp-gate-card__diff {
+  margin: 0;
+  padding: calc(var(--u) * 2.5) var(--s3);
+  border-radius: var(--s2);
+  border: calc(var(--u) / 4) solid var(--color-line);
+  background: var(--color-ground);
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 2.75);
+  line-height: 1.6;
+  color: var(--color-dim);
+  white-space: pre;
+  overflow: auto;
+  max-height: calc(var(--u) * 50);
+}
+.rp-gate-card__diff .rp-gate-card__diff-add {
+  color: var(--color-moss);
+}
+.rp-gate-card__diff .rp-gate-card__diff-del {
+  color: var(--color-rust-ink);
+}
+.rp-gate-card__diff .rp-gate-card__diff-hunk {
+  color: var(--color-ghost);
+}
+
+.rp-gate-card__foot {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 2.5);
+  flex-wrap: wrap;
+  padding: var(--s3) var(--s6) var(--s4) var(--s6);
+  border-top: calc(var(--u) / 4) solid var(--color-line);
+}
+.rp-gate-card__who {
+  font-family: var(--font-mono);
+  font-size: calc(var(--u) * 2.625);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+.rp-gate-card__actions {
+  display: flex;
+  gap: var(--s2);
+  margin-left: auto;
+}
+/* footer actions are the package Button (rp-btn); the doubled class keeps the compact card chassis over the base button */
+.rp-btn.rp-gate-card__btn {
+  appearance: none;
+  cursor: pointer;
+  height: calc(var(--u) * 9);
+  min-height: calc(var(--u) * 9);
+  padding: 0 var(--s4);
+  border-radius: var(--radius-badge);
+  border: calc(var(--u) / 4) solid var(--color-line-2);
+  background: var(--color-surface-2);
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--text-size-badge);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    color var(--dur-bloom) var(--ease-analog),
+    border-color var(--dur-bloom) var(--ease-analog),
+    box-shadow var(--dur-bloom) var(--ease-analog);
+}
+.rp-btn.rp-gate-card__btn:hover {
+  color: var(--color-bone);
+  border-color: var(--color-ghost);
+}
+.rp-btn.rp-gate-card__btn:active {
+  transform: none;
+}
+.rp-btn.rp-gate-card__btn.rp-gate-card__btn--primary,
+.rp-btn.rp-gate-card__btn.rp-gate-card__btn--primary:hover {
+  background: var(--color-bone);
+  border-color: var(--color-bone);
+  color: var(--color-ground);
+}
+.rp-btn.rp-gate-card__btn.rp-gate-card__btn--primary:hover {
+  box-shadow: var(--bloom-bone);
+}
+.rp-btn.rp-gate-card__btn.rp-gate-card__btn--danger {
+  background: none;
+  border-color: transparent;
+  color: var(--color-rust-ink);
+}
+.rp-btn.rp-gate-card__btn.rp-gate-card__btn--danger:hover {
+  border-color: var(--color-rust);
+  box-shadow: var(--bloom-rust);
+}
+.rp-btn.rp-gate-card__btn:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: calc(var(--u) * 0.75);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-gate-card__panel,
+  .rp-gate-card__halo,
+  .rp-btn.rp-gate-card__btn,
+  .rp-gate-card__more,
+  .rp-gate-card__chev {
+    transition: none;
+  }
+}

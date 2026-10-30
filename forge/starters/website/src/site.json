@@ -1,0 +1,26 @@
+{
+  "name": "My Studio",
+  "tagline": "Custom work, done with care.",
+  "email": "hello@example.com",
+  "phone": "+1 555 0100",
+  "address": "123 Main Street",
+  "bookingEndpoint": "",
+  "hours": [
+    { "days": "Tuesday to Saturday", "time": "11:00 to 19:00" },
+    { "days": "Sunday and Monday", "time": "Closed" }
+  ],
+  "services": [
+    { "title": "Custom work", "body": "Bring an idea and we draw it with you, sized and placed for how you live." },
+    { "title": "Flash", "body": "Ready-to-go designs from the wall, first come first served." },
+    { "title": "Cover-ups and touch-ups", "body": "We rework old pieces and refresh faded lines." }
+  ],
+  "gallery": [
+    { "title": "Fine line botanical", "tone": "a" },
+    { "title": "Neo traditional panther", "tone": "b" },
+    { "title": "Blackwork sleeve", "tone": "c" },
+    { "title": "Script and lettering", "tone": "d" },
+    { "title": "Color realism", "tone": "e" },
+    { "title": "Flash day pieces", "tone": "f" }
+  ],
+  "about": "We are a small, independent studio. Every piece starts with a conversation, and every client leaves with aftercare instructions and a follow-up check."
+}

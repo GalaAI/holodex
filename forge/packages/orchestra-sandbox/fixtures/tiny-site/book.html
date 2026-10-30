@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Book a session, Sandbox proof studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="services.html">Services</a>
+      <a href="book.html">Book a session</a>
+      <a href="admin/">Staff</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Book a session</h1>
+    <form action="thanks.html" method="get">
+      <label for="name">Your name</label>
+      <input id="name" name="name" required autocomplete="name">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required autocomplete="email">
+      <label for="date">Preferred day</label>
+      <input id="date" name="date" type="date" required>
+      <label for="idea">Your idea</label>
+      <textarea id="idea" name="idea" rows="4" required></textarea>
+      <button type="submit">Send request</button>
+    </form>
+  </main>
+</body>
+</html>

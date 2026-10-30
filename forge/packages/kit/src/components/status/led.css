@@ -1,0 +1,48 @@
+/* Copied from GalaAI/ark packages/ui/src/status/led.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Led: status lamp with uppercase mono label.
+   Law 05: ok is UNLIT. Only live blooms, and only because it is live. */
+.rp-led {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+.rp-led i {
+  width: var(--led-size);
+  height: var(--led-size);
+  border-radius: 50%;
+}
+.rp-led--live i {
+  background: var(--color-patina);
+  box-shadow: var(--bloom-patina);
+  animation: rp-pulse var(--dur-pulse) ease-in-out infinite;
+}
+.rp-led--warn i {
+  background: var(--color-ember);
+  box-shadow: var(--bloom-ember);
+}
+.rp-led--err i {
+  background: var(--color-rust);
+  box-shadow: var(--bloom-rust);
+}
+.rp-led--ok i {
+  background: var(--color-moss);
+}
+@keyframes rp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-led--live i {
+    animation: none;
+  }
+}

@@ -1,0 +1,128 @@
+# 4GE sandbox: Eden AEthernet lite on local Docker (SPEC flow step 8).
+#
+# Pattern from the Eden matrix compose files (eden/matrices/bttco/compose.yaml): the app runs a
+# copy of the source from a named volume (never the host folder), on an
+# internal network, as uid 1000, read-only, with every capability dropped,
+# no-new-privileges, and memory, cpu and pid limits; only 127.0.0.1 ports are
+# published. The browser target is a copy of the "aethernet" target of
+# GalaAI/ark infra/local/eden-desktop/Dockerfile (no password or card storage).
+#
+# Driven by @4ge/orchestra-sandbox, which sets:
+#   FORGE_SANDBOX_SOURCE   absolute path of dataRoot()/builds/<id>/app (read-only, seed only)
+#   FORGE_SANDBOX_FLIGHT   absolute path of the test flight's evidence folder (bots only)
+#   FORGE_SANDBOX_APP_PORT / _CDP_PORT / _VIEWER_PORT   host ports, default 17410 / 17411 / 17412
+#
+#   up:      docker compose -p 4ge-sandbox up -d --build --wait
+#   bots:    docker compose -p 4ge-sandbox run --rm --no-deps bots
+#   down:    docker compose -p 4ge-sandbox down -v --remove-orphans
+name: 4ge-sandbox
+
+x-hardening: &hardening
+  init: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+
+services:
+  # One-shot: copy the build's app into the volume, install and build it.
+  seed:
+    <<: *hardening
+    image: node:24-bookworm-slim
+    user: "0:0"
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    command: [sh, /sandbox/seed.sh]
+    environment:
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm
+    volumes:
+      - ${FORGE_SANDBOX_SOURCE:?set FORGE_SANDBOX_SOURCE to the build app folder}:/src:ro
+      - source:/workspace
+      - ./app:/sandbox:ro
+    tmpfs: [/tmp]
+    networks: [egress]
+    mem_limit: 1536m
+    cpus: 2
+    pids_limit: 512
+
+  # The build's app, from the volume copy, on the internal network.
+  app:
+    <<: *hardening
+    image: node:24-bookworm-slim
+    user: "1000:1000"
+    working_dir: /workspace
+    command: [node, /sandbox/launch.mjs]
+    environment:
+      PORT: "3000"
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      HOME: /tmp
+      npm_config_cache: /tmp/.npm
+      npm_config_update_notifier: "false"
+    volumes:
+      - source:/workspace
+      - ./app:/sandbox:ro
+    read_only: true
+    tmpfs: [/tmp]
+    ports: ["127.0.0.1:${FORGE_SANDBOX_APP_PORT:-17410}:3000"]
+    networks: [sandbox, ingress]
+    depends_on:
+      seed: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1),()=>process.exit(1))"]
+      interval: 2s
+      timeout: 3s
+      start_period: 30s
+      retries: 30
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 256
+
+  # Chromium with CDP and a noVNC viewer; reaches the app as http://127.0.0.1:<app port>.
+  aethernet:
+    <<: *hardening
+    build: {context: ./aethernet}
+    image: 4ge-sandbox-aethernet:1
+    environment:
+      EDEN_UPSTREAM: app:3000
+      EDEN_APP_PORT: ${FORGE_SANDBOX_APP_PORT:-17410}
+      EDEN_APP_ROUTE: http://127.0.0.1:${FORGE_SANDBOX_APP_PORT:-17410}/
+      EDEN_DISPLAY: 1280x800
+      EDEN_DISPLAY_CSV: "1280,800"
+    tmpfs:
+      - /tmp
+      - /profile:uid=1000,gid=1000,mode=0700
+    shm_size: 256m
+    ports:
+      - "127.0.0.1:${FORGE_SANDBOX_CDP_PORT:-17411}:9223"
+      - "127.0.0.1:${FORGE_SANDBOX_VIEWER_PORT:-17412}:6080"
+    networks: [sandbox, ingress]
+    depends_on:
+      app: {condition: service_healthy}
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 512
+
+  # Playwright personas over CDP. Run per test flight; never started by `up`.
+  bots:
+    <<: *hardening
+    build: {context: ./bots}
+    image: 4ge-sandbox-bots:1
+    profiles: [bots]
+    user: "1000:1000"
+    environment:
+      FORGE_WORK_DIR: /work
+    volumes:
+      - ${FORGE_SANDBOX_FLIGHT:-./.no-flight}:/work
+    tmpfs: [/tmp]
+    networks: [sandbox]
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 256
+
+networks:
+  sandbox: {internal: true}
+  ingress: {}
+  egress: {}
+
+volumes:
+  source:
+    name: 4ge_sandbox_source

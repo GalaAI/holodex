@@ -1,0 +1,8 @@
+/* Copied from GalaAI/ark packages/tokens/src/tokens.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* @ark/tokens: the single entry. Import this, in this order, before any
+   component CSS. Order matters: fonts declare the faces, the rest declare
+   the values that every component reads. */
+@import "./fonts.css";
+@import "./colors.css";
+@import "./spacing.css";
+@import "./typography.css";

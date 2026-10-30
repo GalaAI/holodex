@@ -1,0 +1,35 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/accent-tile.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* AccentTile: warm ukiyo-e tile. Color follows --rp-accent, so wrap a region
+   in data-zone="operate|create|distribute" to rotate it.
+   Decorative energy and zone identity, NEVER status. */
+.rp-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-tile);
+  padding: var(--pad-tile);
+  background: var(--rp-accent);
+  color: var(--rp-accent-ink);
+}
+.rp-tile__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.12;
+  background: var(--rp-grain-url);
+}
+.rp-tile__label {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: var(--text-size-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.rp-tile__value {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: var(--text-size-value);
+  line-height: 1;
+  margin-top: var(--u);
+}

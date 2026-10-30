@@ -274,6 +274,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }
         rail.Controls.Add(WidgetChrome.Spacer(Gutter));
         rail.Controls.Add(new RailMark("Holodex.RailMark") { Dock = DockStyle.Top, Height = 52 });
+        // 4GE sits at the foot of the rail, above the profile: it opens the studio, it is not a tab.
+        AddForgeRailButton(rail);
         rail.Controls.Add(_profileBtn);
 
         // 3. Content Host for the tabs
@@ -903,7 +905,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
             foreach (string id in TabOrder)
                 if (PanelFor(id) != show) PanelFor(id).Visible = false;
             _contentHost.ResumeLayout(true);
-            if (tabId == "codex") RefreshCodexEntries();
+            if (tabId == "codex")
+            {
+                RefreshCodexEntries();
+                _ = RefreshForgeLibraryAsync();
+            }
             if (tabId == "grimx") RefreshGrimXMacroReadout();
             if (tabId == "stats") _statsPanel?.Refresh();
         }
@@ -1015,6 +1021,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _codexShown = entries;
         using var batch = _codexList.Batch();
         _codexList.Clear();
+        AddForgeLibrary();
         _codexList.AddSection("Library // lasso captures and element picks");
         if (entries.Count == 0) _codexList.Add(ThreadTone.Intro, "None yet", ScreenSnipAndElementPickerForm.CodexEmptyStateText);
         foreach (var e in entries)

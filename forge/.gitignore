@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.env
+.env.*
+*.log
+e2e/.data/
+
+# The Holodex root .gitignore ignores every folder named atlas/ (local canon
+# docs) and bin/ (.NET output). Re-include the 4GE folders that share those names.
+!packages/atlas/
+!packages/bamf/bin/
+
+# Live-run evidence (model transcripts, screenshots, receipts) stays local.
+e2e/evidence/

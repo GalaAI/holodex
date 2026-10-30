@@ -1,0 +1,34 @@
+/* Copied from GalaAI/ark packages/ui/src/actions/text-link.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* TextLink: the route pointer. Patina because it is a live edge, mono and
+   uppercase like every other route-shaped string. The underline is hover
+   only (Law 05); focus takes the same patina outline as Button. The block is
+   tall enough to be a touch target without reserving button chrome. */
+.rp-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-btn);
+  font-weight: 500;
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-patina);
+  cursor: pointer;
+  transition: color var(--dur-bloom) var(--ease-analog);
+}
+.rp-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-thickness: var(--border-hair);
+}
+.rp-link:focus-visible {
+  outline: var(--focus-ring) solid var(--color-patina);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-badge);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-link {
+    transition: none;
+  }
+}

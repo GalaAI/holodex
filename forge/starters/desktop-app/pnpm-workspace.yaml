@@ -1,0 +1,5 @@
+# Electron needs its install script (it downloads the Electron binary).
+# electron-winstaller (Squirrel, pulled in by electron-builder) is not used: Windows builds use NSIS.
+allowBuilds:
+  electron: true
+  electron-winstaller: false

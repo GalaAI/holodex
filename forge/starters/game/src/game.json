@@ -1,0 +1,10 @@
+{
+  "title": "Catch",
+  "tagline": "Catch what falls. Miss three and it is over.",
+  "width": 800,
+  "height": 600,
+  "lives": 3,
+  "spawnEveryMs": 900,
+  "fallSpeed": 180,
+  "speedUpPerPoint": 4
+}

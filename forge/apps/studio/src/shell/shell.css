@@ -1,0 +1,281 @@
+/* Shared studio pieces: shell/ui.tsx, shell/models.tsx and shell/thread.
+   Every value resolves through @4ge/kit tokens; no raw hex. */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.studio-rail__foot {
+  display: grid;
+  gap: var(--s2);
+}
+
+/* The IDE is full screen: the rail folds to icons, labels stay for readers. */
+.studio--compact {
+  grid-template-columns: calc(var(--u) * 16) minmax(0, 1fr);
+}
+.studio--compact .studio-rail {
+  padding: var(--s3) var(--s2);
+}
+.studio--compact .studio-rail__brand {
+  padding: var(--s2) 0 var(--s3);
+  justify-items: center;
+}
+.studio--compact .studio-rail__brand .rp-eyebrow,
+.studio--compact .studio-rail__foot {
+  display: none;
+}
+.studio--compact .studio-rail__link {
+  justify-content: center;
+  padding: 0;
+}
+.studio--compact .studio-rail__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.studio-notice {
+  display: grid;
+  gap: var(--u);
+  padding: var(--s3) var(--s4);
+  border: var(--border-hair) solid var(--color-line-2);
+  border-left-width: calc(var(--u) / 2);
+  border-radius: var(--radius-btn);
+  background: var(--color-surface-2);
+  color: var(--color-dim);
+  line-height: 1.45;
+}
+.studio-notice strong {
+  color: var(--color-bone);
+  font-family: var(--font-ui);
+}
+.studio-notice--warn {
+  border-left-color: var(--color-ember);
+}
+.studio-notice--err {
+  border-left-color: var(--color-rust);
+}
+.studio-notice--ok {
+  border-left-color: var(--color-moss);
+}
+.studio-notice--info {
+  border-left-color: var(--color-patina);
+}
+.studio-notice--compact {
+  padding: var(--s2) var(--s3);
+  font-size: var(--text-size-caption);
+}
+.studio-notice__hint {
+  color: var(--color-ghost);
+}
+
+.studio-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch-min);
+  padding: 0 var(--pad-control-x);
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-btn);
+  color: var(--color-bone);
+  text-decoration: none;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  width: fit-content;
+}
+.studio-link-button:hover {
+  background: var(--color-surface-2);
+}
+
+.studio-main a {
+  color: var(--color-patina);
+}
+
+/* Thread: one column that follows streaming output. */
+.thread {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--s3) var(--s4);
+  display: grid;
+  align-content: start;
+  gap: var(--s3);
+}
+.thread__status {
+  display: grid;
+  place-items: center;
+  padding: var(--s4);
+}
+.thread__empty {
+  color: var(--color-dim);
+}
+.thread__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s4);
+}
+.thread__msg {
+  display: grid;
+  gap: var(--s2);
+}
+.thread__msg--user .thread__body {
+  background: var(--color-surface-2);
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-btn);
+  padding: var(--s3);
+}
+.thread__msg.is-pending {
+  opacity: 0.7;
+}
+.thread__msg--assistant .thread__who {
+  color: var(--color-patina);
+}
+.thread__msg--system .thread__who {
+  color: var(--color-ember);
+}
+.thread__msg--system .thread__body {
+  color: var(--color-dim);
+  border-left: var(--border-hair) solid var(--color-ember);
+  padding-left: var(--s3);
+}
+.thread__body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  color: var(--color-bone);
+}
+.thread__thinking {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--color-dim);
+  font-size: var(--text-size-caption);
+}
+.thread__tools {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--u);
+}
+.thread__tool {
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-badge);
+  background: var(--color-surface);
+}
+.thread__tool-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  padding: var(--s2) var(--s3);
+  background: none;
+  border: 0;
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-caption);
+  cursor: pointer;
+  text-align: left;
+}
+.thread__tool-head[aria-expanded="true"] .thread__chev {
+  transform: rotate(90deg);
+}
+.thread__chev {
+  transition: transform var(--dur-disclosure) var(--ease-disclosure);
+}
+.thread__tool-name {
+  color: var(--color-bone);
+}
+.thread__tool-state {
+  margin-left: auto;
+}
+.thread__tool.is-ok .thread__tool-state {
+  color: var(--color-moss);
+}
+.thread__tool.is-err .thread__tool-state {
+  color: var(--color-rust-ink);
+}
+.thread__tool.is-run .thread__tool-state {
+  color: var(--color-patina);
+}
+.thread__tool-detail {
+  padding: 0 var(--s3) var(--s3);
+  display: grid;
+  gap: var(--u);
+}
+.thread__tool-detail pre {
+  margin: 0;
+  max-height: calc(var(--u) * 60);
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-size-micro);
+  color: var(--color-dim);
+  white-space: pre-wrap;
+}
+.thread__chip {
+  justify-self: start;
+  padding: var(--u) var(--s2);
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-badge);
+  background: none;
+  color: var(--color-patina);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-micro);
+  cursor: pointer;
+}
+
+.composer {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border-top: var(--border-hair) solid var(--color-line);
+  background: var(--color-surface);
+}
+.composer__label {
+  display: block;
+}
+.composer__input {
+  width: 100%;
+  resize: vertical;
+  min-height: calc(var(--u) * 10);
+  max-height: calc(var(--u) * 60);
+  padding: var(--s2) var(--s3);
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-btn);
+  background: var(--color-ground);
+  color: var(--color-bone);
+  font: inherit;
+  line-height: 1.5;
+}
+.composer__input:focus-visible {
+  outline: var(--focus-ring) solid var(--color-patina);
+  outline-offset: var(--focus-offset);
+}
+.composer__row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--s2);
+}
+.composer--compact {
+  padding: var(--s2);
+  border-top: 0;
+  background: none;
+}
+.composer--compact .composer__input {
+  resize: none;
+  min-height: 0;
+}

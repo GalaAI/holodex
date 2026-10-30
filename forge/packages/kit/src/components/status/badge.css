@@ -1,0 +1,27 @@
+/* Copied from GalaAI/ark packages/ui/src/status/badge.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Badge: lifecycle mark. Unstated is a ghost outline.
+   proven is the ONLY filled badge in the system. */
+.rp-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--radius-badge);
+  padding: var(--pad-chip);
+  border: var(--border-hair) solid var(--color-line-2);
+  color: var(--color-ghost);
+}
+.rp-badge--validated {
+  color: var(--color-patina);
+  border-color: color-mix(in srgb, var(--color-patina) 40%, transparent);
+}
+.rp-badge--proven {
+  color: var(--color-ground);
+  background: var(--color-patina);
+  border-color: var(--color-patina);
+  font-weight: 500;
+}
+.rp-badge--blocked {
+  color: var(--color-rust);
+  border-color: color-mix(in srgb, var(--color-rust) 45%, transparent);
+}

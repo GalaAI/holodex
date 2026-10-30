@@ -1,0 +1,1392 @@
+/* Copied from GalaAI/ark packages/ui/src/status/cadence.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Cadence family // Phosphor loaders. Token colors only, loop durations on --dur-* tokens, one easing (ease-analog), every motion has a reduced-motion still frame.
+   Tone rule: patina only when an agent is live; cream (bone) for system work; nothing glows when nothing is alive. */
+
+/* Dots: agent thinking. Three dots on a 1.4s cadence, staggered 180ms. */
+.rp-cadence-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--rp-cadence-gap, calc(var(--u) * 1.5));
+  --rp-cadence-tone: var(--color-patina);
+  --rp-cadence-glow: var(--bloom-patina);
+}
+.rp-cadence-dots--cream {
+  --rp-cadence-tone: var(--color-cream);
+  --rp-cadence-glow: none;
+}
+.rp-cadence-dots i {
+  width: var(--rp-cadence-size, calc(var(--u) * 1.75));
+  height: var(--rp-cadence-size, calc(var(--u) * 1.75));
+  border-radius: 50%;
+  background: var(--rp-cadence-tone);
+  box-shadow: var(--rp-cadence-glow);
+  animation: rp-cadence-dots var(--dur-cadence-dots) var(--ease-analog) infinite;
+}
+.rp-cadence-dots i:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.rp-cadence-dots i:nth-child(3) {
+  animation-delay: 0.36s;
+}
+.rp-cadence-dots--sm {
+  --rp-cadence-size: calc(var(--u) * 1.25);
+  --rp-cadence-gap: var(--u);
+}
+.rp-cadence-dots--lg {
+  --rp-cadence-size: calc(var(--u) * 2.25);
+  --rp-cadence-gap: var(--s2);
+}
+@keyframes rp-cadence-dots {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(
+      calc(var(--rp-cadence-size, calc(var(--u) * 1.75)) * -0.45)
+    );
+  }
+}
+
+/* Arc: inline busy mark for buttons and chips. var(--s6) stroke set, rotates at a steady 1.6s (linear is the one allowed exception: a spinner must not lurch). */
+.rp-cadence-arc {
+  width: var(--rp-cadence-arc-size, var(--s4));
+  height: var(--rp-cadence-arc-size, var(--s4));
+  flex-shrink: 0;
+  color: var(--color-bone);
+}
+.rp-cadence-arc circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 14 43;
+  transform-origin: var(--s3) var(--s3);
+  animation: rp-cadence-arc-rotate var(--dur-cadence-arc) linear infinite;
+}
+.rp-cadence-arc--patina {
+  color: var(--color-patina);
+}
+@keyframes rp-cadence-arc-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Stream caret: token streaming. Bone block, stepped blink. */
+.rp-stream-caret {
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  margin-left: calc(var(--u) / 2);
+  vertical-align: -0.15em;
+  background: var(--color-bone);
+  animation: rp-stream-caret-blink var(--dur-caret) steps(1) infinite;
+}
+@keyframes rp-stream-caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Sweep: indeterminate. One sweep per view. */
+.rp-sweep-track {
+  position: relative;
+  height: calc(var(--u) / 2);
+  border-radius: calc(var(--u) / 2);
+  background: var(--color-line);
+  overflow: hidden;
+  width: var(--rp-cadence-width, 100%);
+}
+.rp-sweep-track i {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--rp-sweep-tone, var(--color-bone)),
+    transparent
+  );
+  animation: rp-sweep-track var(--dur-loader-sweep) var(--ease-analog) infinite;
+}
+.rp-sweep-track--patina {
+  --rp-sweep-tone: var(--color-patina);
+}
+@keyframes rp-sweep-track {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+/* Seam: determinate. The seam strip fills left to right. */
+.rp-seam-bar {
+  height: calc(var(--u) * 1.5);
+  border-radius: calc(var(--u) * 0.75);
+  background: var(--color-surface-2);
+  border: calc(var(--u) / 4) solid var(--color-line);
+  overflow: hidden;
+  width: var(--rp-cadence-width, 100%);
+  container-type: inline-size;
+}
+.rp-seam-bar i {
+  display: block;
+  height: 100%;
+  background: var(--seam-grad);
+  /* the gradient spans the whole bar (100cqw of the bar container), not the fill,
+     so the bands scale with the bar and stay put as the seam opens */
+  background-size: 100cqw 100%;
+  background-repeat: no-repeat;
+  transition: width var(--dur-bloom) var(--ease-analog);
+}
+
+/* Skeleton: a spawned card before data lands. No glow. */
+.rp-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2.5);
+  width: 100%;
+}
+.rp-skeleton i {
+  display: block;
+  height: var(--s2);
+  border-radius: var(--u);
+  background: var(--color-skeleton);
+  position: relative;
+  overflow: hidden;
+}
+.rp-skeleton i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-bone) 8%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: rp-skeleton-shimmer 2.6s var(--ease-analog) infinite;
+}
+@keyframes rp-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-cadence-dots i {
+    animation: none;
+    opacity: 0.7;
+  }
+  .rp-cadence-dots i:nth-child(2) {
+    opacity: 1;
+  }
+  .rp-cadence-arc circle {
+    animation: none;
+  }
+  .rp-stream-caret {
+    animation: none;
+  }
+  .rp-sweep-track i {
+    animation: none;
+    left: 30%;
+  }
+  .rp-seam-bar i {
+    transition: none;
+  }
+  .rp-skeleton i::after {
+    animation: none;
+    display: none;
+  }
+}
+
+/* CadenceMark: the thinking mark. Live: three patina dots shuffle like a shell game, alternating the left pair and the right pair; the dot moving right arcs over, the one moving left passes under. Six swaps per 4.2s cycle, then every dot is home. Horizontal travel and the arc run as separate layers (x eases ease-analog across the whole swap, the arc eases out then in), so there is no stall at the top of the arc.
+   Done: the dots shapeshift into the Ark globe (merge, swell, settle, rim and meridians draw on), cream and unlit (globe in its muted cream variant: brand mark, never status).
+   Stopped: the dots gather and a rust stop square takes their place. Same element across states so the change reads as a morph. */
+.rp-cadence-mark {
+  width: calc(var(--u) * 7);
+  height: var(--s4);
+  flex-shrink: 0;
+  overflow: visible;
+}
+.rp-cadence-mark .rp-cadence-mark__dot {
+  transform-box: view-box;
+  transform-origin: calc(var(--u) * 3.5) var(--s2);
+}
+.rp-cadence-mark .rp-cadence-mark__dot circle {
+  fill: var(--color-patina);
+}
+.rp-cadence-mark .rp-cadence-mark__dot--1 {
+  --rp-cadence-x: calc(var(--u) * -1.75);
+}
+.rp-cadence-mark .rp-cadence-mark__dot--2 {
+  --rp-cadence-x: 0;
+}
+.rp-cadence-mark .rp-cadence-mark__dot--3 {
+  --rp-cadence-x: calc(var(--u) * 1.75);
+}
+.rp-cadence-mark .rp-cadence-mark__dx,
+.rp-cadence-mark .rp-cadence-mark__dy {
+  transform-box: view-box;
+  transform-origin: calc(var(--u) * 3.5) var(--s2);
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot {
+  filter: drop-shadow(
+    0 0 calc(var(--u) * 0.75)
+      color-mix(in srgb, var(--color-patina) 50%, transparent)
+  );
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dx,
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dy {
+  animation-duration: var(--dur-shuffle);
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot--1 .rp-cadence-mark__dx {
+  animation-name: rp-cadence-mark-x1;
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot--1 .rp-cadence-mark__dy {
+  animation-name: rp-cadence-mark-y1;
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot--2 .rp-cadence-mark__dx {
+  animation-name: rp-cadence-mark-x2;
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot--2 .rp-cadence-mark__dy {
+  animation-name: rp-cadence-mark-y2;
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot--3 .rp-cadence-mark__dx {
+  animation-name: rp-cadence-mark-x3;
+}
+.rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot--3 .rp-cadence-mark__dy {
+  animation-name: rp-cadence-mark-y3;
+}
+@keyframes rp-cadence-mark-x1 {
+  0.000% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  3.571% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  7.143% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  10.714% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  14.286% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  17.857% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  21.429% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  25.000% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  28.571% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  32.143% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  35.714% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  39.286% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  42.857% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  46.429% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  50.000% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  53.571% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  57.143% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  60.714% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  64.286% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  67.857% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  71.429% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  75.000% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  78.571% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  82.143% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  85.714% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  89.286% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  92.857% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  96.429% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  100% {
+    transform: translateX(calc(var(--u) * -1.75));
+  }
+}
+@keyframes rp-cadence-mark-y1 {
+  0.000% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  3.571% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  7.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  8.929% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  10.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  12.500% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  14.286% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  17.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  19.643% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  21.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  23.214% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  25.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  26.786% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  28.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  30.357% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  32.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  33.929% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  35.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  37.500% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  39.286% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  42.857% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  46.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  48.214% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  50.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  51.786% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  53.571% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  57.143% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  60.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  62.500% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  64.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  66.071% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  67.857% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  71.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  73.214% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  75.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  76.786% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  78.571% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  82.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  83.929% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  85.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  87.500% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  89.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  91.071% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  92.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  94.643% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  96.429% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes rp-cadence-mark-x2 {
+  0.000% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  3.571% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  7.143% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  10.714% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  14.286% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  17.857% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  21.429% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  25.000% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  28.571% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  32.143% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  35.714% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  39.286% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  42.857% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  46.429% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  50.000% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  53.571% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  57.143% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  60.714% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  64.286% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  67.857% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  71.429% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  75.000% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  78.571% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  82.143% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  85.714% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  89.286% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  92.857% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  96.429% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes rp-cadence-mark-y2 {
+  0.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  1.786% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  3.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  5.357% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  7.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  8.929% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  10.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  12.500% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  14.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  16.071% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  17.857% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  21.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  23.214% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  25.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  26.786% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  28.571% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  32.143% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  35.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  37.500% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  39.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  41.071% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  42.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  44.643% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  46.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  48.214% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  50.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  51.786% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  53.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  55.357% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  57.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  58.929% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  60.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  62.500% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  64.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  66.071% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  67.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  69.643% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  71.429% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  75.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  76.786% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  78.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  80.357% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  82.143% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  85.714% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  87.500% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  89.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  91.071% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  92.857% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  96.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  98.214% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes rp-cadence-mark-x3 {
+  0.000% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  3.571% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  7.143% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  10.714% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  14.286% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  17.857% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  21.429% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  25.000% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  28.571% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  32.143% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  35.714% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  39.286% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  42.857% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  46.429% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  50.000% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  53.571% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  57.143% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  60.714% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  64.286% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  67.857% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  71.429% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  75.000% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: linear;
+  }
+  78.571% {
+    transform: translateX(calc(var(--u) * 1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  82.143% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  85.714% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  89.286% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: linear;
+  }
+  92.857% {
+    transform: translateX(calc(var(--u) * -1.75));
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  96.429% {
+    transform: translateX(0);
+    animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  }
+  100% {
+    transform: translateX(calc(var(--u) * 1.75));
+  }
+}
+@keyframes rp-cadence-mark-y3 {
+  0.000% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  1.786% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  3.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  5.357% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  7.143% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  10.714% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  14.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  16.071% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  17.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  19.643% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  21.429% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  25.000% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  28.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  30.357% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  32.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  33.929% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  35.714% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  39.286% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  41.071% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  42.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  44.643% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  46.429% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  50.000% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  53.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  55.357% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  57.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  58.929% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  60.714% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  64.286% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  67.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  69.643% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  71.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  73.214% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  75.000% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  78.571% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  80.357% {
+    transform: translateY(calc(var(--u) * 1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  82.143% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  83.929% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  85.714% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  89.286% {
+    transform: translateY(0);
+    animation-timing-function: linear;
+  }
+  92.857% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  94.643% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  96.429% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.33, 0, 0.55, 1);
+  }
+  98.214% {
+    transform: translateY(calc(var(--u) * -1.125));
+    animation-timing-function: cubic-bezier(0.45, 0, 0.67, 1);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+/* done shapeshift: the dots slide in and melt together (goo filter) into one point, which opens into a ring that
+   swells with a squash and settles as the globe rim, then the meridians draw on. Lines only, no fill. ~1.2s, ease-analog throughout. */
+.rp-cadence-mark .rp-cadence-mark__blob {
+  fill: none;
+  stroke: var(--color-cream);
+  stroke-width: 1.1;
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: calc(var(--u) * 3.5) var(--s2);
+  transform: scale(0.3);
+}
+.rp-cadence-mark[data-s="done"] .rp-cadence-mark__dot {
+  animation: rp-cadence-mark-merge 520ms var(--ease-analog) both;
+}
+.rp-cadence-mark[data-s="done"] .rp-cadence-mark__dot circle {
+  animation: rp-cadence-mark-tint 520ms var(--ease-analog) both;
+}
+.rp-cadence-mark[data-s="done"] .rp-cadence-mark__blob {
+  animation:
+    rp-cadence-mark-swell 640ms var(--ease-analog) 300ms both,
+    rp-cadence-mark-fade 1ms linear 940ms forwards;
+}
+@keyframes rp-cadence-mark-merge {
+  0% {
+    transform: translate(var(--rp-cadence-x), 0) scale(1);
+    opacity: 1;
+  }
+  72% {
+    transform: translate(0, 0) scale(1.45);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes rp-cadence-mark-tint {
+  to {
+    fill: var(--color-cream);
+  }
+}
+@keyframes rp-cadence-mark-swell {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  14% {
+    opacity: 0.75;
+    transform: scale(0.42);
+  }
+  46% {
+    opacity: 0.75;
+    transform: scale(1.14, 0.82);
+  }
+  72% {
+    opacity: 0.75;
+    transform: scale(0.93, 1.07);
+  }
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+@keyframes rp-cadence-mark-fade {
+  to {
+    opacity: 0;
+  }
+}
+.rp-cadence-mark[data-s="stopped"] .rp-cadence-mark__dot {
+  animation: rp-cadence-mark-gather 240ms var(--ease-analog) both;
+}
+@keyframes rp-cadence-mark-gather {
+  from {
+    transform: translate(var(--rp-cadence-x), 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(0, 0) scale(0.3);
+    opacity: 0;
+  }
+}
+.rp-cadence-mark .rp-cadence-mark__globe,
+.rp-cadence-mark .rp-cadence-mark__stop {
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: calc(var(--u) * 3.5) var(--s2);
+  transform: scale(0.4);
+}
+.rp-cadence-mark .rp-cadence-mark__globe .rp-cadence-mark__globe-ball {
+  fill: none;
+  stroke: none;
+}
+.rp-cadence-mark .rp-cadence-mark__globe .rp-cadence-mark__globe-line {
+  fill: none;
+  stroke: var(--color-cream);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.rp-cadence-mark .rp-cadence-mark__globe .rp-cadence-mark__globe-rim {
+  fill: none;
+  stroke: var(--color-cream);
+  stroke-width: 1.1;
+}
+/* globe lines are opaque inside the group and the group carries one opacity, so crossings never stack brighter; minor cream glow on the whole group */
+.rp-cadence-mark .rp-cadence-mark__globe {
+  filter: drop-shadow(
+      0 0 calc(var(--u) * 0.15)
+        color-mix(in srgb, var(--color-cream) 55%, transparent)
+    )
+    drop-shadow(
+      0 0 calc(var(--u) / 2)
+        color-mix(in srgb, var(--color-cream) 22%, transparent)
+    );
+}
+/* every globe line is opaque inside the group and the group carries one opacity, so crossings never stack brighter */
+.rp-cadence-mark[data-s="done"] .rp-cadence-mark__globe {
+  animation: rp-cadence-mark-show 1ms linear 939ms both;
+}
+.rp-cadence-mark[data-s="done"] .rp-cadence-mark__globe-line {
+  animation: rp-cadence-mark-draw 520ms var(--ease-analog) 900ms both;
+}
+@keyframes rp-cadence-mark-show {
+  from {
+    opacity: 0;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+}
+.rp-cadence-mark .rp-cadence-mark__stop rect {
+  fill: none;
+  stroke: var(--color-rust-ink);
+  stroke-width: 1.4;
+}
+.rp-cadence-mark[data-s="stopped"] .rp-cadence-mark__stop {
+  animation: rp-cadence-mark-in 240ms var(--ease-analog) 140ms both;
+}
+@keyframes rp-cadence-mark-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes rp-cadence-mark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* done: the Ark emblem globe (cadence-globe.ts). Meridians orbit via SMIL as true front halves; reduced motion swaps in the still emblem pose */
+.rp-cadence-mark .rp-cadence-mark__globe-still {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-cadence-mark[data-s="live"] .rp-cadence-mark__dx,
+  .rp-cadence-mark[data-s="live"] .rp-cadence-mark__dy {
+    animation: none;
+  }
+  .rp-cadence-mark[data-s="live"] .rp-cadence-mark__dot {
+    transform: translate(var(--rp-cadence-x), 0);
+  }
+  .rp-cadence-mark[data-s="done"] .rp-cadence-mark__dot,
+  .rp-cadence-mark[data-s="stopped"] .rp-cadence-mark__dot {
+    animation: none;
+    opacity: 0;
+  }
+  .rp-cadence-mark[data-s="done"] .rp-cadence-mark__globe {
+    animation: none;
+    opacity: 0.85;
+    transform: none;
+  }
+  .rp-cadence-mark[data-s="stopped"] .rp-cadence-mark__stop {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .rp-cadence-mark[data-s="done"] .rp-cadence-mark__globe-line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .rp-cadence-mark .rp-cadence-mark__globe-orbit {
+    display: none;
+  }
+  .rp-cadence-mark .rp-cadence-mark__globe-still {
+    display: inline;
+  }
+  .rp-cadence-mark[data-s="done"] .rp-cadence-mark__goo {
+    filter: none;
+  }
+  .rp-cadence-mark[data-s="done"] .rp-cadence-mark__blob,
+  .rp-cadence-mark[data-s="done"] .rp-cadence-mark__dot circle {
+    animation: none;
+    opacity: 0;
+  }
+}

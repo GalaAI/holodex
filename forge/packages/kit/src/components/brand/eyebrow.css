@@ -1,0 +1,3 @@
+/* Copied from GalaAI/ark packages/ui/src/brand/eyebrow.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Eyebrow: uppercase mono label. Use the // separator for route-like copy. */
+.rp-eyebrow{font-family:var(--font-mono);font-size:var(--eyebrow-size);letter-spacing:var(--eyebrow-tracking);text-transform:uppercase;color:var(--color-ghost)}

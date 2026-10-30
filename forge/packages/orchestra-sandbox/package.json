@@ -1,0 +1,38 @@
+{
+  "name": "@4ge/orchestra-sandbox",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Icarus: brings a build up in the 4GE sandbox (local Docker, Eden AEthernet lite), runs test flights with staff and customer bots, and writes layer receipts.",
+  "exports": {
+    ".": {
+      "@4ge/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "@4ge/source": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "fixtures"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prove": "tsx --conditions=@4ge/source src/prove.ts"
+  },
+  "dependencies": {
+    "@4ge/contracts": "workspace:*",
+    "@4ge/gate": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15"
+  }
+}

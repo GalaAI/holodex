@@ -1,0 +1,117 @@
+/* Copied from GalaAI/ark packages/tokens/src/colors.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Ark Omnitek: "Relic Phosphor" color tokens (source: relic-phosphor.css v3.3) */
+:root {
+  /* Neutrals: the primary system (Law 01: neutrals primary) */
+  --color-ground: #050607; /* matte field / page background */
+  --color-surface: #121212; /* panels */
+  --color-surface-2: #161616; /* inset cells */
+  --color-line: #262626; /* panel borders */
+  --color-line-2: #333331; /* dividers, controls */
+  --color-bone: #dad1b9; /* primary text: dimmed again per operator 2026-09-02, was #EAE1C9, before that #EFE9DB */
+  --color-dim: #a6a398; /* secondary text */
+  --color-ghost: #6b6a62; /* labels, tertiary */
+  --color-plate: #ccc4ad; /* cream print surface: the one light object; re-split from bone per operator 2026-09-02, was #EAE1C9 */
+  --color-plate-ink: #232220; /* ink on plate */
+  --color-plate-rust: #c24b2a; /* accent on cream plate */
+  /* Signals: used sparingly */
+  --color-ember: #d99a4e; /* warning · gates (warm): never primary buttons */
+  --color-patina: #79c4b7; /* live · focus · agent edge (cool) */
+  --color-rust: #c25b38; /* error · interrupt */
+  --color-moss: #8fae8c; /* ok · unlit by law */
+  --color-rust-ink: #e08a6a; /* light rust text on dark panels: stopped, failed, removed lines (added 2026-10-27) */
+  /* Warm accents: BTTCO ukiyo-e modifier. Decorative/zone identity only, never status. */
+  --color-coral: #d98a63; /* warm primary accent · CREATE energy */
+  --color-brick: #b14e33; /* deep vermilion · headers, seals */
+  --color-army: #77785a; /* muted olive · calm warm tile */
+  --color-seal: #c9a24b; /* aged gold · stamps, crests, DISTRIBUTE */
+  --color-cream: #e4d9c0; /* warm paper · text on warm fills */
+  --color-accent-ink: #201a12; /* ink on warm fills */
+  /* Ark Omnitek emblem - ArkStation-owned brand colours for ArkMark and its icon
+     assets (Canva DAHSV7I81c8, operator-approved 2026-10-01). The cream matches
+     --color-cream by value but is owned here, not by the BTTCO warm-accent set. */
+  --ark-emblem-cream: #e4d9c0; /* cube outline, stubs, cream globe variant */
+  --ark-emblem-globe: #66ffcd; /* primary green globe */
+  --ark-emblem-globe-opacity: 0.4;
+  --ark-emblem-tile: #141414; /* icon tile ground, used on light backgrounds */
+  --ark-emblem-cream-muted: rgba(
+    228,
+    217,
+    192,
+    0.4
+  ); /* muted cream globe and lockup rule */
+  --ark-emblem-globe-solid: #35725e; /* green at 0.4 flattened on the tile, for outputs without opacity */
+  --ark-emblem-chassis-dark: #121212; /* cube chassis on light-toned surfaces; the chassis is never a color */
+  --ark-emblem-globe-patina: var(
+    --color-patina
+  ); /* globe colour options; globe only */
+  --ark-emblem-globe-ember: var(--color-ember);
+  --ark-emblem-globe-rust: var(--color-rust);
+  /* Marketing-site variants (arkomnitek-site) */
+  --color-patina-bright: #8ff2d8;
+  --color-skeleton: #1c1c1b; /* skeleton loader bars, between line and ground (added 2026-10-27) */
+  --highlight-top: rgba(
+    255,
+    255,
+    255,
+    0.035
+  ); /* panel top highlight, the first layer of --edge-vignette (added 2026-10-27) */
+  --line-soft: rgba(
+    218,
+    209,
+    185,
+    0.12
+  ); /* bone at low alpha; channels must move when bone moves */
+  --line-strong: rgba(218, 209, 185, 0.24);
+  /* Blooms: hue-matched glow; scarce, interaction/live only (Law 05) */
+  --bloom-ember:
+    0 0 4px rgba(217, 154, 78, 0.5), 0 0 14px rgba(217, 154, 78, 0.24),
+    0 0 32px rgba(217, 154, 78, 0.1);
+  --bloom-bone:
+    0 0 4px rgba(218, 209, 185, 0.45), 0 0 14px rgba(218, 209, 185, 0.22),
+    0 0 32px rgba(218, 209, 185, 0.09);
+  --bloom-patina:
+    0 0 4px rgba(121, 196, 183, 0.45), 0 0 14px rgba(121, 196, 183, 0.2);
+  --bloom-rust:
+    0 0 4px rgba(194, 91, 56, 0.45), 0 0 12px rgba(194, 91, 56, 0.2);
+  --seam-grad: linear-gradient(
+    90deg,
+    #3a3a36 0 18%,
+    var(--color-bone) 18% 30%,
+    var(--color-plate-rust) 30% 46%,
+    var(--color-moss) 46% 60%,
+    var(--color-patina) 60% 74%,
+    #3a3a36 74% 100%
+  );
+  /* Semantic aliases */
+  --surface-page: var(--color-ground);
+  --surface-card: var(--color-surface);
+  --surface-inset: var(--color-surface-2);
+  --text-body: var(--color-bone);
+  --text-secondary: var(--color-dim);
+  --text-label: var(--color-ghost);
+  --border-panel: var(--color-line);
+  --border-control: var(--color-line-2);
+  --accent-primary: var(
+    --color-bone
+  ); /* primary actions are neutral bone, never ember */
+  --accent-live: var(--color-patina);
+  --accent-error: var(--color-rust);
+  --accent-ok: var(--color-moss);
+  /* Zone accent rotation: a zone sets --rp-accent; primitives read it */
+  --rp-accent: var(--color-patina);
+  --rp-accent-ink: var(--color-ground);
+  /* Grain: one shared fractal-noise tile for warm printed surfaces */
+  --rp-grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-zone="operate"] {
+  --rp-accent: var(--color-patina);
+  --rp-accent-ink: var(--color-ground);
+}
+[data-zone="create"] {
+  --rp-accent: var(--color-coral);
+  --rp-accent-ink: var(--color-accent-ink);
+}
+[data-zone="distribute"] {
+  --rp-accent: var(--color-seal);
+  --rp-accent-ink: var(--color-accent-ink);
+}

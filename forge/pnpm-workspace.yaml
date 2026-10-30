@@ -1,0 +1,14 @@
+# 4GE workspace. Package scope @4ge/*. The sandbox and starters folders join
+# only when a builder gives them a package.json; a glob with no match is fine.
+packages:
+  - "packages/*"
+  - "apps/*"
+  - "e2e"
+  - "sandbox/*"
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - framer-motion@14.9.0
+  - lucide-react@1.65.0
+  - motion-dom@14.9.0
+  - motion@14.9.0

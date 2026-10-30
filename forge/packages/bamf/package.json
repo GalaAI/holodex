@@ -1,0 +1,35 @@
+{
+  "name": "@4ge/bamf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": ".bamf command envelope (copied from @ark/bamf-schema), the Blueprint planner and the bamf CLI.",
+  "exports": {
+    ".": {
+      "@4ge/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "bamf": "./bin/bamf.mjs"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "bamf": "tsx --conditions=@4ge/source src/cli.ts"
+  },
+  "dependencies": {
+    "@4ge/contracts": "workspace:*",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6"
+  }
+}

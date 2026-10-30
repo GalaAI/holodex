@@ -1,0 +1,47 @@
+{
+  "name": "@4ge/kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Phosphor design tokens and React components for 4GE, copied from GalaAI/ark packages/tokens and packages/ui.",
+  "exports": {
+    ".": {
+      "@4ge/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./design": {
+      "@4ge/source": "./src/design/index.ts",
+      "types": "./dist/design/index.d.ts",
+      "default": "./dist/design/index.js"
+    },
+    "./tokens.css": "./src/tokens/tokens.css",
+    "./kit.css": "./src/kit.css",
+    "./prompts/*": "./prompts/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "prompts"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@4ge/contracts": "workspace:*",
+    "lucide-react": "^1.65.0",
+    "motion": "^14.9.0"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

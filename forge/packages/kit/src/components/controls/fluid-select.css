@@ -1,0 +1,199 @@
+/* Copied from GalaAI/ark packages/ui/src/controls/fluid-select.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* FluidSelect: operator law 2026-09-27: every single-choice dropdown in
+   ArkStation. The trigger is the field box (surface-2 inside line-2, like
+   TextField); the drop is a surface panel with the cast shadow. Text rests
+   dim and lights to bone on the active or chosen row; the gliding highlight
+   is an inset cell. Option icons take an accent tone on hover, never ember
+   or rust. Motion lives in FluidSelect.tsx (the operator's springs) and is
+   switched off by MotionConfig under prefers-reduced-motion. The corner is
+   the operator's morph: --radius-menu-closed at rest, --radius-menu-open
+   while open, on the disclosure beat; CSS motion stops under reduced motion. */
+.rp-fluid {
+  position: relative;
+  display: grid;
+  gap: var(--s2);
+  width: 100%;
+  min-width: 0;
+}
+.rp-fluid--disabled {
+  opacity: 0.4;
+}
+.rp-fluid__sr {
+  position: absolute;
+  width: calc(var(--u) / 4);
+  height: calc(var(--u) / 4);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- trigger ---------- */
+.rp-fluid__trigger {
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-min);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 0 var(--s3);
+  border: calc(var(--u) / 4) solid var(--color-line-2);
+  border-radius: var(--radius-menu-closed);
+  background: var(--color-surface-2);
+  color: var(--color-dim);
+  font-family: var(--font-ui);
+  font-size: var(--text-size-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color var(--dur-bloom) var(--ease-analog),
+    border-color var(--dur-bloom) var(--ease-analog),
+    box-shadow var(--dur-bloom) var(--ease-analog),
+    border-radius var(--dur-disclosure) var(--ease-disclosure);
+}
+.rp-fluid--open .rp-fluid__trigger {
+  border-radius: var(--radius-menu-open);
+}
+.rp-fluid__trigger:hover,
+.rp-fluid--open .rp-fluid__trigger {
+  border-color: var(--color-ghost);
+  color: var(--color-bone);
+}
+.rp-fluid__trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-patina);
+  box-shadow: var(--bloom-patina);
+}
+.rp-fluid__trigger:disabled {
+  cursor: not-allowed;
+}
+.rp-fluid__value {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+.rp-fluid__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rp-fluid__chevron {
+  display: inline-flex;
+  flex: none;
+  width: var(--s5);
+  height: var(--s5);
+  align-items: center;
+  justify-content: center;
+}
+.rp-fluid__chevron svg {
+  width: var(--s4);
+  height: var(--s4);
+}
+
+/* ---------- drop ---------- */
+.rp-fluid__drop {
+  position: absolute;
+  top: calc(100% + var(--s2));
+  right: 0;
+  left: 0;
+  z-index: 100;
+  overflow: hidden;
+}
+.rp-fluid__panel {
+  padding: var(--u);
+  border: calc(var(--u) / 4) solid var(--color-line-2);
+  border-radius: var(--radius-menu-open);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-cast);
+  transform-origin: top;
+}
+.rp-fluid__list {
+  position: relative;
+  max-height: min(
+    var(--rp-fluid-max-height, calc(var(--u) * 72)),
+    calc(100dvh - var(--s12))
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s2) 0;
+  outline: none;
+}
+/* The active row is lit from its leading edge by the side light (the
+   complementary accent, coral by default) and the light blooms into the
+   row. The list itself carries no ring: the lit row is the focus. */
+.rp-fluid__highlight {
+  position: absolute;
+  top: 0;
+  right: var(--u);
+  left: var(--u);
+  border-radius: var(--radius-badge);
+  pointer-events: none;
+}
+
+/* ---------- options ---------- */
+.rp-fluid__option {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-min);
+  align-items: center;
+  padding: 0 var(--s4);
+  /* The gliding aura starts at --u inside the list, so the label clears the
+     side light by --aura-lead (resolves to --s4 in total, unchanged). */
+  padding-inline-start: calc(var(--u) + var(--aura-lead));
+  border: none;
+  border-radius: var(--radius-badge);
+  background: transparent;
+  color: var(--color-dim);
+  font-family: var(--font-ui);
+  font-size: var(--text-size-body);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: color 150ms var(--ease-analog);
+}
+.rp-fluid__option--lit {
+  color: var(--color-bone);
+}
+.rp-fluid__option[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-fluid__group {
+  display: block;
+  padding: var(--s2) var(--s4) var(--u);
+  color: var(--color-ghost);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-caption);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rp-fluid__rule {
+  display: block;
+  margin: calc(var(--u) * 2.5) var(--s4);
+  border-top: calc(var(--u) / 4) solid var(--color-line-2);
+}
+
+/* ---------- icon ---------- */
+.rp-fluid__icon {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: var(--s4);
+  height: var(--s4);
+  margin-right: var(--s2);
+}
+.rp-fluid__icon svg {
+  width: var(--s4);
+  height: var(--s4);
+}
+.rp-fluid__icon-glow {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-fluid__trigger,
+  .rp-fluid__option {
+    transition: none;
+  }
+}

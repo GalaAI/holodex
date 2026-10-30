@@ -1,0 +1,68 @@
+/* Copied from GalaAI/ark packages/ui/src/layout/workspace-frame.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+.rp-workspace-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(
+      var(--station-context-width),
+      0.65fr
+    );
+  align-items: start;
+  gap: var(--s3);
+}
+.rp-workspace-frame__canvas,
+.rp-workspace-frame__inspector {
+  min-width: 0;
+}
+.rp-workspace-frame__inspector {
+  display: grid;
+  gap: var(--s2);
+}
+.rp-workspace-frame__inspector[hidden] {
+  display: none;
+}
+.rp-workspace-frame[data-layout="editor"] {
+  position: relative;
+  grid-template-columns: var(--station-rail-collapsed-width) minmax(0, 1fr) var(
+      --station-context-width
+    );
+  align-items: stretch;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.rp-workspace-frame[data-layout="editor"][data-inspector-hidden="true"] {
+  grid-template-columns: var(--station-rail-collapsed-width) minmax(0, 1fr);
+}
+.rp-workspace-frame[data-layout="editor"][data-has-tools="false"] {
+  grid-template-columns: minmax(0, 1fr) var(--station-context-width);
+}
+.rp-workspace-frame[data-layout="editor"][data-has-tools="false"][data-inspector-hidden="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.rp-workspace-frame[data-layout="editor"] > * {
+  min-height: 0;
+  min-width: 0;
+}
+.rp-workspace-frame[data-layout="editor"] > .rp-workspace-frame__inspector {
+  gap: 0;
+  overflow: hidden;
+}
+@media (max-width: 55rem) {
+  .rp-workspace-frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rp-workspace-frame[data-layout="editor"] {
+    grid-template-columns: var(--station-rail-collapsed-width) minmax(0, 1fr);
+  }
+  .rp-workspace-frame[data-layout="editor"][data-has-tools="false"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rp-workspace-frame[data-layout="editor"] > .rp-workspace-frame__inspector {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(var(--station-context-width), 88%);
+    z-index: 10;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-cast);
+  }
+}

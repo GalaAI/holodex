@@ -1,0 +1,48 @@
+{
+  "name": "@4ge/root",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "4GE (Forge) for Holodex: brainstorm with Prometheus, build with Smith and the orchestra, test in the sandbox.",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/**\" --filter \"./apps/**\" run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "pnpm --parallel --filter @4ge/server --filter @4ge/studio run dev",
+    "start": "pnpm --filter @4ge/server run start",
+    "e2e": "pnpm --filter @4ge/e2e run test",
+    "bamf": "node packages/bamf/bin/bamf.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "execa": "^10.2.1",
+    "hono": "^4.13.14",
+    "nanoid": "^6.0.2",
+    "openai": "^7.45.1",
+    "playwright-core": "^1.64.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "happy-dom": "^21.0.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

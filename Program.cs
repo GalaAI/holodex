@@ -187,6 +187,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly AugmentInventoryForm _inventory = new();
     private readonly MouseModStationForm _station;
     private readonly VaultForm _vault;
+    // 4GE: the local server Holodex starts with the user's keys, its studio full screen, and the Seed "later" drop.
+    private readonly ForgeHost _forge;
+    private readonly ForgeStudioForm _forgeStudio;
+    private readonly ForgeSeedInbox _forgeSeeds;
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
@@ -323,6 +327,16 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
         _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         _holodexDrawer.OpenYourArkStation = OpenYourArkStation;
+        _forge = new ForgeHost(_ark);
+        _forgeStudio = new ForgeStudioForm(_forge);
+        _holodexDrawer.Forge = _forge;
+        _holodexDrawer.OpenForge = path => OpenForge(path);
+        _forge.StateChanged += () => _uiSync.Post(_ => _ = _holodexDrawer.RefreshForgeLibraryAsync(), null);
+        _forgeSeeds = new ForgeSeedInbox(ForgeSeedInbox.DeliverTo(OutboundQueue.Shared), ui: _uiSync);
+        _forgeSeeds.Adopted += (h, where) => PhosphorToast.Show("Seed saved for later",
+            ForgeSeedInbox.AdoptedText(h, where), "4GE // SEED // LATER", 6000, ToastTone.Success);
+        try { _forgeSeeds.Start(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { CursorCrashGuard.Log("4GE seed drop not watched: " + ex.Message); }
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -415,6 +429,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // Your ArkStation: the whole-PC scan (software, services, engines, MCP servers, hardware) and its connections.
         var arkStationItem = home.Add(new ToolStripMenuItem("Your PC") { Name = "Tray.YourArkStation", ToolTipText = "Scan this PC and connect what Holodex can use." });
         arkStationItem.Click += (_, _) => OpenYourArkStation();
+
+        // 4GE: brainstorm an app with Prometheus and build it with Smith, full screen. Offered when 4GE is on this PC.
+        if (ForgeHost.FindForgeRoot() != null)
+        {
+            var forgeItem = home.Add(new ToolStripMenuItem("4GE") { Name = "Tray.4GE", ToolTipText = "Brainstorm an app with Prometheus and build it with Smith, full screen." });
+            forgeItem.Click += (_, _) => OpenForge();
+        }
 
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
@@ -818,7 +839,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "holodex:setup:capture:", "ainbox:send:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "holodex:setup:capture:", "ainbox:send:",
+        "forge:capture:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -1290,6 +1312,56 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 catch (Exception ex) { done.SetResult("error:inventory:capture:" + ex.Message); }
             }, null);
             return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:inventory:capture:timeout";
+        }
+        // forge:open[:<studio path>] starts the 4GE server if needed and opens the studio full screen.
+        if (cmd.StartsWith("forge:open", StringComparison.OrdinalIgnoreCase))
+        {
+            string path = cmd.Length > "forge:open:".Length ? cmd["forge:open:".Length..].Trim() : "";
+            _uiSync.Post(_ => OpenForge(path.Length > 0 ? path : null), null);
+            return "ok:forge:open";
+        }
+        if (string.Equals(cmd, "forge:close", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_forgeStudio), null);
+            return "ok:forge:close";
+        }
+        if (string.Equals(cmd, "forge:status", StringComparison.OrdinalIgnoreCase))
+            return $"ok:forge:status:{_forge.State}:{_forge.BaseUrl}{_forgeStudio.StudioPath}:{_forge.LastError ?? ""}";
+        // forge:library reads GET /api/library into the drawer's Library tab and says what it lists.
+        if (string.Equals(cmd, "forge:library", StringComparison.OrdinalIgnoreCase))
+        {
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try { await _holodexDrawer.RefreshForgeLibraryAsync(); done.SetResult("ok:forge:library:" + _holodexDrawer.DescribeForgeLibrary()); }
+                catch (Exception ex) { done.SetResult("error:forge:library:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:forge:library:timeout";
+        }
+        if (string.Equals(cmd, "forge:seeds:adopt", StringComparison.OrdinalIgnoreCase))
+        {
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try
+                {
+                    var adopted = await _forgeSeeds.AdoptAllAsync();
+                    done.SetResult($"ok:forge:seeds:{adopted.Count}:{string.Join("|", adopted.Select(a => a.Handoff.ScrollId + "=>" + a.Where))}");
+                }
+                catch (Exception ex) { done.SetResult("error:forge:seeds:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:forge:seeds:timeout";
+        }
+        if (cmd.StartsWith("forge:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string png = cmd["forge:capture:".Length..].Trim();
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try { done.SetResult("ok:forge:capture:" + await _forgeStudio.CaptureAsync(png)); }
+                catch (Exception ex) { done.SetResult("error:forge:capture:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:forge:capture:timeout";
         }
         if (string.Equals(cmd, "station:summon", StringComparison.OrdinalIgnoreCase))
         {
@@ -2275,6 +2347,21 @@ internal sealed class OmniwandAppContext : ApplicationContext
         return keys.Length > 0 ? keys : "Everything is in the tray menu.";
     }
 
+    /// <summary>Opens 4GE full screen on a studio path (its home when null), starting the 4GE server first if needed.</summary>
+    private async void OpenForge(string? path = null)
+    {
+        try
+        {
+            if (_forge.State != ForgeState.Running)
+                PhosphorToast.Show("Starting 4GE", "The 4GE server is starting on this PC with your own keys.", "HOLODEX // 4GE", 2600, ToastTone.Info);
+            await _forgeStudio.SummonAsync(GetCursorPoint(), path);
+        }
+        catch (Exception ex)
+        {
+            PhosphorToast.Show("4GE did not open", ex.Message, "HOLODEX // 4GE", 4200, ToastTone.Error);
+        }
+    }
+
     private void ExitApp()
     {
         _running = false;
@@ -2291,6 +2378,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _ainboxWidget.Dispose();
         _snipWidget.Dispose();
         _holodexDrawer.Dispose();
+        _forgeSeeds.Dispose();
+        _forgeStudio.Dispose();
+        // Stops the 4GE server Holodex started (one that was already running is left alone).
+        _forge.Dispose();
         _tutorialTooltip.Dispose();
         _overlay.Dispose();
         Win32.timeEndPeriod(1);

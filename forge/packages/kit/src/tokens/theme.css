@@ -1,0 +1,54 @@
+/* Copied from GalaAI/ark packages/tokens/src/theme.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* @ark/tokens: OPTIONAL Tailwind v4 layer.
+   Import this INSTEAD OF nothing else; it is additive to tokens.css and only
+   exists so Tailwind generates utilities (bg-bone, text-dim, rounded-widget,
+   font-mono, shadow-cast, ease-analog) from the same values.
+
+   This is not a compatibility shim for a previous token set. It is the
+   canonical way Tailwind v4 consumes tokens: @theme both declares the
+   variables and emits the utilities. Values are literal and must stay
+   identical to colors.css: if you change one, change both.
+
+   Spacing is deliberately absent. Tailwind v4 models spacing as a single
+   --spacing multiplier, which does not describe the Ark step scale. Use the
+   raw --u / --s2 … --s12 variables for spacing. */
+@theme {
+  --color-ground: #050607;
+  --color-surface: #121212;
+  --color-surface-2: #161616;
+  --color-line: #262626;
+  --color-line-2: #333331;
+  --color-bone: #dad1b9;
+  --color-dim: #a6a398;
+  --color-ghost: #6b6a62;
+  --color-plate: #ccc4ad;
+  --color-plate-ink: #232220;
+  --color-plate-rust: #c24b2a;
+  --color-ember: #d99a4e;
+  --color-patina: #79c4b7;
+  --color-rust: #c25b38;
+  --color-moss: #8fae8c;
+  --color-rust-ink: #e08a6a;
+  --color-coral: #d98a63;
+  --color-brick: #b14e33;
+  --color-army: #77785a;
+  --color-seal: #c9a24b;
+  --color-cream: #e4d9c0;
+  --color-accent-ink: #201a12;
+  --color-patina-bright: #8ff2d8;
+
+  --font-display: "Archivo Black", "Archivo", ui-sans-serif, sans-serif;
+  --font-ui: "Inter", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body: "Space Grotesk", ui-sans-serif, sans-serif;
+
+  --radius-widget: 18px;
+  --radius-btn: 14px;
+  --radius-tile: 13px;
+  --radius-badge: 10px;
+
+  --shadow-cast: 0 14px 34px rgba(0, 0, 0, 0.6), 0 3px 10px rgba(0, 0, 0, 0.45);
+
+  --ease-analog: cubic-bezier(0.45, 0.05, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.5, 1);
+}

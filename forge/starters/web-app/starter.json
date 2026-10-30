@@ -1,0 +1,73 @@
+{
+  "name": "web-app",
+  "title": "Web app (SaaS with accounts and a database)",
+  "description": "A full-stack web app: Hono API on Node with email and password accounts (scrypt, server-side sessions), a SQLite database through node:sqlite, one user-scoped resource, and a React client built with Vite. Tests run with node:test.",
+  "kind": "web-app",
+  "platforms": [
+    "web"
+  ],
+  "install": "pnpm install",
+  "build": "pnpm build",
+  "dev": "pnpm dev",
+  "test": "pnpm test",
+  "output": "dist",
+  "placeholders": [
+    {
+      "key": "appName",
+      "description": "The product name",
+      "default": "My App"
+    },
+    {
+      "key": "appSlug",
+      "description": "Lowercase kebab-case package name",
+      "default": "my-app"
+    },
+    {
+      "key": "appTagline",
+      "description": "One line on the sign-in screen",
+      "default": "Get your work in one place."
+    }
+  ],
+  "fields": [
+    {
+      "file": "package.json",
+      "path": "name",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "package.json",
+      "path": "description",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "name",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "src/brand.json",
+      "path": "tagline",
+      "value": "{{appTagline}}"
+    }
+  ],
+  "replace": [
+    {
+      "file": "index.html",
+      "find": "<title>My App</title>",
+      "value": "<title>{{appName}}</title>",
+      "escape": "html"
+    },
+    {
+      "file": "index.html",
+      "find": "content=\"Get your work in one place.\"",
+      "value": "content=\"{{appTagline}}\"",
+      "escape": "html"
+    }
+  ],
+  "sourceRefs": [
+    "https://hono.dev/docs/getting-started/nodejs",
+    "https://nodejs.org/api/sqlite.html",
+    "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+    "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+  ]
+}

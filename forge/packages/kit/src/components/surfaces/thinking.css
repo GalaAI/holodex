@@ -1,0 +1,205 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/thinking.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* ThinkingBlock // Phosphor chassis layer. Agent panel edge, token colors only.
+   thinking: patina working edge with half-strength halo, Cadence dots, live timer.
+   reasoning: same edge, open, summary lines stream with the caret.
+   done: collapses to one quiet line "Thought for 12s", grey edge (it is history, not a result).
+   stopped: rust edge with halo, "Stopped after 08s". */
+@property --rp-thinking-edge {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+@property --rp-thinking-ga {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+.rp-thinking {
+  --rp-thinking-edge: var(--color-line-2);
+  --rp-thinking-tone: var(--color-patina);
+  --rp-thinking-ga: 0;
+  position: relative;
+  isolation: isolate;
+  height: max-content;
+  transition:
+    --rp-thinking-edge var(--dur-bloom) var(--ease-analog),
+    --rp-thinking-ga var(--dur-bloom) var(--ease-analog);
+}
+.rp-thinking[data-state="thinking"],
+.rp-thinking[data-state="reasoning"] {
+  --rp-thinking-edge: color-mix(in srgb, var(--color-patina) 78%, transparent);
+  --rp-thinking-tone: var(--color-patina);
+  --rp-thinking-ga: 1;
+}
+.rp-thinking[data-state="stopped"] {
+  --rp-thinking-edge: color-mix(in srgb, var(--color-rust) 82%, transparent);
+  --rp-thinking-tone: var(--color-rust);
+  --rp-thinking-ga: 1;
+}
+.rp-thinking__halo {
+  position: absolute;
+  left: 0;
+  top: var(--s2);
+  bottom: var(--s2);
+  width: calc(var(--u) * 0.75);
+  border-radius: calc(var(--u) * 0.75);
+  pointer-events: none;
+  z-index: -1;
+  box-shadow:
+    calc(var(--u) * -0.5) 0 calc(var(--u) * 2.5) calc(var(--u) / -4)
+      color-mix(
+        in srgb,
+        var(--rp-thinking-tone) calc(22% * var(--rp-thinking-ga)),
+        transparent
+      ),
+    calc(var(--u) * -1.25) 0 var(--s6) calc(var(--u) * -1)
+      color-mix(
+        in srgb,
+        var(--rp-thinking-tone) calc(11% * var(--rp-thinking-ga)),
+        transparent
+      );
+}
+.rp-thinking__panel {
+  position: relative;
+  border: calc(var(--u) / 4) solid var(--color-line);
+  border-radius: var(--s3);
+  background: var(--color-surface);
+  overflow: hidden;
+  box-shadow:
+    inset calc(var(--u) * 0.75) 0 0 var(--rp-thinking-edge),
+    inset calc(var(--u) * 3.5) 0 calc(var(--u) * 4.5) calc(var(--u) * -2.5)
+      color-mix(
+        in srgb,
+        var(--rp-thinking-tone) calc(11% * var(--rp-thinking-ga)),
+        transparent
+      ),
+    inset 0 calc(var(--u) / 4) 0 var(--highlight-top);
+}
+/* done is quiet: no panel fill, just the edge and the line */
+.rp-thinking[data-state="done"] .rp-thinking__panel {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: inset calc(var(--u) * 0.75) 0 0 var(--rp-thinking-edge);
+}
+
+.rp-thinking__head {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  box-sizing: border-box;
+  min-height: calc(var(--u) * 11);
+  padding: calc(var(--u) * 2.5) var(--s4) calc(var(--u) * 2.5) var(--s5);
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.rp-thinking__head:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: calc(var(--u) * -0.5);
+  border-radius: var(--radius-badge);
+}
+.rp-thinking__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-caption);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-bone);
+}
+.rp-thinking[data-state="done"] .rp-thinking__label {
+  color: var(--color-dim);
+}
+.rp-thinking[data-state="stopped"] .rp-thinking__label {
+  color: var(--color-rust-ink);
+}
+.rp-thinking__hint {
+  flex-grow: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-size-caption);
+  color: var(--color-ghost);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rp-thinking__time {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-caption);
+  letter-spacing: 0.08em;
+  color: var(--color-dim);
+  font-variant-numeric: tabular-nums;
+}
+.rp-thinking__chev {
+  width: calc(var(--u) * 3.5);
+  height: calc(var(--u) * 3.5);
+  flex-shrink: 0;
+  color: var(--color-ghost);
+  transition:
+    transform var(--dur-bloom) var(--ease-analog),
+    color var(--dur-bloom) var(--ease-analog);
+}
+.rp-thinking__chev path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rp-thinking__head:hover .rp-thinking__chev {
+  color: var(--color-bone);
+}
+.rp-thinking__panel[data-open="true"] .rp-thinking__chev {
+  transform: rotate(90deg);
+}
+
+.rp-thinking__more {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-bloom) var(--ease-analog);
+}
+.rp-thinking__panel[data-open="true"] .rp-thinking__more {
+  grid-template-rows: 1fr;
+}
+.rp-thinking__more-in {
+  min-height: 0;
+  overflow: hidden;
+}
+.rp-thinking__body {
+  margin: 0 var(--s4) calc(var(--u) * 3.5) var(--s5);
+  padding: calc(var(--u) / 2) 0 0 calc(var(--u) * 3.5);
+  border-left: calc(var(--u) / 4) solid var(--color-line-2);
+  max-height: calc(var(--u) * 55);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.rp-thinking__body p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-size-body);
+  line-height: 1.6;
+  color: var(--color-dim);
+}
+.rp-thinking__body p:last-child {
+  color: var(--color-bone);
+}
+.rp-thinking[data-state="done"] .rp-thinking__body p:last-child {
+  color: var(--color-dim);
+}
+.rp-thinking[data-state="done"] .rp-thinking__body {
+  margin-left: var(--s5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-thinking,
+  .rp-thinking__more,
+  .rp-thinking__chev {
+    transition: none;
+  }
+}

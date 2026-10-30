@@ -1,0 +1,106 @@
+{
+  "name": "website",
+  "title": "Website (small business or marketing)",
+  "description": "A static marketing site for a small business, such as a tattoo shop: hero, gallery, services, about and hours, and a validated booking request form. Vite and TypeScript, content in one JSON file.",
+  "kind": "website",
+  "platforms": [
+    "web"
+  ],
+  "install": "pnpm install",
+  "build": "pnpm build",
+  "dev": "pnpm dev",
+  "output": "dist",
+  "placeholders": [
+    {
+      "key": "appName",
+      "description": "The business or site name",
+      "default": "My Studio"
+    },
+    {
+      "key": "appSlug",
+      "description": "Lowercase kebab-case package name",
+      "default": "my-studio"
+    },
+    {
+      "key": "appTagline",
+      "description": "The headline under the name",
+      "default": "Custom work, done with care."
+    },
+    {
+      "key": "contactEmail",
+      "description": "Where booking requests go",
+      "default": "hello@example.com"
+    },
+    {
+      "key": "contactPhone",
+      "description": "Phone number shown in the footer",
+      "default": "+1 555 0100"
+    },
+    {
+      "key": "address",
+      "description": "Street address shown in the footer",
+      "default": "123 Main Street"
+    }
+  ],
+  "fields": [
+    {
+      "file": "package.json",
+      "path": "name",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "package.json",
+      "path": "description",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "src/site.json",
+      "path": "name",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "src/site.json",
+      "path": "tagline",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "src/site.json",
+      "path": "email",
+      "value": "{{contactEmail}}"
+    },
+    {
+      "file": "src/site.json",
+      "path": "phone",
+      "value": "{{contactPhone}}"
+    },
+    {
+      "file": "src/site.json",
+      "path": "address",
+      "value": "{{address}}"
+    }
+  ],
+  "replace": [
+    {
+      "file": "index.html",
+      "find": "<title>My Studio</title>",
+      "value": "<title>{{appName}}</title>",
+      "escape": "html"
+    },
+    {
+      "file": "index.html",
+      "find": "content=\"Custom work, done with care.\"",
+      "value": "content=\"{{appTagline}}\"",
+      "escape": "html"
+    },
+    {
+      "file": "index.html",
+      "find": "content=\"My Studio\"",
+      "value": "content=\"{{appName}}\"",
+      "escape": "html"
+    }
+  ],
+  "sourceRefs": [
+    "https://vite.dev/guide/",
+    "https://developers.google.com/search/docs/fundamentals/seo-starter-guide"
+  ]
+}

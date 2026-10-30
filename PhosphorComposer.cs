@@ -21,6 +21,8 @@ internal enum PhosphorGlyph
     Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault,
     // ArkStation's own icons (lucide-react, as the web console's Holodex uses them), drawn from their path data.
     Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink, Stats,
+    // lucide Hammer: 4GE, as the studio's Build rail uses it.
+    Hammer,
 
     // Answer-card actions (lucide Copy, RotateCcw, Square, ThumbsUp, ThumbsDown).
 
@@ -41,6 +43,8 @@ internal static class PhosphorIcons
         [PhosphorGlyph.Sparkles] = new[] { "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z", "M20 2v4", "M22 4h-4", "M6 20a2 2 0 1 1-4 0a2 2 0 1 1 4 0" },
         // lucide chart-no-axes-column (three bars), for the Stats tab.
         [PhosphorGlyph.Stats] = new[] { "M18 20V10", "M12 20V4", "M6 20v-6" },
+        // lucide-react 1.65.0 hammer (forge/node_modules), for the 4GE entry and My projects.
+        [PhosphorGlyph.Hammer] = new[] { "m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9", "m18 15 4-4", "m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5" },
         [PhosphorGlyph.ExternalLink] = new[] { "M15 3h6v6", "M10 14 21 3", "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
         // Copy and Square are lucide rects (rx 2), written as the same rounded-rect paths.
         [PhosphorGlyph.Copy] = new[] { "M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z", "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },

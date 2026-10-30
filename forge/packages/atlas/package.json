@@ -1,0 +1,27 @@
+{
+  "name": "@4ge/atlas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The 4GE Atlas: starter Blueprints, the user's Atlas registry, Blueprint matching, Prometheus's crafting method and starter scaffolding (adapted from @ark/atlas-core).",
+  "exports": {
+    ".": {
+      "@4ge/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@4ge/bamf": "workspace:*",
+    "@4ge/contracts": "workspace:*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6"
+  }
+}

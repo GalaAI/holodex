@@ -1,0 +1,199 @@
+/* Sandbox dry run: Docker state, the run, the viewer and the personas.
+   @4ge/kit tokens only. */
+
+.sbx {
+  display: grid;
+  align-content: start;
+  gap: var(--s4);
+  padding: var(--s6);
+  min-height: 100%;
+}
+.sbx__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+.sbx__title {
+  margin: var(--s2) 0;
+  font-family: var(--font-display);
+  font-size: var(--text-size-section);
+  color: var(--color-bone);
+}
+.sbx__lede,
+.sbx__muted {
+  margin: 0;
+  color: var(--color-dim);
+  line-height: 1.5;
+}
+.sbx__lede {
+  max-width: 64ch;
+}
+.sbx__docker {
+  display: grid;
+  gap: var(--s2);
+  align-content: start;
+}
+.sbx__ports {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-caption);
+  color: var(--color-dim);
+}
+.sbx__body {
+  display: grid;
+  gap: var(--s4);
+}
+.sbx__panel {
+  display: grid;
+  gap: var(--s3);
+  padding: var(--pad-surface);
+}
+.sbx__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.sbx__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+.sbx__builds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--u);
+}
+.sbx__build {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--radius-btn);
+  color: var(--color-bone);
+  text-decoration: none;
+}
+.sbx__build:hover {
+  background: var(--color-surface-2);
+}
+.sbx__run {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-btn);
+}
+.sbx__mono {
+  font-family: var(--font-mono);
+  color: var(--color-bone);
+}
+.sbx__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.sbx__viewer .sbx__frame {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-btn);
+  background: var(--color-ground);
+}
+.sbx__summary {
+  margin: 0;
+  color: var(--color-bone);
+  line-height: 1.5;
+}
+.sbx__personas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--u) * 90), 1fr));
+  gap: var(--s4);
+}
+.sbx__persona {
+  display: grid;
+  align-content: start;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-btn);
+  background: var(--color-surface-2);
+}
+.sbx__persona h3 {
+  margin: var(--u) 0;
+  font-family: var(--font-ui);
+  color: var(--color-bone);
+}
+.sbx__persona.is-staff {
+  border-top: calc(var(--u) / 2) solid var(--color-army);
+}
+.sbx__persona.is-customer {
+  border-top: calc(var(--u) / 2) solid var(--color-coral);
+}
+.sbx__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--s2);
+}
+.sbx__step {
+  display: grid;
+  gap: var(--u);
+  padding: var(--s2) var(--s3);
+  border-left: calc(var(--u) / 2) solid var(--color-line-2);
+  background: var(--color-surface);
+  border-radius: var(--radius-badge);
+}
+.sbx__step.is-passed {
+  border-left-color: var(--color-moss);
+}
+.sbx__step.is-failed {
+  border-left-color: var(--color-rust);
+}
+.sbx__step.is-running {
+  border-left-color: var(--color-patina);
+}
+.sbx__step-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.sbx__action {
+  margin: 0;
+  color: var(--color-bone);
+}
+.sbx__error {
+  margin: 0;
+  color: var(--color-rust-ink);
+}
+.sbx__shot {
+  display: block;
+  width: 100%;
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-badge);
+  margin-top: var(--u);
+}
+.sbx__verdicts {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+}
+.sbx__build-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+}

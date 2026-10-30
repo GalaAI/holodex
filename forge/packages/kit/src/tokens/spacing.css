@@ -1,0 +1,86 @@
+/* Copied from GalaAI/ark packages/tokens/src/spacing.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Ark Omnitek: spacing, radius, elevation, motion (source: relic-phosphor.css + shell.css) */
+:root {
+  /* 4px base unit scale (shell.css) */
+  --u: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s12: 48px;
+  /* Radius */
+  --radius-widget: 18px; /* panels, plates */
+  --radius-btn: 14px; /* controls */
+  --radius-tile: 13px; /* warm accent tiles */
+  --radius-badge: 10px; /* badges, triage tags */
+  --radius-inset: 8px; /* media and canvas corners inside a panel (added 2026-10-27) */
+  --radius-menu-closed: 8px; /* FluidSelect trigger at rest; morphs to --radius-menu-open (operator morph, restored 2026-10-27) */
+  --radius-menu-open: 12px;
+  /* Strokes and focus rings (added 2026-10-27) */
+  --border-hair: 1px; /* every hairline border */
+  --focus-ring: 2px; /* focus outline width */
+  --focus-offset: 3px; /* focus outline offset */
+  /* Status marks (added 2026-10-27) */
+  --led-size: 9px; /* Led light */
+  --dot-size: 6px; /* lifecycle and step dots */
+  /* Layering (added 2026-10-27) */
+  --z-overlay-top: 2147483647; /* the one topmost overlay layer (scroll affordance) */
+  /* Elevation: panels cast onto the field, never dissolve */
+  --shadow-cast: 0 14px 34px rgba(0, 0, 0, 0.6), 0 3px 10px rgba(0, 0, 0, 0.45);
+  --edge-vignette:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    inset 0 -18px 30px -22px rgba(0, 0, 0, 0.7);
+  /* Motion: slow, analog, interruptible; nothing faster than 120ms */
+  --ease-analog: cubic-bezier(0.45, 0.05, 0.35, 1);
+  --dur-bloom: 480ms;
+  /* Phosphor disclosure law, operator 2026-10-01: a shared 240ms beat.
+     Entry settles in 180ms with at most 60ms of stagger, regardless of count.
+     Aura remains solid at the leading edge and fades out before the trailing edge. */
+  --dur-disclosure: 240ms;
+  --dur-disclosure-item: 180ms;
+  --disclosure-stagger-step: 12ms;
+  --disclosure-stagger-cap: 60ms;
+  --ease-disclosure: cubic-bezier(0.2, 0, 0, 1);
+  --aura-falloff: linear-gradient(
+    to right,
+    var(--color-bone) 65%,
+    transparent 90%
+  );
+  /* Minimum gap between the aura side light and the host's content. */
+  --aura-lead: var(--s3);
+  --dur-pulse: 3500ms;
+  /* Loader loops and steps (added 2026-10-27; values from the locked designs) */
+  --dur-caret: 1100ms;
+  --dur-cadence-dots: 1400ms;
+  --dur-cadence-arc: 1600ms;
+  --dur-loader-sweep: 2200ms;
+  --dur-shuffle: 16800ms;
+  --dur-step: 320ms; /* step reveal in packs */
+  /* Spring settle for lift, drop and snap-back only (approved 2026-10-20, CP-36) */
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.5, 1);
+  --dur-sweep: 3400ms;
+  --dur-seam: 4800ms;
+  /* Semantic spacing: THE SPACING RULE. Inside a component, every padding
+   and gap resolves through one of these, and these resolve through the --u
+   scale. No off-scale px inside component CSS. Surfaces (Panel, Plate) own
+   surface only: background, ink, radius, cast; the CONSUMER sets the inset,
+   and the default inset is --pad-surface. Law number pending the
+   laws-of-record pass. */
+  --pad-surface: var(--s4); /* consumer-set inset inside Panel and Plate */
+  --pad-control-x: var(--s3); /* button horizontal padding */
+  --pad-chip: var(--u) var(--s3); /* badges, lifecycle and triage tags */
+  --pad-tile: var(--s4); /* accent tiles */
+  --gap-inline: var(--s2); /* icon and dot gaps inside a component */
+  /* Touch */
+  --touch-min: 44px;
+  /* Shell geometry */
+  --ribbon-h: 52px;
+  --rail-w: 236px;
+  /* Approved S4 frame dimensions, shared by the rail and application canvas. */
+  --station-rail-width: 155px;
+  --station-rail-collapsed-width: 60px;
+  --station-context-width: 352px;
+  --station-header-height: 60px;
+}

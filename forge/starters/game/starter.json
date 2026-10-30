@@ -1,0 +1,70 @@
+{
+  "name": "game",
+  "title": "Video game (web, Phaser)",
+  "description": "A complete small web game on Phaser 4 with Vite and TypeScript: one arcade scene with keyboard and pointer controls, score, lives, best score and restart. Rules live apart from the scene so they can be tested and tuned.",
+  "kind": "game",
+  "platforms": [
+    "web"
+  ],
+  "install": "pnpm install",
+  "build": "pnpm build",
+  "dev": "pnpm dev",
+  "output": "dist",
+  "placeholders": [
+    {
+      "key": "appName",
+      "description": "The game's title",
+      "default": "Catch"
+    },
+    {
+      "key": "appSlug",
+      "description": "Lowercase kebab-case package name",
+      "default": "catch"
+    },
+    {
+      "key": "appTagline",
+      "description": "One line about the game",
+      "default": "Catch what falls. Miss three and it is over."
+    }
+  ],
+  "fields": [
+    {
+      "file": "package.json",
+      "path": "name",
+      "value": "{{appSlug}}"
+    },
+    {
+      "file": "package.json",
+      "path": "description",
+      "value": "{{appTagline}}"
+    },
+    {
+      "file": "src/game.json",
+      "path": "title",
+      "value": "{{appName}}"
+    },
+    {
+      "file": "src/game.json",
+      "path": "tagline",
+      "value": "{{appTagline}}"
+    }
+  ],
+  "replace": [
+    {
+      "file": "index.html",
+      "find": "<title>Catch</title>",
+      "value": "<title>{{appName}}</title>",
+      "escape": "html"
+    },
+    {
+      "file": "index.html",
+      "find": "content=\"Catch what falls. Miss three and it is over.\"",
+      "value": "content=\"{{appTagline}}\"",
+      "escape": "html"
+    }
+  ],
+  "sourceRefs": [
+    "https://docs.phaser.io/phaser/getting-started/installation",
+    "https://github.com/phaserjs/template-vite-ts"
+  ]
+}

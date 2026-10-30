@@ -1,0 +1,47 @@
+/* Copied from GalaAI/ark packages/ui/src/brand/spine-label.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* SpineLabel: rides the outside of the card's left panel edge, reading bottom to top like the stage frame label.
+   --rp-spine-offset is how far left of the host edge it sits; hosts with less room tune it. */
+.rp-spine-label {
+  position: absolute;
+  left: var(--rp-spine-offset, calc(var(--u) * -5.5));
+  top: calc(var(--u) * 3.5);
+  bottom: calc(var(--u) * 3.5);
+  z-index: 1;
+  pointer-events: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 500 calc(var(--u) * 2.375)/1 var(--font-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ghost);
+  transition: color var(--dur-bloom) var(--ease-analog);
+}
+.rp-spine-label[data-tone="live"] {
+  color: color-mix(in srgb, var(--color-patina) 85%, transparent);
+}
+.rp-spine-label[data-tone="gate"] {
+  color: color-mix(in srgb, var(--color-ember) 85%, transparent);
+}
+.rp-spine-label[data-tone="error"] {
+  color: color-mix(in srgb, var(--color-rust) 85%, transparent);
+}
+.rp-spine-label[data-tone="ok"] {
+  color: color-mix(in srgb, var(--color-moss) 80%, transparent);
+}
+.rp-spine-label[data-tone="pick"] {
+  color: color-mix(in srgb, var(--color-coral) 85%, transparent);
+}
+@media (max-width: 40rem) {
+  .rp-spine-label {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-spine-label {
+    transition: none;
+  }
+}

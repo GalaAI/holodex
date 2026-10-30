@@ -1,0 +1,78 @@
+/* Copied from GalaAI/ark packages/ui/src/actions/action-pill.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* ActionPill: the one selectable action chip. Mono, uppercase, inset fill.
+   Pressed = patina edge (selection is a live state). Gate marker is ember
+   because a gate is a warning that a human decides. Planned = dim, inert
+   but still focusable. Risk tiers tint the rest border: low moss, medium
+   ember, high rust; critical keeps the full rust edge. */
+.rp-pill {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  min-height: var(--touch-min);
+  padding: 0 var(--s3);
+  border-radius: var(--radius-btn);
+  border: calc(var(--u) / 4) solid var(--color-line-2);
+  background: var(--color-surface-2);
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    color var(--dur-bloom) var(--ease-analog),
+    border-color var(--dur-bloom) var(--ease-analog);
+}
+.rp-pill[data-risk="low"] {
+  border-color: color-mix(in srgb, var(--color-moss) 45%, var(--color-line-2));
+}
+.rp-pill[data-risk="medium"] {
+  border-color: color-mix(in srgb, var(--color-ember) 55%, var(--color-line-2));
+}
+.rp-pill[data-risk="high"] {
+  border-color: color-mix(in srgb, var(--color-rust) 55%, var(--color-line-2));
+}
+.rp-pill:hover {
+  color: var(--color-bone);
+  border-color: var(--color-ghost);
+}
+.rp-pill:active {
+  transform: translateY(calc(var(--u) / 4));
+}
+.rp-pill:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: calc(var(--u) * 0.75);
+}
+.rp-pill[aria-pressed="true"] {
+  color: var(--color-bone);
+  border-color: var(--color-patina);
+}
+.rp-pill:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-pill[data-planned="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-pill[data-planned="true"]:active {
+  transform: none;
+}
+.rp-pill[data-risk="critical"] {
+  border-color: var(--color-rust);
+}
+.rp-pill__gate {
+  font-style: normal;
+  font-size: calc(var(--u) * 2.25);
+  color: var(--color-ember);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-pill {
+    transition: none;
+  }
+  .rp-pill:active {
+    transform: none;
+  }
+}

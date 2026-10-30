@@ -1,0 +1,69 @@
+/* Copied from GalaAI/ark packages/ui/src/surfaces/intake-composer.css at 0f4b55c6 for @4ge/kit. Keep visual parity with the source; change it there first or record why here. */
+/* Bounded form composition over the existing Relic tokens. */
+.rp-intake-composer {
+  padding: var(--pad-surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rp-intake-composer form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: var(--s2);
+}
+.rp-intake-composer form {
+  gap: var(--s4);
+  /* Drop target: an outline keeps layout stable when the drag state toggles. */
+  border-radius: var(--radius-inset);
+  outline: var(--border-hair) solid transparent;
+  outline-offset: var(--u);
+  transition: outline-color var(--dur-disclosure) var(--ease-analog);
+}
+.rp-intake-composer form[data-dragging] {
+  outline-color: color-mix(in srgb, var(--color-patina) 60%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-intake-composer form {
+    transition: none;
+  }
+}
+.rp-intake-composer__attachment {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  min-width: 0;
+}
+.rp-intake-composer .rp-field__input {
+  font-family: var(--font-body);
+  /* A 1rem input floor prevents iOS focus zoom while inheriting host scale. */
+  font-size: 1rem;
+  font-weight: 400;
+}
+.rp-intake-composer p {
+  margin: 0;
+}
+.rp-intake-composer__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.rp-intake-composer__preview img,
+.rp-intake-composer__preview video {
+  width: 100%;
+  max-width: 12rem;
+  height: 8rem;
+  object-fit: contain;
+  border-radius: var(--radius-inset);
+}
+.rp-intake-composer__preview audio {
+  width: 100%;
+  max-width: 100%;
+}
+.rp-intake-composer__preview > svg {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
