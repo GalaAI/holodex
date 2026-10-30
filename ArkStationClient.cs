@@ -952,9 +952,11 @@ public sealed class ArkStationClient
     }
 
     /// <summary>The providers whose models answer on this PC: LM Studio and Ollama.</summary>
+    /// <remarks>Literal ids (ModelInventory.LmStudioDefault and OllamaDefault): reading those statics here would tie the
+    /// two classes' static initializers into a cycle, since ModelInventory reads <see cref="BuiltInNemotronModels"/>.</remarks>
     public static readonly IReadOnlySet<string> LocalProviderIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        ModelInventory.LmStudioDefault.Id, ModelInventory.OllamaDefault.Id
+        "lmstudio", "ollama"
     };
 
     /// <summary>A picker id for a model served on this PC: <c>local:lmstudio:qwen/qwen3-8b</c>.</summary>

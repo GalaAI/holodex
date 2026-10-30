@@ -29,6 +29,14 @@ public class LocalModelsTests
     }
 
     [Fact]
+    public void The_local_provider_ids_are_lm_studios_and_ollamas()
+    {
+        Assert.Contains(ModelInventory.LmStudioDefault.Id, ArkStationClient.LocalProviderIds);
+        Assert.Contains(ModelInventory.OllamaDefault.Id, ArkStationClient.LocalProviderIds);
+        Assert.Equal(2, ArkStationClient.LocalProviderIds.Count);
+    }
+
+    [Fact]
     public void Only_lm_studio_and_ollama_chat_models_join_the_picker()
     {
         var entries = new[]
