@@ -61,7 +61,7 @@ You need Windows 10 or 11 (x64) and a Nebius Token Factory API key. Nothing else
 
 ### 1. Get Holodex
 
-**Release build (recommended).** Download `Holodex-v0.4.0-win-x64.zip` from [Releases](../../releases), check it against `Holodex-v0.4.0-win-x64.zip.sha256`, and extract it anywhere.
+**Release build (recommended).** Download `Holodex-v0.4.1-win-x64.zip` from [Releases](../../releases), check it against `Holodex-v0.4.1-win-x64.zip.sha256`, and extract it anywhere.
 
 **From source.** Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), then:
 
