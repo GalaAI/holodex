@@ -124,6 +124,19 @@ public class ConnectorTests
     }
 
     [Fact]
+    public void Public_installs_get_no_private_or_localhost_realm_links()
+    {
+        var publicSlots = RealmConnectors.DefaultsFor(new Uri("https://hivemind-public-production.up.railway.app/mcp"));
+        Assert.DoesNotContain(publicSlots, c => c.Id is "arkhub" or "social-mod");
+        Assert.All(publicSlots, c => Assert.DoesNotContain("127.0.0.1", c.BaseUrl));
+        Assert.Equal("https://ryozan-production.up.railway.app", RealmConnectors.RyozanDefault.BaseUrl);
+
+        var ownerSlots = RealmConnectors.DefaultsFor(new Uri("https://hivemind.arkomnitek.com/mcp"));
+        Assert.Contains(ownerSlots, c => c.Id == "arkhub");
+        Assert.Contains(ownerSlots, c => c.Id == "social-mod");
+    }
+
+    [Fact]
     public void A_saved_file_replaces_a_default_and_adds_new_services()
     {
         string path = Path.Combine(Path.GetTempPath(), $"connectors-{Guid.NewGuid():N}.json");

@@ -217,7 +217,9 @@ internal sealed class HolodexStatsPanel : Panel
         }
 
         var actionRow = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = PhosphorTheme.Surface };
-        var share = new PhosphorButton("Share to ArkHub") { Dock = DockStyle.Right, Width = 170, Name = "Holodex.Stats.Share" };
+        // ArkHub lives only on the owner's Hivemind; elsewhere the share goes to a Discord webhook the user saves.
+        var share = new PhosphorButton(RealmConnectors.HivemindServesArkHub(HivemindClient.Endpoint) ? "Share to ArkHub" : "Share progress")
+            { Dock = DockStyle.Right, Width = 170, Name = "Holodex.Stats.Share" };
         share.Click += async (_, _) => await ShareAsync();
         var recap = new PhosphorButton("Daily recap") { Dock = DockStyle.Left, Width = 150, Name = "Holodex.Stats.Recap" };
         recap.Click += async (_, _) => await RecapAsync();
@@ -334,7 +336,10 @@ internal sealed class HolodexStatsPanel : Panel
         var dest = _svc.Herald.Destinations();
         if (dest.Count == 0)
         {
-            PhosphorToast.Show("ArkHub is not set up", "Save a Discord webhook as Omniwand:DiscordWebhook in Credential Manager, or turn on the ArkHub slot in connectors.json.", "HERALD // ARKHUB", 6000, ToastTone.Warning);
+            if (RealmConnectors.HivemindServesArkHub(HivemindClient.Endpoint))
+                PhosphorToast.Show("ArkHub is not set up", "Save a Discord webhook as Omniwand:DiscordWebhook in Credential Manager, or turn on the ArkHub slot in connectors.json.", "HERALD // ARKHUB", 6000, ToastTone.Warning);
+            else
+                PhosphorToast.Show("Nowhere to share yet", "ArkHub is not on the public Hivemind. To share to Discord, save a Discord webhook as Omniwand:DiscordWebhook in Credential Manager.", "HOLODEX // SHARE", 6000, ToastTone.Info);
             return;
         }
         var standings = _svc.Ledger.Standings("user");

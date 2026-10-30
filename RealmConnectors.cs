@@ -51,14 +51,25 @@ public sealed class RealmConnectors
     public static readonly string DefaultConfigPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "connectors.json");
 
+    /// <summary>The owner's private Hivemind, the only one that serves the ArkHub and Social Mod routes.</summary>
+    public const string PrivateHivemindHost = "hivemind.arkomnitek.com";
+
+    /// <summary>The origin of the Hivemind this install signs in to (OMNIWAND_HIVEMIND_URL, else the public default).</summary>
+    public static readonly string HivemindOrigin = HivemindClient.Endpoint.GetLeftPart(UriPartial.Authority);
+
+    /// <summary>Whether this install's Hivemind serves ArkHub and Social Mod; the public Hivemind does not.</summary>
+    public static bool HivemindServesArkHub(Uri endpoint) =>
+        string.Equals(endpoint.Host, PrivateHivemindHost, StringComparison.OrdinalIgnoreCase);
+
     public static readonly RealmConnector HivemindDefault = new()
     {
         Id = "hivemind",
         Label = "Hivemind",
-        BaseUrl = "https://hivemind.arkomnitek.com",
+        // HivemindClient.Endpoint already honours OMNIWAND_HIVEMIND_URL (which names the /mcp path), so the slot takes
+        // its origin rather than reading the variable again.
+        BaseUrl = HivemindOrigin,
         HealthPath = "/health",
         CredentialTarget = HivemindClient.CredentialTarget,
-        UrlEnvVar = "OMNIWAND_HIVEMIND_URL",
         // Hivemind sign-in and Sessions already run through HivemindClient (OAuth over MCP, so its saved credential
         // is a token bundle, not a bearer key for Authorize); the slot gives it an address and routes task kinds.
         Enabled = true,
@@ -69,7 +80,7 @@ public sealed class RealmConnectors
     {
         Id = "ryozan",
         Label = "Ryozan",
-        BaseUrl = "http://127.0.0.1:8801",
+        BaseUrl = "https://ryozan-production.up.railway.app",
         HealthPath = "/health",
         CredentialTarget = "Omniwand:RyozanToken",
         UrlEnvVar = "OMNIWAND_RYOZAN_URL",
@@ -82,7 +93,7 @@ public sealed class RealmConnectors
     {
         Id = "arkhub",
         Label = "ArkHub",
-        BaseUrl = "https://hivemind.arkomnitek.com/arkhub",
+        BaseUrl = HivemindOrigin + "/arkhub",
         HealthPath = "/health",
         CredentialTarget = "Omniwand:ArkHubToken",
         UrlEnvVar = "OMNIWAND_ARKHUB_URL",
@@ -95,7 +106,7 @@ public sealed class RealmConnectors
     {
         Id = "social-mod",
         Label = "Social Mod",
-        BaseUrl = "https://hivemind.arkomnitek.com/social",
+        BaseUrl = HivemindOrigin + "/social",
         HealthPath = "/health",
         CredentialTarget = "Omniwand:SocialModToken",
         UrlEnvVar = "OMNIWAND_SOCIAL_MOD_URL",
@@ -115,7 +126,13 @@ public sealed class RealmConnectors
         Accepts = new[] { TaskKind.Publish }
     };
 
-    public static readonly IReadOnlyList<RealmConnector> Defaults = new[] { HivemindDefault, RyozanDefault, ArkHubDefault, SocialModDefault, SkoolDefault };
+    public static readonly IReadOnlyList<RealmConnector> Defaults = DefaultsFor(HivemindClient.Endpoint);
+
+    /// <summary>The default slots for a Hivemind: ArkHub and Social Mod only where that Hivemind serves them.</summary>
+    public static IReadOnlyList<RealmConnector> DefaultsFor(Uri hivemindEndpoint) =>
+        HivemindServesArkHub(hivemindEndpoint)
+            ? new[] { HivemindDefault, RyozanDefault, ArkHubDefault, SocialModDefault, SkoolDefault }
+            : new[] { HivemindDefault, RyozanDefault, SkoolDefault };
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
