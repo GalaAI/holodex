@@ -57,7 +57,10 @@ public sealed record OmnitekAutoDetectInfo(
 /// operates in Standalone Mode directly against Nebius Token Factory (NVIDIA Nemotron).
 /// </summary>
 /// <summary>What a GrimX Spell cast through Input Spine did; each outcome has its own toast.</summary>
-public enum SpellCastOutcome { Cast, NoBinding, Refused, Unreachable, Standalone }
+public enum SpellCastOutcome { Cast, Failed, NoBinding, Refused, Unreachable, Standalone }
+
+/// <summary>One Spell an Orb slot can cast, as Input Spine lists it (<c>GET /api/spine/grimx/spells</c>).</summary>
+public sealed record SpellChoice(string Slug, string Name, string? Description, bool Enabled);
 
 public sealed class ArkStationClient
 {
@@ -200,7 +203,25 @@ public sealed class ArkStationClient
             ? arkRoot
             : DefaultArkRoot;
         SelectedModel = DefaultNemotronFastModel;
+        Models = new ModelInventory(ModelInventory.LoadProviders(), ReadProviderSecret);
+        Router = new TaskRouter(Models);
+        Connectors = new RealmConnectors(RealmConnectors.Load(), TryReadWindowsCredential);
     }
+
+    /// <summary>Every model Holodex can reach (Nebius first, then LM Studio and local vision servers).</summary>
+    public ModelInventory Models { get; }
+
+    /// <summary>Picks the provider and model for each task kind; Gala runs on Nemotron Super.</summary>
+    public TaskRouter Router { get; }
+
+    /// <summary>The services tasks can be handed to (Hivemind, Ryozan, and any added in connectors.json).</summary>
+    public RealmConnectors Connectors { get; }
+
+    /// <summary>Nebius keeps its own key lookup (environment, vault bundle, Credential Manager); others read Credential Manager.</summary>
+    private string? ReadProviderSecret(string target) =>
+        string.Equals(target, ModelInventory.NebiusDefault.CredentialTarget, StringComparison.OrdinalIgnoreCase)
+            ? ReadNebiusApiKey()
+            : TryReadWindowsCredential(target);
 
     public bool ForceStandaloneMode => StandaloneRequested();
 
@@ -588,15 +609,56 @@ public sealed class ArkStationClient
     }
 
     /// <summary>
-    /// Dispatches a GrimX Spell cast to Input Spine (:8842/api/spine/event). Ok is true only when
-    /// Spine matched a binding for the gesture; in standalone mode (when Input Studio is absent),
-    /// degrades gracefully and reports a clean warning message for the Phosphor toast.
+    /// The Spells Input Spine holds for each Orb slot id, in its order. Empty when Spine is offline or
+    /// predates the listing, so the picker shows nothing to choose rather than guessing.
+    /// </summary>
+    public async Task<Dictionary<string, List<SpellChoice>>> GetGrimXSpellsAsync()
+    {
+        var spells = new Dictionary<string, List<SpellChoice>>(StringComparer.OrdinalIgnoreCase);
+        if (ForceStandaloneMode) return spells;
+        try
+        {
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var resp = await _http.GetAsync($"{DefaultInputSpineUrl}/api/spine/grimx/spells", cts.Token);
+            if (!resp.IsSuccessStatusCode) return spells;
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+            if (!doc.RootElement.TryGetProperty("spells", out var bySlot) || bySlot.ValueKind != JsonValueKind.Object) return spells;
+            foreach (var slot in bySlot.EnumerateObject())
+            {
+                var list = new List<SpellChoice>();
+                foreach (var e in slot.Value.EnumerateArray())
+                {
+                    string? slug = e.TryGetProperty("slug", out var sl) ? sl.GetString() : null;
+                    string? name = e.TryGetProperty("name", out var nm) ? nm.GetString() : null;
+                    if (string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(name)) continue;
+                    list.Add(new SpellChoice(
+                        slug,
+                        name,
+                        e.TryGetProperty("description", out var ds) ? ds.GetString() : null,
+                        !e.TryGetProperty("enabled", out var en) || en.ValueKind != JsonValueKind.False));
+                }
+                spells[slot.Name] = list;
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or InvalidOperationException)
+        {
+            // Offline or an older Spine: no choices.
+        }
+        return spells;
+    }
+
+    /// <summary>
+    /// Dispatches a GrimX Spell cast to Input Spine (:8842/api/spine/event), as <c>grimx/&lt;slot&gt;</c>, or
+    /// <c>grimx/&lt;slot&gt;/&lt;spell&gt;</c> when a Spell was picked for the slot. Cast only when Spine matched a
+    /// binding and the bound action reported success; a matched action that failed is Failed, with its error.
+    /// In standalone mode (when Input Studio is absent) it degrades to a clean warning for the Phosphor toast.
     /// </summary>
     public async Task<(SpellCastOutcome Outcome, string Output)> TriggerGrimXFlowAsync(
         string flowKind,
         string verb,
         Point cursorPos,
-        string? cursorRole = null)
+        string? cursorRole = null,
+        string? spellSlug = null)
     {
         if (!ArkInstalled)
         {
@@ -610,7 +672,7 @@ public sealed class ArkStationClient
                 trigger = new
                 {
                     kind = "gesture",
-                    match = $"grimx/{flowKind.ToLowerInvariant()}"
+                    match = SpellTrigger(flowKind, spellSlug)
                 },
                 context = new Dictionary<string, object>
                 {
@@ -621,7 +683,10 @@ public sealed class ArkStationClient
                     ["cursorRole"] = cursorRole ?? "Arrow"
                 }
             };
-            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(2));
+            // Spine answers after the bound action finishes, and a Spell can take up to a minute (a bench cast
+            // reads the operator credential, saves its flow and advances each part). Wait past the longest
+            // spine action timeout so a slow cast is not misreported as an unreachable Spine.
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(70));
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             using var resp = await _http.PostAsync($"{DefaultInputSpineUrl}/api/spine/event", content, cts.Token);
             string body = await resp.Content.ReadAsStringAsync();
@@ -631,24 +696,47 @@ public sealed class ArkStationClient
             }
 
             bool matched = false;
+            bool succeeded = false;
+            string detail = string.Empty;
             try
             {
                 using var doc = JsonDocument.Parse(body);
                 matched = doc.RootElement.TryGetProperty("matched", out var m) && m.ValueKind == JsonValueKind.True;
+                if (matched && doc.RootElement.TryGetProperty("result", out var result) && result.ValueKind == JsonValueKind.Object)
+                {
+                    succeeded = result.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.True;
+                    string key = succeeded ? "output" : "error";
+                    if (result.TryGetProperty(key, out var text) && text.ValueKind == JsonValueKind.String) detail = FirstLine(text.GetString());
+                }
             }
             catch (JsonException)
             {
                 // Unparseable reply: treat as not matched.
             }
 
-            return matched
-                ? (SpellCastOutcome.Cast, $"{verb} {flowKind} dispatched through Input Spine.")
-                : (SpellCastOutcome.NoBinding, $"No Input Spine binding for grimx/{flowKind.ToLowerInvariant()}, so nothing was cast. Bind it in Input Studio.");
+            if (!matched)
+                return (SpellCastOutcome.NoBinding, $"No Input Spine binding for {SpellTrigger(flowKind, spellSlug)}, so nothing was cast. Bind it in Input Studio.");
+            return succeeded
+                ? (SpellCastOutcome.Cast, string.IsNullOrEmpty(detail) ? $"{verb} {flowKind} cast through Input Spine." : detail)
+                : (SpellCastOutcome.Failed, string.IsNullOrEmpty(detail) ? "The bound action reported a failure." : detail);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             return (SpellCastOutcome.Unreachable, "Input Spine (:8842) is unreachable, so nothing was cast. Start the Ark runtime and cast again.");
         }
+    }
+
+    /// <summary>The spine gesture for a slot, or for one picked Spell of that slot.</summary>
+    private static string SpellTrigger(string flowKind, string? spellSlug) =>
+        string.IsNullOrWhiteSpace(spellSlug)
+            ? $"grimx/{flowKind.ToLowerInvariant()}"
+            : $"grimx/{flowKind.ToLowerInvariant()}/{spellSlug.ToLowerInvariant()}";
+
+    /// <summary>The first non-empty line of an action's output or error, short enough for a toast body.</summary>
+    private static string FirstLine(string? text)
+    {
+        string line = (text ?? string.Empty).Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) ?? string.Empty;
+        return line.Length > 180 ? line[..177] + "..." : line;
     }
 
     /// <summary>Whether Keymaster holds the inbound key the HUD needs to ask through the Ark gateway.</summary>
@@ -1084,7 +1172,17 @@ public sealed class ArkStationClient
                 targetModel, RouteNebiusDirect);
         }
 
-        string json = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl).ToJsonString();
+        var payload = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl);
+        // With a Tavily key in the Vault, Nemotron may call web_search (WebSearch.cs); each round is a new request.
+        // The same loop runs the local tools a Vault adapter switched on (HolodexTools: files, PC command line).
+        bool webSearch = string.IsNullOrEmpty(imageDataUrl) && WebSearch.Available;
+        bool localTools = string.IsNullOrEmpty(imageDataUrl) && HolodexTools.Any;
+        bool searching = webSearch || localTools;
+        if (webSearch) WebSearch.Offer(payload);
+        if (localTools) HolodexTools.Offer(payload);
+        var sources = new List<string>();
+        int rounds = 0;
+        string json = payload.ToJsonString();
         // Bounded retry: two attempts on a 5xx or a dropped connection, never on auth or a bad request.
         string lastError = "Unknown error";
         for (int attempt = 1; attempt <= 2; attempt++)
@@ -1115,9 +1213,17 @@ public sealed class ArkStationClient
                 }
 
                 var (text, finish, answeredBy) = ReadCompletion(body);
+                if (searching && rounds < WebSearch.MaxRounds && await WebSearch.RunToolCallsAsync(payload, body, sources))
+                {
+                    // The last round offers no tool, so the model answers from what it has.
+                    if (++rounds == WebSearch.MaxRounds) { payload.Remove("tools"); payload.Remove("tool_choice"); }
+                    json = payload.ToJsonString();
+                    attempt = 0;
+                    continue;
+                }
                 if (string.IsNullOrWhiteSpace(text))
                     return new ModelAnswer(false, $"{targetModel} returned no answer (finish_reason={finish ?? "none"}).", answeredBy ?? targetModel, RouteNebiusDirect);
-                return new ModelAnswer(true, text, answeredBy ?? targetModel, RouteNebiusDirect);
+                return new ModelAnswer(true, WebSearch.WithSources(text, sources), answeredBy ?? targetModel, RouteNebiusDirect);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
             {

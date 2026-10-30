@@ -165,12 +165,15 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly ScreenSnipAndElementPickerForm _snipWidget;
     private readonly HolodexLiteDrawerForm _holodexDrawer;
     private readonly AugmentInventoryForm _inventory = new();
+    private readonly MouseModStationForm _station;
+    private readonly VaultForm _vault;
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
     private readonly ToolStripMenuItem _hideNativeMenuItem;
     private readonly PhosphorMenuHeader _trayTitle;
     private readonly TrayPage _yourMousePage;
+    private readonly TrayPage _spellPicksPage = new("Choose a Spell for each slot");
     private readonly PhosphorTrayMenu _trayMenu;
     private readonly Thread _renderThread;
 
@@ -181,6 +184,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private string? _vrStreamName;
     private float _preVrScaleMultiplier = 1.25f;
     private System.Threading.Timer? _vrTimer;
+    private System.Threading.Timer? _modelTimer;
+    private readonly TrayPage _modelsPage;
+    private HolodexProgressionService? _progression;
+    private bool _modelsBaselined;
     private ToolStripMenuItem? _vrStatusItem;
     private const float VrScaleBoost = 1.6f;
     private volatile RotationMode _rotationMode = RotationMode.SubtleBank;
@@ -258,8 +265,11 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 _holodexDrawer?.RefreshCodexEntries();
                 PhosphorToast.Show("Saved to Codex", entry.Title, "WIZ // CODEX", 2600, ToastTone.Success);
+                _progression?.Activity(Skill.Learning, "Saved to Codex: " + entry.Title);
             }
         });
+        // A public install has no AInbox service, so every sender's Scrolls save on this PC.
+        OutboundQueue.SharedLocalOnly = !_ark.ArkInstalled;
         _ainboxWidget = new AInboxIntakeWidgetForm(_ark, thinking => _isAiThinking = thinking);
         _snipWidget = new ScreenSnipAndElementPickerForm(
             _ark,
@@ -268,6 +278,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // The AInbox well's Pick and Lasso chips open the snip tools, and Send to AInbox brings the capture back.
         _ainboxWidget.RequestCapture = tool => _snipWidget.SummonAt(GetCursorPoint(), tool);
         _snipWidget.OnSendToAInbox = (pt, dataUrl, name) => _ainboxWidget.SummonAt(pt, dataUrl, name);
+        _progression = new HolodexProgressionService(_ark, _uiSync);
         _holodexDrawer = new HolodexLiteDrawerForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -275,12 +286,17 @@ internal sealed class OmniwandAppContext : ApplicationContext
             pt => _ainboxWidget.SummonAt(pt),
             (pt, tool) => _snipWidget.SummonAt(pt, tool),
             () => SummonTutorialTooltips(),
-            style =>
-            {
-                MouseHardwareAndWandEngine.ActiveCursorStyle = style;
-                _overlay?.ForceCursorRedraw();
-            });
+            _progression);
+        _station = new MouseModStationForm(style =>
+        {
+            MouseHardwareAndWandEngine.ActiveCursorStyle = style;
+            _overlay?.ForceCursorRedraw();
+        });
         _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
+        _holodexDrawer.OpenMouseModStation = () => _station.Summon(GetCursorPoint());
+        _vault = new VaultForm(_ark);
+        _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
+        _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -336,11 +352,22 @@ internal sealed class OmniwandAppContext : ApplicationContext
         var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Ctrl+Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
 
+        // The Vault needs no Ark and no Hivemind account: keys, MCP sign-ins and local services on this PC.
+        var vaultItem = home.Add(new ToolStripMenuItem("Vault") { Name = "Tray.Vault", ToolTipText = "Connect apps, services and keys. Keys stay in Windows Credential Manager." });
+        vaultItem.Click += (_, _) => _vault.Summon(GetCursorPoint());
+
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
         {
             var inventoryItem = home.Add(new ToolStripMenuItem("Augment Inventory") { Name = "Tray.AugmentInventory", ToolTipText = "Every Augment by Shell, Phosphor or Bandit, from your Ark." });
             inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
+        }
+
+        // The Mouse Mod Station: the mouse in use, its speed, the pointer look and Input Studio in one window.
+        if (MouseModStationForm.Available(_ark))
+        {
+            var stationItem = home.Add(new ToolStripMenuItem("Mouse Mod Station") { Name = "Tray.MouseModStation", ToolTipText = "Your mouse, its speed, the pointer look, and the cursor designer and button bindings." });
+            stationItem.Click += (_, _) => _station.Summon(GetCursorPoint());
         }
 
         var capturePage = new TrayPage("Grab from the screen");
@@ -362,6 +389,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             var slotItem = orbPage.Add(new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle });
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
         }
+        orbPage.Add(new ToolStripSeparator());
+        orbPage.AddPage("Choose Spells", _spellPicksPage, "Pick which Spell each slot casts, from the Spells your Ark holds.");
+        _spellPicksPage.Shown += async (_, _) => await FillSpellPicksAsync();
         home.AddPage("Spell Orb", orbPage);
 
         // ── Settings page ────────────────────────────────────────────────────
@@ -476,6 +506,11 @@ internal sealed class OmniwandAppContext : ApplicationContext
         FillYourMouseMenu();
         settingsPage.AddPage("Your mouse", _yourMousePage, "Holodex uses the mouse you are moving. Pick one to keep it.");
 
+        // Models: everything Holodex can reach, grouped by provider, with the task each one is routed to.
+        _modelsPage = new TrayPage("Models // what Holodex can use");
+        FillModelsMenu();
+        settingsPage.AddPage("Models", _modelsPage, "Every model Holodex found. New ones show up here by themselves.");
+
         var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Ctrl+Alt+T" });
         tutorialItem.Click += (_, _) => SummonTutorialTooltips();
 
@@ -508,6 +543,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
         arrowHeader.Name = "Tray.VrArrowTestHeader";
         diagItem.Name = "Tray.VrPointerLog";
         _vrTimer = new System.Threading.Timer(_ => VrTick(), null, 600, 1500);
+        // First pass learns what is already there; later passes announce new models (every 5 minutes).
+        _modelTimer = new System.Threading.Timer(_ => _ = RefreshModelsAsync(), null, 4000, 300_000);
 
         home.Add(new ToolStripSeparator());
         var exitItem = home.Add(new ToolStripMenuItem("Quit Holodex") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
@@ -571,6 +608,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorToast.UiContext = _uiSync;
         // Follow the mouse that moves: its speed, buttons and name come with it.
         MouseHardwareAndWandEngine.UiContext = _uiSync;
+        HolodexTools.Ui = _uiSync;
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(
@@ -582,6 +620,18 @@ internal sealed class OmniwandAppContext : ApplicationContext
         if (isFirstRun)
         {
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
+        }
+
+        // A public install with no Nebius key yet: open the Vault ready for it, since every answer needs one.
+        if (string.IsNullOrEmpty(_ark.ReadNebiusApiKey()) && !_ark.ArkInstalled)
+        {
+            var firstKey = new System.Windows.Forms.Timer { Interval = 2500 };
+            firstKey.Tick += (_, _) =>
+            {
+                firstKey.Dispose();
+                _vault.SummonFor(Screen.PrimaryScreen?.WorkingArea.Location + new Size(200, 200) ?? Point.Empty, "nebius");
+            };
+            firstKey.Start();
         }
 
         // One Ark API probe at start, so every model chip names the route the first ask takes before any surface opens.
@@ -677,7 +727,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "ainbox:send:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -714,6 +764,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SummonWizCrafting("flow"), null);
             return "ok:wiz:summon";
+        }
+        // ainbox:send:<ask> (developer pipe) opens AInbox, types the ask and presses Send to the chosen destination.
+        if (cmd.StartsWith("ainbox:send:", StringComparison.OrdinalIgnoreCase))
+        {
+            string ask = cmd["ainbox:send:".Length..].Trim();
+            _uiSync.Post(_ => { SummonAInboxIntake(); _ainboxWidget.SendFromPipe(ask); }, null);
+            return "ok:ainbox:send";
         }
         if (string.Equals(cmd, "ainbox:summon", StringComparison.OrdinalIgnoreCase))
         {
@@ -832,6 +889,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                         ("ainbox", _ainboxWidget),
                         ("holodex", _holodexDrawer),
                         ("snip", _snipWidget),
+                        ("vault", _vault),
                         ("tutorial", _tutorialTooltip));
                     result = $"ok:render:{files.Count}:{string.Join(",", files)}";
                 }
@@ -1052,6 +1110,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _wizWidget.Hide();
                 _ainboxWidget.Hide();
                 _inventory.Hide();
+                _station.Hide();
+                _vault.Hide();
                 _holodexDrawer.Hide();
                 _snipWidget.Hide();
                 _tutorialTooltip.Hide();
@@ -1067,6 +1127,32 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SurfaceMotion.Dismiss(_wizWidget), null);
             return "ok:wiz:close";
+        }
+        // vault:summon[:catalog] opens the Vault; vault:capture:<png>[|catalog] draws it offscreen; vault:close hides it.
+        if (cmd.StartsWith("vault:summon", StringComparison.OrdinalIgnoreCase))
+        {
+            bool? catalog = cmd.EndsWith(":catalog", StringComparison.OrdinalIgnoreCase) ? true : null;
+            var at = GetCursorPoint();
+            _uiSync.Post(_ => _vault.Summon(at, catalog), null);
+            return "ok:vault:summon";
+        }
+        if (cmd.StartsWith("vault:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] parts = cmd["vault:capture:".Length..].Split('|');
+            string png = parts[0].Trim();
+            bool catalog = parts.Length > 1 && parts[1].Trim().Equals("catalog", StringComparison.OrdinalIgnoreCase);
+            string result = "error:vault:capture:not-run";
+            _uiSync.Send(_ =>
+            {
+                try { result = "ok:vault:capture:" + _vault.CaptureTo(png, catalog); }
+                catch (Exception ex) { result = "error:vault:capture:" + ex.Message; }
+            }, null);
+            return result;
+        }
+        if (string.Equals(cmd, "vault:close", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_vault), null);
+            return "ok:vault:close";
         }
         // inventory:summon[:<base>] opens the Augment Inventory on the Ark API at base (default the live :8788).
         if (cmd.StartsWith("inventory:summon", StringComparison.OrdinalIgnoreCase))
@@ -1091,6 +1177,27 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 catch (Exception ex) { done.SetResult("error:inventory:capture:" + ex.Message); }
             }, null);
             return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:inventory:capture:timeout";
+        }
+        if (string.Equals(cmd, "station:summon", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => _station.Summon(pt), null);
+            return "ok:station:summon";
+        }
+        if (cmd.StartsWith("station:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string png = cmd["station:capture:".Length..].Trim();
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try { done.SetResult("ok:station:capture:" + await _station.CaptureAsync(png)); }
+                catch (Exception ex) { done.SetResult("error:station:capture:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:station:capture:timeout";
+        }
+        if (string.Equals(cmd, "station:close", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_station), null);
+            return "ok:station:close";
         }
         if (string.Equals(cmd, "inventory:close", StringComparison.OrdinalIgnoreCase))
         {
@@ -1325,13 +1432,19 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _isAiThinking = true;
             try
             {
-                var (outcome, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString());
-                string spell = System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
+                var pick = SpellPicks.Get(slot.Id);
+                string spell = pick?.Name ?? System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
                 string eyebrow = $"GRIMX SPELL // {slot.Verb}";
+                // A cast can run for many seconds (the bound action finishes before Spine answers), so say it started.
+                PhosphorToast.Show($"Casting {spell}", "Waiting for the Spell to finish.", eyebrow, 60000, ToastTone.Info);
+                var (outcome, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString(), pick?.Slug);
                 switch (outcome)
                 {
                     case SpellCastOutcome.Cast:
-                        PhosphorToast.Show($"Cast: {spell}", message, eyebrow, 2400, ToastTone.Success);
+                        PhosphorToast.Show($"Cast: {spell}", message, eyebrow, 3600, ToastTone.Success);
+                        break;
+                    case SpellCastOutcome.Failed:
+                        PhosphorToast.Show($"{spell} failed", message, eyebrow, 5200, ToastTone.Error);
                         break;
                     case SpellCastOutcome.NoBinding:
                     case SpellCastOutcome.Refused:
@@ -1556,7 +1669,103 @@ internal sealed class OmniwandAppContext : ApplicationContext
         done.Task.Wait(TimeSpan.FromMinutes(3));
     }
 
+    /// <summary>
+    /// Lists the Spells Input Spine holds for each Orb slot, the one the slot casts checked. Picking one keeps it
+    /// (SpellPicks) and the slot casts it from then on; with no pick a slot casts its kind's first Spell.
+    /// </summary>
+    private async Task FillSpellPicksAsync()
+    {
+        var spells = await _ark.GetGrimXSpellsAsync();
+        _spellPicksPage.Clear();
+        bool any = false;
+        foreach (var slot in GrimXFlowOrb.Slots)
+        {
+            if (!spells.TryGetValue(slot.Id, out var choices) || choices.Count == 0) continue;
+            any = true;
+            string current = SpellPicks.Get(slot.Id)?.Slug ?? choices[0].Slug;
+            _spellPicksPage.Add(new PhosphorMenuEyebrow(System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant())));
+            foreach (var choice in choices)
+            {
+                var c = choice;
+                var s = slot;
+                var item = _spellPicksPage.AddSetting(new ToolStripMenuItem(c.Name)
+                {
+                    Checked = c.Slug == current,
+                    Enabled = c.Enabled,
+                    ShortcutKeyDisplayString = c.Slug == current ? $"{s.Index + 1} // {s.Verb}" : "",
+                    ToolTipText = c.Description ?? c.Name
+                });
+                item.Click += async (_, _) =>
+                {
+                    SpellPicks.Set(s.Id, c.Slug, c.Name);
+                    await FillSpellPicksAsync();
+                };
+            }
+        }
+        if (!any)
+            _spellPicksPage.Add(new ToolStripMenuItem("No Spells to choose") { Enabled = false, ToolTipText = "Input Spine is offline or holds no Spells yet." });
+        _trayMenu?.Refresh(_spellPicksPage);
+    }
+
     /// <summary>Lists every mouse found, the one in use checked, and the Switch by itself toggle.</summary>
+    private async Task RefreshModelsAsync()
+    {
+        IReadOnlyList<ModelEntry> added;
+        try { added = await _ark.Models.Refresh(); }
+        catch { return; }
+        bool announce = _modelsBaselined;
+        _modelsBaselined = true;
+        _uiSync.Post(_ =>
+        {
+            FillModelsMenu();
+            if (!announce || added.Count == 0) return;
+            string where = string.Join(", ", added.Select(m => m.ProviderId).Distinct());
+            string body = added.Count == 1
+                ? $"{added[0].ModelId} on {where}. It is in Settings, Models."
+                : $"{added.Count} new models on {where}. They are in Settings, Models.";
+            PhosphorToast.Show(added.Count == 1 ? "New model found" : "New models found", body, "HOLODEX // MODELS", 4200, ToastTone.Info);
+        }, null);
+    }
+
+    /// <summary>Rebuilds the Models page: which model each task goes to, then every model by provider.</summary>
+    private void FillModelsMenu()
+    {
+        _modelsPage.Clear();
+        foreach (var kind in new[] { TaskKind.Reason, TaskKind.Chat, TaskKind.Vision, TaskKind.Detect, TaskKind.Segment, TaskKind.Code })
+        {
+            var route = _ark.Router.Route(kind);
+            _modelsPage.Add(new ToolStripMenuItem(kind.ToString())
+            {
+                Enabled = false,
+                ShortcutKeyDisplayString = route.Available ? ShortModelName(route.ModelId) : "NONE YET",
+                ToolTipText = route.Reason
+            });
+        }
+        var models = _ark.Models.Models;
+        foreach (var provider in _ark.Models.Providers)
+        {
+            var mine = models.Where(m => m.ProviderId == provider.Id).ToList();
+            if (mine.Count == 0) continue;
+            _modelsPage.Add(new ToolStripSeparator());
+            _modelsPage.Add(new ToolStripMenuItem(provider.Label) { Enabled = false, ShortcutKeyDisplayString = mine.Count.ToString() });
+            foreach (var m in mine.Take(24))
+                _modelsPage.Add(new ToolStripMenuItem(ShortModelName(m.ModelId)) { Enabled = false, ToolTipText = m.ModelId, ShortcutKeyDisplayString = CapabilityTag(m.Capabilities) });
+        }
+        _modelsPage.Add(new ToolStripSeparator());
+        var look = _modelsPage.AddSetting(new ToolStripMenuItem("Look for new models") { ToolTipText = "Asks every provider for its model list now." });
+        look.Click += (_, _) => _ = RefreshModelsAsync();
+        _trayMenu?.Refresh(_modelsPage);
+    }
+
+    private static string ShortModelName(string id) => id.Contains('/') ? id[(id.LastIndexOf('/') + 1)..] : id;
+
+    private static string CapabilityTag(ModelCapability c) =>
+        c.HasFlag(ModelCapability.Detect) ? "DETECT" :
+        c.HasFlag(ModelCapability.Segment) ? "SEGMENT" :
+        c.HasFlag(ModelCapability.Vision) ? "VISION" :
+        c.HasFlag(ModelCapability.Code) ? "CODE" :
+        c.HasFlag(ModelCapability.Reason) ? "REASON" : "CHAT";
+
     private void FillYourMouseMenu()
     {
         var active = MouseHardwareAndWandEngine.ActiveMouse;
@@ -1932,6 +2141,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
     {
         _running = false;
         _vrTimer?.Dispose();
+        _modelTimer?.Dispose();
+        _progression?.Dispose();
         NativeCursorManager.RestoreSystemCursors();
         MouseHardwareAndWandEngine.RestoreOriginalSpeed();
         _trayIcon.Visible = false;

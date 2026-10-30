@@ -41,7 +41,9 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private readonly Action _runWizOnboardingTutorial;
     /// <summary>Opens the Augment Inventory window (Program owns it).</summary>
     internal Action? OpenAugmentInventory { get; set; }
-    private readonly Action<CursorIconStyle> _onCursorStyleChanged;
+    /// <summary>Opens the Mouse Mod Station window (Program owns it).</summary>
+    internal Action? OpenMouseModStation { get; set; }
+    internal Action? OpenVault { get; set; }
 
     private string _activeTab = "session";
     private string _selectedSyndicateTarget = "all";
@@ -74,6 +76,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private Panel _codexPanel = null!;
     private Panel _grimxPanel = null!;
     private Panel _modsPanel = null!;
+    private HolodexStatsPanel? _statsPanel;
+    private readonly HolodexProgressionService? _progression;
 
     // Session controls
     private ThreadView _sessionThread = null!;
@@ -96,8 +100,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private ThreadView _macroList = null!;
 
     // Mods / Hardware controls
-    private LedRow _mouseHwLabel = null!;
-    private LedRow _dpiValueLabel = null!;
 
     private readonly List<SyndicateWorkOrder> _workOrders = new();
 
@@ -129,15 +131,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Action<Point> openAInbox,
         Action<Point, WandCaptureTool> openSnipOrPicker,
         Action runWizOnboardingTutorial,
-        Action<CursorIconStyle> onCursorStyleChanged)
+        HolodexProgressionService? progression = null)
     {
         _ark = ark;
+        _progression = progression;
         _setThinkingState = setThinkingState;
         _openWiz = openWiz;
         _openAInbox = openAInbox;
         _openSnipOrPicker = openSnipOrPicker;
         _runWizOnboardingTutorial = runWizOnboardingTutorial;
-        _onCursorStyleChanged = onCursorStyleChanged;
 
         PhosphorFonts.EnsureLoaded();
         // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
@@ -229,7 +231,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             float ps = PhosphorPaint.Scale(_profilePanel);
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            PhosphorPaint.StrokeRounded(e.Graphics, new RectangleF(0.5f, 0.5f, _profilePanel.Width - 1f, _profilePanel.Height - 1f), 14f * ps, PhosphorTheme.Line2);
+            PhosphorPaint.StrokeRounded(e.Graphics, new RectangleF(0.5f, 0.5f, _profilePanel.Width - 1f, _profilePanel.Height - 1f), PhosphorTheme.RadiusButton * ps, PhosphorTheme.Line2);
         };
         _profilePanel.Controls.Add(_tokenBar);
         _profilePanel.Controls.Add(_tokenGap);
@@ -252,8 +254,10 @@ public sealed partial class HolodexLiteDrawerForm : Form
             ("ainbox",  "AInbox",  PhosphorGlyph.Inbox),
             ("codex",   "Codex",   PhosphorGlyph.BookOpen),
             ("grimx",   "GrimX",   PhosphorGlyph.Sparkles),
+            ("stats",   "Stats",   PhosphorGlyph.Stats),
             ("mods",    "Mods",    PhosphorGlyph.WandSparkles)
         };
+        if (_progression is null) tabs = tabs.Where(t => t.Id != "stats").ToArray();
         TabOrder = tabs.Select(t => t.Id).ToArray();
         foreach (var (id, label, glyph) in tabs.Reverse())
         {
@@ -267,13 +271,18 @@ public sealed partial class HolodexLiteDrawerForm : Form
         rail.Controls.Add(new RailMark("Holodex.RailMark") { Dock = DockStyle.Top, Height = 52 });
         rail.Controls.Add(_profileBtn);
 
-        // 3. Content Host for the 5 tabs
+        // 3. Content Host for the tabs
         _contentHost = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.ContentHost" };
         BuildSessionTab();
         BuildAInboxTab();
         BuildCodexTab();
         BuildGrimXTab();
         BuildModsTab();
+        if (_progression != null)
+        {
+            _statsPanel = new HolodexStatsPanel(_progression);
+            _contentHost.Controls.Add(_statsPanel);
+        }
 
         // Docking runs from the last control added: the rail first (the full height), then the gutter beside it, then
         // the header across the content column, then one gutter under it, then the content fills the rest.
@@ -502,8 +511,25 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // A card per pod inbox in its zone accent: what the pod handles, then its channel and conductor as LEDs.
         var podBox = CardList("Holodex.PodInboxList");
         bool ark = ArkStationClient.ArkOnThisPc;
-        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Handoff Scrolls saved on this PC");
-        foreach (var p in ArkStationClient.PodInboxes)
+        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Where AInbox sends a Scroll");
+        if (!ark)
+        {
+            // Public install: the destination table, built from what is connected (Holodex chat first).
+            foreach (var d in HandoffDestinations.Current(_ark))
+            {
+                var card = podBox.Add(ThreadTone.Action, d.Label, d.Detail, leds: new[]
+                {
+                    d.Kind == DestinationKind.HolodexChat ? (PhosphorTheme.Patina, "Default") : (PhosphorTheme.Ghost, d.Kind switch
+                    {
+                        DestinationKind.SaveOnPc => @"Documents\Holodex\Scrolls",
+                        DestinationKind.Hivemind => HivemindClient.EndpointHost,
+                        _ => "Connected in the Vault"
+                    })
+                });
+                card.Name = $"Holodex.Destination.{d.Id}";
+            }
+        }
+        foreach (var p in ark ? ArkStationClient.PodInboxes : Array.Empty<ArkPodInboxInfo>())
         {
             Color accent = PodAccent(p.AccentToken);
             var card = podBox.Add(ThreadTone.Action, $"{p.Label} // {p.Zone}", p.Description, leds: new[]
@@ -613,63 +639,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
     {
         _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
 
-        // The mouse in use (it follows the one you move), then its speed. Omniwand sets the Windows pointer speed for
-        // every mouse; a mouse's own DPI lives in its maker's app, so the setting is speed.
-        _mouseHwLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Wrap = true, Name = "Holodex.MouseLine" };
-        _dpiValueLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Holodex.PointerLine" };
-        ShowActiveMouse();
-        var dpiSlider = new PhosphorSpeedSlider
-        {
-            Dock = DockStyle.Top,
-            Height = 46,
-            Name = "Holodex.DpiSlider"
-        };
-        MouseHardwareAndWandEngine.SpeedChanged += speed =>
-        {
-            if (IsDisposed) return;
-            if (InvokeRequired) BeginInvoke(new Action(() => ShowSpeed(speed)));
-            else ShowSpeed(speed);
-        };
-        var dpiLabeled = WidgetChrome.Labeled("Mouse speed // slow to fast", dpiSlider, 46);
-
-        // On-Brand Cursor Icon Style Picker
-        var styleRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
-        var styles = new (string Label, CursorIconStyle Style, int Width)[]
-        {
-            ("Aperture",   CursorIconStyle.ArkAperture, 108),
-            ("Magic wand", CursorIconStyle.RelicWand, 110),
-            ("Arrow",      CursorIconStyle.PhosphorArrow, 96),
-            ("Target",     CursorIconStyle.ViewfinderReticle, 114)
-        };
-        int sx = 0;
-        foreach (var (lbl, st, w) in styles)
-        {
-            var captured = st;
-            var btn = new PhosphorButton(lbl)
-            {
-                Location = new Point(sx, 2),
-                Size = new Size(w, 36),
-                Tag = st,
-                Selected = MouseHardwareAndWandEngine.ActiveCursorStyle == st
-            };
-            btn.Click += (_, _) =>
-            {
-                MouseHardwareAndWandEngine.ActiveCursorStyle = captured;
-                _onCursorStyleChanged(captured);
-                foreach (var c in styleRow.Controls.OfType<PhosphorButton>())
-                {
-                    if (c.Tag is CursorIconStyle cs)
-                    {
-                        c.Selected = cs == captured;
-                        c.Invalidate();
-                    }
-                }
-            };
-            styleRow.Controls.Add(btn);
-            sx += w + 6;
-        }
-        var styleLabeled = WidgetChrome.Labeled("Pointer look", styleRow, 40);
-
         // Wiz Automated Onboarding & Animated Tooltip Tutorial button
         var onboardBtn = new PhosphorButton("Show me around")
         {
@@ -687,6 +656,23 @@ public sealed partial class HolodexLiteDrawerForm : Form
             Name = "Holodex.AugmentInventoryBtn"
         };
         inventoryBtn.Click += (_, _) => OpenAugmentInventory?.Invoke();
+
+        // The mouse, its speed, the pointer look and Input Studio live in the Mouse Mod Station, in its own window.
+        var stationBtn = new PhosphorButton("Mouse Mod Station")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.MouseModStationBtn"
+        };
+        stationBtn.Click += (_, _) => OpenMouseModStation?.Invoke();
+        // The Vault: apps, services and keys, on this PC with or without Ark or Hivemind.
+        var vaultBtn = new PhosphorButton("Vault and adapters")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.VaultBtn"
+        };
+        vaultBtn.Click += (_, _) => OpenVault?.Invoke();
 
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
@@ -719,19 +705,19 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _modsPanel.Controls.Add(modsInfoBox);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
         _modsPanel.Controls.Add(onboardBtn);
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+        _modsPanel.Controls.Add(vaultBtn);
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
         {
             _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
             _modsPanel.Controls.Add(inventoryBtn);
         }
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
-        _modsPanel.Controls.Add(styleLabeled);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
-        _modsPanel.Controls.Add(dpiLabeled);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
-        _modsPanel.Controls.Add(_dpiValueLabel);
-        _modsPanel.Controls.Add(_mouseHwLabel);
+        if (MouseModStationForm.Available(_ark))
+        {
+            _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+            _modsPanel.Controls.Add(stationBtn);
+        }
 
         _contentHost.Controls.Add(_modsPanel);
     }
@@ -742,6 +728,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         "codex" => _codexPanel,
         "grimx" => _grimxPanel,
         "mods" => _modsPanel,
+        "stats" when _statsPanel != null => _statsPanel,
         _ => _sessionPanel
     };
 
@@ -773,6 +760,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             _contentHost.ResumeLayout(true);
             if (tabId == "codex") RefreshCodexEntries();
             if (tabId == "grimx") RefreshGrimXMacroReadout();
+            if (tabId == "stats") _statsPanel?.Refresh();
         }
     }
 
@@ -902,19 +890,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }
     }
 
-    /// <summary>The Mods tab's mouse line, speed line and the GrimX buttons, for the mouse in use now.</summary>
-    public void ShowActiveMouse()
-    {
-        var hw = ConnectedMouse;
-        _mouseHwLabel.Set((PhosphorTheme.Patina, $"Mouse // {hw.Name}"), (PhosphorTheme.Moss, "IN USE"),
-            (PhosphorTheme.Ghost, MouseHardwareAndWandEngine.KnownMice.Count > 1 ? $"{MouseHardwareAndWandEngine.KnownMice.Count} MICE FOUND" : "1 MOUSE FOUND"));
-        ShowSpeed(MouseHardwareAndWandEngine.GetWindowsMouseSpeed());
-        RefreshGrimXMacroReadout();
-    }
-
-    private void ShowSpeed(int speed) => _dpiValueLabel.Set(
-        (PhosphorTheme.Patina, $"Speed {speed} of 20"),
-        (PhosphorTheme.Ghost, ConnectedMouse.CanSetDpi ? "DPI SET HERE" : "DPI IS SET IN YOUR MOUSE'S OWN APP"));
+    /// <summary>The GrimX buttons for the mouse in use now.</summary>
+    public void ShowActiveMouse() => RefreshGrimXMacroReadout();
 
     /// <summary>What the GrimX list shows now (the mouse and each binding's words), so a switch back skips an unchanged rebuild.</summary>
     private string? _grimxShown;
@@ -956,7 +933,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         ShowCodexEntries(new[]
         {
             new CodexCaptureEntry("codex:preview", "wand.element", "ArkStation: ArkStation // Holodex Drawer",
-                "A docked drawer with five tabs. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
+                "A docked drawer with a tab for each part of Holodex. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
                 "Chrome_WidgetWin_1", "270x184 @ (450,92)", "#79C4B7", "nvidia/Nemotron-3.5-Super-VL", null, DateTime.UtcNow.ToString("O"))
         });
     }
@@ -1266,6 +1243,33 @@ public sealed partial class HolodexLiteDrawerForm : Form
         .Select(c => $"[{c.Kicker}] {c.Body}{(c.Result != null ? $" => {c.Result}" : "")}{(c.Leds.Count > 0 ? " leds=" + string.Join(" | ", c.Leds.Select(l => l.Text)) : "")}".Replace("\r", " ").Replace("\n", " ")));
 
     /// <summary>Sends <paramref name="message"/> to <paramref name="agentId"/> exactly as the session's Send button does.</summary>
+    /// <summary>
+    /// A Handoff Scroll from AInbox on a public install: it lands in the Session chat as the user's card, the
+    /// destination answers in a card under it, and the drawer opens on Session.
+    /// </summary>
+    internal async Task ReceiveHandoffAsync(HandoffDestination to, string title, string scroll)
+    {
+        SummonDrawer(Cursor.Position, "session");
+        _sessionThread.Add(ThreadTone.You, $"YOU // HANDOFF TO {to.Label.ToUpperInvariant()}", scroll.Length > 1200 ? scroll[..1200] + "..." : scroll);
+        _setThinkingState(true);
+        var pending = _sessionThread.AddPending($"{to.Label.ToUpperInvariant()} // ANSWERING");
+        try
+        {
+            var (ok, text, by) = await HandoffDestinations.DeliverAsync(to, title, scroll, _ark);
+            pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? by : $"NOT ANSWERED // {by}", text);
+            if (!Visible || !_sessionPanel.Visible)
+                PhosphorToast.Show(ok ? $"{to.Label} replied" : "Not answered", Clip(text), "HOLODEX // HANDOFF", 4200, ok ? ToastTone.Info : ToastTone.Warning);
+        }
+        catch (Exception ex)
+        {
+            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{to.Label.ToUpperInvariant()} // NOT ANSWERED", ex.Message);
+        }
+        finally
+        {
+            _setThinkingState(false);
+        }
+    }
+
     public async void SendSessionMessage(string agentId, string message)
     {
         if (_roster.Any(a => a.Id == agentId.Trim())) SetSyndicateTarget(agentId.Trim());

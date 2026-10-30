@@ -17,7 +17,7 @@ internal static class StackPaint
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(c);
         var rect = new RectangleF(0.5f, 0.5f, c.Width - 1f, c.Height - 1f);
-        float r = 14f * s;
+        float r = PhosphorTheme.RadiusButton * s;
         PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
         PhosphorPaint.StrokeRounded(g, rect, r, active ? PhosphorTheme.Ghost : PhosphorTheme.Line);
         if (edge is Color e)
@@ -278,7 +278,8 @@ internal sealed class PredictionCard : Control
             string pct = $"{Math.Round(o.Score * 100)}%";
             float barW = 70f * s, pctW = 36f * s;
             float barX = Width - x - pctW - barW - 6f * s;
-            string target = $"{o.Pod.Label} · {ShortName(o.Pod.OrchestratorLabel)}";
+            // A public install routes by destination, not by intent, so the ranking names no pod.
+            string target = ArkStationClient.ArkOnThisPc ? $"{o.Pod.Label} · {ShortName(o.Pod.OrchestratorLabel)}" : "";
             float tw = StackPaint.MeasureTracked(g, target, 9f, this, 0.8f);
             StackPaint.Tracked(g, target, 9f, PhosphorTheme.Ghost, barX - 12f * s - tw, cy - 5f * s, this, 0.8f);
             PhosphorPaint.FillRounded(g, new RectangleF(barX, cy - 2f * s, barW, 4f * s), 2f * s, PhosphorTheme.Line);
@@ -303,7 +304,8 @@ internal sealed class PredictionCard : Control
             if (Group.Synthesis.Length > 0) y += StackPaint.Wrapped(g, Group.Synthesis, 12f, PhosphorTheme.Bone, new RectangleF(x, y, w, Height - y), this) + 4f * s;
         }
         var pod = Group.Chosen.Pod;
-        StackPaint.Tracked(g, $"PULSE // {ShortName(pod.OrchestratorLabel)} @ {pod.InboxChannel}", 9f, PhosphorTheme.ResolveTokenColor(pod.AccentToken), x, Height - 22f * s, this, 0.9f);
+        if (ArkStationClient.ArkOnThisPc)
+            StackPaint.Tracked(g, $"PULSE // {ShortName(pod.OrchestratorLabel)} @ {pod.InboxChannel}", 9f, PhosphorTheme.ResolveTokenColor(pod.AccentToken), x, Height - 22f * s, this, 0.9f);
     }
 
     private static string ShortName(string label)

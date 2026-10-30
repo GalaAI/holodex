@@ -277,6 +277,8 @@ internal static class IntentCatalog
         new("research", "Research digest", "RESEARCH", new[] { "Question", "Sources", "Depth", "Deliverable" }),
         new("absorb", "Absorb into dataset", "ABSORB DATASET", new[] { "Schema", "License", "Destination", "Refresh" }),
         new("content", "Scroll for content", "SCROLL CONTENT", new[] { "Audience", "Angle", "Format", "Channel" }),
+        // Quest proof: the Watcher reviews it and mints XP for the skill (Stats page).
+        new("proof", "Prove a quest", "QUEST PROOF", new[] { "Quest", "Skill", "What I did", "Evidence" }),
     };
 
     public static IntentShape Shape(string id) => All.FirstOrDefault(s => s.Id == id) ?? All[0];
@@ -290,6 +292,7 @@ internal static class IntentCatalog
         "research" => "cortex",
         "absorb" => "cortex",
         "content" => "magixlab",
+        "proof" => "nexus",
         _ => fixPod
     };
 }
@@ -388,7 +391,9 @@ internal static class ScrollPredictor
                 ["Goal"] = (ask.Length > 0 ? ask : $"Resolve what {first} shows.", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Repro"] = ($"Open {first}{(o?.Url != null ? " at " + o.Url : "")} and follow the marked steps.", fromStack),
                 ["Evidence"] = ($"{g.Letter}: {names}", fromStack),
-                ["Acceptance"] = ($"{pod.Label} returns a verified fix with a test or validation receipt.", "PREDICTED"),
+                ["Acceptance"] = (ArkStationClient.ArkOnThisPc
+                    ? $"{pod.Label} returns a verified fix with a test or validation receipt."
+                    : "A verified fix with a test or validation receipt.", "PREDICTED"),
             },
             "flow" => new()
             {
@@ -403,13 +408,13 @@ internal static class ScrollPredictor
                 ["Question"] = (ask.Length > 0 ? ask : $"What {(g.Items.Count > 1 ? "do" : "does")} {names} say, and what should we do about it?", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Sources"] = (names, fromStack),
                 ["Depth"] = ("One-page digest with citations.", "PREDICTED"),
-                ["Deliverable"] = ($"A research digest from {pod.Label}.", "PREDICTED"),
+                ["Deliverable"] = (ArkStationClient.ArkOnThisPc ? $"A research digest from {pod.Label}." : "A research digest with citations.", "PREDICTED"),
             },
             "absorb" => new()
             {
                 ["Schema"] = (CsvHeader(g) ?? "Detect on ingest.", CsvHeader(g) != null ? fromStack : "PREDICTED"),
                 ["License"] = ("Owner data, internal use.", "PREDICTED"),
-                ["Destination"] = ($"{pod.Label} library: {Slug(where.Length > 0 ? where : first)}", "PREDICTED"),
+                ["Destination"] = ($"{(ArkStationClient.ArkOnThisPc ? pod.Label : "Holodex")} library: {Slug(where.Length > 0 ? where : first)}", "PREDICTED"),
                 ["Refresh"] = (time.Length > 0 ? time : "One-time import.", time.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
             },
             _ => new()
@@ -588,8 +593,10 @@ internal static class HandoffSeal
     }
 
     public static string Markdown(StackHandoff h, ArkPodInboxInfo pod) =>
-        $"# Handoff scroll: {h.IntentLabel} -> {pod.Label}\n\n" +
-        $"- Scroll: {h.ScrollId}\n- Seal: sha256:{h.Sha256}\n- {(ArkStationClient.ArkOnThisPc ? "Pod" : "Destination")}: {pod.Label} ({pod.InboxChannel}), orchestrator {pod.OrchestratorLabel}\n" +
+        // A public install names its destination when it sends (AInbox adds the line); an Ark names the pod here.
+        (ArkStationClient.ArkOnThisPc ? $"# Handoff scroll: {h.IntentLabel} -> {pod.Label}\n\n" : $"# Handoff scroll: {h.IntentLabel}\n\n") +
+        $"- Scroll: {h.ScrollId}\n- Seal: sha256:{h.Sha256}\n" +
+        (ArkStationClient.ArkOnThisPc ? $"- Pod: {pod.Label} ({pod.InboxChannel}), orchestrator {pod.OrchestratorLabel}\n" : "") +
         $"- Stack {h.Group}: {h.GroupLabel}\n- Written: {h.CreatedAt}\n\n" +
         (h.Ask.Length > 0 ? $"## Ask\n\n{h.Ask}\n\n" : "") +
         string.Join("", h.Fields.Select(f => $"## {f.Label}\n\n{f.Value}\n\n_{f.Source.ToLowerInvariant()}_\n\n")) +
@@ -617,8 +624,20 @@ internal sealed class OutboundQueue
     private readonly System.Windows.Forms.Timer _retry = new() { Interval = 30_000 };
     private readonly SemaphoreSlim _drainLock = new(1, 1);
 
-    /// <param name="localOnly">No AInbox service exists (a public install): Send saves the sealed Scroll on this PC.</param>
-    public OutboundQueue(bool localOnly = false)
+    private static OutboundQueue? _shared;
+
+    /// <summary>The one queue every sender uses (AInbox intake, quest proof), so a single drain owns the folder. Create on the UI thread.</summary>
+    /// <summary>True on a public install (no AInbox service), so Send saves the sealed Scroll on this PC. Set at startup, before <see cref="Shared"/> is first read.</summary>
+    public static bool SharedLocalOnly { get; set; }
+
+    public static OutboundQueue Shared => _shared ??= new OutboundQueue(SharedLocalOnly);
+
+    /// <summary>Raised after a "proof" handoff is queued, so the Watcher can review it (HolodexProgressionService).</summary>
+    public static event Action<StackHandoff>? ProofQueued;
+
+    internal static void RaiseProofQueued(StackHandoff h) => ProofQueued?.Invoke(h);
+
+    private OutboundQueue(bool localOnly)
     {
         LocalOnly = localOnly;
         Directory.CreateDirectory(PendingDir);

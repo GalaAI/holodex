@@ -20,7 +20,7 @@ internal enum PhosphorGlyph
     File, Screen, Pick, Lasso, Record, Whisper, Snippet, Link, Plus,
     Rect, Pen, Arrow, Box, Holodex, Wiz, AInbox, Codex, Window, Vault,
     // ArkStation's own icons (lucide-react, as the web console's Holodex uses them), drawn from their path data.
-    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink,
+    Chat, Inbox, BookOpen, Sparkles, WandSparkles, ExternalLink, Stats,
 
     // Answer-card actions (lucide Copy, RotateCcw, Square, ThumbsUp, ThumbsDown).
 
@@ -39,6 +39,8 @@ internal static class PhosphorIcons
         [PhosphorGlyph.Inbox] = new[] { "M22 12h-6l-2 3h-4l-2-3H2", "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" },
         [PhosphorGlyph.BookOpen] = new[] { "M12 5v16", "M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" },
         [PhosphorGlyph.Sparkles] = new[] { "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z", "M20 2v4", "M22 4h-4", "M6 20a2 2 0 1 1-4 0a2 2 0 1 1 4 0" },
+        // lucide chart-no-axes-column (three bars), for the Stats tab.
+        [PhosphorGlyph.Stats] = new[] { "M18 20V10", "M12 20V4", "M6 20v-6" },
         [PhosphorGlyph.ExternalLink] = new[] { "M15 3h6v6", "M10 14 21 3", "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
         // Copy and Square are lucide rects (rx 2), written as the same rounded-rect paths.
         [PhosphorGlyph.Copy] = new[] { "M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z", "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },
@@ -323,7 +325,7 @@ internal sealed class IconToolButton : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(2.5f * s, 2.5f * s, Width - 5f * s, Height - 5f * s);
-        float r = 10f * s;
+        float r = PhosphorTheme.RadiusBadge * s;
         if (_selected)
         {
             PhosphorPaint.FillRounded(g, rect, r, Color.FromArgb(28, PhosphorTheme.Patina));
@@ -401,7 +403,7 @@ internal sealed class RailButton : Control
         g.PixelOffsetMode = PixelOffsetMode.Half;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f * s, 0.5f * s, Width - 1f * s, Height - 1f * s);
-        float r = 14f * s;
+        float r = PhosphorTheme.RadiusButton * s;
         if (_selected)
         {
             PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
@@ -555,7 +557,7 @@ internal class SuggestionChip : Control
         AccessibleName = Detail.Length > 0 ? $"{Label}, {Detail}" : Label;
         float s = PhosphorPaint.Scale(this);
         using var g = PhosphorPaint.MeasureGraphics(s);
-        using var font = PhosphorFonts.Mono(10.5f);
+        using var font = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx);
         float text = PhosphorPaint.MeasureTracked(g, Text2, font, 1f * s);
         int want = (int)Math.Ceiling(text + Chrome(s));
         // A row can cap the chip (MaximumSize); the text then ends in an ellipsis inside it, chevron kept.
@@ -887,7 +889,7 @@ internal sealed class DisclosureRow : Control
         g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         float s = PhosphorPaint.Scale(this);
         var rect = new RectangleF(0.5f, 0.5f, Width - 1f, Height - 1f);
-        float r = 10f * s;
+        float r = PhosphorTheme.RadiusBadge * s;
         if (_hover) PhosphorPaint.FillRounded(g, rect, r, PhosphorTheme.Surface2);
         PhosphorPaint.StrokeRounded(g, rect, r, _hover ? PhosphorTheme.Line2 : PhosphorTheme.Line);
         if (Focused) PhosphorPaint.StrokeRounded(g, RectangleF.Inflate(rect, -2f, -2f), r - 2f, Color.FromArgb(160, PhosphorTheme.Patina));
@@ -896,13 +898,13 @@ internal sealed class DisclosureRow : Control
 
         float cy = Height / 2f;
         float x = 14f * s;
-        using (var mono = PhosphorFonts.Mono(9.5f))
+        using (var mono = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx))
         using (var ghost = new SolidBrush(PhosphorTheme.Ghost))
             x += PhosphorPaint.DrawTracked(g, Kicker, mono, ghost, x, cy - mono.GetHeight(g) / 2f, 1.1f * s) + 12f * s;
 
         string action = Expanded ? "CLOSE" : OpenWord;
         float actionW;
-        using (var mono = PhosphorFonts.Mono(9.5f))
+        using (var mono = PhosphorFonts.Mono(PhosphorTheme.EyebrowPx))
         using (var ink = new SolidBrush(_hover ? PhosphorTheme.Bone : PhosphorTheme.Dim))
         {
             actionW = PhosphorPaint.MeasureTracked(g, action, mono, 1.1f * s);

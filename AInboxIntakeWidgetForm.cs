@@ -25,7 +25,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
-    private readonly OutboundQueue _queue;
+    private readonly OutboundQueue _queue = OutboundQueue.Shared;
 
     private readonly FlowLayoutPanel _body;
     private readonly CaptureWellControl _composer;
@@ -64,13 +64,20 @@ public sealed class AInboxIntakeWidgetForm : Form
     /// <summary>Opens the snip tools (Pick, Lasso); their Send to AInbox comes back through SummonAt.</summary>
     internal Action<WandCaptureTool>? RequestCapture { get; set; }
 
+    /// <summary>
+    /// A public install's delivery: the destination, the Scroll's title and its Markdown go to the Holodex session,
+    /// where the destination's reply appears. Wired by Program to the drawer. An Ark routes to its pods instead.
+    /// </summary>
+    internal Func<HandoffDestination, string, string, Task>? DeliverHandoff { get; set; }
+
+    private HandoffDestination _destination = HandoffDestinations.HolodexChat;
+    private PhosphorButton? _destinationBtn;
+    private string DestinationLabel(StackGroup g) => _queue.LocalOnly ? _destination.Label : g.Chosen.Pod.Label;
+
     public AInboxIntakeWidgetForm(ArkStationClient ark, Action<bool> setThinkingState)
     {
         _ark = ark;
         _setThinkingState = setThinkingState;
-        // Without the owner's Ark there is no AInbox service, so a sent Scroll is saved on this PC instead.
-        _queue = new OutboundQueue(localOnly: !ark.ArkInstalled);
-
         PhosphorFonts.EnsureLoaded();
         // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
         // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
@@ -143,14 +150,22 @@ public sealed class AInboxIntakeWidgetForm : Form
         _sendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 210, Name = "AInbox.SubmitButton" };
         _sendBtn.Click += (_, _) => OnSendClicked();
         footer.Controls.Add(lines);
-        footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
+        if (_queue.LocalOnly)
+        {
+            // Public install: the destination table (Holodex chat first, then what the user connected) replaces pods.
+            _destinationBtn = new PhosphorButton($"To {_destination.Label}") { Dock = DockStyle.Right, Width = 220, Name = "AInbox.DestinationSelect" };
+            _destinationBtn.Click += (_, _) => NextDestination();
+            footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
+            footer.Controls.Add(_destinationBtn);
+        }
+        footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = _queue.LocalOnly ? 8 : 12, BackColor = Color.Transparent });
         footer.Controls.Add(_sendBtn);
 
         Controls.Add(_body);
         Controls.Add(WidgetChrome.Spacer(6));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? $"AINBOX // INTAKE // {ArkStationClient.PodInboxes.Count} PODS" : "AINBOX // INTAKE // SAVED ON THIS PC", "AInbox", PhosphorTheme.Seal, null);
+        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? $"AINBOX // INTAKE // {ArkStationClient.PodInboxes.Count} PODS" : "AINBOX // INTAKE // YOUR DESTINATIONS", "AInbox", PhosphorTheme.Seal, null);
         WidgetDrag.Enable(this);
 
         // Drops land anywhere; a leave settles after a beat so moving between targets does not flicker.
@@ -220,6 +235,13 @@ public sealed class AInboxIntakeWidgetForm : Form
         _intentBox.Text = ask.Trim();
         _intentBox.SelectionStart = _intentBox.TextLength;
         _intentBox.Focus();
+    }
+
+    /// <summary>Developer pipe (ainbox:send:): types the ask and presses Send, so the real countdown and delivery run.</summary>
+    internal void SendFromPipe(string ask)
+    {
+        PrefillAsk(ask);
+        OnSendClicked();
     }
 
     // ---- Captures ----------------------------------------------------------------------------------------------
@@ -607,11 +629,12 @@ public sealed class AInboxIntakeWidgetForm : Form
         var shape = IntentCatalog.Shape(g.ChosenIntent);
         var pod = g.Chosen.Pod;
         string orch = ShortName(pod.OrchestratorLabel);
-        if (_undoTimer == null && !_working) _sendBtn.Text = $"Send {g.Letter} to {pod.Label}";
+        // Public: the To button beside Send already names the destination.
+        if (_undoTimer == null && !_working) _sendBtn.Text = _queue.LocalOnly ? $"Send {g.Letter}" : $"Send {g.Letter} to {pod.Label}";
 
         var fields = FieldsOf(g);
         _summary.Kicker = $"SCROLL {g.Letter} // {shape.Kicker}";
-        _summary.Sentence = $"{fields.FirstOrDefault(f => f.Value.Length > 0)?.Value ?? shape.Label} Receipt from {orch}.";
+        _summary.Sentence = $"{fields.FirstOrDefault(f => f.Value.Length > 0)?.Value ?? shape.Label} {(_queue.LocalOnly ? $"Goes to {_destination.Label}." : $"Receipt from {orch}.")}";
         _summary.Accent = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _summary.Muted = !HasAnything;
         _summary.Invalidate();
@@ -642,15 +665,24 @@ public sealed class AInboxIntakeWidgetForm : Form
             for (int i = 0; i < fields.Count && i < _fieldRows.Count; i++) _fieldRows[i].Set(fields[i]);
         }
 
-        _scroll.Code = pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
+        // A public install has no pods, so the code names the kind of destination instead of a pod id.
+        _scroll.Code = _queue.LocalOnly
+            ? _destination.Kind switch
+            {
+                DestinationKind.HolodexChat => "CHAT",
+                DestinationKind.Hivemind => "HIVE",
+                DestinationKind.SaveOnPc => "SAVE",
+                _ => "AGENT"
+            }
+            : pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
         _scroll.Title = shape.Label;
         _scroll.Eyebrow = $"Scroll // Handoff // Stack {g.Letter} // Drafted by Scribe";
-        _scroll.Alt = $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
+        _scroll.Alt = _queue.LocalOnly ? $"to {_destination.Label}" : $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
         _scroll.Board = "";
         _scroll.Edge = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _scroll.Specs = new[]
         {
-            ("To", $"{pod.Label} · {orch}"),
+            ("To", _queue.LocalOnly ? _destination.Label : $"{pod.Label} · {orch}"),
             ("Intent", shape.Kicker),
             ("Confidence", $"{Math.Round(g.Chosen.Score * 100)}% {g.WhySource.ToLowerInvariant()}"),
             ("Captures", g.Items.Count.ToString())
@@ -768,7 +800,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _sendBtn.Text = "Undo";
         _sendBtn.Variant = PhosphorButtonVariant.Default;
         _sendBtn.Invalidate();
-        void Countdown() => SetStatus($"SENDING {g.Letter} TO {g.Chosen.Pod.Label.ToUpperInvariant()} IN {_undoLeft}S // ESC UNDOES", PhosphorTheme.Patina);
+        void Countdown() => SetStatus($"SENDING {g.Letter} TO {DestinationLabel(g).ToUpperInvariant()} IN {_undoLeft}S // ESC UNDOES", PhosphorTheme.Patina);
         Countdown();
         _undoTimer = new System.Windows.Forms.Timer { Interval = 1000 };
         _undoTimer.Tick += async (_, _) =>
@@ -823,6 +855,18 @@ public sealed class AInboxIntakeWidgetForm : Form
             var draft = new StackHandoff(scrollId, g.Letter, g.Label, pod.PodId, g.ChosenIntent, IntentCatalog.Shape(g.ChosenIntent).Label, ask, fields, items, seal, DateTime.UtcNow.ToString("O"));
             items.Add(new QueuedItem("scroll", "handoff-scroll.md", "Scroll", "text", "text/markdown", null, HandoffSeal.Markdown(draft, pod), null, null, new()));
             foreach (var it in g.Items) items.Add(ToQueued(it));
+            if (_queue.LocalOnly && _destination.Kind != DestinationKind.SaveOnPc && DeliverHandoff != null)
+            {
+                // The sealed copy is kept on this PC too, then the Scroll goes into the Holodex session.
+                await _queue.SaveLocallyAsync(draft);
+                var to = _destination;
+                string markdown = (items[0].Text ?? "").Replace("- Seal:", $"- Destination: {to.Label}\n- Seal:");
+                string title = $"{IntentCatalog.Shape(g.ChosenIntent).Label}: {g.Label}";
+                SetStatus($"SENT {g.Letter} TO {to.Label.ToUpperInvariant()} // ANSWER IN HOLODEX // sha256:{seal[..12]}", PhosphorTheme.Moss);
+                ClearSent(g);
+                _ = DeliverHandoff(to, title, markdown);
+                return;
+            }
             if (_queue.LocalOnly)
             {
                 string saved = await _queue.SaveLocallyAsync(draft);
@@ -834,6 +878,7 @@ public sealed class AInboxIntakeWidgetForm : Form
                 return;
             }
             var sent = await _queue.EnqueueAsync(draft);
+            if (g.ChosenIntent == "proof") OutboundQueue.RaiseProofQueued(sent);
             bool delivered = sent.Items.All(i => i.AInboxItemId != null);
             string head = delivered ? $"SENT {g.Letter} // {items.Count} TO AINBOX // {pod.Label.ToUpperInvariant()}" : $"QUEUED {g.Letter} // AINBOX NOT READY, RETRYING";
             SetStatus($"{head} // sha256:{seal[..12]}", delivered ? PhosphorTheme.Moss : PhosphorTheme.Seal);
@@ -857,6 +902,17 @@ public sealed class AInboxIntakeWidgetForm : Form
             RefreshScroll();
             Invalidate();
         }
+    }
+
+    /// <summary>Steps through the current destination table; it is rebuilt each click, so a key added in the Vault shows up.</summary>
+    private void NextDestination()
+    {
+        var all = HandoffDestinations.Current(_ark);
+        int i = all.ToList().FindIndex(d => d.Id == _destination.Id);
+        _destination = all[(i + 1) % all.Count];
+        if (_destinationBtn != null) _destinationBtn.Text = $"To {_destination.Label}";
+        SetStatus($"TO {_destination.Label.ToUpperInvariant()} // {_destination.Detail}", PhosphorTheme.Dim);
+        RefreshScroll();
     }
 
     /// <summary>A sent stack leaves the composer: its captures, refinement and draft scroll are cleared.</summary>
