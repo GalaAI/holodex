@@ -34,7 +34,7 @@ public sealed partial class HolodexLiteDrawerForm
     /// <summary>The Session thread and its Open in Hivemind button, added by BuildSessionTab.</summary>
     private void BuildHivemindSessions(Panel sessionPanel, Panel composerBar)
     {
-        _hivemindThread = new ThreadView("Holodex.HivemindSessionThread") { Dock = DockStyle.Fill, ReserveScrollbar = false, Visible = false };
+        _hivemindThread = new ThreadView("Holodex.HivemindSessionThread") { Dock = DockStyle.Fill, Visible = false };
         sessionPanel.Controls.Add(_hivemindThread);
 
         _openInHivemindBtn = new IconToolButton("Holodex.OpenInHivemindBtn", PhosphorGlyph.ExternalLink, "Open in Hivemind") { Dock = DockStyle.Right, Visible = false };

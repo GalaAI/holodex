@@ -326,7 +326,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _sessionPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Name = "Holodex.SessionPanel" };
 
         // Work orders: always visible, a card per order (its empty state is a card too), like the AInbox stack.
-        _workOrdersList = new ThreadView("Holodex.WorkOrdersBox") { Dock = DockStyle.Top, Height = 60, ReserveScrollbar = false };
+        _workOrdersList = new ThreadView("Holodex.WorkOrdersBox") { Dock = DockStyle.Top, Height = 60 };
         _workOrdersHost = WidgetChrome.Labeled("Work orders", _workOrdersList, 60);
         _workOrdersList.ContentChanged += (_, _) => SizeWorkOrders();
         var ordersGap = WidgetChrome.Spacer(Gutter);
@@ -334,7 +334,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // The session: a card per message, in the same card language as Wiz and the AInbox stack.
         // What the session reaches is said by an intro card each time the Hivemind state changes (ShowHivemindState).
-        _sessionThread = new ThreadView("Holodex.SessionChatBox") { Dock = DockStyle.Fill, ReserveScrollbar = false };
+        _sessionThread = new ThreadView("Holodex.SessionChatBox") { Dock = DockStyle.Fill };
 
         // Composer: the message, a bar with + work order, then who it goes to and Send.
         var composer = new ComposerSurface { Dock = DockStyle.Bottom, Name = "Holodex.SessionComposer" };
@@ -359,8 +359,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // One column edge for the session: the composer keeps its TraceBeam ring room (ComposerSurface.InsetPx), and
         // the cards, the footer and the roster line take the same inset, so every row starts and ends on the well.
         var column = new Padding((int)ComposerSurface.InsetPx, 0, (int)ComposerSurface.InsetPx, 0);
-        // ThreadView keeps 2 px free on the right of its cards (no horizontal scroll), so its right inset is 2 less.
-        _sessionThread.Padding = new Padding(column.Left, 0, Math.Max(0, column.Right - 2), 0);
+        // ThreadView keeps the scroll beam's lane free on the right of its cards, so its right inset is that much less.
+        _sessionThread.Padding = new Padding(column.Left, 0, Math.Max(0, column.Right - ScrollBeam.LanePx), 0);
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = PhosphorTheme.Surface, Padding = column, Name = "Holodex.SessionFooter" };
         _rosterChip = new SuggestionChip { Dock = DockStyle.Left, Name = "Holodex.RosterSelect" };
         // The chip picks where the message goes: an agent, or one of the owner's Hivemind Sessions.
@@ -639,7 +639,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
     };
 
     /// <summary>A list of cards that stays at its top, for the tabs that show records rather than a conversation.</summary>
-    private static ThreadView CardList(string name) => new(name) { Dock = DockStyle.Fill, FollowNewest = false, ReserveScrollbar = false };
+    private static ThreadView CardList(string name) => new(name) { Dock = DockStyle.Fill, FollowNewest = false };
 
     private void BuildAInboxTab()
     {
@@ -1147,8 +1147,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// <summary>Fits the list to two cards, then it scrolls; reruns when its width or content changes.</summary>
     private void SizeWorkOrders()
     {
-        // Measured at the full width, as the cards are laid out while two or fewer fit (ReserveScrollbar off).
-        int width = Math.Max(80, _workOrdersList.ClientSize.Width - 2);
+        // Measured at the width the cards are laid out at.
+        int width = _workOrdersList.FitWidth;
         int content = _workOrdersList.ContentHeight(width) + 2;
         int cap = _workOrdersList.Cards.Take(2).Sum(c => c.HeightFor(width) + c.Margin.Vertical) + 2;
         int want = Math.Min(content, cap);

@@ -91,7 +91,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         Padding = WidgetChrome.FramePadding();
 
         // The thread is the body: its intro card at rest, then a card per turn, in the AInbox card language.
-        _thread = new ThreadView("Wiz.ThreadBox") { Dock = DockStyle.Top, Height = 160, ReserveScrollbar = false };
+        _thread = new ThreadView("Wiz.ThreadBox") { Dock = DockStyle.Top, Height = 160 };
         _thread.ContentChanged += (_, _) => SizeThread();
         ShowIntro();
 

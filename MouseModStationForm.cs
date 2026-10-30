@@ -54,7 +54,7 @@ internal sealed class MouseModStationForm : ArkPageForm
         }
         var lookLabeled = WidgetChrome.Labeled("Pointer look", _styleRow, 84);
 
-        var note = new ThreadView("MouseModStation.Note") { Dock = DockStyle.Fill, ReserveScrollbar = false, FollowNewest = false };
+        var note = new ThreadView("MouseModStation.Note") { Dock = DockStyle.Fill, FollowNewest = false };
         note.Add(ThreadTone.Step, "Design // Input Studio",
             "Shape and animate the cursor, build and install it, and choose what each button and gesture does, on the right.");
 

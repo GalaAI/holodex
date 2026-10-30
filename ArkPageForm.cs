@@ -39,7 +39,7 @@ internal abstract class ArkPageForm : Form
 
         var host = _host = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Ground, Name = name + ".Host" };
         Web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = PhosphorTheme.Ground, Name = name + ".Page" };
-        _fail = new ThreadView(name + ".Error") { Dock = DockStyle.Fill, ReserveScrollbar = false, FollowNewest = false, Visible = false };
+        _fail = new ThreadView(name + ".Error") { Dock = DockStyle.Fill, FollowNewest = false, Visible = false };
         host.Controls.Add(Web);
         host.Controls.Add(_fail);
 

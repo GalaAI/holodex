@@ -326,7 +326,7 @@ internal static class SurfaceCapture
             Size = new Size(560, 1600),
             Name = "Kit"
         };
-        var thread = new ThreadView("Kit.Thread") { Dock = DockStyle.Fill, ReserveScrollbar = false, FollowNewest = false };
+        var thread = new ThreadView("Kit.Thread") { Dock = DockStyle.Fill, FollowNewest = false };
         form.Controls.Add(thread);
         CardAction Noop(string name, PhosphorGlyph glyph, string label, bool toggle = false) => new(name, glyph, label, (_, _) => { }, toggle);
         var answerActions = new[]

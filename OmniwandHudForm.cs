@@ -141,7 +141,7 @@ public sealed class OmniwandHudForm : Form
         // The answers appear under the question once there are any: a card per question and per answer, in the
         // AInbox card language, fitting their content up to a cap and then scrolling.
         // Full width until the answers reach their cap and scroll: the cards line up with the composer's edges.
-        _answers = new ThreadView("Hud.ResponseBox") { Dock = DockStyle.Top, Height = 0, ReserveScrollbar = false };
+        _answers = new ThreadView("Hud.ResponseBox") { Dock = DockStyle.Top, Height = 0 };
         _answers.ContentChanged += (_, _) => SizeAnswers();
         _responseGap = WidgetChrome.Spacer(10);
 

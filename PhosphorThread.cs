@@ -443,7 +443,7 @@ internal sealed class ThreadCard : Control
 /// A scrolling conversation of <see cref="ThreadCard"/>s, newest at the bottom. Wiz, Holodex and the HUD share it,
 /// so every surface that talks shows the same cards as the AInbox stack.
 /// </summary>
-internal sealed class ThreadView : FlowLayoutPanel
+internal sealed class ThreadView : BeamFlowPanel
 {
     public ThreadView(string name)
     {
@@ -454,7 +454,7 @@ internal sealed class ThreadView : FlowLayoutPanel
         BackColor = PhosphorTheme.Surface;
         Padding = new Padding(0);
         DoubleBuffered = true;
-        PhosphorPaint.UseDarkScrollbars(this);
+        // No native bar: BeamFlowPanel's scroll beam fades in at the right edge while the list scrolls.
         Resize += (_, _) => Relayout();
     }
 
@@ -558,37 +558,18 @@ internal sealed class ThreadView : FlowLayoutPanel
     /// <summary>Raised after cards are added, resized or settled, so a form can fit the thread.</summary>
     public event EventHandler? ContentChanged;
 
-    /// <summary>Card width: the client width less a scrollbar's, always reserved so text never rewraps under it.</summary>
-    public int CardWidth => Math.Max(80, ClientSize.Width - Padding.Horizontal - SystemInformation.VerticalScrollBarWidth - 2);
-
     /// <summary>
-    /// The width to measure the thread at when a form sizes to it: the full width when no scrollbar is reserved, so
-    /// the cards line up with the composer above them instead of stopping a scrollbar short of it.
+    /// Card width, and the width a form measures the thread at to size to it: the client width less the padding and
+    /// the scroll beam's lane. The native bar takes no width, so cards never rewrap when the list starts to scroll.
     /// </summary>
-    public int FitWidth => ReserveScrollbar ? CardWidth : Math.Max(80, ClientSize.Width - Padding.Horizontal - 2);
-
-    /// <summary>
-    /// True (the default) keeps a scrollbar's width free even when nothing scrolls, for threads that size their
-    /// form to the content (HUD, Wiz, Snip). A fixed-height list (Holodex) sets false: its cards span the full
-    /// width and give the scrollbar room only when they overflow.
-    /// </summary>
-    public bool ReserveScrollbar { get; set; } = true;
-
-    private int LayoutWidth()
-    {
-        if (ReserveScrollbar) return CardWidth;
-        int full = Math.Max(80, ClientSize.Width - Padding.Horizontal - 2);
-        // A shown scrollbar already narrows the client area; one about to show needs its width kept free.
-        if (VerticalScroll.Visible) return full;
-        return ContentHeight(full) > ClientSize.Height ? CardWidth : full;
-    }
+    public int FitWidth => Math.Max(80, ClientSize.Width - Padding.Horizontal - ScrollBeam.Lane(this));
 
     public void Relayout()
     {
         // A batch lays the list out once, when it closes.
         if (_batch > 0) return;
         Invalidate();
-        int w = LayoutWidth();
+        int w = FitWidth;
         SuspendLayout();
         foreach (var card in Cards) card.Size = new Size(w, card.HeightFor(w));
         foreach (var label in Controls.OfType<EyebrowLabel>()) label.Width = w;
