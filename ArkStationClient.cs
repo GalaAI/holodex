@@ -203,7 +203,25 @@ public sealed class ArkStationClient
             ? arkRoot
             : DefaultArkRoot;
         SelectedModel = DefaultNemotronFastModel;
+        Models = new ModelInventory(ModelInventory.LoadProviders(), ReadProviderSecret);
+        Router = new TaskRouter(Models);
+        Connectors = new RealmConnectors(RealmConnectors.Load(), TryReadWindowsCredential);
     }
+
+    /// <summary>Every model Holodex can reach (Nebius first, then LM Studio and local vision servers).</summary>
+    public ModelInventory Models { get; }
+
+    /// <summary>Picks the provider and model for each task kind; Gala runs on Nemotron Super.</summary>
+    public TaskRouter Router { get; }
+
+    /// <summary>The services tasks can be handed to (Hivemind, Ryozan, and any added in connectors.json).</summary>
+    public RealmConnectors Connectors { get; }
+
+    /// <summary>Nebius keeps its own key lookup (environment, vault bundle, Credential Manager); others read Credential Manager.</summary>
+    private string? ReadProviderSecret(string target) =>
+        string.Equals(target, ModelInventory.NebiusDefault.CredentialTarget, StringComparison.OrdinalIgnoreCase)
+            ? ReadNebiusApiKey()
+            : TryReadWindowsCredential(target);
 
     public bool ForceStandaloneMode => StandaloneRequested();
 

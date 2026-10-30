@@ -25,7 +25,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
-    private readonly OutboundQueue _queue;
+    private readonly OutboundQueue _queue = OutboundQueue.Shared;
 
     private readonly FlowLayoutPanel _body;
     private readonly CaptureWellControl _composer;
@@ -68,9 +68,6 @@ public sealed class AInboxIntakeWidgetForm : Form
     {
         _ark = ark;
         _setThinkingState = setThinkingState;
-        // Without the owner's Ark there is no AInbox service, so a sent Scroll is saved on this PC instead.
-        _queue = new OutboundQueue(localOnly: !ark.ArkInstalled);
-
         PhosphorFonts.EnsureLoaded();
         // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
         // built layout once at ResumeLayout to the monitor's DPI. The reverse order scaled the empty form only.
@@ -834,6 +831,7 @@ public sealed class AInboxIntakeWidgetForm : Form
                 return;
             }
             var sent = await _queue.EnqueueAsync(draft);
+            if (g.ChosenIntent == "proof") OutboundQueue.RaiseProofQueued(sent);
             bool delivered = sent.Items.All(i => i.AInboxItemId != null);
             string head = delivered ? $"SENT {g.Letter} // {items.Count} TO AINBOX // {pod.Label.ToUpperInvariant()}" : $"QUEUED {g.Letter} // AINBOX NOT READY, RETRYING";
             SetStatus($"{head} // sha256:{seal[..12]}", delivered ? PhosphorTheme.Moss : PhosphorTheme.Seal);

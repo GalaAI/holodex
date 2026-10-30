@@ -277,6 +277,8 @@ internal static class IntentCatalog
         new("research", "Research digest", "RESEARCH", new[] { "Question", "Sources", "Depth", "Deliverable" }),
         new("absorb", "Absorb into dataset", "ABSORB DATASET", new[] { "Schema", "License", "Destination", "Refresh" }),
         new("content", "Scroll for content", "SCROLL CONTENT", new[] { "Audience", "Angle", "Format", "Channel" }),
+        // Quest proof: the Watcher reviews it and mints XP for the skill (Stats page).
+        new("proof", "Prove a quest", "QUEST PROOF", new[] { "Quest", "Skill", "What I did", "Evidence" }),
     };
 
     public static IntentShape Shape(string id) => All.FirstOrDefault(s => s.Id == id) ?? All[0];
@@ -290,6 +292,7 @@ internal static class IntentCatalog
         "research" => "cortex",
         "absorb" => "cortex",
         "content" => "magixlab",
+        "proof" => "nexus",
         _ => fixPod
     };
 }
@@ -617,8 +620,20 @@ internal sealed class OutboundQueue
     private readonly System.Windows.Forms.Timer _retry = new() { Interval = 30_000 };
     private readonly SemaphoreSlim _drainLock = new(1, 1);
 
-    /// <param name="localOnly">No AInbox service exists (a public install): Send saves the sealed Scroll on this PC.</param>
-    public OutboundQueue(bool localOnly = false)
+    private static OutboundQueue? _shared;
+
+    /// <summary>The one queue every sender uses (AInbox intake, quest proof), so a single drain owns the folder. Create on the UI thread.</summary>
+    /// <summary>True on a public install (no AInbox service), so Send saves the sealed Scroll on this PC. Set at startup, before <see cref="Shared"/> is first read.</summary>
+    public static bool SharedLocalOnly { get; set; }
+
+    public static OutboundQueue Shared => _shared ??= new OutboundQueue(SharedLocalOnly);
+
+    /// <summary>Raised after a "proof" handoff is queued, so the Watcher can review it (HolodexProgressionService).</summary>
+    public static event Action<StackHandoff>? ProofQueued;
+
+    internal static void RaiseProofQueued(StackHandoff h) => ProofQueued?.Invoke(h);
+
+    private OutboundQueue(bool localOnly)
     {
         LocalOnly = localOnly;
         Directory.CreateDirectory(PendingDir);

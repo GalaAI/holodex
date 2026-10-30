@@ -41,11 +41,19 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
   </ItemGroup>
 
+  <!-- The unit tests reach the Phosphor controls (the skill tree render) and the internal AInbox types. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Holodex.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Remove="logi-mx4-plugin\**" />
     <EmbeddedResource Remove="logi-mx4-plugin\**" />
     <None Remove="logi-mx4-plugin\**" />
     <Compile Remove="dist\**" />
+    <Compile Remove="tests\**" />
+    <EmbeddedResource Remove="tests\**" />
+    <None Remove="tests\**" />
     <EmbeddedResource Remove="dist\**" />
     <None Remove="dist\**" />
   </ItemGroup>
