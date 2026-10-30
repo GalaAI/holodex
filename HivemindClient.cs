@@ -499,12 +499,16 @@ public sealed class HivemindClient : IAsyncDisposable
     /// then answers the browser with a short page naming <paramref name="service"/>. Shared by the Hivemind sign-in and
     /// the Vault's MCP server sign-ins.
     /// </summary>
-    internal static async Task<AuthorizationResult?> LoopbackSignInAsync(AuthorizationCallbackContext context, Uri redirect, string service, CancellationToken ct)
+    internal static Task<AuthorizationResult?> LoopbackSignInAsync(AuthorizationCallbackContext context, Uri redirect, string service, CancellationToken ct) =>
+        LoopbackSignInAsync(context.AuthorizationUri, redirect, service, ct);
+
+    /// <summary>The same loopback sign-in for a flow that builds its own authorization URL (the Vault's Google sign-in).</summary>
+    internal static async Task<AuthorizationResult?> LoopbackSignInAsync(Uri authorizationUri, Uri redirect, string service, CancellationToken ct)
     {
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirect.GetLeftPart(UriPartial.Path));
         listener.Start();
-        Process.Start(new ProcessStartInfo(context.AuthorizationUri.ToString()) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(authorizationUri.ToString()) { UseShellExecute = true });
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(SignInTimeout);

@@ -199,6 +199,14 @@ internal sealed class VaultForm : Form
         try
         {
             if (_rotating is { } rotating) await RotateAsync(rotating, raw);
+            else if (GoogleAdapter.LooksLikeClientJson(raw))
+            {
+                var google = GoogleAdapter.SaveClient(raw);
+                ResetIntake();
+                ShowTab(catalog: false);
+                SetStatus("Google client saved. Choose Sign in on Google Drive.");
+                PhosphorToast.Show("Google client saved", google.Detail, "VAULT // GOOGLE", 3600, ToastTone.Success);
+            }
             else if (HolodexVault.LooksLikeUrl(raw, out var uri)) await ConnectUrlAsync(uri);
             else await AddKeyAsync(raw);
         }
@@ -301,6 +309,18 @@ internal sealed class VaultForm : Form
         SetStatus(entry.Status == "works" ? $"{provider.Label} is running on this PC and is in your vault." : $"{provider.Label} is {entry.Detail}. Start it, then Check.");
     }
 
+    private async Task GoogleSignInAsync()
+    {
+        SetStatus("Signing in to Google. Finish in your browser.");
+        try
+        {
+            var entry = await GoogleAdapter.SignInAsync();
+            ShowTab(catalog: false);
+            SetStatus(entry.Status == "works" ? $"Google Drive connected: {entry.Detail}." : $"Google Drive: {entry.Detail}");
+        }
+        catch (Exception ex) { NotConnected("Google Drive", ex); }
+    }
+
     private void NotConnected(string label, Exception ex)
     {
         SetStatus($"{label} did not connect.");
@@ -366,6 +386,7 @@ internal sealed class VaultForm : Form
             {
                 VaultKind.ApiKey => "KEYS",
                 VaultKind.McpServer => "MCP SERVERS",
+                VaultKind.SignIn => "SIGNED IN",
                 _ => "ON THIS PC"
             });
             foreach (var entry in group) AddEntryCard(entry);
@@ -390,6 +411,7 @@ internal sealed class VaultForm : Form
         {
             VaultKind.ApiKey => $"{(entry.EnvName.Length > 0 ? entry.EnvName : "Key")} in Credential Manager. Fingerprint {entry.Fingerprint}.",
             VaultKind.McpServer => $"{entry.Url}. {(entry.Detail.Length > 0 ? entry.Detail + ". " : "")}Sign-in {entry.Fingerprint}, saved in Credential Manager.",
+            VaultKind.SignIn => $"{(entry.Detail.Length > 0 ? entry.Detail + ". " : "")}Read-only Drive access with your own Google client; tokens stay in Credential Manager.",
             _ when entry.ProviderId == HolodexTools.FilesId => $"{entry.Url}. Nemotron and your destinations reach only this folder.",
             _ when entry.ProviderId == HolodexTools.CliId => "PowerShell on this PC. Every command waits for your Run.",
             _ => $"{new Uri(entry.Url).GetLeftPart(UriPartial.Authority)} on this PC. No key needed."
@@ -414,6 +436,8 @@ internal sealed class VaultForm : Form
             ShowTab(catalog: false);
             SetStatus(StatusLine(entry));
         }));
+        if (entry.Kind == VaultKind.SignIn && entry.Status != "works")
+            actions.Add(new CardAction("Vault.GoogleSignIn", PhosphorGlyph.Link, "Sign in", async (_, _) => await GoogleSignInAsync()));
         if (entry.Kind == VaultKind.McpServer && entry.Status == "failed")
             actions.Add(new CardAction("Vault.SignInAgain", PhosphorGlyph.Link, "Sign in", async (_, _) =>
             {
@@ -440,6 +464,7 @@ internal sealed class VaultForm : Form
     {
         VaultKind.ApiKey => "KEY",
         VaultKind.McpServer => "MCP",
+        VaultKind.SignIn => "SIGN-IN",
         _ => "LOCAL"
     };
 
@@ -485,6 +510,7 @@ internal sealed class VaultForm : Form
         {
             VaultKind.ApiKey => provider.EnvName.Length > 0 ? provider.EnvName : "API key",
             VaultKind.McpServer => provider.Blurb.Contains("No sign-in") ? "MCP link" : "Sign-in link",
+            VaultKind.SignIn => GoogleAdapter.HasClient ? "Client saved" : "Your own Google client",
             _ => provider.Url.StartsWith("http", StringComparison.Ordinal) ? new Uri(provider.Url).GetLeftPart(UriPartial.Authority)
                 : provider.Id == HolodexTools.FilesId ? "Folder you choose" : "Approve each command"
         }));
@@ -496,6 +522,11 @@ internal sealed class VaultForm : Form
         var actions = new List<CardAction>();
         switch (provider.Kind)
         {
+            case VaultKind.SignIn:
+                if (GoogleAdapter.HasClient)
+                    actions.Add(new CardAction("Vault.GoogleSignIn", PhosphorGlyph.Link, isConnected && GoogleAdapter.SignedIn ? "Sign in again" : "Sign in", async (_, _) => await GoogleSignInAsync()));
+                actions.Add(new CardAction("Vault.GoogleClient", PhosphorGlyph.ExternalLink, "Get a client", (_, _) => HolodexVault.OpenKeysPage(provider)));
+                break;
             case VaultKind.ApiKey:
                 actions.Add(new CardAction("Vault.AddKey", PhosphorGlyph.Plus, isConnected ? "Replace key" : "Add key", (_, _) => PinProvider(provider)));
                 if (provider.KeysUrl.Length > 0)

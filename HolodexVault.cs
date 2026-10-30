@@ -12,7 +12,7 @@ using ModelContextProtocol.Protocol;
 namespace Omniwand;
 
 /// <summary>How a catalog adapter connects: a pasted key, an MCP server's own sign-in, or a service on this PC.</summary>
-internal enum VaultKind { ApiKey, McpServer, LocalService }
+internal enum VaultKind { ApiKey, McpServer, LocalService, SignIn }
 
 /// <summary>
 /// One adapter in the Vault catalog. Key adapters carry the prefixes and env names the universal intake recognizes and,
@@ -151,6 +151,9 @@ internal static class HolodexVault
         new("meta", "Meta Graph", GroupCloud, VaultKind.ApiKey, "Instagram and Facebook (access token).", "META_ACCESS_TOKEN", new[] { "EAA" },
             KeysUrl: "https://developers.facebook.com/tools/explorer/"),
 
+        new(GoogleAdapter.Id, "Google Drive", GroupApps, VaultKind.SignIn,
+            "Search and read your Drive. Paste your own Google OAuth client file (Desktop app) into the intake, then sign in.",
+            KeysUrl: GoogleAdapter.ConsoleUrl),
         new("mcp-linear", "Linear", GroupApps, VaultKind.McpServer, "Issues and projects.", Url: "https://mcp.linear.app/mcp"),
         new("mcp-notion", "Notion", GroupApps, VaultKind.McpServer, "Pages and databases.", Url: "https://mcp.notion.com/mcp"),
         new("mcp-figma", "Figma", GroupApps, VaultKind.McpServer, "Design files.", Url: "https://mcp.figma.com/mcp"),
@@ -223,6 +226,9 @@ internal static class HolodexVault
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() }
     };
+
+    /// <summary>Records a connection made outside the key intake (the Google sign-in).</summary>
+    public static void Save(VaultEntry entry) => Upsert(entry);
 
     private static void Upsert(VaultEntry entry)
     {
@@ -372,6 +378,7 @@ internal static class HolodexVault
     /// <summary>Deletes the secret from Credential Manager and the connection from the manifest.</summary>
     public static bool Delete(VaultEntry entry)
     {
+        if (entry.ProviderId == GoogleAdapter.Id) GoogleAdapter.Forget();
         bool gone = !entry.HasSecret || ArkStationClient.TryDeleteWindowsCredential(entry.Target);
         if (entry.Target == NebiusTarget) Environment.SetEnvironmentVariable("NEBIUS_API_KEY", null);
         lock (Gate)
@@ -408,6 +415,7 @@ internal static class HolodexVault
     {
         var provider = Find(entry.ProviderId);
         string? problem;
+        if (entry.ProviderId == GoogleAdapter.Id) return await GoogleAdapter.VerifyAsync(entry, ct);
         if (entry.ProviderId == HolodexTools.FilesId) problem = Directory.Exists(entry.Url) ? null : "the folder is gone";
         else if (entry.ProviderId == HolodexTools.CliId) problem = null;
         else if (entry.Kind == VaultKind.LocalService) problem = await LocalProbeAsync(entry.Url, ct);

@@ -31,7 +31,7 @@ internal static class HolodexTools
 
     public static bool CliConnected => HolodexVault.Load().Any(e => e.ProviderId == CliId);
 
-    public static bool Any => FilesRoot != null || CliConnected;
+    public static bool Any => FilesRoot != null || CliConnected || GoogleAdapter.SignedIn;
 
     private static JsonObject Tool(string name, string description, JsonObject properties, params string[] required) => new()
     {
@@ -73,6 +73,11 @@ internal static class HolodexTools
                 new JsonObject { ["command"] = Str("A single PowerShell command."), ["why"] = Str("One sentence the user reads before approving.") }, "command", "why"));
             notes.Append(" You can run PowerShell commands on the user's PC with run_command; each one needs the user's approval, so ask only for what the task needs.");
         }
+        if (GoogleAdapter.SignedIn)
+        {
+            GoogleAdapter.Offer(tools);
+            notes.Append(" You can search and read the user's Google Drive with drive_search and drive_read.");
+        }
         payload["tool_choice"] = "auto";
         if (notes.Length > 0 && payload["messages"] is JsonArray messages && messages.Count > 0 && messages[0] is JsonObject system)
             system["content"] = system["content"]?.GetValue<string>() + notes;
@@ -90,10 +95,12 @@ internal static class HolodexTools
                 "read_file" => ReadFile(Arg("path")),
                 "write_file" => await WriteFileAsync(Arg("path"), Arg("content"), ct),
                 "run_command" => await RunCommandAsync(Arg("command"), Arg("why"), ct),
+                "drive_search" => await GoogleAdapter.SearchAsync(Arg("query"), ct),
+                "drive_read" => await GoogleAdapter.ReadAsync(Arg("id"), ct),
                 _ => $"Unknown tool {name}."
             };
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or System.Net.Http.HttpRequestException or TaskCanceledException)
         {
             return $"{name} failed: {ex.Message}";
         }
