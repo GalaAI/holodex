@@ -391,7 +391,9 @@ internal static class ScrollPredictor
                 ["Goal"] = (ask.Length > 0 ? ask : $"Resolve what {first} shows.", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Repro"] = ($"Open {first}{(o?.Url != null ? " at " + o.Url : "")} and follow the marked steps.", fromStack),
                 ["Evidence"] = ($"{g.Letter}: {names}", fromStack),
-                ["Acceptance"] = ($"{pod.Label} returns a verified fix with a test or validation receipt.", "PREDICTED"),
+                ["Acceptance"] = (ArkStationClient.ArkOnThisPc
+                    ? $"{pod.Label} returns a verified fix with a test or validation receipt."
+                    : "A verified fix with a test or validation receipt.", "PREDICTED"),
             },
             "flow" => new()
             {
@@ -406,13 +408,13 @@ internal static class ScrollPredictor
                 ["Question"] = (ask.Length > 0 ? ask : $"What {(g.Items.Count > 1 ? "do" : "does")} {names} say, and what should we do about it?", ask.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
                 ["Sources"] = (names, fromStack),
                 ["Depth"] = ("One-page digest with citations.", "PREDICTED"),
-                ["Deliverable"] = ($"A research digest from {pod.Label}.", "PREDICTED"),
+                ["Deliverable"] = (ArkStationClient.ArkOnThisPc ? $"A research digest from {pod.Label}." : "A research digest with citations.", "PREDICTED"),
             },
             "absorb" => new()
             {
                 ["Schema"] = (CsvHeader(g) ?? "Detect on ingest.", CsvHeader(g) != null ? fromStack : "PREDICTED"),
                 ["License"] = ("Owner data, internal use.", "PREDICTED"),
-                ["Destination"] = ($"{pod.Label} library: {Slug(where.Length > 0 ? where : first)}", "PREDICTED"),
+                ["Destination"] = ($"{(ArkStationClient.ArkOnThisPc ? pod.Label : "Holodex")} library: {Slug(where.Length > 0 ? where : first)}", "PREDICTED"),
                 ["Refresh"] = (time.Length > 0 ? time : "One-time import.", time.Length > 0 ? "FROM YOUR ASK" : "PREDICTED"),
             },
             _ => new()

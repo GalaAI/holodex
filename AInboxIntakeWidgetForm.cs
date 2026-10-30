@@ -665,7 +665,16 @@ public sealed class AInboxIntakeWidgetForm : Form
             for (int i = 0; i < fields.Count && i < _fieldRows.Count; i++) _fieldRows[i].Set(fields[i]);
         }
 
-        _scroll.Code = pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
+        // A public install has no pods, so the code names the kind of destination instead of a pod id.
+        _scroll.Code = _queue.LocalOnly
+            ? _destination.Kind switch
+            {
+                DestinationKind.HolodexChat => "CHAT",
+                DestinationKind.Hivemind => "HIVE",
+                DestinationKind.SaveOnPc => "SAVE",
+                _ => "AGENT"
+            }
+            : pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
         _scroll.Title = shape.Label;
         _scroll.Eyebrow = $"Scroll // Handoff // Stack {g.Letter} // Drafted by Scribe";
         _scroll.Alt = _queue.LocalOnly ? $"to {_destination.Label}" : $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
