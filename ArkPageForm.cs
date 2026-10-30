@@ -15,6 +15,7 @@ internal abstract class ArkPageForm : Form
     protected static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
     protected readonly WebView2 Web;
     private readonly ThreadView _fail;
+    private readonly Panel _host;
     private readonly string _failEyebrow;
     private bool _initialized;
 
@@ -36,7 +37,7 @@ internal abstract class ArkPageForm : Form
         Size = size;
         Padding = WidgetChrome.FramePadding();
 
-        var host = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Ground, Name = name + ".Host" };
+        var host = _host = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Ground, Name = name + ".Host" };
         Web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = PhosphorTheme.Ground, Name = name + ".Page" };
         _fail = new ThreadView(name + ".Error") { Dock = DockStyle.Fill, ReserveScrollbar = false, FollowNewest = false, Visible = false };
         host.Controls.Add(Web);
@@ -47,6 +48,13 @@ internal abstract class ArkPageForm : Form
         WidgetChrome.Attach(this, eyebrow, title, accent, null);
         WidgetDrag.Enable(this);
         ResumeLayout(false);
+    }
+
+    /// <summary>Docks native controls down the left of the page (a window's own settings beside the page).</summary>
+    protected void AddRail(Control rail)
+    {
+        rail.Dock = DockStyle.Left;
+        _host.Controls.Add(rail);
     }
 
     /// <summary>The page this window shows.</summary>

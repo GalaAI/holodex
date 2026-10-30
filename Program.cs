@@ -165,7 +165,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly ScreenSnipAndElementPickerForm _snipWidget;
     private readonly HolodexLiteDrawerForm _holodexDrawer;
     private readonly AugmentInventoryForm _inventory = new();
-    private readonly InputStudioForm _inputStudio = new();
+    private readonly MouseModStationForm _station;
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
@@ -275,14 +275,14 @@ internal sealed class OmniwandAppContext : ApplicationContext
             pt => _wizWidget.SummonAt(pt),
             pt => _ainboxWidget.SummonAt(pt),
             (pt, tool) => _snipWidget.SummonAt(pt, tool),
-            () => SummonTutorialTooltips(),
-            style =>
-            {
-                MouseHardwareAndWandEngine.ActiveCursorStyle = style;
-                _overlay?.ForceCursorRedraw();
-            });
+            () => SummonTutorialTooltips());
+        _station = new MouseModStationForm(style =>
+        {
+            MouseHardwareAndWandEngine.ActiveCursorStyle = style;
+            _overlay?.ForceCursorRedraw();
+        });
         _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
-        _holodexDrawer.OpenInputStudio = () => _inputStudio.Summon(GetCursorPoint());
+        _holodexDrawer.OpenMouseModStation = () => _station.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -345,11 +345,11 @@ internal sealed class OmniwandAppContext : ApplicationContext
             inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
         }
 
-        // Input Studio: design the pointer and what each input does, served by the Input Studio service in Ark.
-        if (InputStudioForm.Available(_ark))
+        // The Mouse Mod Station: the mouse in use, its speed, the pointer look and Input Studio in one window.
+        if (MouseModStationForm.Available(_ark))
         {
-            var studioItem = home.Add(new ToolStripMenuItem("Input Studio") { Name = "Tray.InputStudio", ToolTipText = "Design your pointer and choose what each button and gesture does." });
-            studioItem.Click += (_, _) => _inputStudio.Summon(GetCursorPoint());
+            var stationItem = home.Add(new ToolStripMenuItem("Mouse Mod Station") { Name = "Tray.MouseModStation", ToolTipText = "Your mouse, its speed, the pointer look, and the cursor designer and button bindings." });
+            stationItem.Click += (_, _) => _station.Summon(GetCursorPoint());
         }
 
         var capturePage = new TrayPage("Grab from the screen");
@@ -686,7 +686,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "studio:capture:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -1061,7 +1061,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _wizWidget.Hide();
                 _ainboxWidget.Hide();
                 _inventory.Hide();
-                _inputStudio.Hide();
+                _station.Hide();
                 _holodexDrawer.Hide();
                 _snipWidget.Hide();
                 _tutorialTooltip.Hide();
@@ -1102,26 +1102,26 @@ internal sealed class OmniwandAppContext : ApplicationContext
             }, null);
             return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:inventory:capture:timeout";
         }
-        if (string.Equals(cmd, "studio:summon", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(cmd, "station:summon", StringComparison.OrdinalIgnoreCase))
         {
-            _uiSync.Post(_ => _inputStudio.Summon(pt), null);
-            return "ok:studio:summon";
+            _uiSync.Post(_ => _station.Summon(pt), null);
+            return "ok:station:summon";
         }
-        if (cmd.StartsWith("studio:capture:", StringComparison.OrdinalIgnoreCase))
+        if (cmd.StartsWith("station:capture:", StringComparison.OrdinalIgnoreCase))
         {
-            string png = cmd["studio:capture:".Length..].Trim();
+            string png = cmd["station:capture:".Length..].Trim();
             var done = new TaskCompletionSource<string>();
             _uiSync.Post(async _ =>
             {
-                try { done.SetResult("ok:studio:capture:" + await _inputStudio.CaptureAsync(png)); }
-                catch (Exception ex) { done.SetResult("error:studio:capture:" + ex.Message); }
+                try { done.SetResult("ok:station:capture:" + await _station.CaptureAsync(png)); }
+                catch (Exception ex) { done.SetResult("error:station:capture:" + ex.Message); }
             }, null);
-            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:studio:capture:timeout";
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:station:capture:timeout";
         }
-        if (string.Equals(cmd, "studio:close", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(cmd, "station:close", StringComparison.OrdinalIgnoreCase))
         {
-            _uiSync.Post(_ => SurfaceMotion.Dismiss(_inputStudio), null);
-            return "ok:studio:close";
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_station), null);
+            return "ok:station:close";
         }
         if (string.Equals(cmd, "inventory:close", StringComparison.OrdinalIgnoreCase))
         {
