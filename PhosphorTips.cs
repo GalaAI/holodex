@@ -363,7 +363,7 @@ internal static class PhosphorTips
         ["Holodex.ConnectionLine"] = new("Connection", "The gateway or Nebius key state in full, and whether the key is saved in the Windows vault."),
         ["Holodex.ReplaceKeyButton"] = new("Replace key", "Opens the key row to link a different Nebius Token Factory key."),
         ["Holodex.HivemindLine"] = new("Hivemind", "Whether the session reaches the real Hivemind agents, and how many are on the live roster."),
-        ["Holodex.HivemindSignInButton"] = new("Sign in to Hivemind", "Opens Hivemind's sign-in in the browser: sign in with the owner key, then Authorize. After that the session reaches the real agents."),
+        ["Holodex.HivemindSignInButton"] = new("Sign in to Hivemind", "Opens Hivemind's sign-in in the browser: sign in with your Hivemind account, then Authorize. After that the session reaches your agents."),
         ["Holodex.RosterLine"] = new("Roster", "Who the message reaches: every agent, or the one you chose."),
         ["Holodex.TokenField"] = new("Nebius key", "Paste a Nebius Token Factory key. It is stored in Windows Credential Manager, never in a file."),
         ["Holodex.LinkTokenButton"] = new("Link key", "Saves the key to the Windows vault and checks the endpoint."),

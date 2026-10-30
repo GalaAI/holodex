@@ -1048,12 +1048,12 @@ public sealed partial class HolodexLiteDrawerForm : Form
             _macroList.Add(ThreadTone.Action, m.TriggerLabel, m.ActionLabel,
                 leds: string.IsNullOrWhiteSpace(m.Parameter) ? null : new[] { (PhosphorTheme.Patina, m.Parameter) });
 
-        _macroList.AddSection("Spell orb // 8 slots // middle-hold or F15");
+        _macroList.AddSection("Spell Orb // 8 slots // Ctrl+Shift+Space");
         foreach (var s in GrimXFlowOrb.Slots)
         {
             string slotLabel = string.Equals(s.Verb, s.Title, StringComparison.OrdinalIgnoreCase) ? s.Title : $"{s.Verb} {s.Title}";
             var card = _macroList.Add(ThreadTone.Step, $"Slot {s.Index + 1} // {slotLabel}", s.Subtitle,
-                leds: new[] { (s.AccentColor, $"{s.ZoneToken} zone") });
+                leds: null);
             card.EdgeOverride = s.AccentColor;
         }
     }
@@ -1163,7 +1163,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             // No key is needed: a Hivemind sign-in answers with Nemotron. The key is the optional advanced route.
             leds.Add(HivemindClient.HasSavedSignIn
                 ? (PhosphorTheme.Patina, "NEMOTRON VIA HIVEMIND // NO KEY NEEDED")
-                : (PhosphorTheme.Ember, "SIGN IN WITH HIVEMIND ABOVE // KEY OPTIONAL"));
+                : (PhosphorTheme.Ember, "NO KEY NEEDED"));
         _connectionTelemetry.Set(leds.ToArray());
     }
 

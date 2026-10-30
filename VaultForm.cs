@@ -363,7 +363,8 @@ internal sealed class VaultForm : Form
         _catalogTab.Selected = catalog;
         var entries = HolodexVault.Load();
         var fromEnv = HolodexVault.EnvironmentKeys(entries);
-        _connectedTab.Text = $"Connected ({entries.Count + fromEnv.Count})";
+        // The count is what the vault holds; keys found in environment variables are listed under their own heading.
+        _connectedTab.Text = $"Connected ({entries.Count})";
         using (_list.Batch())
         {
             _list.Clear();

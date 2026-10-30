@@ -147,7 +147,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _sync = new SyncStatus { Dock = DockStyle.Top, Height = 22 };
         lines.Controls.Add(_sync);
         lines.Controls.Add(_statusLabel);
-        _sendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 210, Name = "AInbox.SubmitButton" };
+        _sendBtn = new PhosphorButton("Send handoff", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 210, Name = "AInbox.SubmitButton" };
         _sendBtn.Click += (_, _) => OnSendClicked();
         footer.Controls.Add(lines);
         if (_queue.LocalOnly)
@@ -622,7 +622,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
         if (g == null)
         {
-            if (_undoTimer == null && !_working) _sendBtn.Text = "Send";
+            if (_undoTimer == null && !_working) _sendBtn.Text = "Send handoff";
             Relayout();
             return;
         }
@@ -684,7 +684,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         {
             ("To", _queue.LocalOnly ? _destination.Label : $"{pod.Label} · {orch}"),
             ("Intent", shape.Kicker),
-            ("Confidence", $"{Math.Round(g.Chosen.Score * 100)}% {g.WhySource.ToLowerInvariant()}"),
+            ("Ranking", $"{Math.Round(g.Chosen.Score * 100)}% of the vote, by {g.WhySource.ToLowerInvariant()}"),
             ("Captures", g.Items.Count.ToString())
         };
         _scroll.Status = "Draft";

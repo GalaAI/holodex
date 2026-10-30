@@ -102,9 +102,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     /// <summary>The output area's empty state: what the overlay does, visible until there is an answer.</summary>
     // Names the real Point at UI shortcut (GlobalHotkeys), or none when this PC left it to the keyboard.
     private static string GuidanceText =>
-        "Draw a free-form lasso or rectangle snip, add Phosphor annotations, or switch to Point at UI" +
+        "Draw a lasso or a rectangle around anything and mark it up, or switch to Point at UI" +
         (GlobalHotkeys.IsRegistered(GlobalHotkeys.ElementPicker) ? $" ({GlobalHotkeys.ElementPicker.Label})" : "") +
-        " to inspect any desktop window's HWND, geometry, and live pixel palette.";
+        " to pick a window or button. Then ask Nemotron about it.";
     private string _visionModel;
 
     private const int DrawerLogicalWidth = 640;
@@ -251,7 +251,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         var bar = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = Color.Transparent, Name = "Snip.ComposerBar" };
         var toAInboxBtn = new IconToolButton("Snip.ToAInboxButton", PhosphorGlyph.AInbox, "Send to AInbox") { Dock = DockStyle.Left };
         toAInboxBtn.Click += (_, _) => SendCurrentCaptureToAInbox();
-        var saveCodexBtn = new IconToolButton("Snip.SaveCodexButton", PhosphorGlyph.Codex, "Save to Codex") { Dock = DockStyle.Left };
+        var saveCodexBtn = new IconToolButton("Snip.SaveCodexButton", PhosphorGlyph.Codex, "Save to Library") { Dock = DockStyle.Left };
         saveCodexBtn.Click += (_, _) => SaveCurrentCaptureToCodex();
         bar.Controls.Add(saveCodexBtn);
         bar.Controls.Add(toAInboxBtn);

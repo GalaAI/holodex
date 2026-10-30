@@ -383,6 +383,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 "HOLODEX // HIVEMIND", 3600, ok ? ToastTone.Success : ToastTone.Warning);
         };
         var accountPage = new TrayPage("Hivemind account");
+        accountPage.Add(new ToolStripMenuItem($"Signed in to {HivemindClient.EndpointHost}") { Name = "Tray.HivemindHost", Enabled = false });
         var signOutItem = accountPage.Add(new ToolStripMenuItem("Sign out") { Name = "Tray.HivemindSignOut", Tag = PhosphorMenuRenderer.DangerTag, ToolTipText = "Ends this PC's Hivemind sign-in." });
         signOutItem.Click += async (_, _) => await _ark.Hivemind.SignOutAsync();
         var accountRow = home.AddPage("Signed in", accountPage, $"Signed in to {HivemindClient.EndpointHost}.");
@@ -408,7 +409,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         wizItem.Click += (_, _) => SummonWizCrafting();
 
         // The Vault needs no Ark and no Hivemind account: keys, MCP sign-ins and local services on this PC.
-        var vaultItem = home.Add(new ToolStripMenuItem("Vault") { Name = "Tray.Vault", ToolTipText = "Connect apps, services and keys. Keys stay in Windows Credential Manager." });
+        var vaultItem = home.Add(new ToolStripMenuItem("Your vault") { Name = "Tray.Vault", ToolTipText = "Connect apps, services and keys. Keys stay in Windows Credential Manager." });
         vaultItem.Click += (_, _) => _vault.Summon(GetCursorPoint());
 
         // Your ArkStation: the whole-PC scan (software, services, engines, MCP servers, hardware) and its connections.
@@ -445,7 +446,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             var s = slot;
             string label = s.Id == "ainbox" ? "AInbox" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s.Title.ToLowerInvariant());
-            var slotItem = orbPage.Add(new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1} // {s.Verb}", ToolTipText = s.Subtitle });
+            var slotItem = orbPage.Add(new ToolStripMenuItem(label) { ShortcutKeyDisplayString = $"{s.Index + 1}", ToolTipText = s.Subtitle });
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
         }
         orbPage.Add(new ToolStripSeparator());
@@ -461,15 +462,19 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _triggers.MiddleHoldOpensOrb = middleHoldToggle.Checked;
             _triggers.Save();
         };
-        orbPage.AddPage("Choose Spells", _spellPicksPage, "Pick which Spell each slot casts, from the Spells your Ark holds.");
-        _spellPicksPage.Shown += async (_, _) => await FillSpellPicksAsync();
+        // Spell picks come from the Ark's Spell catalog; without Ark the page could only say there is nothing to pick.
+        if (_ark.ArkInstalled)
+        {
+            orbPage.AddPage("Choose Spells", _spellPicksPage, "Pick which Spell each slot casts, from the Spells your Ark holds.");
+            _spellPicksPage.Shown += async (_, _) => await FillSpellPicksAsync();
+        }
         home.AddPage("Spell Orb", orbPage);
 
         // ── Settings page ────────────────────────────────────────────────────
         home.Add(new ToolStripSeparator());
         var settingsPage = new TrayPage("Settings");
 
-        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Holodex), ToolTipText = "Opens every setting in Holodex." });
+        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ToolTipText = "Opens every setting in Holodex." });
         openSettingsPanelItem.Click += (_, _) => _holodexDrawer.SummonDrawer(GetCursorPoint(), "mods");
         settingsPage.Add(new ToolStripSeparator());
 
@@ -548,9 +553,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             ArkApertureMorphEngine.StartMorphShowcase();
             PhosphorToast.Show(
-                "Aperture Morph Showcase",
-                "Watch the cursor morph through Hand (Coral Bloom), solid Patina IBeam, Crosshair, Resize, Compass, Turbine & Aegis Lock.",
-                "ARK APERTURE // 240HZ MORPH ENGINE",
+                "Every pointer shape",
+                "Watch the pointer change through each shape: hand, text beam, crosshair, resize, compass, turbine and lock.",
+                "HOLODEX // POINTER SHAPES",
                 6000);
         };
         settingsPage.AddPage("Pointer shape", morphPage, "The shape the Aperture pointer takes.");
@@ -940,9 +945,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ =>
             {
                 PhosphorToast.Show(
-                    "Aperture Morph Showcase",
-                    "Cycling live through Hand (Coral Bloom), IBeam Caliper, Crosshair Reticle, Resize Caliper, Compass Rose, Turbine, Wiz Star & Aegis Lock.",
-                    "ARK APERTURE // 240HZ MORPH ENGINE",
+                    "Every pointer shape",
+                    "The pointer changes through each shape: hand, text beam, crosshair, resize, compass, turbine, star and lock.",
+                    "HOLODEX // POINTER SHAPES",
                     6500);
             }, null);
             return "ok:morph:demo";
@@ -1752,7 +1757,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             item.Checked = true;
             ArkApertureMorphEngine.ActiveMorphMode = mode;
             _overlay.ForceCursorRedraw();
-            PhosphorToast.Show("Aperture Morph Mode", $"Active morph formation: {label}", "ARK APERTURE // MORPH", 2200);
+            PhosphorToast.Show("Pointer shape", $"Now: {label}", "HOLODEX // POINTER", 2200);
         };
         page.AddSetting(item);
     }
@@ -1858,7 +1863,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             var mine = models.Where(m => m.ProviderId == provider.Id).ToList();
             if (mine.Count == 0) continue;
             _modelsPage.Add(new ToolStripSeparator());
-            _modelsPage.Add(new ToolStripMenuItem(provider.Label) { Enabled = false, ShortcutKeyDisplayString = mine.Count.ToString() });
+            _modelsPage.Add(new ToolStripMenuItem(provider.Label) { Enabled = false, ShortcutKeyDisplayString = mine.Count == 1 ? "1 MODEL" : $"{mine.Count} MODELS" });
             foreach (var m in mine.Take(24))
                 _modelsPage.Add(new ToolStripMenuItem(ShortModelName(m.ModelId)) { Enabled = false, ToolTipText = m.ModelId, ShortcutKeyDisplayString = CapabilityTag(m.Capabilities) });
         }

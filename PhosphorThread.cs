@@ -206,7 +206,7 @@ internal sealed class ThreadCard : Control
         Risk = risk;
         if (_approve == null) return;
         _approve.Variant = risk == ApprovalRisk.Change ? PhosphorButtonVariant.Primary : PhosphorButtonVariant.Danger;
-        _approve.Text = risk switch { ApprovalRisk.ClientSend => "Approve send", ApprovalRisk.MoneyMove => "Approve payment", _ => "Approve" };
+        _approve.Text = risk switch { ApprovalRisk.ClientSend => "Approve send", ApprovalRisk.MoneyMove => "Approve payment", _ => "Approve and run" };
         PerformLayout();
         Invalidate();
     }

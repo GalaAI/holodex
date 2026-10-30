@@ -22,7 +22,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     private const int ThreadMaxHeight = 300;
 
     private const string ThreadIntro =
-        "Wiz turns a goal into a Spell and can act on it: read the screen around the wand, open the lasso or picker, draft an AInbox handoff, list Spell slots, and, with your approval, save to Codex or queue a work order.\n\n" +
+        "Wiz turns a goal into a Spell and can act on it: read the screen around the wand, open the lasso or picker, draft an AInbox handoff, list Spell slots, and, with your approval, save to your Library or queue a work order.\n\n" +
         "Pick a starter below, or describe what you want done. Turn on the screen icon when the goal is about what you are looking at.";
 
     private readonly ArkStationClient _ark;
@@ -375,7 +375,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
 
     /// <summary>The catalog's Flow crafted toast: the draft is in the thread, and the next step is a ring slot.</summary>
     private static void ToastCrafted(string lensTitle) =>
-        PhosphorToast.Show($"{lensTitle} crafted", $"{lensTitle} drafted in Wiz. Bind it to a ring slot in Input Studio.", "WIZ // 4GE BENCH", 3200, ToastTone.Success);
+        PhosphorToast.Show($"{lensTitle} crafted", $"{lensTitle} drafted in Wiz. It is in the Wiz thread.", "WIZ // SPELLS", 3200, ToastTone.Success);
 
     /// <summary>A run that ends while Wiz is hidden or behind another window says so with a toast.</summary>
     private void ToastIfAway(string title, string text, bool ok)

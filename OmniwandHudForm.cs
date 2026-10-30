@@ -24,8 +24,8 @@ public sealed class OmniwandHudForm : Form
 
     private const string ShortcutsText =
         "Actions Ring casts your eight Spell slots.\n" +
-        "F15 or Ctrl+Shift+Space opens the fallback orb.\n" +
-        "F16 streams the GhostTrailer ribbon (Alt+V for it is planned, not bound yet).\n" +
+        "Ctrl+Shift+Space opens the Spell Orb (F15 too, on mice that send it).\n" +
+        "F16 turns the pointer trail on or off.\n" +
         "Ctrl+Alt+W opens Wiz. Ctrl+Alt+I opens AInbox.";
 
     private readonly ArkStationClient _ark;
@@ -154,7 +154,7 @@ public sealed class OmniwandHudForm : Form
             Dock = DockStyle.Top,
             Height = 44,
             Kicker = "SHORTCUTS",
-            Sentence = "Actions Ring, fallback orb, GhostTrailer, Wiz, AInbox",
+            Sentence = "Spell Orb, Wiz, AInbox and the pointer trail",
             OpenWord = "SHOW",
             Name = "Hud.Shortcuts"
         };
@@ -254,7 +254,7 @@ public sealed class OmniwandHudForm : Form
 
     private void SyncVisionHint() => _visionHint.Text = !_visionToggle.Selected ? "TEXT ONLY"
         : _ark.CanReadImages ? $"SCREEN GOES WITH IT // {ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant()} READS IT"
-        : "TEXT ONLY // THE SCREEN NEEDS A NEBIUS KEY";
+        : HivemindClient.HasSavedSignIn ? "TEXT ONLY // THIS HIVEMIND TAKES NO IMAGES YET" : "TEXT ONLY // SIGN IN WITH HIVEMIND TO SEND THE SCREEN";
 
     private void SyncAskLabel()
     {

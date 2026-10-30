@@ -230,7 +230,9 @@ internal sealed class PhosphorMenuRenderer : ToolStripProfessionalRenderer
             float tracking = mono.Size * 0.12f * e.Graphics.DpiX / 72f;
             float width = PhosphorPaint.MeasureTracked(e.Graphics, text, mono, tracking) - tracking;
             // Flush with the submenu arrows' right edge, not short of the arrow column.
-            float right = Math.Max(e.TextRectangle.Right - 2 * s, e.Item.Width - 14 * s);
+            float right = e.Item is PhosphorPageRow
+                ? e.Item.Width - 24 * s // a page row's chevron sits at Width - 12; keep the column clear of it
+                : Math.Max(e.TextRectangle.Right - 2 * s, e.Item.Width - 14 * s);
             float x = right - width;
             float y = CenteredLineTop(e.Graphics, mono, e.Item.Height);
             using var ink = new SolidBrush(e.Item.Selected ? PhosphorTheme.Dim : PhosphorTheme.Ghost);

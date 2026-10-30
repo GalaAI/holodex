@@ -276,7 +276,7 @@ internal static class IntentCatalog
         new("flow", "Build a Flow", "BUILD A FLOW", new[] { "Trigger", "Kind", "Steps", "Output", "Haptic" }),
         new("research", "Research digest", "RESEARCH", new[] { "Question", "Sources", "Depth", "Deliverable" }),
         new("absorb", "Absorb into dataset", "ABSORB DATASET", new[] { "Schema", "License", "Destination", "Refresh" }),
-        new("content", "Scroll for content", "SCROLL CONTENT", new[] { "Audience", "Angle", "Format", "Channel" }),
+        new("content", "Brief for content", "CONTENT BRIEF", new[] { "Audience", "Angle", "Format", "Channel" }),
         // Quest proof: the Watcher reviews it and mints XP for the skill (Stats page).
         new("proof", "Prove a quest", "QUEST PROOF", new[] { "Quest", "Skill", "What I did", "Evidence" }),
     };

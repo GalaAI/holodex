@@ -801,7 +801,7 @@ internal sealed class ModelChip : SuggestionChip
             : r == ArkStationClient.RouteArkApi ? "Ark API"
             : r == ArkStationClient.RouteHivemind ? "Hivemind"
             : r == ArkStationClient.RouteLocal ? _ark.LocalProviderLabel(_get()) ?? "This PC"
-            : r == ArkStationClient.RouteNone ? "Sign in with Hivemind"
+            : r == ArkStationClient.RouteNone ? "Signed out"
             : r.Contains("nebius") ? "Nebius direct"
             : runtime.Split(' ', '(')[0];
         Sync();
@@ -843,7 +843,7 @@ internal sealed class ModelChip : SuggestionChip
         ArkStationClient.RouteNebiusDirect => "Nebius direct",
         ArkStationClient.RouteHivemind => "Hivemind",
         ArkStationClient.RouteLocal => _ark.LocalProviderLabel(model) ?? "This PC",
-        _ => "Sign in with Hivemind"
+        _ => "Signed out"
     };
 
     /// <summary>"nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B" reads "Nemotron 3 Nano": vendor, sizes and tuning tags dropped.

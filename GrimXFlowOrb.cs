@@ -22,14 +22,14 @@ public sealed class GrimXFlowOrb
 {
     public static readonly GrimXOrbSlot[] Slots =
     {
-        new(0, "spell",    "QUICK CAST", "CAST",  "One-shot Spell",      "operate",    PhosphorTheme.Patina),
-        new(1, "ritual",   "RITUAL",   "PERFORM", "Scheduled cadence",   "operate",    PhosphorTheme.Patina),
-        new(2, "symphony", "SYMPHONY", "CONDUCT", "Orchestra workflow",  "create",     PhosphorTheme.Coral),
-        new(3, "ultima",   "ULTIMA",   "PURSUE",  "Deluge synthesis",    "distribute", PhosphorTheme.Seal),
-        new(4, "charm",    "CHARM",    "BIND",    "Relic enchantment",   "create",     PhosphorTheme.Coral),
-        new(5, "summon",   "SUMMON",   "SUMMON",  "Invoke Automaton",    "operate",    PhosphorTheme.Patina),
+        new(0, "spell",    "QUICK CAST", "CAST",  "Runs a Spell once",   "operate",    PhosphorTheme.Patina),
+        new(1, "ritual",   "RITUAL",   "PERFORM", "Runs on a schedule",  "operate",    PhosphorTheme.Patina),
+        new(2, "symphony", "SYMPHONY", "CONDUCT", "Spells in sequence",  "create",     PhosphorTheme.Coral),
+        new(3, "ultima",   "ULTIMA",   "PURSUE",  "Works toward a goal", "distribute", PhosphorTheme.Seal),
+        new(4, "charm",    "CHARM",    "BIND",    "Ties a Spell to a trigger","create",     PhosphorTheme.Coral),
+        new(5, "summon",   "SUMMON",   "SUMMON",  "Calls one of your agents","operate",    PhosphorTheme.Patina),
         new(6, "crafting", "CRAFTING", "WIZ",     "Wiz on Nemotron",     "create",     PhosphorTheme.Coral),
-        new(7, "ainbox",   "AINBOX",   "INTAKE",  "Pod + Handoff Scroll","distribute", PhosphorTheme.Seal)
+        new(7, "ainbox",   "AINBOX",   "INTAKE",  "Sends captures as a handoff","distribute", PhosphorTheme.Seal)
     };
 
     public bool IsActive { get; private set; }

@@ -133,10 +133,29 @@ internal sealed class PcSetupForm : Form
         InvGroup.Services => "BACKGROUND SERVICES",
         InvGroup.Apps => "INSTALLED SOFTWARE",
         InvGroup.Endpoints => "LOCAL ENDPOINTS",
-        InvGroup.Gear => "GEAR // WHAT YOUR AGENTS CAN SEE",
+        InvGroup.Gear => "DEVICES // WHAT YOUR AGENTS CAN SEE",
         InvGroup.Hardware => "PC HARDWARE // WHAT YOUR AGENTS CAN SEE",
         _ => "FIRMWARE // WHAT YOUR AGENTS CAN SEE"
     };
+
+    /// <summary>The count row's name for a group: the heading's first words, so the two read as the same thing.</summary>
+    internal static string CountLabel(InvGroup g) => g switch
+    {
+        InvGroup.Engines => "MODELS AND ENGINES",
+        InvGroup.Mcp => "MCP SERVERS",
+        InvGroup.OnThisPc => "APPS TO CONNECT",
+        InvGroup.Cli => "COMMAND LINE TOOLS",
+        InvGroup.Services => "SERVICES",
+        InvGroup.Apps => "INSTALLED SOFTWARE",
+        InvGroup.Endpoints => "LOCAL ENDPOINTS",
+        InvGroup.Gear => "DEVICES",
+        InvGroup.Hardware => "PC HARDWARE",
+        _ => "FIRMWARE"
+    };
+
+    /// <summary>What a row is, in plain words: the Omnitek tag's kind (service, MCP server, App), never its canon type.</summary>
+    internal static string PlainKind(OmnitekTag tag) =>
+        tag.Sub.Length > 0 ? char.ToUpperInvariant(tag.Sub[0]) + tag.Sub[1..] : tag.Type == "Gear" ? "Device" : tag.Type;
 
     /// <summary>Lists an inventory (also the render path, which hands one in).</summary>
     public void ShowInventory(PcInventory inventory)
@@ -144,12 +163,12 @@ internal sealed class PcSetupForm : Form
         Inventory = inventory;
         int ready = inventory.Items.Count(i => i.Action == InvAction.Connect);
         string unfinished = inventory.Unfinished.Count > 0 ? $" Not finished: {string.Join(", ", inventory.Unfinished)}." : "";
-        SetStatus($"Found {inventory.Items.Count} things in {inventory.Took.TotalSeconds:0.0} s, {ready} ready to connect. Nothing connects without your OK.{unfinished}");
-        var types = inventory.CountsByType;
+        SetStatus($"Found {inventory.Items.Count} items on this PC, {ready} ready to connect. Nothing connects without your OK.{unfinished}");
+        // One count per list group below, under the same name, so every number points at rows the user can see.
         var leds = new List<(Color, string)>();
-        foreach (var (type, color) in new[] { ("Gear", PhosphorTheme.Ember), ("Artifact", PhosphorTheme.Coral), ("Mod", PhosphorTheme.Patina), ("Machina", PhosphorTheme.Seal), ("No canon home", PhosphorTheme.Ghost) })
-            if (types.TryGetValue(type, out int n)) leds.Add((color, $"{type.ToUpperInvariant()} {n}"));
-        leds.Add((PhosphorTheme.Moss, $"IN YOUR VAULT {inventory.VaultConnections}"));
+        foreach (var g in inventory.Items.GroupBy(i => i.Group).OrderBy(g => g.Key))
+            leds.Add((Actionable.Contains(g.Key) ? PhosphorTheme.Patina : PhosphorTheme.Dim, $"{CountLabel(g.Key)} {g.Count()}"));
+        leds.Add((PhosphorTheme.Moss, $"SAVED IN YOUR VAULT {inventory.VaultConnections}"));
         _counts.Set(leds.ToArray());
         _counts.Height = Math.Max(22, _counts.HeightFor(Math.Max(200, ClientSize.Width - Padding.Horizontal)));
 
@@ -216,7 +235,7 @@ internal sealed class PcSetupForm : Form
                 _ => (PhosphorTheme.Ghost, "Not found")
             });
         if (item.Version.Length > 0) leds.Add((PhosphorTheme.Ghost, char.IsDigit(item.Version[0]) ? "v" + item.Version : item.Version));
-        leds.Add((item.Tag.Canon ? PhosphorTheme.Dim : PhosphorTheme.Ghost, item.Tag.Text));
+        leds.Add((PhosphorTheme.Dim, PlainKind(item.Tag)));
         if (item.InVault) leds.Add((PhosphorTheme.Patina, "In your vault"));
 
         // A connected MCP server says whether answers use its tools yet, never just "connected".
