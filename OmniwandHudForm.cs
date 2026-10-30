@@ -23,7 +23,7 @@ public sealed class OmniwandHudForm : Form
     private const int AnswerMaxHeight = 520;
 
     private const string ShortcutsText =
-        "Actions Ring casts the eight GrimX Spell slots.\n" +
+        "Actions Ring casts your eight Spell slots.\n" +
         "F15 or Ctrl+Shift+Space opens the fallback orb.\n" +
         "F16 streams the GhostTrailer ribbon (Alt+V for it is planned, not bound yet).\n" +
         "Ctrl+Alt+W opens Wiz. Ctrl+Alt+I opens AInbox.";

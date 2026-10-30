@@ -40,7 +40,7 @@ internal sealed class PcSetupForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "PcSetup";
-        Text = "Your ArkStation";
+        Text = "Your PC";
         Size = new Size(680, 760);
         Padding = WidgetChrome.FramePadding();
 
@@ -56,7 +56,7 @@ internal sealed class PcSetupForm : Form
         Controls.Add(WidgetChrome.Spacer(PhosphorTheme.S1));
         Controls.Add(_status);
         Controls.Add(WidgetChrome.Spacer(6));
-        WidgetChrome.Attach(this, "HOLODEX // INVENTORY // THIS PC", "Your ArkStation", PhosphorTheme.Patina, _scan);
+        WidgetChrome.Attach(this, "HOLODEX // INVENTORY // THIS PC", "Your PC", PhosphorTheme.Patina, _scan);
         WidgetDrag.Enable(this);
         ResumeLayout(false);
     }
@@ -285,7 +285,7 @@ internal sealed class PcSetupForm : Form
         {
             string said = await PcInventoryScan.ConnectAsync(item, _models);
             SetStatus(said);
-            PhosphorToast.Show(item.Label, said, "HOLODEX // YOUR ARKSTATION", 3600, ToastTone.Success);
+            PhosphorToast.Show(item.Label, said, "HOLODEX // YOUR PC", 3600, ToastTone.Success);
             await ScanAsync();
         }
         catch (Exception ex)

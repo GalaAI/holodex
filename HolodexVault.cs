@@ -434,7 +434,7 @@ internal static class HolodexVault
             problem = await PcSetupScan.CheckAsync(entry.ProviderId, ct);
         else if (entry.Kind == VaultKind.LocalService) problem = await LocalProbeAsync(entry.Url, ct);
         else if (entry.ProviderId == McpBridges.ProviderId)
-            problem = McpBridges.IsRunning(entry.Id) ? null : "not running in this session; connect it again from Your ArkStation";
+            problem = McpBridges.IsRunning(entry.Id) ? null : "not running in this session; connect it again from Your PC";
         else if (entry.Kind == VaultKind.McpServer) problem = (await ListMcpToolsAsync(entry, interactive: false, ct)).Problem;
         else if (provider?.Probe == null) problem = "unchecked";
         else

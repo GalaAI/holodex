@@ -101,7 +101,7 @@ public static class HolodexAgents
         new[] { TaskKind.Publish });
     public static readonly HolodexAgent Tutor = new("tutor", "Tutor", "Guided learning",
         new[] { TaskKind.Teach });
-    public static readonly HolodexAgent Oracle = new("oracle", "Oracle", "Codex questions and dispatch",
+    public static readonly HolodexAgent Oracle = new("oracle", "Oracle", "Library questions and dispatch",
         new[] { TaskKind.Search, TaskKind.Summarize });
 
     public static readonly IReadOnlyList<HolodexAgent> All = new[] { Gala, Wiz, Herald, Tutor, Oracle };

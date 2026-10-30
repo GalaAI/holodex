@@ -253,8 +253,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             ("session", "Session", PhosphorGlyph.Chat),
             ("ainbox",  "AInbox",  PhosphorGlyph.Inbox),
-            ("codex",   "Codex",   PhosphorGlyph.BookOpen),
-            ("grimx",   "GrimX",   PhosphorGlyph.Sparkles),
+            ("codex",   "Library", PhosphorGlyph.BookOpen),
+            ("grimx",   "Spells",  PhosphorGlyph.Sparkles),
             ("stats",   "Stats",   PhosphorGlyph.Stats),
             ("mods",    "Mods",    PhosphorGlyph.WandSparkles)
         };
@@ -446,7 +446,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
                         "Type a question below and press Enter. NVIDIA Nemotron answers here, and the card names the model.",
                         PhosphorGlyph.Sparkles),
                     _ => _sessionThread.Add(ThreadTone.Action, step.Kicker,
-                        "Your ArkStation finds the apps, local models, MCP servers and hardware on this PC and connects what Holodex can use.",
+                        "Your PC finds the apps, local models, MCP servers and hardware on this PC and connects what Holodex can use.",
                         PhosphorGlyph.Box)
                 };
                 card.Name = step.Name;
@@ -647,7 +647,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // A card per pod inbox in its zone accent: what the pod handles, then its channel and conductor as LEDs.
         var podBox = CardList("Holodex.PodInboxList");
         bool ark = ArkStationClient.ArkOnThisPc;
-        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Where AInbox sends a Scroll");
+        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Where AInbox sends a handoff");
         if (!ark)
         {
             // Public install: the destination table, built from what is connected (Holodex chat first).
@@ -1006,7 +1006,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _codexShown = entries;
         using var batch = _codexList.Batch();
         _codexList.Clear();
-        _codexList.AddSection("Codex // lasso captures and element picks");
+        _codexList.AddSection("Library // lasso captures and element picks");
         if (entries.Count == 0) _codexList.Add(ThreadTone.Intro, "None yet", ScreenSnipAndElementPickerForm.CodexEmptyStateText);
         foreach (var e in entries)
         {
@@ -1074,7 +1074,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }
         ShowCodexEntries(new[]
         {
-            new CodexCaptureEntry("codex:preview", "wand.element", "ArkStation: ArkStation // Holodex Drawer",
+            new CodexCaptureEntry("codex:preview", "wand.element", "Holodex // Drawer",
                 "A docked drawer with a tab for each part of Holodex. The active tab uses the coral aura; the Session composer sits on the Phosphor surface.",
                 "Chrome_WidgetWin_1", "270x184 @ (450,92)", "#79C4B7", "nvidia/Nemotron-3.5-Super-VL", null, DateTime.UtcNow.ToString("O"))
         });
@@ -1102,7 +1102,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }
         _sessionThread.Add(ThreadTone.You, "YOU // TO NEMOTRON", "What can Holodex do on this PC?");
         _sessionThread.Add(ThreadTone.Agent, "NEMOTRON 3 NANO // VIA HIVEMIND",
-            "Ask about anything on your screen, cut out a picture and ask about it, and send captures to AInbox. Your ArkStation lists the tools on this PC Holodex can connect.");
+            "Ask about anything on your screen, cut out a picture and ask about it, and send captures to AInbox. Your PC lists the tools on this PC Holodex can connect.");
     }
 
     private void RestoreSession()
@@ -1403,7 +1403,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             return;
         }
         _rosterError = null;
-        var live = new List<SyndicateAgentInfo> { new("all", "ALL SYNDICATE", "Gala orchestrates the group", "Hivemind", PhosphorTheme.Patina) };
+        var live = new List<SyndicateAgentInfo> { new("all", "ALL AGENTS", "Gala orchestrates the group", "Hivemind", PhosphorTheme.Patina) };
         live.AddRange(agents.OrderByDescending(a => a.DispatchReady).ThenBy(a => a.Id).Select(a => new SyndicateAgentInfo(
             a.Id,
             a.Name.ToUpperInvariant(),

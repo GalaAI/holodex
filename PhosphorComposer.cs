@@ -429,7 +429,7 @@ internal sealed class RailMark : Control
         BackColor = Color.Transparent;
         TabStop = false;
         Size = new Size(52, 52);
-        AccessibleName = "ArkStation";
+        AccessibleName = "Holodex";
         AccessibleRole = AccessibleRole.Graphic;
     }
 

@@ -247,7 +247,7 @@ internal sealed class PredictionCard : Control
 
         // Head: the question, who answered it, and Omnitek's read of the item type.
         StackPaint.Tracked(g, $"WHAT SHOULD {Group.Letter} BECOME // PREDICTED, STEER ANY TIME", 9.5f, PhosphorTheme.Ghost, x, 12f * s, this);
-        string who = Group.Refining ? "NEMOTRON 3 NANO // RE-RANKING" : Group.WhySource == "NEMOTRON" ? "RANKED BY NEMOTRON 3 NANO" : "RANKED BY OMNITEK";
+        string who = Group.Refining ? "NEMOTRON 3 NANO // RE-RANKING" : Group.WhySource == "NEMOTRON" ? "RANKED BY NEMOTRON 3 NANO" : "RANKED BY HOLODEX";
         float ww = StackPaint.MeasureTracked(g, who, 9f, this);
         StackPaint.Tracked(g, who, 9f, Group.WhySource == "NEMOTRON" || Group.Refining ? PhosphorTheme.Patina : PhosphorTheme.Ghost, Width - x - ww, 12f * s, this);
         StackPaint.Tracked(g, OmnitekLine, 9f, PhosphorTheme.Dim, x, 30f * s, this, 0.9f);
@@ -298,8 +298,8 @@ internal sealed class PredictionCard : Control
         y += 24f * s;
         if (Group.Synthesis.Length > 0 || Group.Refining)
         {
-            StackPaint.Tracked(g, "OMNITEK // SYNTHESIS", 9f, PhosphorTheme.Ghost, x, y, this);
-            if (Group.Refining) StackPaint.Dots(g, x + StackPaint.MeasureTracked(g, "OMNITEK // SYNTHESIS", 9f, this) + 8f * s, y + 3f * s, this, _phase);
+            StackPaint.Tracked(g, "HOLODEX // SYNTHESIS", 9f, PhosphorTheme.Ghost, x, y, this);
+            if (Group.Refining) StackPaint.Dots(g, x + StackPaint.MeasureTracked(g, "HOLODEX // SYNTHESIS", 9f, this) + 8f * s, y + 3f * s, this, _phase);
             y += 16f * s;
             if (Group.Synthesis.Length > 0) y += StackPaint.Wrapped(g, Group.Synthesis, 12f, PhosphorTheme.Bone, new RectangleF(x, y, w, Height - y), this) + 4f * s;
         }

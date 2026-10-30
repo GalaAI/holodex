@@ -107,7 +107,7 @@ public sealed partial class HolodexLiteDrawerForm
         _hivemindThread.Visible = false;
         _sessionThread.Visible = true;
         _openInHivemindBtn.Visible = false;
-        _sessionInputBox.Prompt = "Message the Syndicate. /order queues a work order.";
+        _sessionInputBox.Prompt = "Message your agents. /order queues a work order.";
     }
 
     /// <summary>Reads the open Session and redraws its cards when anything changed (new message, new status).</summary>

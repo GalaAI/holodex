@@ -289,8 +289,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
             CodexSaved = entry =>
             {
                 _holodexDrawer?.RefreshCodexEntries();
-                PhosphorToast.Show("Saved to Codex", entry.Title, "WIZ // CODEX", 2600, ToastTone.Success);
-                _progression?.Activity(Skill.Learning, "Saved to Codex: " + entry.Title);
+                PhosphorToast.Show("Saved to Library", entry.Title, "WIZ // LIBRARY", 2600, ToastTone.Success);
+                _progression?.Activity(Skill.Learning, "Saved to Library: " + entry.Title);
             }
         });
         // A public install has no AInbox service, so every sender's Scrolls save on this PC.
@@ -364,7 +364,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // the tray icon and stays open until a click outside it, Esc, a click on the icon, or a row that does
         // something (PhosphorTrayMenu). Add closes after the row runs; AddSetting keeps the menu open.
         var home = new TrayPage();
-        var titleItem = new PhosphorMenuHeader($"YOUR ARKSTATION // {HolodexVersion.Display.ToUpperInvariant()}", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
+        var titleItem = new PhosphorMenuHeader($"HOLODEX // {HolodexVersion.Display.ToUpperInvariant()}", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
         _trayTitle = titleItem;
         home.Add(titleItem);
 
@@ -412,7 +412,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         vaultItem.Click += (_, _) => _vault.Summon(GetCursorPoint());
 
         // Your ArkStation: the whole-PC scan (software, services, engines, MCP servers, hardware) and its connections.
-        var arkStationItem = home.Add(new ToolStripMenuItem("Your ArkStation") { Name = "Tray.YourArkStation", ToolTipText = "Scan this PC and connect what Holodex can use." });
+        var arkStationItem = home.Add(new ToolStripMenuItem("Your PC") { Name = "Tray.YourArkStation", ToolTipText = "Scan this PC and connect what Holodex can use." });
         arkStationItem.Click += (_, _) => OpenYourArkStation();
 
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
@@ -1426,7 +1426,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
                 case WandSpellGestureKind.CircleLoop:
                     PhosphorToast.Show(
-                        "MUTATION · GRIMX SPELL CAST",
+                        "MUTATION · SPELL CAST",
                         "Circle: casting your slot 1 Spell on the target under the cursor.",
                         "WAND SPELL // CIRCLE LOOP",
                         2800,
@@ -1542,7 +1542,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             {
                 var pick = SpellPicks.Get(slot.Id);
                 string spell = pick?.Name ?? System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slot.Title.ToLowerInvariant());
-                string eyebrow = $"GRIMX SPELL // {slot.Verb}";
+                string eyebrow = $"SPELL // {slot.Verb}";
                 // A cast can run for many seconds (the bound action finishes before Spine answers), so say it started.
                 PhosphorToast.Show($"Casting {spell}", "Waiting for the Spell to finish.", eyebrow, 60000, ToastTone.Info);
                 var (outcome, message) = await _ark.TriggerGrimXFlowAsync(slot.Id, slot.Verb, pt, _currentRole.ToString(), pick?.Slug);

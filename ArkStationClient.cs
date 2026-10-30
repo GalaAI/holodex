@@ -823,8 +823,8 @@ public sealed class ArkStationClient
         bool isNemotronSelected = IsNemotronModel(selected);
 
         string wizSystem =
-            "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance Agent inside Holodex. " +
-            "Focus strictly on GrimX Spells. Spell kinds: Quick Cast (Cast), Combo (Chain), Ritual (Perform, scheduled or long-running), Symphony (Conduct), Ultima (Pursue), Charm (Bind), and Summon (Summon). " +
+            "You are Wiz, the planning agent inside Holodex. " +
+            "Focus strictly on Spells. Spell kinds: Quick Cast (Cast), Combo (Chain), Ritual (Perform, scheduled or long-running), Symphony (Conduct), Ultima (Pursue), Charm (Bind), and Summon (Summon). " +
             $"Active Spell type: {SpellTypeName(flowKind)}.\n\nOperator Request: {prompt}";
 
         if (!ForceStandaloneMode && !isNemotronSelected)
@@ -1054,19 +1054,19 @@ public sealed class ArkStationClient
         string ext = Path.GetExtension(fileName ?? string.Empty).TrimStart('.').ToLowerInvariant();
 
         if (combined.Contains("ultima") || combined.Contains("deluge"))
-            return new("flow", "ultima", "high", "Detected GrimX Ultima keywords.", "forge");
+            return new("flow", "ultima", "high", "Detected Ultima keywords.", "forge");
         if (combined.Contains("symphony") || combined.Contains("orchestra"))
-            return new("flow", "symphony", "high", "Detected GrimX Symphony keywords.", "forge");
+            return new("flow", "symphony", "high", "Detected Symphony keywords.", "forge");
         if (combined.Contains("ritual") || combined.Contains("schedule") || combined.Contains("cron"))
-            return new("flow", "ritual", "high", "Detected GrimX Ritual keywords.", "forge");
+            return new("flow", "ritual", "high", "Detected Ritual keywords.", "forge");
         if (combined.Contains("charm") || combined.Contains("relic") || combined.Contains("enchant"))
-            return new("flow", "charm", "high", "Detected GrimX Charm keywords.", "forge");
+            return new("flow", "charm", "high", "Detected Charm keywords.", "forge");
         if (combined.Contains("summon") || combined.Contains("drone") || combined.Contains("clone"))
-            return new("flow", "summon", "high", "Detected GrimX Summon keywords.", "forge");
+            return new("flow", "summon", "high", "Detected Summon keywords.", "forge");
         if (combined.Contains("combo") || combined.Contains("chain"))
-            return new("flow", "combo", "high", "Detected GrimX Combo keywords.", "forge");
+            return new("flow", "combo", "high", "Detected Combo keywords.", "forge");
         if (combined.Contains("spell") || combined.Contains("cast"))
-            return new("flow", "spell", "high", "Detected GrimX Quick Cast keywords.", "forge");
+            return new("flow", "spell", "high", "Detected Quick Cast keywords.", "forge");
 
         if (ext is "tsx" or "jsx" or "css" || combined.Contains("component") || combined.Contains("phosphor") || combined.Contains("widget"))
             return new("augment", "component", "high", "Detected Phosphor UI Component source or widget reference.", "forge");
@@ -1277,7 +1277,7 @@ public sealed class ArkStationClient
             return new ModelAnswer(false, $"{localId} is not a local model id.", localId, RouteLocal);
         var provider = Models.Providers.FirstOrDefault(p => string.Equals(p.Id, providerId, StringComparison.OrdinalIgnoreCase));
         if (provider == null)
-            return new ModelAnswer(false, $"{providerId} is not connected on this PC. Connect it in Your ArkStation.", modelId, RouteLocal);
+            return new ModelAnswer(false, $"{providerId} is not connected on this PC. Connect it in Your PC.", modelId, RouteLocal);
         if (!string.IsNullOrEmpty(imageDataUrl) && !ReadsImages(modelId) && !modelId.Contains("llava", StringComparison.OrdinalIgnoreCase))
             return new ModelAnswer(false, $"{ModelChip.ShortName(modelId)} reads text only. Pick a vision model, or ask without the screen.", modelId, RouteLocal);
         try

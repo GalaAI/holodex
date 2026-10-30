@@ -528,7 +528,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         var d = _ark.AutoDetectOmnitekItem(g.Items.FirstOrDefault(i => i.Path != null)?.Path ?? g.Items.FirstOrDefault()?.Name,
             string.Join("\n", g.Items.Select(i => i.Text ?? i.Url ?? "")), AskFor(g));
         string item = string.IsNullOrEmpty(d.ItemSubtype) ? d.ItemType : $"{d.ItemType} // {d.ItemSubtype.Replace('-', ' ')}";
-        return $"OMNITEK // {g.Label} // {item} // {d.Confidence}".ToUpperInvariant();
+        return $"SORTED // {g.Label} // {item} // {d.Confidence}".ToUpperInvariant();
     }
 
     private void SetActive(int index)
@@ -633,7 +633,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         if (_undoTimer == null && !_working) _sendBtn.Text = _queue.LocalOnly ? $"Send {g.Letter}" : $"Send {g.Letter} to {pod.Label}";
 
         var fields = FieldsOf(g);
-        _summary.Kicker = $"SCROLL {g.Letter} // {shape.Kicker}";
+        _summary.Kicker = $"HANDOFF {g.Letter} // {shape.Kicker}";
         _summary.Sentence = $"{fields.FirstOrDefault(f => f.Value.Length > 0)?.Value ?? shape.Label} {(_queue.LocalOnly ? $"Goes to {_destination.Label}." : $"Receipt from {orch}.")}";
         _summary.Accent = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _summary.Muted = !HasAnything;
@@ -676,7 +676,7 @@ public sealed class AInboxIntakeWidgetForm : Form
             }
             : pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
         _scroll.Title = shape.Label;
-        _scroll.Eyebrow = $"Scroll // Handoff // Stack {g.Letter} // Drafted by Scribe";
+        _scroll.Eyebrow = $"Handoff // Stack {g.Letter}";
         _scroll.Alt = _queue.LocalOnly ? $"to {_destination.Label}" : $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
         _scroll.Board = "";
         _scroll.Edge = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
@@ -844,7 +844,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _sendBtn.Enabled = false;
         _working = true;
         _setThinkingState(true);
-        SetStatus($"WRITING SCROLL {g.Letter} // QUEUEING FOR AINBOX", PhosphorTheme.Patina);
+        SetStatus($"WRITING HANDOFF {g.Letter} // QUEUEING FOR AINBOX", PhosphorTheme.Patina);
         try
         {
             string ask = AskFor(g).Trim();
@@ -871,9 +871,9 @@ public sealed class AInboxIntakeWidgetForm : Form
             {
                 string saved = await _queue.SaveLocallyAsync(draft);
                 SetStatus($"SAVED {g.Letter} // DOCUMENTS\\HOLODEX\\SCROLLS // sha256:{seal[..12]}", PhosphorTheme.Moss);
-                PhosphorToast.Show("Scroll saved",
+                PhosphorToast.Show("Handoff saved",
                     $"{Path.GetFileName(saved)} is sealed sha256:{seal[..12]} and saved in Documents\\Holodex\\Scrolls.",
-                    "AINBOX // SCROLL", 4200, ToastTone.Success);
+                    "AINBOX // HANDOFF", 4200, ToastTone.Success);
                 ClearSent(g);
                 return;
             }
@@ -884,8 +884,8 @@ public sealed class AInboxIntakeWidgetForm : Form
             SetStatus($"{head} // sha256:{seal[..12]}", delivered ? PhosphorTheme.Moss : PhosphorTheme.Seal);
             PhosphorToast.Show(delivered ? "Intake submitted" : "Intake queued",
                 delivered
-                    ? $"Handoff Scroll sent to {pod.Label} and its inbox pulsed. Seal sha256:{seal[..12]}."
-                    : $"AInbox is not ready, so the Handoff Scroll waits on disk and retries. Seal sha256:{seal[..12]}.",
+                    ? $"Handoff sent to {pod.Label} and its inbox pulsed. Seal sha256:{seal[..12]}."
+                    : $"AInbox is not ready, so the handoff waits on disk and retries. Seal sha256:{seal[..12]}.",
                 ArkStationClient.ArkOnThisPc ? $"AINBOX // POD {pod.PodId.ToUpperInvariant()}" : $"AINBOX // {pod.Label.ToUpperInvariant()}", 3600, delivered ? ToastTone.Success : ToastTone.Info);
             ClearSent(g);
         }

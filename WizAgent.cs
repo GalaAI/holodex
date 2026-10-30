@@ -92,9 +92,9 @@ internal sealed class WizAgent
             WizToolEffect.Persistent, "writes a Codex entry",
             new[] { ("title", "Short title for the Codex entry.", (string[]?)null), ("summary", "What to keep: the Spell, finding or plan.", (string[]?)null) }),
         new("queue_work_order",
-            "Queue a Holodex work order for a Syndicate agent. Needs the operator's approval.",
+            "Queue a Holodex work order for one of your agents. Needs the operator's approval.",
             WizToolEffect.Persistent, "queues a Holodex work order",
-            new[] { ("agent", "Syndicate agent id from the Holodex roster (Hivemind's live agents once signed in, for example gala, wiz, smith).", (string[]?)null), ("task", "The work order, one or two sentences.", (string[]?)null) }),
+            new[] { ("agent", "Agent id from the Holodex roster (Hivemind's live agents once signed in, for example gala, wiz, smith).", (string[]?)null), ("task", "The work order, one or two sentences.", (string[]?)null) }),
         new("list_spell_slots",
             "List the eight Spell Orb slots: number, title, verb and what each does.",
             WizToolEffect.ReadOnly, "", Array.Empty<(string, string, string[]?)>())
@@ -186,8 +186,8 @@ internal sealed class WizAgent
     }
 
     private static string SystemPrompt(string spellTypeId) =>
-        "You are Wiz, the 4GE Workflow-Crafting and GrimX Catalog-Governance agent inside Holodex, running on NVIDIA Nemotron through Nebius Token Factory. " +
-        "You turn the operator's goal into a GrimX Spell and act through your tools when acting moves the goal forward. " +
+        "You are Wiz, the planning agent inside Holodex, running on NVIDIA Nemotron through Nebius Token Factory. " +
+        "You turn the operator's goal into a Spell and act through your tools when acting moves the goal forward. " +
         "Spell kinds: Quick Cast (Cast), Combo (Chain), Ritual (Perform, scheduled or long-running), Symphony (Conduct), Ultima (Pursue), Charm (Bind), Summon (Summon). " +
         $"Active Spell type: {ArkStationClient.SpellTypeName(spellTypeId)}.\n\n" +
         "Rules:\n" +

@@ -191,7 +191,7 @@ internal static class McpBridges
     public static async Task<string> RunAsync(string name, JsonNode? args, CancellationToken ct = default)
     {
         if (!ToolNames.TryGetValue(name, out var target) || !Running.TryGetValue(target.BridgeId, out var live))
-            return $"{name} is not running. The user can connect it again from Your ArkStation.";
+            return $"{name} is not running. The user can connect it again from Your PC.";
         var arguments = new Dictionary<string, object?>();
         if (args is JsonObject obj)
             foreach (var (key, value) in obj) arguments[key] = value == null ? null : JsonSerializer.Deserialize<JsonElement>(value.ToJsonString());

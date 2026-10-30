@@ -303,9 +303,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             new Point(416, 210), new Point(340, 268), new Point(110, 262), new Point(68, 180)
         });
         _hoveredElementRect = new Rectangle(450, 92, 270, 184);
-        _hoveredTitle = "ArkStation // Holodex Drawer";
+        _hoveredTitle = "Holodex // Drawer";
         _hoveredClass = "Chrome_WidgetWin_1";
-        _hoveredProcess = "ArkStation";
+        _hoveredProcess = "Holodex";
         _hoveredHex = "#79C4B7";
         _hoveredPixelColor = PhosphorTheme.Patina;
     }
@@ -412,7 +412,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         {
             _telemetryLabel.Set((PhosphorTheme.Moss, "Lasso ready"), (PhosphorTheme.Ghost, $"{_lassoPoints.Count} pts"), (PhosphorTheme.Ghost, $"{_selectionRect.Width}x{_selectionRect.Height} px"));
             ShowAnswer(ThreadTone.Agent, AnswerKicker(_visionModel),
-                "A Holodex drawer on the Session tab. The roster line wraps onto two rows; the Send to all button names its target. Next: open Codex to check the saved picks.");
+                "A Holodex drawer on the Session tab. The roster line wraps onto two rows; the Send to all button names its target. Next: open Library to check the saved picks.");
         }
         else
         {
@@ -1025,7 +1025,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         string dataUrl = RenderSelectionDataUrl(out string renderError);
         if (string.IsNullOrEmpty(dataUrl))
         {
-            PhosphorToast.Show("Nothing to save", renderError, "HOLODEX // CODEX", 2600, ToastTone.Warning);
+            PhosphorToast.Show("Nothing to save", renderError, "HOLODEX // LIBRARY", 2600, ToastTone.Warning);
             return;
         }
         string chosenModel = _visionModel;
@@ -1047,9 +1047,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         if (!SaveCodexEntryToDisk(entry, out string saveError))
         {
             PhosphorToast.Show(
-                "Codex save failed",
+                "Library save failed",
                 $"Could not write {CodexLogPath}: {saveError}",
-                "HOLODEX // CODEX",
+                "HOLODEX // LIBRARY",
                 5200,
                 ToastTone.Error);
             return;
@@ -1057,9 +1057,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         _onCodexSaved?.Invoke(entry);
 
         PhosphorToast.Show(
-            "Saved to Codex",
-            $"Stored {entry.Title} ({entry.Geometry}, palette {entry.HexColor}) in Holodex Codex.",
-            "HOLODEX // CODEX",
+            "Saved to Library",
+            $"Stored {entry.Title} ({entry.Geometry}, palette {entry.HexColor}) in your Holodex Library.",
+            "HOLODEX // LIBRARY",
             3200,
             ToastTone.Success);
     }
@@ -1067,7 +1067,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     public static string CodexLogPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "codex-entries.jsonl");
 
-    public const string CodexEmptyStateText = "Nothing saved yet. Lasso something and press Save to Codex.";
+    public const string CodexEmptyStateText = "Nothing saved yet. Lasso something and press Save to Library.";
 
     public static bool SaveCodexEntryToDisk(CodexCaptureEntry entry) => SaveCodexEntryToDisk(entry, out _);
 

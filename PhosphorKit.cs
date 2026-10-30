@@ -1148,9 +1148,9 @@ internal sealed class SpecCardPanel : Panel
 {
     private const int HeadPx = 184;
 
-    public string Eyebrow { get; set; } = "Augment // Scroll // Handoff";
+    public string Eyebrow { get; set; } = "AInbox // Handoff";
     public string Code { get; set; } = "SC01";
-    public string Title { get; set; } = "Handoff Scroll";
+    public string Title { get; set; } = "Handoff";
     public string Alt { get; set; } = "Plain alternative // Work order";
     public string Status { get; set; } = "Draft";
     public PhosphorBadgeState StatusState { get; set; } = PhosphorBadgeState.Unstated;
@@ -1182,7 +1182,7 @@ internal sealed class SpecCardPanel : Panel
         base.OnMouseClick(e);
         if (e.Button != MouseButtons.Left || Seal.Length == 0 || !_barcodeRect.Contains(e.Location)) return;
         try { Clipboard.SetText("sha256:" + Seal); } catch { return; }
-        PhosphorToast.Show("Seal copied", "sha256:" + Seal, "HANDOFF SCROLL // SEAL", 2400, ToastTone.Success);
+        PhosphorToast.Show("Seal copied", "sha256:" + Seal, "HANDOFF // SEAL", 2400, ToastTone.Success);
     }
 
     protected override void OnHandleCreated(EventArgs e)

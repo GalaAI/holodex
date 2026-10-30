@@ -245,7 +245,7 @@ internal sealed class StackGroup
     public string ChosenIntent { get; set; } = "fix";
     public bool ChosenByHand { get; set; }
     public string Why { get; set; } = "";
-    public string WhySource { get; set; } = "OMNITEK";
+    public string WhySource { get; set; } = "HOLODEX";
     public string Synthesis { get; set; } = "";
     public Dictionary<string, ScrollField> Fields { get; } = new();
     public string FieldsIntent { get; set; } = "";
@@ -359,7 +359,7 @@ internal static class IntentRanker
             .OrderByDescending(o => o.Score).ToList();
         if (!g.ChosenByHand) g.ChosenIntent = g.Ranking[0].Intent.Id;
         g.Why = reasons.Count > 0 ? string.Join(" + ", reasons.Take(3)) : "nothing specific yet; steer it";
-        g.WhySource = "OMNITEK";
+        g.WhySource = "HOLODEX";
     }
 }
 
@@ -456,7 +456,7 @@ internal static class StackRefiner
     public static async Task<bool> RefineAsync(StackGroup g, string intentText, ArkStationClient ark, CancellationToken ct)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("You are Omnitek, the intake classifier inside ArkStation's AInbox. A user stacked these captures as one group.");
+        sb.AppendLine("You are the intake classifier inside Holodex AInbox. A user stacked these captures as one group.");
         foreach (var it in g.Items)
         {
             string text = AegisScanner.Redact(it.TextForAnalysis() ?? "");

@@ -72,7 +72,7 @@ public static class WizOnboardingEngine
         {
             schema = "ark.bamf.agent/v1",
             id = "agent:omniwand:wiz-conductor",
-            title = "Holodex Desktop Augment & Wiz Conductor",
+            title = "Holodex and Wiz",
             owner = "wiz",
             faction = "syndicate",
             provisionedAt = DateTime.UtcNow.ToString("O"),
@@ -111,7 +111,7 @@ public static class WizOnboardingEngine
                 "# Wiz // Holodex Desktop Conductor\n\n" +
                 $"Auto-provisioned for **{mouse.Brand} {mouse.Model}** (`{mouse.VidPid}`).\n" +
                 "- **Ctrl+Alt+Space**: Summon Holodex HUD\n" +
-                "- **Ctrl+Alt+H**: Open the Holodex drawer (Session, AInbox, Codex, GrimX, Mods)\n" +
+                "- **Ctrl+Alt+H**: Open the Holodex drawer (Session, AInbox, Library, Spells, Mods)\n" +
                 "- **Ctrl+Alt+S**: Free-Form Lasso & Live Vision Annotator\n" +
                 "- **Ctrl+Alt+E**: Desktop Element Picker (`wand.point` / `wand.palette` / `wand.architect`)\n" +
                 "- **Ctrl+Alt+W**: Wiz Crafting Thread\n");
@@ -247,7 +247,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
             new(3,
                 "LASSO // SEE",
                 "Circle it, then ask about it",
-                "Press Ctrl+Alt+S and draw around anything on screen. Ink on it to point, then Analyze to send the region to a vision model or Save to keep it in Codex.",
+                "Press Ctrl+Alt+S and draw around anything on screen. Ink on it to point, then Analyze to send the region to a vision model or Save to keep it in your Library.",
                 "Try the lasso",
                 PhosphorTheme.Patina,
                 openSnipLasso,

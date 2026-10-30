@@ -103,7 +103,7 @@ internal static class HandoffDestinations
                 {
                     var ask = await ark.Hivemind.AskAgentAsync(null, "gala", scroll, Guid.NewGuid(), title, ct);
                     return ask == null
-                        ? (false, ark.Hivemind.LastError.Length > 0 ? ark.Hivemind.LastError : "Hivemind did not take the Scroll.", "HIVEMIND")
+                        ? (false, ark.Hivemind.LastError.Length > 0 ? ark.Hivemind.LastError : "Hivemind did not take the handoff.", "HIVEMIND")
                         : (true, $"Posted to a new Hivemind Session ({ask.Status}). Gala answers there; open it from Sessions.", "HIVEMIND // GALA");
                 }
                 case DestinationKind.Anthropic:
