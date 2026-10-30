@@ -90,30 +90,7 @@ public sealed class ArkStationClient
         "nvidia/Nemotron-3-Ultra-550b-a55b"
     };
 
-    /// <summary>The pod inboxes this install shows: Ark's own names with an Ark, plain public names without one.</summary>
-    public static IReadOnlyList<ArkPodInboxInfo> PodInboxes => _podInboxes ?? ArkPodInboxes;
-    private static IReadOnlyList<ArkPodInboxInfo>? _podInboxes;
-
-    /// <summary>Public names for a Holodex with no Ark. Pod ids stay the same, so routing and stored handoffs carry over.</summary>
-    private static readonly IReadOnlyList<ArkPodInboxInfo> PublicPodInboxes = new List<ArkPodInboxInfo>
-    {
-        new("nexus", "Command", "inbox:command", "gala", "Gala (Orchestrator)", "operate", "patina",
-            "Routes requests, keeps the record, and coordinates the other agents."),
-        new("eden", "Systems", "inbox:systems", "arbiter", "Arbiter (Infrastructure)", "operate", "patina",
-            "Servers, deployments, worktrees, and environment setup."),
-        new("cortex", "Research", "inbox:research", "scholar", "Scholar (Research)", "operate", "patina",
-            "Deep research, source synthesis, datasets, and notes."),
-        new("magixlab", "Media", "inbox:media", "muse", "Muse (Creative)", "create", "coral",
-            "Images, video, motion studies, and visual references."),
-        new("forge", "Build", "inbox:build", "wiz", "Wiz (Crafting)", "create", "coral",
-            "Code, GrimX Spells, mouse macros, and reusable tools."),
-        new("anvl", "Fabrication", "inbox:fabrication", "fabrix", "Fabrix (Hardware)", "create", "coral",
-            "Hardware, CAD, 3D print jobs, and physical builds."),
-        new("bazaar", "Publish", "inbox:publish", "herald", "Herald (Distribution)", "distribute", "seal",
-            "Publishing, sharing, and distribution to other channels.")
-    };
-
-    private static readonly IReadOnlyList<ArkPodInboxInfo> ArkPodInboxes = new List<ArkPodInboxInfo>
+    public static readonly IReadOnlyList<ArkPodInboxInfo> PodInboxes = new List<ArkPodInboxInfo>
     {
         new("nexus", "Nexus", "ainbox:pod:nexus", "gala", "Gala (Co-op Orchestrator)", "operate", "patina",
             "Command control, Veritas canon records, Aegis gates, and Hivemind session routing."),
@@ -144,7 +121,6 @@ public sealed class ArkStationClient
             ? arkRoot
             : DefaultArkRoot;
         SelectedModel = DefaultNemotronFastModel;
-        _podInboxes = ArkInstalled ? ArkPodInboxes : PublicPodInboxes;
     }
 
     public bool ForceStandaloneMode =>
@@ -1268,12 +1244,7 @@ public sealed class ArkStationClient
         string targetAgentName,
         string targetAgentRole)
     {
-        string syndicatePrompt = targetAgentId == "all" && !ArkInstalled
-            ? "You are role-playing the Holodex agent team in its offline session (Hivemind is not connected). " +
-              "Reply with 2 concise, distinct in-character turns from the most relevant agents " +
-              "(choose from GALA // Orchestrator, WIZ // GrimX & Mouse Macros, SMITH // Architecture & Code, ARBITER // Infrastructure, SCHOLAR // Research, MUSE // Visual & Motion). " +
-              $"Format each turn as 'AGENT_NAME // ROLE:\\n<concise actionable response>'.\n\nOperator message: {message}"
-            : targetAgentId == "all"
+        string syndicatePrompt = targetAgentId == "all"
             ? "You are role-playing the ArkStation Syndicate in Holodex's offline session (Hivemind is not connected). " +
               "Reply with 2 concise, distinct in-character turns from the most relevant Syndicate conductors " +
               "(choose from GALA // Co-op Orchestrator, WIZ // GrimX & Mouse Macro Conductor, SMITH // Architecture & Code Authority, ARBITER // Eden & SolaTree Conductor, SCHOLAR // Cortex Research, MUSE // MagiXLab Visuals). " +
