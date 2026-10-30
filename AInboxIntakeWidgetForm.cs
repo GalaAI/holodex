@@ -153,22 +153,22 @@ public sealed class AInboxIntakeWidgetForm : Form
         _sendBtn = new PhosphorButton("Send", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 210, Name = "AInbox.SubmitButton" };
         _sendBtn.Click += (_, _) => OnSendClicked();
         footer.Controls.Add(lines);
-        footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
-        footer.Controls.Add(_sendBtn);
         if (_queue.LocalOnly)
         {
             // Public install: the destination table (Holodex chat first, then what the user connected) replaces pods.
             _destinationBtn = new PhosphorButton($"To {_destination.Label}") { Dock = DockStyle.Right, Width = 220, Name = "AInbox.DestinationSelect" };
             _destinationBtn.Click += (_, _) => NextDestination();
-            footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = Color.Transparent });
+            footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 12, BackColor = Color.Transparent });
             footer.Controls.Add(_destinationBtn);
         }
+        footer.Controls.Add(new Panel { Dock = DockStyle.Right, Width = _queue.LocalOnly ? 8 : 12, BackColor = Color.Transparent });
+        footer.Controls.Add(_sendBtn);
 
         Controls.Add(_body);
         Controls.Add(WidgetChrome.Spacer(6));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 10, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? $"AINBOX // INTAKE // {ArkStationClient.PodInboxes.Count} PODS" : "AINBOX // INTAKE // SAVED ON THIS PC", "AInbox", PhosphorTheme.Seal, null);
+        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? $"AINBOX // INTAKE // {ArkStationClient.PodInboxes.Count} PODS" : "AINBOX // INTAKE // YOUR DESTINATIONS", "AInbox", PhosphorTheme.Seal, null);
         WidgetDrag.Enable(this);
 
         // Drops land anywhere; a leave settles after a beat so moving between targets does not flicker.

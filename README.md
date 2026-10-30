@@ -149,6 +149,13 @@ The **Vault** (Inventory // Adapters) connects the rest of your tools, with or w
 | An API key or an `ENV_NAME=value` line | Recognized by its prefix or name (OpenAI, Anthropic, Gemini, OpenRouter, GitHub, Stripe and more), or by asking each provider's read-only endpoint, then checked and stored in Credential Manager. Copy (clipboard clears after 30 s), Rotate in place, Check and Delete on every key. |
 | An MCP server link, or **Sign in** on a catalog card | The server's own OAuth sign-in (protected resource metadata, dynamic client registration, PKCE) in your browser: Linear, Notion, Figma, Canva, Vercel, Railway, Supabase, Cloudflare, Sentry, Stripe, PayPal, Webflow, Wix. Hugging Face needs no sign-in. |
 | **Connect** on a local service | Ollama, LM Studio or ComfyUI running on this PC. |
+| **Files** | A folder you pick (default `Documents\Holodex`). Nemotron gets `list_files`, `read_file` and `write_file` there; paths outside it are refused. |
+| **PC command line** | Nemotron gets `run_command` (PowerShell) to configure PC Mod and other mods. Every command opens an approval window with the exact command; nothing runs until you choose **Run**. |
+| **Google Drive** | Bring your own Google OAuth client: create a *Desktop app* client in [Google Cloud Credentials](https://console.cloud.google.com/apis/credentials), paste its downloaded JSON into the intake, then **Sign in**. Read-only Drive access; Nemotron gets `drive_search` and `drive_read`. Holodex ships no Google client or secret. |
+
+### AInbox destinations
+
+On a PC without an Ark, AInbox sends a Handoff Scroll to a **destination** instead of a pod. **Holodex chat** (NVIDIA Nemotron on Token Factory) is the default and always there; every chat agent you connect in the Vault joins the list (ChatGPT, Claude, Gemini, OpenRouter, Grok, Groq, DeepSeek, Mistral, Together, Fireworks, Cerebras, LM Studio, Ollama), plus **Hivemind** when you are signed in and **Save on this PC**. Pick one with the **To ...** button next to **Send**: the Scroll lands in the Holodex Session chat and the destination's answer appears under it. A sealed copy is kept in `Documents\Holodex\Scrolls` either way.
 
 ### Step 3: Connect to Hivemind (`Alt+H`) *(Optional Connected Mode)*
 
