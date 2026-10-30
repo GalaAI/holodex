@@ -1,22 +1,30 @@
 namespace Omniwand;
 
 /// <summary>
-/// Set up this PC: one row per local tool with what the scan found, one action (Connect, Open or Get it), and a
-/// single Scan again in the header. Missing tools also offer Install with winget, which runs only after the user
-/// approves the exact command. Connect writes the user's own Vault entry on this PC (<see cref="PcSetupScan"/>).
+/// Your ArkStation: what Holodex found on this PC, grouped (models and engines, MCP servers, apps it can connect,
+/// command line tools, services, installed software, local endpoints, gear, hardware and firmware). Each row shows its
+/// plain name first and its Omnitek type as a small tag. Rows that can join the user's own Vault carry one action
+/// (Connect, Open or Get it); large groups show a summary card that opens on demand; hardware and firmware are
+/// inventory only. A single Scan again sits in the header. Nothing connects or installs without the user's OK.
 /// </summary>
 internal sealed class PcSetupForm : Form
 {
+    private const int CollapseOver = 8;
+    private const int MaxRowsPerGroup = 150;
+
     private readonly ModelInventory? _models;
     private readonly DataLabel _status;
+    private readonly LedRow _counts;
     private readonly PhosphorButton _scan;
     private readonly ThreadView _list;
-    private Task<IReadOnlyList<PcToolResult>>? _scanning;
+    private readonly HashSet<InvGroup> _expanded = new();
+    private Task<PcInventory>? _scanning;
+    private InvGroup[]? _only;
 
     /// <summary>How the panel reads this PC; renders and tests swap it.</summary>
-    public Func<PcProbeEnv> Env { get; set; } = () => new PcProbeEnv();
+    public Func<PcInventoryEnv> Env { get; set; } = () => new PcInventoryEnv();
 
-    public IReadOnlyList<PcToolResult> Results { get; private set; } = Array.Empty<PcToolResult>();
+    public PcInventory Inventory { get; private set; } = PcInventory.Empty;
 
     public PcSetupForm(ModelInventory? models)
     {
@@ -32,25 +40,28 @@ internal sealed class PcSetupForm : Form
         BackColor = PhosphorTheme.Surface;
         ForeColor = PhosphorTheme.Bone;
         Name = "PcSetup";
-        Text = "Set up this PC";
-        Size = new Size(640, 720);
+        Text = "Your ArkStation";
+        Size = new Size(680, 760);
         Padding = WidgetChrome.FramePadding();
 
         _list = new ThreadView("PcSetup.List") { Dock = DockStyle.Fill, FollowNewest = false };
         _status = new DataLabel(IdleStatus) { Name = "PcSetup.Status", Height = 22 };
+        _counts = new LedRow { Name = "PcSetup.Counts", Dock = DockStyle.Top, Height = 22, Wrap = true };
         _scan = new PhosphorButton("Scan again") { Name = "PcSetup.ScanAgain", Width = 140, Height = 38 };
         _scan.Click += async (_, _) => await ScanAsync();
 
         Controls.Add(_list);
         Controls.Add(WidgetChrome.Spacer(PhosphorTheme.S2));
+        Controls.Add(_counts);
+        Controls.Add(WidgetChrome.Spacer(PhosphorTheme.S1));
         Controls.Add(_status);
         Controls.Add(WidgetChrome.Spacer(6));
-        WidgetChrome.Attach(this, "HOLODEX // ON THIS PC", "Set up this PC", PhosphorTheme.Patina, _scan);
+        WidgetChrome.Attach(this, "HOLODEX // INVENTORY // THIS PC", "Your ArkStation", PhosphorTheme.Patina, _scan);
         WidgetDrag.Enable(this);
         ResumeLayout(false);
     }
 
-    private const string IdleStatus = "Finds the tools on this PC. Nothing installs without your OK.";
+    private const string IdleStatus = "Finds what this PC can do. Nothing connects or installs without your OK.";
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
@@ -74,37 +85,35 @@ internal sealed class PcSetupForm : Form
         Activate();
     }
 
-    /// <summary>Scans (once at a time; a second call joins the running scan) and lists what was found.</summary>
-    public Task<IReadOnlyList<PcToolResult>> ScanAsync()
+    /// <summary>Scans (one at a time; a second call joins the running scan) and lists what was found.</summary>
+    public Task<PcInventory> ScanAsync()
     {
         if (_scanning is { IsCompleted: false } running) return running;
         _scanning = RunScanAsync();
         return _scanning;
     }
 
-    private async Task<IReadOnlyList<PcToolResult>> RunScanAsync()
+    private async Task<PcInventory> RunScanAsync()
     {
         _scan.Enabled = false;
-        SetStatus("Looking at this PC...");
-        if (Results.Count == 0)
-        {
+        SetStatus("Looking at this PC: software, services, engines, MCP servers, tools and hardware...");
+        if (Inventory.Items.Count == 0)
             using (_list.Batch())
             {
                 _list.Clear();
                 _list.AddPending("SCANNING // THIS PC", PhosphorGlyph.Sparkles);
             }
-        }
         try
         {
             var env = Env();
-            var results = await Task.Run(() => PcSetupScan.ScanAsync(env));
-            ShowResults(results);
-            return results;
+            var inventory = await Task.Run(() => PcInventoryScan.ScanAsync(env));
+            ShowInventory(inventory);
+            return inventory;
         }
         catch (Exception ex)
         {
             SetStatus($"The scan stopped: {ex.Message}");
-            return Results;
+            return Inventory;
         }
         finally
         {
@@ -112,90 +121,162 @@ internal sealed class PcSetupForm : Form
         }
     }
 
-    /// <summary>Lists scan results (also the render path, which hands in fixed results).</summary>
-    public void ShowResults(IReadOnlyList<PcToolResult> results)
+    private static readonly InvGroup[] InventoryOnly = { InvGroup.Gear, InvGroup.Hardware, InvGroup.Firmware };
+    private static readonly InvGroup[] Actionable = { InvGroup.Engines, InvGroup.Mcp, InvGroup.OnThisPc };
+
+    private static string Heading(InvGroup g) => g switch
     {
-        Results = results;
-        int found = results.Count(r => r.Found);
-        int ready = results.Count(r => r.InVault);
-        SetStatus(found == 0
-            ? "Nothing found yet. Get it opens each tool's own download page."
-            : $"Found {found} of {results.Count}{(ready > 0 ? $", {ready} in your vault" : "")}. Nothing installs without your OK.");
+        InvGroup.Engines => "MODELS AND ENGINES",
+        InvGroup.Mcp => "MCP SERVERS FROM YOUR OTHER AI APPS",
+        InvGroup.OnThisPc => "APPS HOLODEX CAN CONNECT",
+        InvGroup.Cli => "COMMAND LINE TOOLS",
+        InvGroup.Services => "BACKGROUND SERVICES",
+        InvGroup.Apps => "INSTALLED SOFTWARE",
+        InvGroup.Endpoints => "LOCAL ENDPOINTS",
+        InvGroup.Gear => "GEAR // WHAT YOUR AGENTS CAN SEE",
+        InvGroup.Hardware => "PC HARDWARE // WHAT YOUR AGENTS CAN SEE",
+        _ => "FIRMWARE // WHAT YOUR AGENTS CAN SEE"
+    };
+
+    /// <summary>Lists an inventory (also the render path, which hands one in).</summary>
+    public void ShowInventory(PcInventory inventory)
+    {
+        Inventory = inventory;
+        int ready = inventory.Items.Count(i => i.Action == InvAction.Connect);
+        string unfinished = inventory.Unfinished.Count > 0 ? $" Not finished: {string.Join(", ", inventory.Unfinished)}." : "";
+        SetStatus($"Found {inventory.Items.Count} things in {inventory.Took.TotalSeconds:0.0} s, {ready} ready to connect. Nothing connects without your OK.{unfinished}");
+        var types = inventory.CountsByType;
+        var leds = new List<(Color, string)>();
+        foreach (var (type, color) in new[] { ("Gear", PhosphorTheme.Ember), ("Artifact", PhosphorTheme.Coral), ("Mod", PhosphorTheme.Patina), ("Machina", PhosphorTheme.Seal), ("No canon home", PhosphorTheme.Ghost) })
+            if (types.TryGetValue(type, out int n)) leds.Add((color, $"{type.ToUpperInvariant()} {n}"));
+        leds.Add((PhosphorTheme.Moss, $"IN YOUR VAULT {inventory.VaultConnections}"));
+        _counts.Set(leds.ToArray());
+        _counts.Height = Math.Max(22, _counts.HeightFor(Math.Max(200, ClientSize.Width - Padding.Horizontal)));
+
         using (_list.Batch())
         {
             _list.Clear();
-            foreach (var r in results) AddRow(r);
+            foreach (var group in inventory.Items.Where(i => _only == null || _only.Contains(i.Group)).GroupBy(i => i.Group).OrderBy(g => g.Key))
+            {
+                var rows = group.ToList();
+                _list.AddSection($"{Heading(group.Key)} // {rows.Count}");
+                // Groups with something to connect always show their rows; long inventory groups start as one card.
+                bool collapse = rows.Count > CollapseOver && !Actionable.Contains(group.Key) && !_expanded.Contains(group.Key);
+                if (collapse || group.Key is InvGroup.Cli or InvGroup.Apps) AddGroupCard(group.Key, rows, collapse);
+                if (collapse) continue;
+                foreach (var item in rows.Take(MaxRowsPerGroup)) AddRow(item);
+            }
         }
         FitHeight();
     }
 
     private void SetStatus(string text) => _status.Text = text;
 
-    private void AddRow(PcToolResult r)
+    /// <summary>
+    /// The card that stands for a large group (its first names and a Show all) and, for command line tools and
+    /// installed software, the one way Holodex uses them: the approved PC command line.
+    /// </summary>
+    private void AddGroupCard(InvGroup group, List<InvItem> rows, bool collapsed)
     {
-        var leds = new List<(Color, string)>
-        {
-            r.State switch
+        string names = string.Join(", ", rows.Take(10).Select(r => r.Label));
+        string more = rows.Count > 10 ? $", and {rows.Count - 10} more." : ".";
+        string use = group is InvGroup.Cli or InvGroup.Apps
+            ? HolodexTools.CliConnected ? " Nemotron can use them through the approved PC command line." : " Connect the PC command line and Nemotron can use them, asking you before every command."
+            : "";
+        var tag = rows[0].Tag;
+        var card = _list.Add(ThreadTone.Step, collapsed ? "AT A GLANCE" : "HOW HOLODEX USES THEM",
+            collapsed ? $"{names}{more}{use}" : use.Trim(), PhosphorGlyph.Vault,
+            new[] { (PhosphorTheme.Ghost, tag.Text.ToUpperInvariant()) });
+        card.Name = $"PcSetup.Group.{group}";
+        var actions = new List<CardAction>();
+        if (rows.Count > CollapseOver && !Actionable.Contains(group))
+            actions.Add(new CardAction("PcSetup.ShowAll", PhosphorGlyph.BookOpen, collapsed ? "Show all" : "Show less", (_, _) =>
+            {
+                if (!_expanded.Add(group)) _expanded.Remove(group);
+                ShowInventory(Inventory);
+            }));
+        if (group is InvGroup.Cli or InvGroup.Apps && !HolodexTools.CliConnected && HolodexVault.Find(HolodexTools.CliId) is { } cli)
+            actions.Add(new CardAction("PcSetup.ConnectCli", PhosphorGlyph.Link, "Connect the PC command line", async (c, _) =>
+            {
+                await HolodexVault.ConnectLocalAsync(cli, url: "powershell");
+                c.SetMeta("CONNECTED // HOLODEX ASKS BEFORE EVERY COMMAND");
+                SetStatus("PC command line connected. Holodex asks before every command.");
+            }));
+        card.SetFooter("", actions.ToArray());
+    }
+
+    private void AddRow(InvItem item)
+    {
+        var leds = new List<(Color, string)>();
+        if (item.Source is PcToolResult tool)
+            leds.Add(tool.State switch
             {
                 PcToolState.Running => (PhosphorTheme.Moss, "Running"),
                 PcToolState.Installed => (PhosphorTheme.Dim, "Installed"),
                 _ => (PhosphorTheme.Ghost, "Not found")
-            }
-        };
-        if (r.Version.Length > 0) leds.Add((PhosphorTheme.Ghost, r.Version.StartsWith('v') ? r.Version : "v" + r.Version));
-        if (r.InVault) leds.Add((PhosphorTheme.Patina, "In your vault"));
+            });
+        if (item.Version.Length > 0) leds.Add((PhosphorTheme.Ghost, char.IsDigit(item.Version[0]) ? "v" + item.Version : item.Version));
+        leds.Add((item.Tag.Canon ? PhosphorTheme.Dim : PhosphorTheme.Ghost, item.Tag.Text));
+        if (item.InVault) leds.Add((PhosphorTheme.Patina, "In your vault"));
 
-        var tone = r.InVault ? ThreadTone.Ok : r.State == PcToolState.Running ? ThreadTone.Action : ThreadTone.Step;
-        string eyebrow = r.Tool.Id == PcSetupScan.StreamDeckMcpId ? "MCP" : "LOCAL";
-        var card = _list.Add(tone, $"{eyebrow} // {r.Tool.Label.ToUpperInvariant()}", $"{r.Tool.Blurb} {r.Detail}", PhosphorGlyph.Vault, leds);
-        card.Name = $"PcSetup.{r.Tool.Id}";
+        var tone = item.InVault ? ThreadTone.Ok : item.Action == InvAction.Connect ? ThreadTone.Action : ThreadTone.Step;
+        var card = _list.Add(tone, item.Label.ToUpperInvariant(), item.Detail, Glyph(item.Group), leds);
+        card.Name = $"PcSetup.{item.Id}";
+        if (InventoryOnly.Contains(item.Group)) return;
 
         var actions = new List<CardAction>();
-        switch (r.Action)
+        switch (item.Action)
         {
-            case PcSetupAction.Connect:
-                actions.Add(new CardAction("PcSetup.Connect", PhosphorGlyph.Link, "Connect", async (c, _) => await ConnectAsync(r, c)));
+            case InvAction.Connect:
+                actions.Add(new CardAction("PcSetup.Connect", PhosphorGlyph.Link, "Connect", async (c, _) => await ConnectAsync(item, c)));
                 break;
-            case PcSetupAction.Open:
+            case InvAction.Open when item.Source is PcToolResult open:
                 actions.Add(new CardAction("PcSetup.Open", PhosphorGlyph.ExternalLink, "Open", (c, _) =>
                 {
-                    PcSetupScan.Open(r);
+                    PcSetupScan.Open(open);
                     c.SetMeta("OPENING // SCAN AGAIN ONCE IT IS UP");
                 }));
                 break;
-            case PcSetupAction.GetIt:
+            case InvAction.GetIt when item.Source is PcToolResult missing:
                 actions.Add(new CardAction("PcSetup.GetIt", PhosphorGlyph.ExternalLink, "Get it", (c, _) =>
                 {
-                    PcSetupScan.OpenUrl(r.Tool.DownloadUrl);
+                    PcSetupScan.OpenUrl(missing.Tool.DownloadUrl);
                     c.SetMeta("DOWNLOAD PAGE OPEN");
                 }));
-                if (r.Tool.WingetId.Length > 0)
+                if (missing.Tool.WingetId.Length > 0)
                     actions.Add(new CardAction("PcSetup.Winget", PhosphorGlyph.Plus, "Install with winget", async (c, _) =>
                     {
                         c.SetMeta("WAITING FOR YOUR OK");
-                        string said = await PcSetupScan.InstallWithWingetAsync(r.Tool);
-                        bool declined = said.StartsWith("The user declined", StringComparison.Ordinal);
-                        c.SetMeta(declined ? "NOT INSTALLED" : "WINGET IS RUNNING // SCAN AGAIN WHEN IT FINISHES");
+                        string said = await PcSetupScan.InstallWithWingetAsync(missing.Tool);
+                        c.SetMeta(said.StartsWith("The user declined", StringComparison.Ordinal) ? "NOT INSTALLED" : "WINGET IS RUNNING // SCAN AGAIN WHEN IT FINISHES");
                     }));
                 break;
         }
-        card.SetFooter("", actions.ToArray());
+        if (actions.Count > 0) card.SetFooter("", actions.ToArray());
     }
 
-    private async Task ConnectAsync(PcToolResult r, ThreadCard card)
+    private static PhosphorGlyph Glyph(InvGroup g) => g switch
+    {
+        InvGroup.Engines => PhosphorGlyph.Sparkles,
+        InvGroup.Mcp => PhosphorGlyph.Link,
+        InvGroup.Gear or InvGroup.Hardware or InvGroup.Firmware => PhosphorGlyph.Box,
+        _ => PhosphorGlyph.Vault
+    };
+
+    private async Task ConnectAsync(InvItem item, ThreadCard card)
     {
         card.SetMeta("CONNECTING");
         try
         {
-            string said = await PcSetupScan.ConnectAsync(r, _models);
+            string said = await PcInventoryScan.ConnectAsync(item, _models);
             SetStatus(said);
-            PhosphorToast.Show($"{r.Tool.Label}", said, "HOLODEX // SET UP THIS PC", 3600, ToastTone.Success);
+            PhosphorToast.Show(item.Label, said, "HOLODEX // YOUR ARKSTATION", 3600, ToastTone.Success);
             await ScanAsync();
         }
         catch (Exception ex)
         {
             card.SetMeta("NOT CONNECTED");
-            SetStatus($"{r.Tool.Label} did not connect: {ex.Message}");
+            SetStatus($"{item.Label} did not connect: {ex.Message}");
         }
     }
 
@@ -211,18 +292,28 @@ internal sealed class PcSetupForm : Form
     /// <summary>Draws the panel offscreen to a PNG (pipe <c>holodex:setup:capture:&lt;png&gt;</c>), scanning first when it has not.</summary>
     public async Task<string> CaptureAsync(string path)
     {
-        if (Results.Count == 0) await ScanAsync();
+        if (Inventory.Items.Count == 0) await ScanAsync();
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".");
         SurfaceCapture.SaveForm(this, path);
         return path;
     }
 
-    /// <summary>Draws the panel offscreen to a PNG for results already in hand (tests and renders).</summary>
-    public string CaptureTo(string path, IReadOnlyList<PcToolResult> results)
+    /// <summary>
+    /// Draws the panel offscreen to a PNG for an inventory already in hand (tests and renders). <paramref name="only"/>
+    /// lists just those groups (the summary still counts everything), so every part of a long inventory can be shown.
+    /// </summary>
+    public string CaptureTo(string path, PcInventory inventory, InvGroup[]? only = null, params InvGroup[] expand)
     {
-        ShowResults(results);
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".");
-        SurfaceCapture.SaveForm(this, path);
+        _expanded.Clear();
+        foreach (var g in expand) _expanded.Add(g);
+        _only = only;
+        try
+        {
+            ShowInventory(inventory);
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".");
+            SurfaceCapture.SaveForm(this, path);
+        }
+        finally { _only = null; }
         return path;
     }
 }

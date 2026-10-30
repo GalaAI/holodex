@@ -12,7 +12,7 @@ internal enum PcToolState { Missing, Installed, Running }
 internal enum PcSetupAction { None, Connect, Open, GetIt }
 
 /// <summary>One program from the Windows uninstall list (Apps in Settings).</summary>
-internal sealed record InstalledApp(string Name, string Version, string Location, string Icon);
+internal sealed record InstalledApp(string Name, string Version, string Location, string Icon, string Publisher = "");
 
 /// <summary>
 /// A tool Set up this PC looks for. <see cref="Id"/> is also its Vault catalog id. Detection uses only what the tool
@@ -57,8 +57,11 @@ internal sealed class PcProbeEnv
     public Func<IReadOnlyList<InstalledApp>> InstalledApps { get; init; } = PcSetupScan.LiveInstalledApps;
     public Func<IReadOnlySet<string>> PipeNames { get; init; } = PcSetupScan.LivePipeNames;
     public Func<string, bool> FileExists { get; init; } = File.Exists;
-    /// <summary>Runs an exe with arguments and returns its standard output, or null when it failed or ran too long.</summary>
-    public Func<string, string, TimeSpan, CancellationToken, Task<string?>> Run { get; init; } = PcSetupScan.LiveRunAsync;
+    /// <summary>
+    /// The Docker engine's own version, asked over its named pipe (Engine API GET /version), or null when the engine
+    /// does not answer in time. No docker.exe is started.
+    /// </summary>
+    public Func<TimeSpan, CancellationToken, Task<string?>> DockerVersion { get; init; } = PcSetupScan.LiveDockerVersionAsync;
     public Func<IReadOnlyList<VaultEntry>> Vault { get; init; } = HolodexVault.Load;
     /// <summary>The most any one probe may take. A probe that runs longer is reported from what is installed.</summary>
     public TimeSpan ProbeTimeout { get; init; } = TimeSpan.FromSeconds(3);
@@ -196,7 +199,8 @@ internal static class PcSetupScan
         try
         {
             // Each request inside the probe stops at ProbeTimeout too; this is the backstop for a probe that ignores it.
-            return await ProbeAsync(tool, env, snap, vault, ct).WaitAsync(env.ProbeTimeout + TimeSpan.FromMilliseconds(250), ct).ConfigureAwait(false);
+            var budget = env.ProbeTimeout + TimeSpan.FromMilliseconds(250);
+            return await ProbeAsync(tool, env, snap, vault, ct).WaitAsync(budget, ct).ConfigureAwait(false);
         }
         catch (TimeoutException)
         {
@@ -263,7 +267,7 @@ internal static class PcSetupScan
             case DockerId:
             {
                 if (!snap.Pipes.Contains(DockerPipe)) return NotRunning("Installed. The engine is not running.");
-                string? server = await DockerServerVersionAsync(env, ct).ConfigureAwait(false);
+                string? server = await env.DockerVersion(env.ProbeTimeout, ct).ConfigureAwait(false);
                 return server != null
                     ? Result(PcToolState.Running, $"The engine answers (Engine {server}).", DockerUrl)
                     : Result(installed ? PcToolState.Installed : PcToolState.Missing, "The engine pipe is open, but the engine did not answer.");
@@ -350,23 +354,36 @@ internal static class PcSetupScan
         }
     }
 
-    /// <summary>Docker's own answer: <c>docker version --format json</c>, the Server part only when the engine is up.</summary>
-    private static async Task<string?> DockerServerVersionAsync(PcProbeEnv env, CancellationToken ct)
+    /// <summary>
+    /// Docker Engine API over <c>\\.\pipe\docker_engine</c>: GET /version answers {"Version": ...} when the engine runs.
+    /// This is the engine's own API, so a busy PC never waits on a CLI starting.
+    /// </summary>
+    public static async Task<string?> LiveDockerVersionAsync(TimeSpan timeout, CancellationToken ct)
     {
-        string exe = FindDocker(env);
-        string? json = await env.Run(exe, "version --format json", env.ProbeTimeout - TimeSpan.FromMilliseconds(200), ct).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonNode.Parse(json)?["Server"]?["Version"]?.GetValue<string>(); }
-        catch (Exception) { return null; }
-    }
-
-    private static string FindDocker(PcProbeEnv env) =>
-        new[]
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(timeout);
+        using var handler = new SocketsHttpHandler
         {
-            @"%ProgramFiles%\Docker\Docker\resources\bin\docker.exe",
-            @"%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin\docker.exe"
-        }.Select(Environment.ExpandEnvironmentVariables).FirstOrDefault(env.FileExists) ?? FindOnPath("docker.exe") ?? "docker.exe";
-
+            ConnectCallback = async (_, token) =>
+            {
+                var pipe = new System.IO.Pipes.NamedPipeClientStream(".", DockerPipe, System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+                await pipe.ConnectAsync(token).ConfigureAwait(false);
+                return pipe;
+            }
+        };
+        using var http = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        try
+        {
+            using var res = await http.GetAsync("http://docker/version", cts.Token).ConfigureAwait(false);
+            if (!res.IsSuccessStatusCode) return null;
+            return JsonNode.Parse(await res.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false))?["Version"]?.GetValue<string>();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException or System.Text.Json.JsonException or InvalidOperationException)
+        {
+            if (ct.IsCancellationRequested) throw;
+            return null;
+        }
+    }
     public static string? FindOnPath(string exe) =>
         (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(dir => { try { return Path.Combine(dir.Trim('"'), exe); } catch (ArgumentException) { return null; } })
@@ -491,10 +508,11 @@ internal static class PcSetupScan
     private static PcSetupForm? _form;
 
     /// <summary>
-    /// The one entry point: opens the Set up this PC panel and scans. Call on the UI thread (the onboarding step, the
-    /// Vault, the pipe command <c>holodex:setup:scan</c>). The task ends with what the scan found.
+    /// The one entry point: opens Your ArkStation (the Set up this PC step) and scans the whole PC. Call on the UI
+    /// thread (the onboarding step, the Vault, the pipe command <c>holodex:setup:scan</c>). The task ends with what the
+    /// scan found.
     /// </summary>
-    public static Task<IReadOnlyList<PcToolResult>> ShowAsync(IWin32Window? owner = null)
+    public static Task<PcInventory> ShowAsync(IWin32Window? owner = null)
     {
         if (_form == null || _form.IsDisposed) _form = new PcSetupForm(Models);
         _form.Summon(owner);
@@ -541,8 +559,12 @@ internal static class PcSetupScan
                 {
                     using var app = key.OpenSubKey(sub);
                     if (app?.GetValue("DisplayName") is not string name || name.Length == 0) continue;
+                    // Settings, Apps hides system components and updates that belong to another entry; so does this.
+                    if (app.GetValue("SystemComponent") is int system && system == 1) continue;
+                    if (app.GetValue("ParentKeyName") is string parent && parent.Length > 0) continue;
                     apps.Add(new InstalledApp(name, app.GetValue("DisplayVersion") as string ?? "",
-                        app.GetValue("InstallLocation") as string ?? "", app.GetValue("DisplayIcon") as string ?? ""));
+                        app.GetValue("InstallLocation") as string ?? "", app.GetValue("DisplayIcon") as string ?? "",
+                        app.GetValue("Publisher") as string ?? ""));
                 }
             }
             catch (Exception) { }
@@ -551,35 +573,5 @@ internal static class PcSetupScan
         Read(RegistryHive.LocalMachine, RegistryView.Registry32);
         Read(RegistryHive.CurrentUser, RegistryView.Default);
         return apps;
-    }
-
-    public static async Task<string?> LiveRunAsync(string exe, string args, TimeSpan timeout, CancellationToken ct)
-    {
-        try
-        {
-            using var proc = Process.Start(new ProcessStartInfo(exe, args)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
-            if (proc == null) return null;
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(timeout);
-            var stdout = proc.StandardOutput.ReadToEndAsync(cts.Token);
-            _ = proc.StandardError.ReadToEndAsync(cts.Token);
-            try { await proc.WaitForExitAsync(cts.Token).ConfigureAwait(false); }
-            catch (OperationCanceledException)
-            {
-                try { proc.Kill(entireProcessTree: true); } catch (Exception) { }
-                return null;
-            }
-            return await stdout.ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or OperationCanceledException)
-        {
-            return null;
-        }
     }
 }

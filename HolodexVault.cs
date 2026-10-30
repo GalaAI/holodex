@@ -187,7 +187,8 @@ internal static class HolodexVault
             "Stream Deck actions as tools, through Elgato's own bridge on this PC. No sign-in needed.", Url: PcSetupScan.StreamDeckMcpUrl),
         new(PcSetupScan.InputStudioId, "Input Studio", GroupLocal, VaultKind.LocalService, "Ark's input service. Present on Ark PCs only.",
             Url: PcSetupScan.InputStudioUrl),
-    };
+    }.Concat(PcInventoryScan.Engines.Select(e => new VaultProvider(e.Id, e.Name, GroupLocal, VaultKind.LocalService,
+        "Local models, OpenAI-compatible.", Url: $"http://127.0.0.1:{e.Port}/v1/models"))).ToList();
 
     public static VaultProvider? Find(string id) => Catalog.FirstOrDefault(p => p.Id == id);
 
@@ -432,6 +433,8 @@ internal static class HolodexVault
         else if (entry.Kind == VaultKind.LocalService && !entry.Url.StartsWith("http", StringComparison.Ordinal))
             problem = await PcSetupScan.CheckAsync(entry.ProviderId, ct);
         else if (entry.Kind == VaultKind.LocalService) problem = await LocalProbeAsync(entry.Url, ct);
+        else if (entry.ProviderId == McpBridges.ProviderId)
+            problem = McpBridges.IsRunning(entry.Id) ? null : "not running in this session; connect it again from Your ArkStation";
         else if (entry.Kind == VaultKind.McpServer) problem = (await ListMcpToolsAsync(entry, interactive: false, ct)).Problem;
         else if (provider?.Probe == null) problem = "unchecked";
         else

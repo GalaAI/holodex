@@ -39,6 +39,8 @@
     <PackageReference Include="Svg" Version="3.4.8" />
     <!-- WebView2 (WinForms host) for the Augment Inventory, the one inventory page served by the Ark API. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+    <PackageReference Include="System.Management" Version="10.0.14" />
+    <PackageReference Include="Tomlyn" Version="2.10.1" />
   </ItemGroup>
 
   <!-- The unit tests reach the Phosphor controls (the skill tree render) and the internal AInbox types. -->

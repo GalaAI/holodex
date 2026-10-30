@@ -1153,16 +1153,16 @@ internal sealed class OmniwandAppContext : ApplicationContext
             }, null);
             return result;
         }
-        // holodex:setup:scan opens Set up this PC and answers with what the scan found; holodex:setup:capture:<png> draws it offscreen.
+        // holodex:setup:scan opens Your ArkStation and answers with the scan summary as JSON (counts, no secrets); holodex:setup:capture:<png> draws it offscreen.
         if (string.Equals(cmd, "holodex:setup:scan", StringComparison.OrdinalIgnoreCase))
         {
             var done = new TaskCompletionSource<string>();
             _uiSync.Post(async _ =>
             {
-                try { done.SetResult("ok:holodex:setup:scan:" + PcSetupScan.Summarize(await PcSetupScan.ShowAsync())); }
+                try { done.SetResult("ok:holodex:setup:scan:" + PcInventoryScan.SummaryJson(await PcSetupScan.ShowAsync())); }
                 catch (Exception ex) { done.SetResult("error:holodex:setup:scan:" + ex.Message); }
             }, null);
-            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:holodex:setup:scan:timeout";
+            return done.Task.Wait(TimeSpan.FromSeconds(40)) ? done.Task.Result : "error:holodex:setup:scan:timeout";
         }
         if (cmd.StartsWith("holodex:setup:capture:", StringComparison.OrdinalIgnoreCase))
         {

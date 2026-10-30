@@ -31,7 +31,7 @@ internal static class HolodexTools
 
     public static bool CliConnected => HolodexVault.Load().Any(e => e.ProviderId == CliId);
 
-    public static bool Any => FilesRoot != null || CliConnected || GoogleAdapter.SignedIn;
+    public static bool Any => FilesRoot != null || CliConnected || GoogleAdapter.SignedIn || McpBridges.Any;
 
     private static JsonObject Tool(string name, string description, JsonObject properties, params string[] required) => new()
     {
@@ -78,6 +78,8 @@ internal static class HolodexTools
             GoogleAdapter.Offer(tools);
             notes.Append(" You can search and read the user's Google Drive with drive_search and drive_read.");
         }
+        // The user's own MCP servers bridged from their other clients (McpBridges), each started after their approval.
+        if (McpBridges.Any) McpBridges.Offer(tools, notes);
         payload["tool_choice"] = "auto";
         if (notes.Length > 0 && payload["messages"] is JsonArray messages && messages.Count > 0 && messages[0] is JsonObject system)
             system["content"] = system["content"]?.GetValue<string>() + notes;
@@ -97,6 +99,7 @@ internal static class HolodexTools
                 "run_command" => await RunCommandAsync(Arg("command"), Arg("why"), ct),
                 "drive_search" => await GoogleAdapter.SearchAsync(Arg("query"), ct),
                 "drive_read" => await GoogleAdapter.ReadAsync(Arg("id"), ct),
+                _ when McpBridges.Owns(name) => await McpBridges.RunAsync(name, args, ct),
                 _ => $"Unknown tool {name}."
             };
         }

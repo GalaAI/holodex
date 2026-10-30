@@ -29,7 +29,7 @@ public class PcSetupTests
 
     private static (PcProbeEnv Env, FakeLoopback Http) Machine(
         string[]? processes = null, InstalledApp[]? installed = null, string[]? pipes = null,
-        string[]? files = null, Func<string, string, TimeSpan, CancellationToken, Task<string?>>? run = null,
+        string[]? files = null, Func<TimeSpan, CancellationToken, Task<string?>>? docker = null,
         VaultEntry[]? vault = null, TimeSpan? timeout = null)
     {
         var http = new FakeLoopback();
@@ -41,7 +41,7 @@ public class PcSetupTests
             InstalledApps = () => installed ?? Array.Empty<InstalledApp>(),
             PipeNames = () => new HashSet<string>(pipes ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase),
             FileExists = fileSet.Contains,
-            Run = run ?? ((_, _, _, _) => Task.FromResult<string?>(null)),
+            DockerVersion = docker ?? ((_, _) => Task.FromResult<string?>(null)),
             Vault = () => vault ?? Array.Empty<VaultEntry>(),
             ProbeTimeout = timeout ?? TimeSpan.FromSeconds(2)
         };
@@ -99,8 +99,7 @@ public class PcSetupTests
             },
             pipes: new[] { PcSetupScan.DockerPipe },
             files: new[] { lmExe, deckExe, ollamaExe },
-            run: (_, args, _, _) => Task.FromResult<string?>(args.Contains("version")
-                ? "{\"Client\":{\"Version\":\"29.0.1\"},\"Server\":{\"Version\":\"29.0.1\"}}" : null));
+            docker: (_, _) => Task.FromResult<string?>("29.0.1"));
         http.Bodies["http://127.0.0.1:1234/v1/models"] = "{\"data\":[{\"id\":\"a\"},{\"id\":\"b\"},{\"id\":\"c\"}]}";
 
         var results = await PcSetupScan.ScanAsync(env);
@@ -180,8 +179,8 @@ public class PcSetupTests
             installed: new[] { new InstalledApp("Docker Desktop", "4.97.0", "", "") },
             pipes: new[] { PcSetupScan.DockerPipe },
             files: new[] { comfyExe },
-            // docker.exe that never returns and ignores cancellation: only the backstop can stop it.
-            run: (_, _, _, _) => new TaskCompletionSource<string?>().Task,
+            // A Docker engine that never answers and ignores cancellation: only the backstop can stop it.
+            docker: (_, _) => new TaskCompletionSource<string?>().Task,
             timeout: TimeSpan.FromMilliseconds(400));
         http.Hang.Add("http://127.0.0.1:8188/system_stats");
         http.Hang.Add("http://127.0.0.1:8000/system_stats");
@@ -255,45 +254,4 @@ public class PcSetupTests
         Assert.Equal("local-lmstudio=running:connect:0.4.13", line);
     }
 
-    /// <summary>Draws the panel offscreen (HOLODEX_RENDER=folder): fixed rows, then this PC's real scan.</summary>
-    [Fact]
-    public void Set_up_this_pc_renders()
-    {
-        string? folder = Environment.GetEnvironmentVariable("HOLODEX_RENDER");
-        if (string.IsNullOrEmpty(folder)) return;
-        Exception? error = null;
-        var t = new Thread(() =>
-        {
-            try
-            {
-                Directory.CreateDirectory(folder);
-                PcToolResult R(string id, PcToolState s, string v, string d, bool inVault = false) =>
-                    new(PcSetupScan.Find(id)!, s, v, d, "", s == PcToolState.Installed ? @"C:\x.exe" : "", inVault);
-                var fixedRows = new[]
-                {
-                    R(PcSetupScan.LmStudioId, PcToolState.Running, "0.4.13", "Running with 7 models.", inVault: true),
-                    R(PcSetupScan.OllamaId, PcToolState.Missing, "", "Not on this PC."),
-                    R(PcSetupScan.ComfyId, PcToolState.Installed, "", "Installed, not running."),
-                    R(PcSetupScan.DockerId, PcToolState.Running, "4.97.0", "The engine answers (Engine 29.0.1)."),
-                    R(PcSetupScan.LogiId, PcToolState.Running, "2.9.994631", "Running."),
-                    R(PcSetupScan.StreamDeckId, PcToolState.Running, "7.5.1", "Running."),
-                    R(PcSetupScan.StreamDeckMcpId, PcToolState.Running, "", "Stream Deck offers MCP. Connect starts Elgato's bridge once you approve it."),
-                };
-                using (var form = new PcSetupForm(null) { Location = new Point(-4000, -4000) })
-                    form.CaptureTo(Path.Combine(folder, "pc-setup-states.png"), fixedRows);
-
-                // This PC, read-only: the vault view comes from a temp manifest so nothing here reads as connected.
-                var live = PcSetupScan.ScanAsync(new PcProbeEnv { Vault = () => Array.Empty<VaultEntry>() }).GetAwaiter().GetResult();
-                File.WriteAllText(Path.Combine(folder, "pc-setup-this-pc.txt"), PcSetupScan.Summarize(live) + Environment.NewLine +
-                    string.Join(Environment.NewLine, live.Select(r => $"{r.Tool.Label}: {r.State} {r.Version} | {r.Detail} | {r.Endpoint} | {r.LaunchPath}")));
-                using (var form = new PcSetupForm(null) { Location = new Point(-4000, -4000) })
-                    form.CaptureTo(Path.Combine(folder, "pc-setup-this-pc.png"), live);
-            }
-            catch (Exception ex) { error = ex; }
-        });
-        t.SetApartmentState(ApartmentState.STA);
-        t.Start();
-        t.Join();
-        if (error != null) throw error;
-    }
 }
