@@ -232,3 +232,22 @@ internal class BeamFlowPanel : FlowLayoutPanel
         Beam.PostProcess(m);
     }
 }
+
+/// <summary>A Panel that scrolls with a <see cref="ScrollBeam"/> instead of the native bar; its right padding keeps the lane clear.</summary>
+internal class BeamPanel : Panel
+{
+    public BeamPanel()
+    {
+        Beam = new ScrollBeam(this);
+        AutoScroll = true;
+    }
+
+    public ScrollBeam Beam { get; }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (Beam.PreProcess(ref m)) return;
+        base.WndProc(ref m);
+        Beam.PostProcess(m);
+    }
+}

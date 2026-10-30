@@ -393,6 +393,8 @@ public static class MouseHardwareAndWandEngine
         {
             if (plain.FirstOrDefault(d => d.TriggerId == b.TriggerId) is { } trigger) b.TriggerLabel = trigger.TriggerLabel;
             if (plain.FirstOrDefault(d => d.ActionId == b.ActionId) is { } action) b.ActionLabel = action.ActionLabel;
+            // The shortcut shown is the one registered now, whatever the old table saved.
+            b.Parameter = ShortcutFor(b.ActionId);
         }
         return bindings;
     }
@@ -406,15 +408,31 @@ public static class MouseHardwareAndWandEngine
         var bindings = new List<MouseMacroBinding>();
         if (hw?.HasSideButtons ?? true)
         {
-            bindings.Add(new() { TriggerId = "Mouse4", TriggerLabel = "Back thumb button", ActionId = "snip:lasso", ActionLabel = "Cut out part of the screen", Parameter = "Ctrl+Alt+S" });
-            bindings.Add(new() { TriggerId = "Mouse5", TriggerLabel = "Front thumb button", ActionId = "holodex:toggle", ActionLabel = "Open or close Holodex", Parameter = "Ctrl+Alt+H" });
+            bindings.Add(new() { TriggerId = "Mouse4", TriggerLabel = "Back thumb button", ActionId = "snip:lasso", ActionLabel = "Cut out part of the screen", Parameter = ShortcutFor("snip:lasso") });
+            bindings.Add(new() { TriggerId = "Mouse5", TriggerLabel = "Front thumb button", ActionId = "holodex:toggle", ActionLabel = "Open or close Holodex", Parameter = ShortcutFor("holodex:toggle") });
         }
-        bindings.Add(new() { TriggerId = "GestureNorth", TriggerLabel = "Hold right-click, flick up", ActionId = "element:inspect", ActionLabel = "Point at something to learn about it", Parameter = "Ctrl+Alt+E" });
-        bindings.Add(new() { TriggerId = "GestureEast", TriggerLabel = "Hold right-click, flick right", ActionId = "wiz:summon", ActionLabel = "Open Wiz to make a spell", Parameter = "Ctrl+Alt+W" });
-        bindings.Add(new() { TriggerId = "GestureSouth", TriggerLabel = "Hold right-click, flick down", ActionId = "hud:summon", ActionLabel = "Open the ask box", Parameter = "Ctrl+Alt+Space" });
-        bindings.Add(new() { TriggerId = "GestureWest", TriggerLabel = "Hold right-click, flick left", ActionId = "ainbox:summon", ActionLabel = "Open AInbox to send something", Parameter = "Ctrl+Alt+I" });
+        bindings.Add(new() { TriggerId = "GestureNorth", TriggerLabel = "Hold right-click, flick up", ActionId = "element:inspect", ActionLabel = "Point at something to learn about it", Parameter = ShortcutFor("element:inspect") });
+        bindings.Add(new() { TriggerId = "GestureEast", TriggerLabel = "Hold right-click, flick right", ActionId = "wiz:summon", ActionLabel = "Open Wiz to make a spell", Parameter = ShortcutFor("wiz:summon") });
+        bindings.Add(new() { TriggerId = "GestureSouth", TriggerLabel = "Hold right-click, flick down", ActionId = "hud:summon", ActionLabel = "Open the ask box", Parameter = ShortcutFor("hud:summon") });
+        bindings.Add(new() { TriggerId = "GestureWest", TriggerLabel = "Hold right-click, flick left", ActionId = "ainbox:summon", ActionLabel = "Open AInbox to send something", Parameter = ShortcutFor("ainbox:summon") });
         return bindings;
     }
+
+    /// <summary>
+    /// The keyboard shortcut that also runs <paramref name="actionId"/>, read from the one shortcut table
+    /// (<see cref="GlobalHotkeys"/>), so a binding never shows a stale or unregistered key (a lone Alt key saved
+    /// before the Ctrl+Alt table). Empty when the action has no shortcut or this PC did not register it.
+    /// </summary>
+    internal static string ShortcutFor(string actionId) => actionId switch
+    {
+        "snip:lasso" => GlobalHotkeys.Shown(GlobalHotkeys.Lasso),
+        "holodex:toggle" => GlobalHotkeys.Shown(GlobalHotkeys.Holodex),
+        "element:inspect" => GlobalHotkeys.Shown(GlobalHotkeys.ElementPicker),
+        "wiz:summon" => GlobalHotkeys.Shown(GlobalHotkeys.Wiz),
+        "hud:summon" => GlobalHotkeys.Shown(GlobalHotkeys.Ask),
+        "ainbox:summon" => GlobalHotkeys.Shown(GlobalHotkeys.AInbox),
+        _ => string.Empty
+    };
 
     /// <summary>Saves <paramref name="bindings"/> as the active mouse's buttons.</summary>
     public static void SaveMacroBindings(IEnumerable<MouseMacroBinding> bindings)

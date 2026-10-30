@@ -51,4 +51,43 @@ public class RenderTests
         t.Join();
         if (error != null) throw error;
     }
+
+    [Fact]
+    public void Apex_and_gauntlet_render()
+    {
+        string? folder = Environment.GetEnvironmentVariable("HOLODEX_RENDER");
+        if (string.IsNullOrEmpty(folder)) return;
+        Exception? error = null;
+        bool saved = false;
+        var t = new Thread(() =>
+        {
+            try
+            {
+                PhosphorFonts.EnsureLoaded();
+                Directory.CreateDirectory(folder);
+                // The forms only read the service when evaluating or starting; a render needs none.
+                foreach (Form form in new Form[] { new ApexEvaluationForm(null!, () => { }), new GauntletForm(null!, QuestBoard.Starters().First(q => q.Kind == QuestKind.Gauntlet)) })
+                {
+                    form.StartPosition = FormStartPosition.Manual;
+                    form.Location = new Point(-4000, -4000);
+                    form.Show();
+                    Application.DoEvents();
+                    Application.DoEvents();
+                    using var bmp = new Bitmap(form.Width, form.Height);
+                    form.DrawToBitmap(bmp, new Rectangle(0, 0, form.Width, form.Height));
+                    bmp.Save(Path.Combine(folder, form is ApexEvaluationForm ? "apex-evaluation.png" : "gauntlet.png"), ImageFormat.Png);
+                    form.Hide();
+                }
+                saved = true;
+            }
+            catch (Exception ex) { error = ex; }
+        });
+        t.SetApartmentState(ApartmentState.STA);
+        t.IsBackground = true;
+        t.Start();
+        // The images are the result; a thread that still holds windows may not end promptly, so wait on them.
+        for (int i = 0; i < 600 && !saved && error == null; i++) Thread.Sleep(100);
+        if (error != null) throw error;
+        Assert.True(saved, "the renders were saved");
+    }
 }

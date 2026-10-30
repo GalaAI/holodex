@@ -1463,13 +1463,14 @@ public sealed partial class HolodexLiteDrawerForm : Form
         try
         {
             var (ok, text, by) = await HandoffDestinations.DeliverAsync(to, title, scroll, _ark);
+            if (!ok) text = PlainFailure.For(text, to.Label);
             pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? by : $"NOT ANSWERED // {by}", text);
             if (!Visible || !_sessionPanel.Visible)
                 PhosphorToast.Show(ok ? $"{to.Label} replied" : "Not answered", Clip(text), "HOLODEX // HANDOFF", 4200, ok ? ToastTone.Info : ToastTone.Warning);
         }
         catch (Exception ex)
         {
-            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{to.Label.ToUpperInvariant()} // NOT ANSWERED", ex.Message);
+            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{to.Label.ToUpperInvariant()} // NOT ANSWERED", PlainFailure.For(ex.Message, to.Label));
         }
         finally
         {
@@ -1522,14 +1523,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
             var answer = await _ark.AskAsync(msg);
             // The receipt the route reported (Ark API or Hivemind), as the HUD shows it.
             string label = $"{ModelChip.ShortName(answer.Model).ToUpperInvariant()} // {answer.RouteLabel}{(answer.ReceiptTag.Length > 0 ? " // " + answer.ReceiptTag : "")}";
-            pending.Resolve(answer.Ok ? ThreadTone.Agent : ThreadTone.Fail, answer.Ok ? label : $"NOT ANSWERED // {label}", answer.Output);
+            string output = answer.Ok ? answer.Output : PlainFailure.For(answer.Output, ModelChip.ShortName(answer.Model));
+            pending.Resolve(answer.Ok ? ThreadTone.Agent : ThreadTone.Fail, answer.Ok ? label : $"NOT ANSWERED // {label}", output);
             if (!Visible || !_sessionPanel.Visible)
-                PhosphorToast.Show(answer.Ok ? $"{ModelChip.ShortName(answer.Model)} replied" : "Not answered", Clip(answer.Output),
+                PhosphorToast.Show(answer.Ok ? $"{ModelChip.ShortName(answer.Model)} replied" : "Not answered", Clip(output),
                     "HOLODEX // SESSION // CTRL+ALT+H", 4200, answer.Ok ? ToastTone.Info : ToastTone.Warning);
         }
         catch (Exception ex)
         {
-            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED", ex.Message);
+            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{agent.Name.ToUpperInvariant()} // NOT ANSWERED", PlainFailure.For(ex.Message, agent.Name));
         }
         finally
         {

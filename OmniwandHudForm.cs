@@ -428,7 +428,7 @@ public sealed class OmniwandHudForm : Form
         }
         catch (Exception ex)
         {
-            answer = (false, ex.Message, "NOT ANSWERED");
+            answer = (false, PlainFailure.For(ex.Message, "Holodex"), "NOT ANSWERED");
             FailFooter(_answers.Add(ThreadTone.Fail, answer.Kicker, answer.Text), prompt);
         }
         try
@@ -613,7 +613,7 @@ public sealed class OmniwandHudForm : Form
         finally { watchCancel.Dispose(); }
         if (failure.Length == 0) failure = $"Gala did not reply within {GalaReplyTimeout.TotalMinutes:0} minutes. The Session stays open in Hivemind.";
         _galaFailedAt = DateTimeOffset.UtcNow;
-        pending.Resolve(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", failure);
+        pending.Resolve(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", PlainFailure.For(failure, "Gala"));
         FailFooterGala(pending);
         SettleLateGala();
         return (false, "", "GALA DID NOT ANSWER");
@@ -785,7 +785,7 @@ public sealed class OmniwandHudForm : Form
         {
             // The honest fallback as a live ask draws it: Gala's real failure, linked to the model that answered.
             FailFooterGala(_answers.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND",
-                "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY."));
+                PlainFailure.For("Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.", "Gala")));
             var answer = _answers.Add(ThreadTone.Agent, $"ANSWERED BY {model} // GALA DID NOT ANSWER",
                 "CI holds it because the check runner is paused, not because of the diff: the check reads \"could not run this job\". Resume the runner, then re-run the check.");
             answer.LinkedAbove = true;

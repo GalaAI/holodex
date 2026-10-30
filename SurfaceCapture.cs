@@ -342,7 +342,7 @@ internal static class SurfaceCapture
             thread.AddPending("ASKING GALA // HIVEMIND").SetFooter("", Noop("Thread.Stop", PhosphorGlyph.Stop, "Stop"));
 
             thread.AddSection("HONEST FALLBACK // TWO LINKED CARDS, NEVER A DISGUISED ANSWER");
-            thread.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", "Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.")
+            thread.Add(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", PlainFailure.For("Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.", "Gala"))
                 .SetFooter("", Noop("Thread.Copy", PhosphorGlyph.Copy, "Copy"), Noop("Thread.OpenInHivemind", PhosphorGlyph.ExternalLink, "Open in Hivemind"));
             var fallback = thread.Add(ThreadTone.Agent, "ANSWERED BY NEMOTRON 3 NANO // GALA DID NOT ANSWER", "A paused check runner holds the PR until it resumes; the diff itself is not the reason.");
             fallback.LinkedAbove = true;
