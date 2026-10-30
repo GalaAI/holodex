@@ -41,7 +41,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private readonly Action _runWizOnboardingTutorial;
     /// <summary>Opens the Augment Inventory window (Program owns it).</summary>
     internal Action? OpenAugmentInventory { get; set; }
-    private readonly Action<CursorIconStyle> _onCursorStyleChanged;
+    /// <summary>Opens the Mouse Mod Station window (Program owns it).</summary>
+    internal Action? OpenMouseModStation { get; set; }
 
     private string _activeTab = "session";
     private string _selectedSyndicateTarget = "all";
@@ -96,8 +97,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private ThreadView _macroList = null!;
 
     // Mods / Hardware controls
-    private LedRow _mouseHwLabel = null!;
-    private LedRow _dpiValueLabel = null!;
 
     private readonly List<SyndicateWorkOrder> _workOrders = new();
 
@@ -128,8 +127,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Action<Point> openWiz,
         Action<Point> openAInbox,
         Action<Point, WandCaptureTool> openSnipOrPicker,
-        Action runWizOnboardingTutorial,
-        Action<CursorIconStyle> onCursorStyleChanged)
+        Action runWizOnboardingTutorial)
     {
         _ark = ark;
         _setThinkingState = setThinkingState;
@@ -137,7 +135,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _openAInbox = openAInbox;
         _openSnipOrPicker = openSnipOrPicker;
         _runWizOnboardingTutorial = runWizOnboardingTutorial;
-        _onCursorStyleChanged = onCursorStyleChanged;
 
         PhosphorFonts.EnsureLoaded();
         // Designer order: layout suspended, then 96 DPI dimensions, then the mode, so WinForms scales the whole
@@ -613,63 +610,6 @@ public sealed partial class HolodexLiteDrawerForm : Form
     {
         _modsPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.ModsPanel" };
 
-        // The mouse in use (it follows the one you move), then its speed. Omniwand sets the Windows pointer speed for
-        // every mouse; a mouse's own DPI lives in its maker's app, so the setting is speed.
-        _mouseHwLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Wrap = true, Name = "Holodex.MouseLine" };
-        _dpiValueLabel = new LedRow { Dock = DockStyle.Top, Height = 22, Name = "Holodex.PointerLine" };
-        ShowActiveMouse();
-        var dpiSlider = new PhosphorSpeedSlider
-        {
-            Dock = DockStyle.Top,
-            Height = 46,
-            Name = "Holodex.DpiSlider"
-        };
-        MouseHardwareAndWandEngine.SpeedChanged += speed =>
-        {
-            if (IsDisposed) return;
-            if (InvokeRequired) BeginInvoke(new Action(() => ShowSpeed(speed)));
-            else ShowSpeed(speed);
-        };
-        var dpiLabeled = WidgetChrome.Labeled("Mouse speed // slow to fast", dpiSlider, 46);
-
-        // On-Brand Cursor Icon Style Picker
-        var styleRow = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface };
-        var styles = new (string Label, CursorIconStyle Style, int Width)[]
-        {
-            ("Aperture",   CursorIconStyle.ArkAperture, 108),
-            ("Magic wand", CursorIconStyle.RelicWand, 110),
-            ("Arrow",      CursorIconStyle.PhosphorArrow, 96),
-            ("Target",     CursorIconStyle.ViewfinderReticle, 114)
-        };
-        int sx = 0;
-        foreach (var (lbl, st, w) in styles)
-        {
-            var captured = st;
-            var btn = new PhosphorButton(lbl)
-            {
-                Location = new Point(sx, 2),
-                Size = new Size(w, 36),
-                Tag = st,
-                Selected = MouseHardwareAndWandEngine.ActiveCursorStyle == st
-            };
-            btn.Click += (_, _) =>
-            {
-                MouseHardwareAndWandEngine.ActiveCursorStyle = captured;
-                _onCursorStyleChanged(captured);
-                foreach (var c in styleRow.Controls.OfType<PhosphorButton>())
-                {
-                    if (c.Tag is CursorIconStyle cs)
-                    {
-                        c.Selected = cs == captured;
-                        c.Invalidate();
-                    }
-                }
-            };
-            styleRow.Controls.Add(btn);
-            sx += w + 6;
-        }
-        var styleLabeled = WidgetChrome.Labeled("Pointer look", styleRow, 40);
-
         // Wiz Automated Onboarding & Animated Tooltip Tutorial button
         var onboardBtn = new PhosphorButton("Show me around")
         {
@@ -687,6 +627,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
             Name = "Holodex.AugmentInventoryBtn"
         };
         inventoryBtn.Click += (_, _) => OpenAugmentInventory?.Invoke();
+
+        // The mouse, its speed, the pointer look and Input Studio live in the Mouse Mod Station, in its own window.
+        var stationBtn = new PhosphorButton("Mouse Mod Station")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.MouseModStationBtn"
+        };
+        stationBtn.Click += (_, _) => OpenMouseModStation?.Invoke();
 
         // What is equipped: the spellbook's gesture casts, then the mods, a card each.
         var modsInfoBox = CardList("Holodex.ModsInfoBox");
@@ -725,13 +674,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
             _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
             _modsPanel.Controls.Add(inventoryBtn);
         }
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
-        _modsPanel.Controls.Add(styleLabeled);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(Gutter));
-        _modsPanel.Controls.Add(dpiLabeled);
-        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
-        _modsPanel.Controls.Add(_dpiValueLabel);
-        _modsPanel.Controls.Add(_mouseHwLabel);
+        if (MouseModStationForm.Available(_ark))
+        {
+            _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+            _modsPanel.Controls.Add(stationBtn);
+        }
 
         _contentHost.Controls.Add(_modsPanel);
     }
@@ -902,19 +849,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         }
     }
 
-    /// <summary>The Mods tab's mouse line, speed line and the GrimX buttons, for the mouse in use now.</summary>
-    public void ShowActiveMouse()
-    {
-        var hw = ConnectedMouse;
-        _mouseHwLabel.Set((PhosphorTheme.Patina, $"Mouse // {hw.Name}"), (PhosphorTheme.Moss, "IN USE"),
-            (PhosphorTheme.Ghost, MouseHardwareAndWandEngine.KnownMice.Count > 1 ? $"{MouseHardwareAndWandEngine.KnownMice.Count} MICE FOUND" : "1 MOUSE FOUND"));
-        ShowSpeed(MouseHardwareAndWandEngine.GetWindowsMouseSpeed());
-        RefreshGrimXMacroReadout();
-    }
-
-    private void ShowSpeed(int speed) => _dpiValueLabel.Set(
-        (PhosphorTheme.Patina, $"Speed {speed} of 20"),
-        (PhosphorTheme.Ghost, ConnectedMouse.CanSetDpi ? "DPI SET HERE" : "DPI IS SET IN YOUR MOUSE'S OWN APP"));
+    /// <summary>The GrimX buttons for the mouse in use now.</summary>
+    public void ShowActiveMouse() => RefreshGrimXMacroReadout();
 
     /// <summary>What the GrimX list shows now (the mouse and each binding's words), so a switch back skips an unchanged rebuild.</summary>
     private string? _grimxShown;
