@@ -632,11 +632,12 @@ public sealed class AInboxIntakeWidgetForm : Form
         var shape = IntentCatalog.Shape(g.ChosenIntent);
         var pod = g.Chosen.Pod;
         string orch = ShortName(pod.OrchestratorLabel);
-        if (_undoTimer == null && !_working) _sendBtn.Text = $"Send {g.Letter} to {DestinationLabel(g)}";
+        // Public: the To button beside Send already names the destination.
+        if (_undoTimer == null && !_working) _sendBtn.Text = _queue.LocalOnly ? $"Send {g.Letter}" : $"Send {g.Letter} to {pod.Label}";
 
         var fields = FieldsOf(g);
         _summary.Kicker = $"SCROLL {g.Letter} // {shape.Kicker}";
-        _summary.Sentence = $"{fields.FirstOrDefault(f => f.Value.Length > 0)?.Value ?? shape.Label} Receipt from {orch}.";
+        _summary.Sentence = $"{fields.FirstOrDefault(f => f.Value.Length > 0)?.Value ?? shape.Label} {(_queue.LocalOnly ? $"Goes to {_destination.Label}." : $"Receipt from {orch}.")}";
         _summary.Accent = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _summary.Muted = !HasAnything;
         _summary.Invalidate();
@@ -670,12 +671,12 @@ public sealed class AInboxIntakeWidgetForm : Form
         _scroll.Code = pod.PodId.Length <= 5 ? pod.PodId.ToUpperInvariant() : pod.PodId[..5].ToUpperInvariant();
         _scroll.Title = shape.Label;
         _scroll.Eyebrow = $"Scroll // Handoff // Stack {g.Letter} // Drafted by Scribe";
-        _scroll.Alt = $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
+        _scroll.Alt = _queue.LocalOnly ? $"to {_destination.Label}" : $"{pod.InboxChannel} // pulse {pod.OrchestratorAgentId}";
         _scroll.Board = "";
         _scroll.Edge = PhosphorTheme.ResolveTokenColor(pod.AccentToken);
         _scroll.Specs = new[]
         {
-            ("To", $"{pod.Label} · {orch}"),
+            ("To", _queue.LocalOnly ? _destination.Label : $"{pod.Label} · {orch}"),
             ("Intent", shape.Kicker),
             ("Confidence", $"{Math.Round(g.Chosen.Score * 100)}% {g.WhySource.ToLowerInvariant()}"),
             ("Captures", g.Items.Count.ToString())
@@ -853,7 +854,7 @@ public sealed class AInboxIntakeWidgetForm : Form
                 // The sealed copy is kept on this PC too, then the Scroll goes into the Holodex session.
                 await _queue.SaveLocallyAsync(draft);
                 var to = _destination;
-                string markdown = items[0].Text ?? "";
+                string markdown = (items[0].Text ?? "").Replace("- Seal:", $"- Destination: {to.Label}\n- Seal:");
                 string title = $"{IntentCatalog.Shape(g.ChosenIntent).Label}: {g.Label}";
                 SetStatus($"SENT {g.Letter} TO {to.Label.ToUpperInvariant()} // ANSWER IN HOLODEX // sha256:{seal[..12]}", PhosphorTheme.Moss);
                 ClearSent(g);
