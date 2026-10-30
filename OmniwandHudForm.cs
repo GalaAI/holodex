@@ -249,9 +249,9 @@ public sealed class OmniwandHudForm : Form
         return withScreen && !ArkStationClient.ReadsImages(model) ? ArkStationClient.DefaultNemotronVisionModel : model;
     }
 
-    private void SyncVisionHint() => _visionHint.Text = _visionToggle.Selected
-        ? $"SCREEN GOES WITH IT // {ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant()} READS IT"
-        : "TEXT ONLY";
+    private void SyncVisionHint() => _visionHint.Text = !_visionToggle.Selected ? "TEXT ONLY"
+        : _ark.CanReadImages ? $"SCREEN GOES WITH IT // {ModelChip.ShortName(AnsweringModel(true)).ToUpperInvariant()} READS IT"
+        : "TEXT ONLY // THE SCREEN NEEDS A NEBIUS KEY";
 
     private void SyncAskLabel()
     {
@@ -300,6 +300,7 @@ public sealed class OmniwandHudForm : Form
         }
         await _modelChip.RefreshAsync();
         ShowKeyState();
+        SyncVisionHint();
         // Who answers the next ask: Gala when Hivemind has it ready, said by the LED and the button.
         if (!_working) await GalaUnavailableReasonAsync();
         SyncTelemetry();
@@ -332,10 +333,10 @@ public sealed class OmniwandHudForm : Form
 
     private void SyncTelemetry()
     {
-        bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
         var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "ARK API ONLINE")
-            : keyed ? (PhosphorTheme.Patina, "NEMOTRON // TOKEN FACTORY")
-            : (PhosphorTheme.Ember, "NO MODEL KEY // CTRL+ALT+H ADDS ONE");
+            : _ark.HasNebiusKey ? (PhosphorTheme.Patina, "NEMOTRON // TOKEN FACTORY")
+            : HivemindClient.HasSavedSignIn ? (PhosphorTheme.Patina, "NEMOTRON // VIA HIVEMIND")
+            : (PhosphorTheme.Ember, "SIGN IN WITH HIVEMIND // CTRL+ALT+H");
         var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
             : _mouseModel.Length == 0 ? (PhosphorTheme.Ember, "NO MOUSE")
             : (PhosphorTheme.Moss, ShortMouse(_mouseModel));
@@ -393,7 +394,8 @@ public sealed class OmniwandHudForm : Form
         if (_working) return;
         if (string.IsNullOrEmpty(prompt)) { _promptBox.Focus(); return; }
 
-        string? snapshot = _visionToggle.Selected
+        // Hivemind answers text only: without the Ark API or a Nebius key the screen stays on this PC and the hint says so.
+        string? snapshot = _visionToggle.Selected && _ark.CanReadImages
             ? ArkStationClient.CaptureRegionAroundCursor(_summonCursorPos.X, _summonCursorPos.Y)
             : null;
 
@@ -476,6 +478,7 @@ public sealed class OmniwandHudForm : Form
         }
         (Color Led, string Text)? state = null;
         if (!HivemindClient.HasSavedSignIn) state = (PhosphorTheme.Ghost, "HIVEMIND SIGNED OUT");
+        else if (!HivemindClient.Granted("runtime.execute")) state = (PhosphorTheme.Ember, "HIVEMIND CANNOT ASK GALA");
         else if (await _ark.Hivemind.ListAgentsAsync() is not { } agents) state = (PhosphorTheme.Rust, "HIVEMIND UNREACHABLE");
         else if (!agents.Any(a => a.Id == "gala")) state = (PhosphorTheme.Ember, "NO GALA IN HIVEMIND");
         else if (_galaWatch is { IsCompleted: false }) state = (PhosphorTheme.Seal, "GALA STILL ON THE LAST ASK");
@@ -747,6 +750,11 @@ public sealed class OmniwandHudForm : Form
         try { await AskAsync(); }
         finally { _visionToggle.Selected = screen; }
     }
+
+    /// <summary>The newest card as it reads ([kicker] body), for checks of what an ask drew.</summary>
+    internal string DescribeLastCard() => _answers.Cards.LastOrDefault() is { } c
+        ? $"[{c.Kicker}] {c.Body}".Replace("\r", " ").Replace("\n", " ")
+        : "";
 
     /// <summary>The answer box's sizes and scroll state, for the pipe's hud:state.</summary>
     internal string DescribeAnswers() =>

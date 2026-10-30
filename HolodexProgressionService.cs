@@ -20,7 +20,10 @@ internal sealed class RoutedGalaModel : IGalaModel
         string model = route.Available && route.ProviderId == ModelInventory.NebiusProviderId && ArkStationClient.IsNemotronModel(route.ModelId)
             ? route.ModelId
             : kind == TaskKind.Vision || imageDataUrl != null ? TaskRouter.VisionModel : TaskRouter.GalaModel;
-        var answer = await _ark.AskNebiusTokenFactoryAsync(prompt, imageDataUrl, model);
+        // Without a Nebius key on this PC, the shared ask path answers text through the user's Hivemind (or says to sign in).
+        var answer = _ark.HasNebiusKey
+            ? await _ark.AskNebiusTokenFactoryAsync(prompt, imageDataUrl, model)
+            : await _ark.AskAsync(prompt, imageDataUrl, model);
         return (answer.Ok, answer.Output, string.IsNullOrEmpty(answer.Model) ? model : answer.Model);
     }
 }

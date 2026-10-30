@@ -741,8 +741,12 @@ internal sealed class ModelChip : SuggestionChip
         Click += (_, _) => ShowChoices(_models.Select(m => new ChipChoice(ShortName(m), Host(m), string.Equals(m, _get(), StringComparison.OrdinalIgnoreCase), () => { _set(m); _runtime = null; Sync(); }, m)));
         _models.Add(_get());
         _ark.ArkApiStateChanged += OnArkApiStateChanged;
+        // Signing in or out of Hivemind changes where a keyless ask goes, so the chip relabels then too.
+        _ark.Hivemind.StateChanged += OnHivemindStateChanged;
         Sync();
     }
+
+    private void OnHivemindStateChanged() => OnArkApiStateChanged(this, EventArgs.Empty);
 
     /// <summary>The Ark API came up or went down: the next ask takes the other route, so the chip stops naming the last one.</summary>
     private void OnArkApiStateChanged(object? sender, EventArgs e)
@@ -762,7 +766,11 @@ internal sealed class ModelChip : SuggestionChip
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _ark.ArkApiStateChanged -= OnArkApiStateChanged;
+        if (disposing)
+        {
+            _ark.ArkApiStateChanged -= OnArkApiStateChanged;
+            _ark.Hivemind.StateChanged -= OnHivemindStateChanged;
+        }
         base.Dispose(disposing);
     }
 
@@ -780,10 +788,12 @@ internal sealed class ModelChip : SuggestionChip
     /// <summary>After a run, the runtime that actually answered (for example ANTIGRAVITY CLI) replaces the guess.</summary>
     public void ShowRuntime(string runtime)
     {
-        // Runtimes come back as route ids ("ark-api", "nebius-direct") or CLI names; the chip names the host.
+        // Runtimes come back as route ids ("ark-api", "nebius-direct", "hivemind", "none") or CLI names; the chip names the host.
         string r = runtime.ToLowerInvariant();
         _runtime = r.Contains("gemini") ? "Gemini"
             : r == ArkStationClient.RouteArkApi ? "Ark API"
+            : r == ArkStationClient.RouteHivemind ? "Hivemind"
+            : r == ArkStationClient.RouteNone ? "Sign in with Hivemind"
             : r.Contains("nebius") ? "Nebius direct"
             : runtime.Split(' ', '(')[0];
         Sync();
@@ -805,7 +815,7 @@ internal sealed class ModelChip : SuggestionChip
     private void Sync()
     {
         string model = _get();
-        bool keyed = _ark.LastGatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
+        bool keyed = _ark.HasAnswerRoute;
         Label = _agent ?? ShortName(model);
         Detail = _agent != null ? $"Hivemind ({ShortName(model).Split(' ')[0]} fallback)" : _runtime ?? Host(model);
         Confident = keyed;
@@ -818,10 +828,14 @@ internal sealed class ModelChip : SuggestionChip
         }
     }
 
-    /// <summary>Where the next ask with this model goes: the Ark API when it is up and has a route for it, else Token Factory direct.</summary>
-    private string Host(string model) => _ark.LastGatewayOnline && ArkStationClient.ArkRouteFor(model) != null
-        ? "Ark API"
-        : "Nebius direct";
+    /// <summary>Where the next ask with this model goes: the Ark API, Token Factory direct, the user's Hivemind, or nowhere yet.</summary>
+    private string Host(string model) => _ark.NextTextRoute(model) switch
+    {
+        ArkStationClient.RouteArkApi => "Ark API",
+        ArkStationClient.RouteNebiusDirect => "Nebius direct",
+        ArkStationClient.RouteHivemind => "Hivemind",
+        _ => "Sign in with Hivemind"
+    };
 
     /// <summary>"nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B" reads "Nemotron 3 Nano": vendor, sizes and tuning tags dropped.</summary>
     public static string ShortName(string model)

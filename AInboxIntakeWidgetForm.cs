@@ -725,7 +725,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     // ---- Nemotron refinement -----------------------------------------------------------------------------------
 
-    private bool CanRefine => !_preview && (_ark.LastGatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey()));
+    private bool CanRefine => !_preview && _ark.HasAnswerRoute;
 
     private string Signature(StackGroup g) => string.Join("|", g.Items.Select(i => i.Id)) + "|" + AskFor(g).Trim() + "|" + (g.ChosenByHand ? g.ChosenIntent : "");
 

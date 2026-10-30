@@ -121,7 +121,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// </summary>
     public static readonly SyndicateAgentInfo[] SignedOutRoster =
     {
-        new("nemotron", "NEMOTRON", "Answers here until you sign in to Hivemind", "Token Factory", PhosphorTheme.Patina)
+        new("nemotron", "NEMOTRON", "Answers here with NVIDIA Nemotron", "Nemotron", PhosphorTheme.Patina)
     };
 
     public HolodexLiteDrawerForm(
@@ -167,7 +167,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // itself when something needs signing in; with everything linked the header is the title and the avatar.
 
         _tokenBar = new Panel { Dock = DockStyle.Top, Height = 40, BackColor = PhosphorTheme.Surface, Name = "Holodex.TokenBar" };
-        _tokenField = new PhosphorField("Paste a Nebius Token Factory key. It is saved to Windows Credential Manager.", false, 40, mono: true)
+        _tokenField = new PhosphorField("Optional: a Nebius Token Factory key, saved to Windows Credential Manager.", false, 40, mono: true)
         {
             Dock = DockStyle.Fill,
             Name = "Holodex.TokenField"
@@ -192,7 +192,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _connectionTelemetry = new LedRow { Dock = DockStyle.Fill, Height = 36, Wrap = true, Name = "Holodex.ConnectionLine" };
         _connectionTelemetry.LedsChanged += (_, _) => FitProfile();
         ShowConnection(gatewayOnline: false, hasNebiusKey, bundle);
-        _replaceKeyBtn = new PhosphorButton("Replace key") { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.ReplaceKeyButton" };
+        _replaceKeyBtn = new PhosphorButton(hasNebiusKey ? "Replace key" : "Use a key") { Dock = DockStyle.Right, Width = 128, Height = 36, Name = "Holodex.ReplaceKeyButton" };
         _replaceKeyBtn.Click += (_, _) => ShowTokenBar(!_tokenBarOpen);
         connectionRow.Controls.Add(_connectionTelemetry);
         connectionRow.Controls.Add(new Panel { Dock = DockStyle.Right, Width = 8, BackColor = PhosphorTheme.Surface });
@@ -217,7 +217,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // A change before the window had a handle (Holodex drawn offscreen, or first opened after Hivemind connected)
         // was skipped above; catch up when the handle exists.
         HandleCreated += (_, _) => ShowHivemindState();
-        _connected = hasNebiusKey;
+        // The key row is optional (Hivemind's sign-in answers without one), so Use a key is always offered.
+        _connected = true;
 
         // Who Omniwand runs as on this machine: the Windows account, read from the system, never typed in.
         var identityLine = new LedRow { Dock = DockStyle.Top, Height = 28, Name = "Holodex.ProfileIdentity" };
@@ -304,7 +305,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         WidgetDrag.Enable(this);
         Resize += (_, _) => PlaceProfile();
 
-        ShowTokenBar(!hasNebiusKey);
+        // Sign in with Hivemind is the way in; the Nebius key row stays folded under Use a key.
+        ShowTokenBar(false);
         SwitchTab("session");
         ResumeLayout(false);
     }
@@ -412,12 +414,16 @@ public sealed partial class HolodexLiteDrawerForm : Form
         (Color, string) status = _ark.Hivemind.State switch
         {
             HivemindState.Connected => _roster != SignedOutRoster ? (PhosphorTheme.Moss, "Hivemind live")
+                // A Hivemind account without agents (a judge's) still answers: Nemotron through model_invoke.
+                : _rosterError != null && !ArkStationClient.ArkOnThisPc ? (PhosphorTheme.Moss, "Hivemind connected: Nemotron answers through it")
                 : _rosterError != null ? (PhosphorTheme.Rust, _rosterError)
                 : (PhosphorTheme.Moss, "Hivemind connected: loading your agents"),
             HivemindState.SigningIn => (PhosphorTheme.Seal, "Signing in: finish in the browser"),
             HivemindState.Connecting => (PhosphorTheme.Ghost, "Connecting to Hivemind"),
             HivemindState.Unreachable => (PhosphorTheme.Rust, $"Hivemind unreachable{(error.Length > 0 ? $" ({(error.Length > 48 ? error[..47] + "\u2026" : error)})" : "")}: Nemotron answers"),
-            _ => (PhosphorTheme.Ember, error.Length > 0 ? error : "Signed out of Hivemind: Nemotron answers, sign in for work orders")
+            _ => (PhosphorTheme.Ember, error.Length > 0 ? error
+                : _ark.LastGatewayOnline || HasNebiusKey ? "Signed out of Hivemind: Nemotron answers, sign in for work orders"
+                : "Sign in with Hivemind to get answers: no key needed")
         };
         var leds = new List<(Color, string)> { status };
         // Connected with the roster not in yet: the signed-out stand-in's role would contradict the status, so it goes.
@@ -435,7 +441,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _tokenBar.Visible = _tokenGap.Visible = show;
         // Without a working connection the key row is the way in, so it has no Replace toggle.
         _replaceKeyBtn.Visible = _connected;
-        _replaceKeyBtn.Text = show ? "Cancel" : "Replace key";
+        _replaceKeyBtn.Text = show ? "Cancel" : HasNebiusKey ? "Replace key" : "Use a key";
         if (show) ShowProfile(true);
         FitProfile();
         if (show) _tokenField.Box.Focus();
@@ -945,7 +951,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _workOrdersList.Clear();
         // Work orders are Hivemind missions: signed out there is nothing to send them to, so the block and + go,
         // and /order says to sign in.
-        bool live = _ark.Hivemind.State == HivemindState.Connected;
+        bool live = _ark.Hivemind.State == HivemindState.Connected && HivemindClient.Granted("runtime.execute");
         _workOrdersHost.Visible = _workOrdersGap.Visible = live || _workOrders.Count > 0;
         _addOrderBtn.Visible = live;
         _sessionInputBox.Prompt = live ? "Send a message. /order queues a work order." : "Send a message.";
@@ -981,7 +987,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
             leds.Add((PhosphorTheme.Patina, "NEMOTRON READY"));
             if (bundle) leds.Add((PhosphorTheme.Moss, "WINDOWS VAULT"));
         }
-        else if (!gatewayOnline) leds.Add((PhosphorTheme.Ember, "NO MODEL KEY // PASTE ONE BELOW"));
+        else if (!gatewayOnline)
+            // No key is needed: a Hivemind sign-in answers with Nemotron. The key is the optional advanced route.
+            leds.Add(HivemindClient.HasSavedSignIn
+                ? (PhosphorTheme.Patina, "NEMOTRON VIA HIVEMIND // NO KEY NEEDED")
+                : (PhosphorTheme.Ember, "SIGN IN WITH HIVEMIND ABOVE // KEY OPTIONAL"));
         _connectionTelemetry.Set(leds.ToArray());
     }
 
@@ -1037,6 +1047,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
         if (_ark.Hivemind.State != HivemindState.Connected)
         {
             PhosphorToast.Show("Work orders need Hivemind", SignInForOrders, "HOLODEX // WORK ORDERS", 3200, ToastTone.Warning);
+            return null;
+        }
+        if (!HivemindClient.Granted("runtime.execute"))
+        {
+            PhosphorToast.Show("Work orders need agent access", HivemindClient.NoAgentsOnThisSignIn, "HOLODEX // WORK ORDERS", 4200, ToastTone.Warning);
             return null;
         }
         var agent = _roster.FirstOrDefault(a => a.Id == targetId) ?? _roster[0];
@@ -1171,9 +1186,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // Connecting is the moment before the saved sign-in is tried: nothing opens until it succeeds or fails.
         if (state == _shownHivemindState || state == HivemindState.Connecting) return;
         _shownHivemindState = state;
-        // A lost connection opens the profile to reconnect. Signed out is a normal state: the session's status line
-        // says so and the composer stays usable, with Sign in one click away on the avatar.
+        // A lost connection opens the profile to reconnect. Signed out is a normal state when something else answers:
+        // the session's status line says so and Sign in is one click away on the avatar. With nothing to answer (a
+        // fresh install with no key and no Ark), the profile opens on Sign in, the one step answers need.
         if (state == HivemindState.Unreachable) ShowProfile(true);
+        else if (state == HivemindState.NotSignedIn && !_ark.LastGatewayOnline && !HasNebiusKey) ShowProfile(true);
         RefreshWorkOrdersText();
     }
 
@@ -1190,6 +1207,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
     private async Task LoadLiveRosterAsync()
     {
         if (_rosterLoading) return;
+        // A sign-in without runtime.execute (consent narrowed it) cannot ask agents: no roster to pick from, and the
+        // session answers with Nemotron through model_invoke.
+        if (!HivemindClient.Granted("runtime.execute"))
+        {
+            _rosterError = HivemindClient.NoAgentsOnThisSignIn;
+            _hivemindLine.Set(HivemindLed());
+            ShowTargetLine();
+            return;
+        }
         _rosterLoading = true;
         IReadOnlyList<HivemindAgent>? agents;
         try { agents = await _ark.Hivemind.ListAgentsAsync(); }
@@ -1299,13 +1325,15 @@ public sealed partial class HolodexLiteDrawerForm : Form
         var agent = _roster.FirstOrDefault(a => a.Id == _selectedSyndicateTarget) ?? _roster[0];
         _sessionThread.Add(ThreadTone.You, $"YOU // TO {agent.Name}", msg);
 
-        if (_ark.Hivemind.State == HivemindState.Connected)
+        // Missions go to the user's Hivemind agents once their roster is in. A Hivemind with no agents for this account
+        // (a judge's) answers below: Nemotron through model_invoke, named on the card.
+        if (_ark.Hivemind.State == HivemindState.Connected && _roster != SignedOutRoster && HivemindClient.Granted("runtime.execute"))
         {
             await RunMissionAsync(MissionTarget(agent), msg, "MESSAGE", null);
             return;
         }
 
-        // Signed out: Nemotron answers as itself, and the card names the model and the route that answered.
+        // Nemotron answers as itself (Ark API, Nebius key or Hivemind), and the card names the model and the route.
         _setThinkingState(true);
         var pending = _sessionThread.AddPending($"{ModelChip.ShortName(_ark.SelectedModel).ToUpperInvariant()} // ANSWERING");
         try
@@ -1367,22 +1395,10 @@ public sealed partial class HolodexLiteDrawerForm : Form
         if (await _ark.Hivemind.EnsureConnectedAsync()) await LoadLiveRosterAsync();
         var st = await _ark.CheckStatusAsync();
         bool bundle = ArkStationClient.HasWinCredVaultBundle();
-        _connected = st.GatewayOnline || st.NebiusKeyLoaded;
-        if (st.GatewayOnline)
-        {
-            ShowConnection(gatewayOnline: true, st.NebiusKeyLoaded, bundle);
-            ShowTokenBar(_tokenBarOpen);
-        }
-        else if (st.NebiusKeyLoaded)
-        {
-            ShowConnection(gatewayOnline: false, keyed: true, bundle);
-            ShowTokenBar(_tokenBarOpen);
-        }
-        else
-        {
-            ShowConnection(gatewayOnline: false, keyed: false, bundle: false);
-            ShowTokenBar(true);
-        }
+        // The key row never forces itself open: Sign in with Hivemind is the way in, and Use a key opens the row.
+        _connected = true;
+        ShowConnection(st.GatewayOnline, st.NebiusKeyLoaded, st.NebiusKeyLoaded && bundle);
+        ShowTokenBar(_tokenBarOpen);
         ShowHivemindState();
     }
 

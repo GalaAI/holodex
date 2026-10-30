@@ -3,29 +3,69 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace Omniwand;
 
+/// <summary>Where a web search runs: the user's Hivemind, the Holodex Vault's Tavily key, TAVILY_API_KEY, or nowhere.</summary>
+public enum WebSearchProvider { None, Hivemind, VaultKey, EnvKey }
+
 /// <summary>
 /// Web search for Nemotron, through Tavily (POST https://api.tavily.com/search, Bearer tvly- key; docs checked
-/// 2026-10-29). It is a real tool: when the user has a Tavily key in the Vault (<see cref="Target"/>), the Token Factory
-/// request offers a <c>web_search</c> function, Nemotron decides when to call it (Nano and Super both answer with
-/// tool_calls on Token Factory, checked 2026-10-29), Holodex runs the search and hands the results back, and the
-/// answer ends with the pages it used. With no Tavily key nothing changes. Each search costs one Tavily credit
-/// (search_depth basic); the key is sent only to Tavily.
+/// 2026-10-29). It is a real tool: when a search provider is connected, the Token Factory request offers a
+/// <c>web_search</c> function, Nemotron decides when to call it (Nano and Super both answer with tool_calls on Token
+/// Factory, checked 2026-10-29), Holodex runs the search and hands the results back, and the answer ends with the
+/// pages it used. The search runs, in order, on (<see cref="ProviderAsync"/>):
+/// <list type="number">
+/// <item>the signed-in Hivemind's hosted <c>web_search</c> tool, when its tool list offers it (no key on the PC);</item>
+/// <item>Tavily with the Vault key (<see cref="Target"/>);</item>
+/// <item>Tavily with TAVILY_API_KEY (process, user, machine);</item>
+/// <item>no search: the model is told it cannot search and to say when an answer may be out of date.</item>
+/// </list>
+/// Hivemind's model_invoke carries no tools, so on that route the model asks for a search with one <c>SEARCH:</c>
+/// line and Holodex runs it (<see cref="SearchLine"/>). Each Tavily search costs one credit (search_depth basic); the
+/// key is sent only to Tavily.
 /// </summary>
 internal static class WebSearch
 {
     public const string Target = "Omniwand:Vault:tavily";
     public const int MaxRounds = 3;
-    private const string ToolName = "web_search";
+    public const string ToolName = "web_search";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
 
-    public static bool Available => !string.IsNullOrWhiteSpace(ReadKey());
+    /// <summary>A Tavily key on this PC (the Vault or TAVILY_API_KEY); Hivemind's search is checked by <see cref="ProviderAsync"/>.</summary>
+    public static bool Available => ReadKey() != null;
 
-    /// <summary>TAVILY_API_KEY (process, user, machine) first, as NEBIUS_API_KEY is read, then the Vault.</summary>
-    private static string? ReadKey() =>
-        HolodexVault.FromEnvironment("TAVILY_API_KEY") ?? ArkStationClient.TryReadWindowsCredential(Target);
+    /// <summary>The Vault's Tavily key first, then TAVILY_API_KEY (process, user, machine).</summary>
+    private static (string Key, WebSearchProvider From)? ReadKey()
+    {
+        string? vault = ArkStationClient.TryReadWindowsCredential(Target);
+        if (!string.IsNullOrWhiteSpace(vault)) return (vault.Trim(), WebSearchProvider.VaultKey);
+        string? env = HolodexVault.FromEnvironment("TAVILY_API_KEY");
+        return string.IsNullOrWhiteSpace(env) ? null : (env.Trim(), WebSearchProvider.EnvKey);
+    }
+
+    /// <summary>The first provider that can search now; the Hivemind check lists its tools once per connection and never throws.</summary>
+    public static async Task<WebSearchProvider> ProviderAsync(HivemindClient hivemind, CancellationToken ct = default) =>
+        await hivemind.OffersToolAsync(ToolName, ct) ? WebSearchProvider.Hivemind : ReadKey()?.From ?? WebSearchProvider.None;
+
+    /// <summary>"Today is ..." for system prompts: the model's training data is older than today.</summary>
+    public static string Today => $"Today is {DateTime.Now:dddd, MMMM d, yyyy}.";
+
+    /// <summary>What the model is told when nothing can search: answer, and say when the answer may be out of date.</summary>
+    public static string NoSearchNote =>
+        $" {Today} You cannot search the web here. If the question needs current facts, answer from what you know and say plainly that it may be out of date.";
+
+    /// <summary>The instruction that lets a tool-less model ask for a search (Hivemind's model_invoke).</summary>
+    public static string SearchLineInstruction =>
+        $" {Today} Your training data is older. If answering needs current facts from the web (news, prices, releases, schedules, people), reply with exactly one line, SEARCH: followed by a short web search query, and nothing else. Otherwise answer directly.";
+
+    /// <summary>The query when a reply is a search request (a "SEARCH: ..." line), else null.</summary>
+    internal static string? SearchLine(string reply)
+    {
+        var m = Regex.Match(reply.Trim(), @"^\**\s*SEARCH\s*:\s*\**\s*(?<q>[^\r\n]{2,300})", RegexOptions.IgnoreCase);
+        return m.Success ? m.Groups["q"].Value.Trim().Trim('"', '*', '`').Trim() : null;
+    }
 
     /// <summary>Offers the web_search tool on a chat payload and tells the model when to use it and to cite.</summary>
     public static void Offer(JsonObject payload)
@@ -61,7 +101,7 @@ internal static class WebSearch
     /// When a completion asked for web_search, runs each search, appends the assistant turn and the tool results to
     /// the payload's messages, and returns true so the caller asks again. Sources gathers each result's URL.
     /// </summary>
-    public static async Task<bool> RunToolCallsAsync(JsonObject payload, string completionBody, List<string> sources, CancellationToken ct = default)
+    public static async Task<bool> RunToolCallsAsync(JsonObject payload, string completionBody, List<string> sources, HivemindClient hivemind, CancellationToken ct = default)
     {
         var message = JsonNode.Parse(completionBody)?["choices"]?[0]?["message"] as JsonObject;
         if (message?["tool_calls"] is not JsonArray calls || calls.Count == 0 || payload["messages"] is not JsonArray messages) return false;
@@ -94,18 +134,32 @@ internal static class WebSearch
                     topic = args?["topic"]?.GetValue<string>() is "news" or "finance" ? args!["topic"]!.GetValue<string>() : "general";
                 }
                 catch (Exception ex) when (ex is JsonException or InvalidOperationException) { }
-                result = query.Length == 0 ? "No query was given." : await SearchAsync(query, topic, sources, ct);
+                result = query.Length == 0 ? "No query was given." : await SearchAsync(query, topic, sources, hivemind, ct);
             }
             messages.Add(new JsonObject { ["role"] = "tool", ["tool_call_id"] = id, ["content"] = result });
         }
         return true;
     }
 
-    /// <summary>One Tavily search, as numbered results for the model. Failures come back as text the model can report.</summary>
-    public static async Task<string> SearchAsync(string query, string topic, List<string> sources, CancellationToken ct = default)
+    /// <summary>
+    /// One search as numbered results for the model: the signed-in Hivemind's hosted web_search when it offers one,
+    /// else Tavily with the Vault key, else with TAVILY_API_KEY. A Hivemind search that fails hands over to the key.
+    /// Failures come back as text the model can report.
+    /// </summary>
+    public static async Task<string> SearchAsync(string query, string topic, List<string> sources, HivemindClient hivemind, CancellationToken ct = default)
     {
-        string? key = ReadKey();
-        if (string.IsNullOrWhiteSpace(key)) return "Web search is not connected: no Tavily key in the Vault or TAVILY_API_KEY.";
+        string? hivemindError = null;
+        if (await hivemind.OffersToolAsync(ToolName, ct))
+        {
+            var found = await hivemind.WebSearchAsync(query, 5, ct);
+            if (found != null) return Format(query, found, sources);
+            hivemindError = hivemind.LastError;
+        }
+        if (ReadKey() is not { } tavily)
+            return hivemindError != null
+                ? $"Web search did not answer on Hivemind: {hivemindError}"
+                : "Web search is not connected: Hivemind offers no web_search, and there is no Tavily key in the Vault or TAVILY_API_KEY.";
+        string key = tavily.Key;
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.tavily.com/search");
@@ -121,24 +175,28 @@ internal static class WebSearch
             using var res = await Http.SendAsync(req, ct);
             string body = await res.Content.ReadAsStringAsync(ct);
             if (!res.IsSuccessStatusCode) return $"Web search failed: Tavily answered HTTP {(int)res.StatusCode}.";
-            var results = JsonNode.Parse(body)?["results"] as JsonArray;
-            if (results == null || results.Count == 0) return $"No web results for \"{query}\".";
-            var text = new StringBuilder($"Web results for \"{query}\":\n");
-            int n = 0;
-            foreach (var r in results.OfType<JsonObject>())
-            {
-                string url = r["url"]?.GetValue<string>() ?? "";
-                string content = r["content"]?.GetValue<string>() ?? "";
-                if (content.Length > 700) content = content[..700] + "...";
-                text.Append($"[{++n}] {r["title"]?.GetValue<string>()}\n{url}\n{content}\n\n");
-                if (url.Length > 0 && !sources.Contains(url)) sources.Add(url);
-            }
-            return text.ToString();
+            using var doc = JsonDocument.Parse(body);
+            return Format(query, HivemindClient.ReadSearchResults(doc.RootElement), sources);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
             return $"Web search did not answer: {ex.Message}";
         }
+    }
+
+    /// <summary>Numbered results for the model (Tavily's and Hivemind's alike); each URL joins <paramref name="sources"/>.</summary>
+    internal static string Format(string query, IReadOnlyList<WebSearchResult> results, List<string> sources)
+    {
+        if (results.Count == 0) return $"No web results for \"{query}\".";
+        var text = new StringBuilder($"Web results for \"{query}\":\n");
+        int n = 0;
+        foreach (var r in results.Take(6))
+        {
+            string content = r.Content.Length > 700 ? r.Content[..700] + "..." : r.Content;
+            text.Append($"[{++n}] {r.Title}\n{r.Url}\n{content}\n\n");
+            if (!sources.Contains(r.Url)) sources.Add(r.Url);
+        }
+        return text.ToString();
     }
 
     /// <summary>The answer with the pages it drew on listed after it (the card's Sources row reads URLs from the text).</summary>

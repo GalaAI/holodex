@@ -222,7 +222,9 @@ public sealed class PhosphorAnimatedTooltipForm : Form
 
         string vaultState = report.NebiusReady
             ? "Your Nebius key is linked, so answers come from NVIDIA Nemotron on Token Factory."
-            : "No model key yet. Open Holodex (Ctrl+Alt+H) and paste a Nebius Token Factory key to turn on answers.";
+            : HivemindClient.HasSavedSignIn
+                ? "You are signed in with Hivemind, so NVIDIA Nemotron answers through it. No key needed."
+                : "To turn on answers, open Holodex (Ctrl+Alt+H) and Sign in with Hivemind. No key needed; a Nebius key is optional.";
 
         _steps = new List<TutorialStepInfo>
         {

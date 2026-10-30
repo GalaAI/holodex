@@ -230,16 +230,16 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         string host = runtime != null
             ? HostName(runtime)
             : !ArkStationClient.IsNemotronModel(model) && _ark.LastGatewayOnline ? "ANTIGRAVITY CLI"
-            : _ark.LastGatewayOnline && ArkStationClient.ArkRouteFor(model) != null ? "VIA ARK API" : "NEBIUS DIRECT";
-        _hostLine.Set((PhosphorTheme.Moss, host));
+            : ArkStationClient.RouteLabelFor(_ark.NextTextRoute(model));
+        _hostLine.Set((host == "NOT CONNECTED" ? PhosphorTheme.Ember : PhosphorTheme.Moss, host == "NOT CONNECTED" ? "SIGN IN WITH HIVEMIND // CTRL+ALT+H" : host));
     }
 
-    /// <summary>Runtime ids from AskWizAsync ("nebius-direct", "ark-api", "subscription-gemini (agy)") as hosts.</summary>
+    /// <summary>Runtime ids from AskWizAsync ("nebius-direct", "ark-api", "hivemind", "subscription-gemini (agy)") as hosts.</summary>
     private static string HostName(string runtime)
     {
         string r = runtime.ToLowerInvariant();
-        if (r == ArkStationClient.RouteNebiusDirect) return "NEBIUS DIRECT";
-        if (r == ArkStationClient.RouteArkApi) return "VIA ARK API";
+        if (r is ArkStationClient.RouteNebiusDirect or ArkStationClient.RouteArkApi or ArkStationClient.RouteHivemind or ArkStationClient.RouteNone)
+            return ArkStationClient.RouteLabelFor(r);
         if (r.Contains("gemini") || r.Contains("agy") || r.Contains("antigravity")) return "ANTIGRAVITY CLI";
         return runtime.Replace('-', ' ').ToUpperInvariant();
     }
@@ -308,7 +308,9 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         _runCancel = cancel;
         try
         {
-            if (WizAgent.CanAct(model))
+            // Tool turns need Token Factory's tool calling with this PC's Nebius key: Hivemind's model_invoke carries
+            // no tools, so without a key Wiz drafts the plan through Hivemind instead.
+            if (WizAgent.CanAct(model) && _ark.HasNebiusKey)
             {
                 Say(ThreadTone.Step, $"WIZ // AGENT // {Short(model)} // NEBIUS DIRECT",
                     $"Up to {WizAgent.MaxSteps} steps.{(attachScreen ? $" {ModelChip.ShortName(WizAgent.VisionModel)} reads the screen first." : "")}");
@@ -325,16 +327,21 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
             }
             else
             {
-                // Plan-only route: tool calls need a Nemotron model on Token Factory.
-                Say(ThreadTone.Step, "WIZ // PLAN ONLY", $"{ModelChip.ShortName(model)} drafts without tools. Pick a Nemotron model on the chip to let Wiz act.");
-                string? snapshot = attachScreen ? ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y) : null;
+                // Plan-only route: tool calls need a Nemotron model on Token Factory with this PC's key.
+                Say(ThreadTone.Step, "WIZ // PLAN ONLY", !ArkStationClient.IsNemotronModel(model)
+                    ? $"{ModelChip.ShortName(model)} drafts without tools. Pick a Nemotron model on the chip to let Wiz act."
+                    : $"{ModelChip.ShortName(model)} drafts the plan {(_ark.NextTextRoute(model) == ArkStationClient.RouteHivemind ? "through Hivemind" : "")} without tools. Acting with tools needs a Nebius key for now (Holodex profile, Use a Nebius key).".Replace("  ", " "));
+                // Hivemind answers text only: without a route that reads images, the screen stays on this PC.
+                string? snapshot = attachScreen && _ark.CanReadImages ? ArkStationClient.CaptureRegionAroundCursor(_summonPos.X, _summonPos.Y) : null;
                 var pending = _thread.AddPending($"WIZ // DRAFTING // {Short(model)}");
                 try
                 {
-                    var (_, runtime, answered, output) = await _ark.AskWizAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
+                    var (ok, runtime, answered, output) = await _ark.AskWizAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
                     _modelChip.ShowRuntime(runtime);
                     ShowRuntime(runtime, answered);
-                    pending.Resolve(ThreadTone.Agent, $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output);
+                    pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail,
+                        ok ? $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)} // {HostName(runtime)}" : $"WIZ // NOT DRAFTED // {Short(answered)} // {HostName(runtime)}", output);
+                    if (!ok) return;
                 }
                 catch (OperationCanceledException)
                 {

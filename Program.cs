@@ -622,16 +622,19 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
         }
 
-        // A public install with no Nebius key yet: open the Vault ready for it, since every answer needs one.
-        if (string.IsNullOrEmpty(_ark.ReadNebiusApiKey()) && !_ark.ArkInstalled)
+        // A public install with nothing to answer yet (no Nebius key, no Ark, no Hivemind sign-in): open Holodex on its
+        // profile, where Sign in with Hivemind is the one step answers need. A Nebius key stays optional, in the
+        // profile's Use a key and the Vault.
+        if (!_ark.HasNebiusKey && !_ark.ArkInstalled && !HivemindClient.HasSavedSignIn)
         {
-            var firstKey = new System.Windows.Forms.Timer { Interval = 2500 };
-            firstKey.Tick += (_, _) =>
+            var firstSignIn = new System.Windows.Forms.Timer { Interval = 2500 };
+            firstSignIn.Tick += (_, _) =>
             {
-                firstKey.Dispose();
-                _vault.SummonFor(Screen.PrimaryScreen?.WorkingArea.Location + new Size(200, 200) ?? Point.Empty, "nebius");
+                firstSignIn.Dispose();
+                _holodexDrawer.SummonDrawer(Screen.PrimaryScreen?.WorkingArea.Location + new Size(200, 200) ?? Point.Empty, "session");
+                _holodexDrawer.SetProfileOpen(true);
             };
-            firstKey.Start();
+            firstSignIn.Start();
         }
 
         // One Ark API probe at start, so every model chip names the route the first ask takes before any surface opens.

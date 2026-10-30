@@ -223,7 +223,7 @@ public sealed class ArkStationClient
             ? ReadNebiusApiKey()
             : TryReadWindowsCredential(target);
 
-    public bool ForceStandaloneMode => StandaloneRequested();
+    public bool ForceStandaloneMode => StandaloneRequested() || SimulateFreshInstall;
 
     /// <summary>
     /// True when this machine runs its owner's Ark: a configured Ark root or a gateway inbound key. A public install
@@ -254,8 +254,15 @@ public sealed class ArkStationClient
     /// Reads the Nebius Token Factory API key from environment variables or Windows Credential Manager.
     /// Never reads from or writes to source files, config files, logs, or screenshots.
     /// </summary>
+    /// <summary>
+    /// Tests only: this client behaves as a fresh install, with no Nebius key and no Ark (standalone), so the judge
+    /// path can be proven and rendered in-process on a PC that has both. The running app never sets it.
+    /// </summary>
+    internal bool SimulateFreshInstall { get; set; }
+
     public string ReadNebiusApiKey()
     {
+        if (SimulateFreshInstall) return string.Empty;
         foreach (string envName in new[] { "NEBIUS_API_KEY", "TOKEN_FACTORY_API_KEY", "OMNIWAND_NEBIUS_API_KEY" })
         {
             string? val = Environment.GetEnvironmentVariable(envName);
@@ -1000,19 +1007,33 @@ public sealed class ArkStationClient
         catch { return null; }
     }
 
-    /// <summary>Route ids an answer reports: the Ark API (Arkhive orchestration) or Token Factory direct.</summary>
+    /// <summary>
+    /// Route ids an answer reports: the Ark API (Arkhive orchestration), Token Factory direct with this PC's key, the
+    /// user's own Hivemind (model_invoke), or none (nothing connected yet).
+    /// </summary>
     public const string RouteArkApi = "ark-api";
     public const string RouteNebiusDirect = "nebius-direct";
+    public const string RouteHivemind = "hivemind";
+    public const string RouteNone = "none";
+
+    /// <summary>A route id as card kickers and chips say it: "VIA ARK API", "NEBIUS DIRECT", "VIA HIVEMIND" or "NOT CONNECTED".</summary>
+    public static string RouteLabelFor(string route) => route switch
+    {
+        RouteArkApi => "VIA ARK API",
+        RouteHivemind => "VIA HIVEMIND",
+        RouteNone => "NOT CONNECTED",
+        _ => "NEBIUS DIRECT"
+    };
 
     /// <summary>
     /// One model answer and where it came from: the model that answered (as the provider reported it), the route
-    /// (<see cref="RouteArkApi"/> or <see cref="RouteNebiusDirect"/>), the Ark API receipt when there is one, and
-    /// why the Ark API was passed over when it was.
+    /// (<see cref="RouteArkApi"/>, <see cref="RouteNebiusDirect"/>, <see cref="RouteHivemind"/> or <see cref="RouteNone"/>),
+    /// the Ark API or Hivemind receipt when there is one, and why an earlier route was passed over when it was.
     /// </summary>
     public sealed record ModelAnswer(bool Ok, string Output, string Model, string Route, string? ReceiptId = null, string? FallbackReason = null)
     {
-        /// <summary>"VIA ARK API" or "NEBIUS DIRECT", for card kickers and status lines.</summary>
-        public string RouteLabel => Route == RouteArkApi ? "VIA ARK API" : "NEBIUS DIRECT";
+        /// <summary>"VIA ARK API", "NEBIUS DIRECT", "VIA HIVEMIND" or "NOT CONNECTED", for card kickers and status lines.</summary>
+        public string RouteLabel => RouteLabelFor(Route);
 
         /// <summary>One line for logs and the control pipe: ok, route, model, receipt, fallback reason.</summary>
         public string Describe() =>
@@ -1021,12 +1042,12 @@ public sealed class ArkStationClient
 
     // Grounding: a small model asked about the stack it runs on otherwise guesses (a live Nano answer once said Token
     // Factory "enables users to generate custom AI tokens"). These are the facts a judge is likely to ask about.
-    private const string HolodexSystemPrompt =
+    internal const string HolodexSystemPrompt =
         "You are Holodex, a Windows desktop companion that answers with NVIDIA Nemotron open models. " +
         "Facts about your own stack: NVIDIA Nemotron is a family of open models from NVIDIA. Nebius Token Factory is " +
         "Nebius's hosted inference service that serves open models such as Nemotron through an OpenAI-compatible API; " +
-        "Holodex calls it directly, or through the owner's Ark API when one runs on the PC. Hivemind is the user's own " +
-        "agent hub that Holodex can sign in to. " +
+        "Holodex reaches it through the user's own Hivemind sign-in, directly with a Nebius key, or through the owner's " +
+        "Ark API when one runs on the PC. Hivemind is the user's own agent hub that Holodex signs in to. " +
         "Answer concisely, accurately and directly. If you do not know something, say so instead of guessing.";
 
     // Token Factory serves Nemotron with its thinking on by default; with a reply budget, Nano could spend all of it
@@ -1035,16 +1056,24 @@ public sealed class ArkStationClient
     private const int AnswerMaxTokens = 2048;
 
     /// <summary>
-    /// Asks a Nemotron model. When the Ark API is up and its inbound key is loaded, the ask goes through the Ark API's
-    /// Nemotron route (<see cref="ArkRouteFor"/>), which records a receipt; on a timeout, an HTTP error or an empty
-    /// answer it falls back to Token Factory direct with the matching Nemotron id. With no Ark API it asks Token
-    /// Factory direct. The answer names the model and route that actually answered.
+    /// Asks a Nemotron model, in this order:
+    /// <list type="number">
+    /// <item>the Ark API's Nemotron route (<see cref="ArkRouteFor"/>) when it is up and its inbound key is loaded
+    /// (the owner's PC), which records a receipt;</item>
+    /// <item>Token Factory direct with this PC's Nebius key, when there is one;</item>
+    /// <item>the user's own Hivemind (<c>model_invoke</c>) when signed in, text only: a judge's fresh install with no
+    /// key and no Ark answers here;</item>
+    /// <item>otherwise no answer, with a plain "Sign in with Hivemind" prompt.</item>
+    /// </list>
+    /// A failed route hands over to the next one. An attached screen needs the Ark API or a Nebius key: Hivemind takes
+    /// text only, and the answer says so. The answer names the model and route that actually answered.
     /// </summary>
     public async Task<ModelAnswer> AskAsync(string prompt, string? imageDataUrl = null, string? model = null, string? systemPrompt = null)
     {
         string chosen = model ?? SelectedModel;
+        bool image = !string.IsNullOrEmpty(imageDataUrl);
         // A screen goes to a model that can read it: the VL model unless the choice already reads images.
-        if (!string.IsNullOrEmpty(imageDataUrl) && !ReadsImages(chosen)) chosen = DefaultNemotronVisionModel;
+        if (image && !ReadsImages(chosen)) chosen = DefaultNemotronVisionModel;
 
         string? fallbackReason = null;
         string? route = ArkRouteFor(chosen);
@@ -1060,9 +1089,87 @@ public sealed class ArkStationClient
             fallbackReason = viaArk.Output;
         }
 
-        var direct = await AskNebiusTokenFactoryAsync(prompt, imageDataUrl, TokenFactoryModelFor(chosen), systemPrompt);
-        return direct with { FallbackReason = fallbackReason };
+        bool hivemind = HivemindClient.HasSavedSignIn;
+        if (HasNebiusKey)
+        {
+            var direct = await AskNebiusTokenFactoryAsync(prompt, imageDataUrl, TokenFactoryModelFor(chosen), systemPrompt);
+            if (direct.Ok || image || !hivemind) return direct with { FallbackReason = fallbackReason };
+            fallbackReason = direct.Output;
+        }
+        else fallbackReason = Join(fallbackReason, "no Nebius key on this PC");
+
+        if (image)
+            return new ModelAnswer(false, hivemind ? ImageNeedsKeyMessage : HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: fallbackReason);
+        if (!hivemind)
+            return new ModelAnswer(false, HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: Join(fallbackReason, "not signed in to Hivemind"));
+        var viaHivemind = await AskHivemindAsync(prompt, chosen, systemPrompt ?? HolodexSystemPrompt);
+        return viaHivemind with { FallbackReason = fallbackReason };
     }
+
+    private static string Join(string? a, string b) => string.IsNullOrEmpty(a) ? b : $"{a}; {b}";
+
+    /// <summary>What an image question says when only Hivemind can answer: it carries text, not pictures.</summary>
+    public const string ImageNeedsKeyMessage =
+        "Image questions need a Nebius key for now: Hivemind answers text only. Ask without the screen, or add a Nebius Token Factory key in Holodex (profile, Use a Nebius key).";
+
+    /// <summary>A Nebius Token Factory key on this PC (environment or Windows Credential Manager).</summary>
+    public bool HasNebiusKey => !string.IsNullOrWhiteSpace(ReadNebiusApiKey());
+
+    /// <summary>
+    /// Whether an ask can be answered at all right now: the Ark API was up at the last probe, a Nebius key is here, or
+    /// Hivemind is signed in. Chips and LEDs go ember without one.
+    /// </summary>
+    public bool HasAnswerRoute => LastGatewayOnline || HasNebiusKey || HivemindClient.HasSavedSignIn;
+
+    /// <summary>Whether an attached screen can be read: through the Ark API or a Nebius key. Hivemind takes text only.</summary>
+    public bool CanReadImages => HasNebiusKey || (LastGatewayOnline && !string.IsNullOrEmpty(ReadInboundKey()));
+
+    /// <summary>
+    /// The route the next text ask with <paramref name="model"/> takes, from what is known without asking: the Ark API
+    /// when it was up and has a route, a Nebius key, Hivemind signed in, or none.
+    /// </summary>
+    public string NextTextRoute(string? model) => PlanTextRoute(
+        LastGatewayOnline && ArkRouteFor(model) != null, HasNebiusKey, HivemindClient.HasSavedSignIn);
+
+    /// <summary>The first route a text ask tries, given what is available (the order <see cref="AskAsync"/> follows).</summary>
+    internal static string PlanTextRoute(bool arkApi, bool nebiusKey, bool hivemindSignedIn) =>
+        arkApi ? RouteArkApi : nebiusKey ? RouteNebiusDirect : hivemindSignedIn ? RouteHivemind : RouteNone;
+
+    /// <summary>
+    /// One answer through the user's Hivemind (<c>model_invoke</c>), by the Ark route of the chosen Nemotron
+    /// (ark/nemotron-3-nano, -super, -ultra), else Nemotron 3 Super. model_invoke carries no tools, so web search runs
+    /// as a <c>SEARCH:</c> line the model may reply with: Holodex runs the search (<see cref="WebSearch"/>) and asks
+    /// once more with the results, and the answer lists its sources.
+    /// </summary>
+    internal async Task<ModelAnswer> AskHivemindAsync(string prompt, string chosen, string systemPrompt, CancellationToken ct = default)
+    {
+        string hivemindModel = ArkRouteFor(chosen) is { } r && ArkNemotronRoutes.ContainsKey(r) && r != "ark/nemotron-3.5-super-vl" ? r : DefaultGatewayModelSlug;
+        var provider = await WebSearch.ProviderAsync(Hivemind, ct);
+        string system = systemPrompt + (provider == WebSearchProvider.None ? WebSearch.NoSearchNote : WebSearch.SearchLineInstruction);
+        var messages = new List<(string Role, string Content)> { ("system", system), ("user", prompt) };
+        var first = await Hivemind.InvokeModelAsync(messages, hivemindModel, AnswerMaxTokens, ct);
+        if (!first.Ok) return new ModelAnswer(false, first.Error, FirstModel(first.Model, hivemindModel), RouteHivemind);
+
+        string? query = provider == WebSearchProvider.None ? null : WebSearch.SearchLine(first.Text);
+        if (query == null) return new ModelAnswer(true, first.Text, first.Model, RouteHivemind, NullIfEmpty(first.ReceiptId));
+
+        var sources = new List<string>();
+        string results = await WebSearch.SearchAsync(query, "general", sources, Hivemind, ct);
+        var second = await Hivemind.InvokeModelAsync(new List<(string Role, string Content)>
+        {
+            ("system", systemPrompt + $" {WebSearch.Today} Answer from the web results the user gives you, and do not invent sources."),
+            ("user", prompt),
+            ("assistant", $"SEARCH: {query}"),
+            ("user", $"{results}\nAnswer my question above from these results.")
+        }, hivemindModel, AnswerMaxTokens, ct);
+        if (!second.Ok) return new ModelAnswer(false, second.Error, FirstModel(second.Model, hivemindModel), RouteHivemind);
+        // A model that asks again gets no second search: say what was found instead of a bare request.
+        string text = WebSearch.SearchLine(second.Text) != null ? results : second.Text;
+        return new ModelAnswer(true, WebSearch.WithSources(text, sources), second.Model, RouteHivemind, NullIfEmpty(second.ReceiptId));
+    }
+
+    private static string FirstModel(string a, string b) => string.IsNullOrWhiteSpace(a) ? b : a;
+    private static string? NullIfEmpty(string s) => string.IsNullOrEmpty(s) ? null : s;
 
     /// <summary>Models that read an attached image: Nemotron VL and the open vision models on Token Factory.</summary>
     public static bool ReadsImages(string? model) =>
@@ -1173,12 +1280,15 @@ public sealed class ArkStationClient
         }
 
         var payload = ChatPayload(targetModel, systemPrompt ?? HolodexSystemPrompt, prompt, imageDataUrl);
-        // With a Tavily key in the Vault, Nemotron may call web_search (WebSearch.cs); each round is a new request.
-        // The same loop runs the local tools a Vault adapter switched on (HolodexTools: files, PC command line).
-        bool webSearch = string.IsNullOrEmpty(imageDataUrl) && WebSearch.Available;
+        // Nemotron may call web_search (WebSearch.cs) when the signed-in Hivemind offers it or a Tavily key is in the
+        // Vault or TAVILY_API_KEY; each round is a new request. The same loop runs the local tools a Vault adapter
+        // switched on (HolodexTools: files, PC command line). Image questions get no tools.
+        bool webSearch = string.IsNullOrEmpty(imageDataUrl) && await WebSearch.ProviderAsync(Hivemind) != WebSearchProvider.None;
         bool localTools = string.IsNullOrEmpty(imageDataUrl) && HolodexTools.Any;
         bool searching = webSearch || localTools;
         if (webSearch) WebSearch.Offer(payload);
+        else if (string.IsNullOrEmpty(imageDataUrl) && payload["messages"]?[0] is JsonObject system)
+            system["content"] = system["content"]?.GetValue<string>() + WebSearch.NoSearchNote;
         if (localTools) HolodexTools.Offer(payload);
         var sources = new List<string>();
         int rounds = 0;
@@ -1213,7 +1323,7 @@ public sealed class ArkStationClient
                 }
 
                 var (text, finish, answeredBy) = ReadCompletion(body);
-                if (searching && rounds < WebSearch.MaxRounds && await WebSearch.RunToolCallsAsync(payload, body, sources))
+                if (searching && rounds < WebSearch.MaxRounds && await WebSearch.RunToolCallsAsync(payload, body, sources, Hivemind))
                 {
                     // The last round offers no tool, so the model answers from what it has.
                     if (++rounds == WebSearch.MaxRounds) { payload.Remove("tools"); payload.Remove("tool_choice"); }

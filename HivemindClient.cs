@@ -85,6 +85,18 @@ public sealed record HivemindSessionMessage(string Id, string Role, string Agent
 /// <summary>An <c>ask_agent</c> receipt: the Session asked in, the owner message it holds, and the room's status then.</summary>
 public sealed record HivemindAsk(string SessionId, string MessageId, string Status);
 
+/// <summary>Why a Hivemind model answer did not come back, so the card can say what to do.</summary>
+public enum HivemindModelError { None, NotSignedIn, ScopeMissing, RateLimited, Upstream, Unreachable }
+
+/// <summary>A <c>model_invoke</c> answer: the text and the model Hivemind reports, or the error and its cause.</summary>
+public sealed record HivemindModelAnswer(bool Ok, string Text, string Model, string Error, HivemindModelError Kind, string ReceiptId = "")
+{
+    public static HivemindModelAnswer Fail(HivemindModelError kind, string model, string error) => new(false, "", model, error, kind);
+}
+
+/// <summary>One web result: the page title, its URL and the text the search returned for it.</summary>
+public sealed record WebSearchResult(string Title, string Url, string Content);
+
 /// <summary>A Session with its transcript, oldest message first.</summary>
 public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyList<HivemindSessionMessage> Messages);
 
@@ -147,9 +159,26 @@ public sealed class HivemindClient : IAsyncDisposable
 
     /// <summary>
     /// Read the roster, mission status and saved Sessions (runtime.read); dispatch missions and post into Sessions
-    /// (runtime.execute). Nothing else is requested.
+    /// (runtime.execute); ask NVIDIA Nemotron through the user's own Hivemind (model.invoke), which is how a PC with
+    /// no Nebius key and no Ark gets answers. A capped account may consent to model.invoke alone; the others then
+    /// answer scope-denied and Holodex says so.
     /// </summary>
-    private static readonly string[] RequestedScopes = { "runtime.read", "runtime.execute" };
+    private static readonly string[] RequestedScopes = { "runtime.read", "runtime.execute", "model.invoke" };
+
+    /// <summary>
+    /// Asked for only when the server lists it in scopes_supported, so a Hivemind that predates it still signs in:
+    /// web.search for Hivemind's hosted <c>web_search</c> tool.
+    /// </summary>
+    private static readonly string[] OptionalScopes = { "web.search" };
+
+    /// <summary>The scopes a sign-in asks for, given the scopes the server offers (null when it lists none).</summary>
+    internal static string[] SelectScopes(IEnumerable<string>? offered)
+    {
+        var list = offered?.ToList();
+        return RequestedScopes.Where(scope => list?.Contains(scope) ?? true)
+            .Concat(OptionalScopes.Where(scope => list?.Contains(scope) == true))
+            .ToArray();
+    }
     private static readonly TimeSpan SignInTimeout = TimeSpan.FromMinutes(5);
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(60) };
@@ -161,6 +190,43 @@ public sealed class HivemindClient : IAsyncDisposable
     public event Action? StateChanged;
 
     public static bool HasSavedSignIn => !string.IsNullOrWhiteSpace(ArkStationClient.TryReadWindowsCredential(CredentialTarget));
+
+    /// <summary>
+    /// The scopes the saved sign-in was granted (the token response's <c>scope</c>), or null when it did not say.
+    /// Consent can narrow a request: a new account's token may carry only "model.invoke runtime.read".
+    /// </summary>
+    public static IReadOnlySet<string>? GrantedScopes
+    {
+        get
+        {
+            try
+            {
+                string? json = ArkStationClient.TryReadWindowsCredential(CredentialTarget);
+                string? scope = string.IsNullOrWhiteSpace(json) ? null : JsonSerializer.Deserialize<TokenContainer>(json)?.Scope;
+                return string.IsNullOrWhiteSpace(scope) ? null : scope.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+            }
+            catch (JsonException) { return null; }
+        }
+    }
+
+    /// <summary>
+    /// Whether the saved sign-in may use <paramref name="scope"/>: true when the grant names it or names nothing (an
+    /// older Hivemind), false when signed out or when consent left it out. runtime.execute gates Gala asks, missions and
+    /// work orders; model.invoke gates answers.
+    /// </summary>
+    public static bool Granted(string scope) => HasSavedSignIn && Granted(GrantedScopes, scope);
+
+    internal static bool Granted(IReadOnlySet<string>? granted, string scope) => granted == null || granted.Contains(scope);
+
+    /// <summary>What Holodex says when the sign-in cannot ask agents (consent left out runtime.execute).</summary>
+    public const string NoAgentsOnThisSignIn =
+        "This Hivemind sign-in answers with Nemotron but cannot ask agents or send work orders: it was not granted runtime.execute.";
+
+    /// <summary>
+    /// Opens a sign-in's authorization URL. Null opens the default browser; a headless proof (tests) sets it to drive
+    /// the sign-up and consent pages itself, so no person's browser is used.
+    /// </summary>
+    internal static Func<Uri, Task>? OpenAuthorizationUrl { get; set; }
 
     /// <summary>
     /// Opens the browser sign-in (Hivemind's /login, then Authorize) and waits for its redirect. Started only by
@@ -391,7 +457,7 @@ public sealed class HivemindClient : IAsyncDisposable
             OAuth = new ClientOAuthOptions
             {
                 RedirectUri = RedirectUri,
-                ScopeSelector = offered => RequestedScopes.Where(scope => offered?.Contains(scope) ?? true).ToArray(),
+                ScopeSelector = offered => SelectScopes(offered),
                 Scopes = RequestedScopes,
                 // Hivemind names the client from this registration: Session posts and connected-client lists show "Holodex".
                 DynamicClientRegistration = new DynamicClientRegistrationOptions { ClientName = "Holodex", ApplicationType = "native" },
@@ -439,21 +505,24 @@ public sealed class HivemindClient : IAsyncDisposable
     /// </summary>
     private async Task<JsonElement?> CallAsync(string tool, IReadOnlyDictionary<string, object?> args, CancellationToken ct)
     {
+        var raw = await CallRawAsync(tool, args, ct);
+        if (raw is not { } r) return null;
+        var outcome = ReadEnvelope(r.Text, r.IsError, tool);
+        LastError = outcome.Error;
+        return outcome.Ok ? outcome.Data : null;
+    }
+
+    /// <summary>
+    /// One tool call's text and error flag, or null when there is no connection (state and LastError say why). A
+    /// tool that answers with an error is still a call: only a transport failure drops the connection.
+    /// </summary>
+    private async Task<(string Text, bool IsError)?> CallRawAsync(string tool, IReadOnlyDictionary<string, object?> args, CancellationToken ct)
+    {
         if (!await EnsureConnectedAsync(ct)) return null;
         try
         {
             var result = await _client!.CallToolAsync(tool, args, cancellationToken: ct);
-            string text = string.Concat(result.Content.OfType<TextContentBlock>().Select(b => b.Text));
-            using var doc = JsonDocument.Parse(text.Length > 0 ? text : "{}");
-            var root = doc.RootElement;
-            bool ok = root.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
-            if (result.IsError == true || !ok)
-            {
-                LastError = FirstNonEmpty(Str(root, "message"), Str(root, "error"), text.Length > 0 ? text : $"{tool} failed");
-                return null;
-            }
-            LastError = string.Empty;
-            return root.TryGetProperty("data", out var data) ? data.Clone() : root.Clone();
+            return (string.Concat(result.Content.OfType<TextContentBlock>().Select(b => b.Text)), result.IsError == true);
         }
         catch (Exception ex)
         {
@@ -463,6 +532,169 @@ public sealed class HivemindClient : IAsyncDisposable
                 SetState(HasSavedSignIn ? HivemindState.Unreachable : HivemindState.NotSignedIn, Describe(ex));
             return null;
         }
+    }
+
+    /// <summary>
+    /// A Hivemind tool result read as its envelope. Hivemind answers with one text block holding
+    /// <c>{ok, data, error, message}</c>; a tool that threw answers with the error's plain text and isError, and a
+    /// missing scope with <c>{ok:false, error:"scope-denied", requiredScope}</c>.
+    /// </summary>
+    internal static ToolEnvelope ReadEnvelope(string text, bool isError, string tool)
+    {
+        JsonDocument? doc = null;
+        try { doc = JsonDocument.Parse(text.Length > 0 ? text : "{}"); }
+        catch (JsonException) { }
+        using (doc)
+        {
+            if (doc == null || doc.RootElement.ValueKind != JsonValueKind.Object)
+                return new ToolEnvelope(false, null, null, text.Trim().Length > 0 ? text.Trim() : $"{tool} failed", "");
+            var root = doc.RootElement;
+            bool ok = !isError && root.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
+            string code = Str(root, "error");
+            if (!ok)
+                return new ToolEnvelope(false, null, root.Clone(), FirstNonEmpty(Str(root, "message"), code, text.Trim().Length > 0 ? text.Trim() : $"{tool} failed"), code,
+                    Str(root, "requiredScope"));
+            return new ToolEnvelope(true, root.TryGetProperty("data", out var data) ? data.Clone() : root.Clone(), root.Clone(), "", "");
+        }
+    }
+
+    /// <summary>A read tool result: ok with its data, or the error text, the error code and a missing scope.</summary>
+    internal sealed record ToolEnvelope(bool Ok, JsonElement? Data, JsonElement? Root, string Error, string Code, string RequiredScope = "");
+
+    // ---- Answers through the user's own Hivemind (model_invoke, scope model.invoke) -----------------------------------
+
+    /// <summary>
+    /// One completion through Hivemind's <c>model_invoke</c> (scope model.invoke). A capped account (a judge's) is
+    /// answered from the hosted gateway by NVIDIA Nemotron on Nebius Token Factory, never through the owner's PC.
+    /// Text only: Hivemind takes up to 16 messages of at most 8000 characters each, so longer content is trimmed.
+    /// The answer carries the model Hivemind reports, or a plain error naming its cause.
+    /// </summary>
+    public async Task<HivemindModelAnswer> InvokeModelAsync(IReadOnlyList<(string Role, string Content)> messages, string? model, int maxTokens, CancellationToken ct = default)
+    {
+        if (!HasSavedSignIn && State != HivemindState.Connected)
+            return HivemindModelAnswer.Fail(HivemindModelError.NotSignedIn, model ?? "", NotSignedInForAnswers);
+        if (!Granted(GrantedScopes, "model.invoke"))
+            return HivemindModelAnswer.Fail(HivemindModelError.ScopeMissing, model ?? "", ScopeMissingForAnswers);
+        var args = new Dictionary<string, object?>
+        {
+            ["messages"] = ModelMessages(messages),
+            ["maxTokens"] = Math.Clamp(maxTokens, 1, 4096),
+            ["temperature"] = 0.2,
+            ["stream"] = false
+        };
+        if (!string.IsNullOrWhiteSpace(model)) args["model"] = model;
+        var raw = await CallRawAsync("model_invoke", args, ct);
+        if (raw is not { } r)
+        {
+            return State == HivemindState.NotSignedIn
+                ? HivemindModelAnswer.Fail(HivemindModelError.NotSignedIn, model ?? "", LastError.Length > 0 ? LastError : NotSignedInForAnswers)
+                : HivemindModelAnswer.Fail(HivemindModelError.Unreachable, model ?? "", $"Hivemind did not answer: {FirstNonEmpty(LastError, "the connection failed")}.");
+        }
+        var answer = ReadModelInvocation(r.Text, r.IsError, model ?? "");
+        LastError = answer.Ok ? string.Empty : answer.Error;
+        return answer;
+    }
+
+    public const string ScopeMissingForAnswers =
+        "Your Hivemind sign-in does not allow model answers (model.invoke). Sign out in Holodex, sign in again and allow model access.";
+
+    public const string NotSignedInForAnswers =
+        "Sign in with Hivemind to get answers: open Holodex (Ctrl+Alt+H), then the profile at the foot of the rail, then Sign in. No key is needed.";
+
+    /// <summary>Hivemind's message limits: at most 16, each 1 to 8000 characters; the system message and the newest turns are kept.</summary>
+    internal static List<Dictionary<string, string>> ModelMessages(IReadOnlyList<(string Role, string Content)> messages)
+    {
+        const int MaxMessages = 16, MaxChars = 8000;
+        var kept = messages.Where(m => !string.IsNullOrWhiteSpace(m.Content)).ToList();
+        if (kept.Count > MaxMessages)
+        {
+            var system = kept.Where(m => m.Role == "system").Take(1).ToList();
+            kept = system.Concat(kept.Where(m => m.Role != "system").TakeLast(MaxMessages - system.Count)).ToList();
+        }
+        return kept.Select(m =>
+        {
+            string content = m.Content.Trim();
+            if (content.Length > MaxChars) content = content[..(MaxChars - 3)] + "...";
+            string role = m.Role is "system" or "assistant" ? m.Role : "user";
+            return new Dictionary<string, string> { ["role"] = role, ["content"] = content };
+        }).ToList();
+    }
+
+    /// <summary>
+    /// A model_invoke result as an answer. Success is <c>{ok:true, data:&lt;chat completion&gt;, receiptId?}</c>; the
+    /// answering model is the completion's <c>model</c>. Failures are classed by cause so the card can say what to do.
+    /// </summary>
+    internal static HivemindModelAnswer ReadModelInvocation(string text, bool isError, string requestedModel)
+    {
+        var env = ReadEnvelope(text, isError, "model_invoke");
+        if (!env.Ok)
+        {
+            string error = env.Error;
+            if (env.Code == "scope-denied" || env.RequiredScope == "model.invoke" ||
+                error.Contains("missing model.invoke", StringComparison.OrdinalIgnoreCase))
+                return HivemindModelAnswer.Fail(HivemindModelError.ScopeMissing, requestedModel, ScopeMissingForAnswers);
+            if (error.Contains("per minute", StringComparison.OrdinalIgnoreCase) || error.Contains("rate limit", StringComparison.OrdinalIgnoreCase) ||
+                error.Contains("429", StringComparison.Ordinal))
+                return HivemindModelAnswer.Fail(HivemindModelError.RateLimited, requestedModel, $"Hivemind is rate limiting answers. {error}");
+            return HivemindModelAnswer.Fail(HivemindModelError.Upstream, requestedModel, $"Hivemind could not get an answer: {error}");
+        }
+        var data = env.Data!.Value;
+        string model = FirstNonEmpty(Str(data, "model"), requestedModel);
+        string answer = "";
+        if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0 &&
+            choices[0].TryGetProperty("message", out var message))
+            answer = FirstNonEmpty(Str(message, "content"), Str(message, "reasoning_content")).Trim();
+        string receipt = env.Root is { } root ? Str(root, "receiptId") : "";
+        return answer.Length == 0
+            ? HivemindModelAnswer.Fail(HivemindModelError.Upstream, model, $"Hivemind returned no answer text from {model}.")
+            : new HivemindModelAnswer(true, answer, model, "", HivemindModelError.None, receipt);
+    }
+
+    // ---- Tools this Hivemind offers, and its hosted web search -------------------------------------------------------
+
+    private HashSet<string>? _tools;
+
+    /// <summary>
+    /// Whether the signed-in Hivemind lists <paramref name="tool"/> (tools/list, read once per connection). False
+    /// when signed out or unreachable; never throws.
+    /// </summary>
+    public async Task<bool> OffersToolAsync(string tool, CancellationToken ct = default)
+    {
+        if (!HasSavedSignIn) return false;
+        if (_tools is { } known) return known.Contains(tool);
+        if (!await EnsureConnectedAsync(ct)) return false;
+        try
+        {
+            var tools = await _client!.ListToolsAsync(cancellationToken: ct);
+            _tools = tools.Select(t => t.Name).ToHashSet(StringComparer.Ordinal);
+            return _tools.Contains(tool);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>
+    /// Hivemind's hosted <c>web_search</c> {query, maxResults}: the search runs on the user's Hivemind, so the PC
+    /// needs no search key. Null with LastError set when the tool fails or is missing.
+    /// </summary>
+    public async Task<IReadOnlyList<WebSearchResult>?> WebSearchAsync(string query, int maxResults, CancellationToken ct = default)
+    {
+        var raw = await CallRawAsync("web_search", new Dictionary<string, object?> { ["query"] = query, ["maxResults"] = Math.Clamp(maxResults, 1, 10) }, ct);
+        if (raw is not { } r) return null;
+        var env = ReadEnvelope(r.Text, r.IsError, "web_search");
+        LastError = env.Error;
+        return env.Ok ? ReadSearchResults(env.Data!.Value) : null;
+    }
+
+    /// <summary>Search results wherever the data keeps them (results, or items), each with a URL.</summary>
+    internal static IReadOnlyList<WebSearchResult> ReadSearchResults(JsonElement data)
+    {
+        var list = FindArray(data, "results") ?? FindArray(data, "items");
+        if (list is not JsonElement items) return Array.Empty<WebSearchResult>();
+        return items.EnumerateArray()
+            .Where(i => i.ValueKind == JsonValueKind.Object && FirstNonEmpty(Str(i, "url"), Str(i, "link")).Length > 0)
+            .Select(i => new WebSearchResult(Str(i, "title"), FirstNonEmpty(Str(i, "url"), Str(i, "link")), FirstNonEmpty(Str(i, "content"), Str(i, "snippet"), Str(i, "description"))))
+            .ToList();
     }
 
     /// <summary>The words a signed-out state carries after Hivemind refused the saved sign-in.</summary>
@@ -508,7 +740,8 @@ public sealed class HivemindClient : IAsyncDisposable
         using var listener = new HttpListener();
         listener.Prefixes.Add(redirect.GetLeftPart(UriPartial.Path));
         listener.Start();
-        Process.Start(new ProcessStartInfo(authorizationUri.ToString()) { UseShellExecute = true });
+        if (OpenAuthorizationUrl is { } open) _ = open(authorizationUri);
+        else Process.Start(new ProcessStartInfo(authorizationUri.ToString()) { UseShellExecute = true });
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(SignInTimeout);
@@ -584,6 +817,7 @@ public sealed class HivemindClient : IAsyncDisposable
     {
         var client = _client;
         _client = null;
+        _tools = null;
         if (client != null)
         {
             try { await client.DisposeAsync(); } catch { }
