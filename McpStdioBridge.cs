@@ -29,6 +29,34 @@ internal static class McpBridges
 
     public static bool IsRunning(string id) => Running.ContainsKey(id);
 
+    /// <summary>The route the next ask takes (set by Program from the shared client), so rows can say whether their tools are used.</summary>
+    public static Func<string>? ActiveRoute { get; set; }
+
+    /// <summary>A Nebius key on this PC (set by Program), for the same labels.</summary>
+    public static Func<bool>? HasNebiusKey { get; set; }
+
+    public const string ToolsUsedLabel = "Connected. Its tools work in answers";
+    public const string ToolsNeedNebiusLabel = "Connected. Its tools work with a Nebius key";
+    public const string ToolsNotOnThisRouteLabel = "Connected. Its tools work on Nebius direct only";
+    public const string ListedLabel = "Listed. Not used yet";
+
+    /// <summary>
+    /// What a connected MCP server really does today, in one plain line. Only a stdio server started through the
+    /// bridge offers its tools, and only to the Nebius direct loop (<see cref="HolodexTools.Offer"/>); an HTTP server
+    /// is connected and counted, but no answer calls its tools yet. Null when the server is not connected.
+    /// </summary>
+    public static string? UsabilityLabel(bool stdio, bool connected, string activeRoute, bool hasNebiusKey)
+    {
+        if (!connected) return null;
+        if (!stdio) return ListedLabel;
+        if (activeRoute == ArkStationClient.RouteNebiusDirect) return ToolsUsedLabel;
+        return hasNebiusKey ? ToolsNotOnThisRouteLabel : ToolsNeedNebiusLabel;
+    }
+
+    /// <summary><see cref="UsabilityLabel(bool, bool, string, bool)"/> for the live route and key.</summary>
+    public static string? UsabilityLabel(bool stdio, bool connected) =>
+        UsabilityLabel(stdio, connected, ActiveRoute?.Invoke() ?? ArkStationClient.RouteNone, HasNebiusKey?.Invoke() ?? false);
+
     /// <summary>The Vault id for a configured server: stable for the same name and command line.</summary>
     public static string IdFor(McpConfiguredServer s) =>
         $"{ProviderId}:{Slug(s.Name)}:{HolodexVault.ShortFingerprint(s.Key)[7..15]}";

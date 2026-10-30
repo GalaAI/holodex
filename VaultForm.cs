@@ -405,6 +405,13 @@ internal sealed class VaultForm : Form
             }
         };
         if (entry.Target == HolodexVault.NebiusTarget) leds.Add((PhosphorTheme.Patina, "Default model"));
+        // An MCP server that answered is connected, but its tools are used only where the code calls them: say so.
+        string? mcpUse = entry.Kind == VaultKind.McpServer && entry.Status == "works"
+            ? McpBridges.UsabilityLabel(stdio: entry.ProviderId == McpBridges.ProviderId,
+                connected: entry.ProviderId != McpBridges.ProviderId || McpBridges.IsRunning(entry.Id))
+              ?? McpBridges.ListedLabel
+            : null;
+        if (mcpUse != null) leds[0] = (mcpUse == McpBridges.ToolsUsedLabel ? PhosphorTheme.Moss : PhosphorTheme.Ghost, mcpUse);
         leds.Add((PhosphorTheme.Ghost, entry.RotatedAt is { } r ? $"Rotated {r:MMM d}" : $"Added {entry.AddedAt:MMM d}"));
 
         string body = entry.Kind switch
@@ -417,6 +424,7 @@ internal sealed class VaultForm : Form
             _ => $"{LocalWhere(entry.Url)} on this PC. No key needed."
         };
         if (entry.Status == "failed" && entry.Detail.Length > 0 && entry.Kind == VaultKind.ApiKey) body += $" Last check: {entry.Detail}.";
+        if (mcpUse != null) body += $" {mcpUse}.";
 
         var tone = entry.Status switch { "works" => ThreadTone.Ok, "failed" => ThreadTone.Fail, _ => ThreadTone.Step };
         var card = _list.Add(tone, $"{KindEyebrow(entry.Kind)} // {entry.Label.ToUpperInvariant()}", body, PhosphorGlyph.Vault, leds);

@@ -630,6 +630,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
         MouseHardwareAndWandEngine.UiContext = _uiSync;
         HolodexTools.Ui = _uiSync;
         PcSetupScan.Models = _ark.Models;
+        // MCP rows say whether answers use a server's tools, from the route the next ask takes.
+        McpBridges.ActiveRoute = () => _ark.NextTextRoute(_ark.SelectedModel);
+        McpBridges.HasNebiusKey = () => _ark.HasNebiusKey;
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(

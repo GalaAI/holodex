@@ -219,8 +219,16 @@ internal sealed class PcSetupForm : Form
         leds.Add((item.Tag.Canon ? PhosphorTheme.Dim : PhosphorTheme.Ghost, item.Tag.Text));
         if (item.InVault) leds.Add((PhosphorTheme.Patina, "In your vault"));
 
+        // A connected MCP server says whether answers use its tools yet, never just "connected".
+        string detail = item.Detail;
+        if (McpUse(item) is { } use)
+        {
+            leds.Insert(0, (use == McpBridges.ToolsUsedLabel ? PhosphorTheme.Moss : PhosphorTheme.Ghost, use));
+            detail += $" {use}.";
+        }
+
         var tone = item.InVault ? ThreadTone.Ok : item.Action == InvAction.Connect ? ThreadTone.Action : ThreadTone.Step;
-        var card = _list.Add(tone, item.Label.ToUpperInvariant(), item.Detail, Glyph(item.Group), leds);
+        var card = _list.Add(tone, item.Label.ToUpperInvariant(), detail, Glyph(item.Group), leds);
         card.Name = $"PcSetup.{item.Id}";
         if (InventoryOnly.Contains(item.Group)) return;
 
@@ -254,6 +262,13 @@ internal sealed class PcSetupForm : Form
         }
         if (actions.Count > 0) card.SetFooter("", actions.ToArray());
     }
+
+    /// <summary>The truthful use line for a connected MCP row (stdio through the bridge, or an HTTP server); null otherwise.</summary>
+    internal static string? McpUse(InvItem item) => item.Group != InvGroup.Mcp ? null : item.Source switch
+    {
+        McpConfiguredServer s => McpBridges.UsabilityLabel(s.IsStdio, item.InVault),
+        _ => McpBridges.UsabilityLabel(stdio: false, item.InVault)
+    };
 
     private static PhosphorGlyph Glyph(InvGroup g) => g switch
     {

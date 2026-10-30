@@ -730,6 +730,9 @@ internal sealed class ModelChip : SuggestionChip
     /// <summary>Raised when the model the chip names changes (owners relabel their primary from it).</summary>
     public event EventHandler? ModelChanged;
 
+    /// <summary>Offers the chat models LM Studio and Ollama serve on this PC (true for ask pickers; Wiz's agent loop runs on Nemotron).</summary>
+    public bool IncludeLocalModels { get; set; } = true;
+
     public ModelChip(ArkStationClient ark, IReadOnlyList<string>? fixedModels = null, Func<string>? get = null, Action<string>? set = null)
     {
         _ark = ark;
@@ -777,7 +780,7 @@ internal sealed class ModelChip : SuggestionChip
     /// <summary>Reloads the model list (gateway models when reachable, unless the list is fixed) and the ready state.</summary>
     public async Task RefreshAsync()
     {
-        var models = (_fixedModels ?? await _ark.GetAvailableModelsAsync()).ToList();
+        var models = (_fixedModels ?? await _ark.GetAvailableModelsAsync(IncludeLocalModels)).ToList();
         // ark/ models only answer through the ArkStation gateway; offer them only while it is up.
         if (!_ark.LastGatewayOnline) models.RemoveAll(m => m.StartsWith("ark/", StringComparison.OrdinalIgnoreCase));
         if (!models.Contains(_get(), StringComparer.OrdinalIgnoreCase)) models.Insert(0, _get());
@@ -793,6 +796,7 @@ internal sealed class ModelChip : SuggestionChip
         _runtime = r.Contains("gemini") ? "Gemini"
             : r == ArkStationClient.RouteArkApi ? "Ark API"
             : r == ArkStationClient.RouteHivemind ? "Hivemind"
+            : r == ArkStationClient.RouteLocal ? _ark.LocalProviderLabel(_get()) ?? "This PC"
             : r == ArkStationClient.RouteNone ? "Sign in with Hivemind"
             : r.Contains("nebius") ? "Nebius direct"
             : runtime.Split(' ', '(')[0];
@@ -834,12 +838,15 @@ internal sealed class ModelChip : SuggestionChip
         ArkStationClient.RouteArkApi => "Ark API",
         ArkStationClient.RouteNebiusDirect => "Nebius direct",
         ArkStationClient.RouteHivemind => "Hivemind",
+        ArkStationClient.RouteLocal => _ark.LocalProviderLabel(model) ?? "This PC",
         _ => "Sign in with Hivemind"
     };
 
-    /// <summary>"nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B" reads "Nemotron 3 Nano": vendor, sizes and tuning tags dropped.</summary>
+    /// <summary>"nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B" reads "Nemotron 3 Nano": vendor, sizes and tuning tags dropped.
+    /// A local picker id names only its model ("local:lmstudio:qwen/qwen3-8b" reads "qwen3").</summary>
     public static string ShortName(string model)
     {
+        if (ArkStationClient.TryParseLocalModel(model, out _, out string localModel)) model = localModel;
         string name = model.Contains('/') ? model[(model.LastIndexOf('/') + 1)..] : model;
         if (name.StartsWith("NVIDIA-", StringComparison.OrdinalIgnoreCase)) name = name[7..];
         var kept = new List<string>();

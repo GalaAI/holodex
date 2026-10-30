@@ -139,7 +139,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         _lensChip.Click += (_, _) => _lensChip.ShowChoices(FlowLenses.Select(l => new ChipChoice(
             l.Title, l.Verb, l.Id == _activeFlowLens, () => { _lensChosenByHand = true; SetLens(l.Id, confident: false); })));
         // Wiz keeps its own model: the agent's reasoner (Nemotron 3 Super by default), not the HUD's shared pick.
-        _modelChip = new ModelChip(_ark, null, () => _agentModel, m => _agentModel = m) { Dock = DockStyle.Left, Name = "Wiz.ModelPicker" };
+        _modelChip = new ModelChip(_ark, null, () => _agentModel, m => _agentModel = m) { Dock = DockStyle.Left, Name = "Wiz.ModelPicker", IncludeLocalModels = false };
         _modelChip.ModelChanged += (_, _) => ShowRuntime(null, null);
         chipRow.Controls.Add(_modelChip);
         chipRow.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });

@@ -244,6 +244,9 @@ public sealed class ModelInventory
         }
     }
 
+    /// <summary>The provider's key (its env var, then its Credential Manager target), or null when it needs none.</summary>
+    public string? KeyFor(ModelProvider provider) => ReadKey(provider);
+
     private string? ReadKey(ModelProvider provider)
     {
         string? env = string.IsNullOrEmpty(provider.KeyEnvVar) ? null : Environment.GetEnvironmentVariable(provider.KeyEnvVar);

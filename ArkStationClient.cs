@@ -523,7 +523,7 @@ public sealed class ArkStationClient
         bool spine = ArkInstalled && await ProbeHttpAsync(DefaultInputSpineUrl + "/api/spine/config");
         bool pcModz = ArkInstalled && await ProbeHttpAsync(DefaultPcModzUrl + "/health");
 
-        if (!gateway && !IsNemotronModel(SelectedModel))
+        if (!gateway && !IsNemotronModel(SelectedModel) && !IsLocalModel(SelectedModel))
         {
             SelectedModel = DefaultNemotronFastModel;
         }
@@ -882,15 +882,60 @@ public sealed class ArkStationClient
         model.StartsWith("ark/", StringComparison.OrdinalIgnoreCase) ? model[4..] : model;
 
     /// <summary>
-    /// Models offered by the pickers: Nemotron only, by its Token Factory id. One id answers through the Ark API when
-    /// it is up and through Token Factory direct when it is not (<see cref="AskAsync"/>), so the list does not change
-    /// with the Ark, and no private route (other providers, local or uncensored models) reaches a picker.
+    /// Models offered by the pickers: Nemotron by its Token Factory id (one id answers through the Ark API when it is
+    /// up and through Token Factory direct when it is not, <see cref="AskAsync"/>), then the chat models the scan
+    /// found in LM Studio and Ollama on this PC as <c>local:&lt;provider&gt;:&lt;model&gt;</c>, which answer through
+    /// their own OpenAI-compatible endpoint (<see cref="RouteLocal"/>). No other provider reaches a picker.
     /// </summary>
-    public async Task<IReadOnlyList<string>> GetAvailableModelsAsync()
+    public async Task<IReadOnlyList<string>> GetAvailableModelsAsync(bool includeLocal = true)
+    {
+        var list = new List<string>(await GetNemotronModelsAsync());
+        if (includeLocal) list.AddRange(LocalModelIds());
+        return list;
+    }
+
+    /// <summary>The providers whose models answer on this PC: LM Studio and Ollama.</summary>
+    public static readonly IReadOnlySet<string> LocalProviderIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ModelInventory.LmStudioDefault.Id, ModelInventory.OllamaDefault.Id
+    };
+
+    /// <summary>A picker id for a model served on this PC: <c>local:lmstudio:qwen/qwen3-8b</c>.</summary>
+    public static string LocalModelId(string providerId, string modelId) => $"{LocalPrefix}{providerId}:{modelId}";
+
+    public const string LocalPrefix = "local:";
+
+    /// <summary>True for a <see cref="LocalModelId"/>.</summary>
+    public static bool IsLocalModel(string? model) => TryParseLocalModel(model, out _, out _);
+
+    public static bool TryParseLocalModel(string? model, out string providerId, out string modelId)
+    {
+        providerId = modelId = string.Empty;
+        if (string.IsNullOrEmpty(model) || !model.StartsWith(LocalPrefix, StringComparison.OrdinalIgnoreCase)) return false;
+        string rest = model[LocalPrefix.Length..];
+        int colon = rest.IndexOf(':');
+        if (colon <= 0 || colon == rest.Length - 1) return false;
+        providerId = rest[..colon];
+        modelId = rest[(colon + 1)..];
+        return true;
+    }
+
+    /// <summary>The chat models LM Studio and Ollama listed at the last inventory refresh, as picker ids. Embedding,
+    /// detection and segmentation models are left out: they cannot answer a question.</summary>
+    public IReadOnlyList<string> LocalModelIds() => LocalModelIds(Models.Models);
+
+    internal static IReadOnlyList<string> LocalModelIds(IEnumerable<ModelEntry> entries) => entries
+        .Where(m => LocalProviderIds.Contains(m.ProviderId) && m.Can(ModelCapability.Chat)
+                    && !m.ModelId.Contains("embed", StringComparison.OrdinalIgnoreCase))
+        .Select(m => LocalModelId(m.ProviderId, m.ModelId))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    private async Task<IReadOnlyList<string>> GetNemotronModelsAsync()
     {
         await ProbeArkApiAsync();
         var standaloneModels = new List<string>(BuiltInNemotronModels);
-        if (!IsNemotronModel(SelectedModel) || SelectedModel.StartsWith("ark/", StringComparison.OrdinalIgnoreCase))
+        if (!IsLocalModel(SelectedModel) && (!IsNemotronModel(SelectedModel) || SelectedModel.StartsWith("ark/", StringComparison.OrdinalIgnoreCase)))
         {
             SelectedModel = TokenFactoryModelFor(SelectedModel);
         }
@@ -1015,12 +1060,15 @@ public sealed class ArkStationClient
     public const string RouteNebiusDirect = "nebius-direct";
     public const string RouteHivemind = "hivemind";
     public const string RouteNone = "none";
+    /// <summary>A model served on this PC (LM Studio or Ollama) through its OpenAI-compatible endpoint.</summary>
+    public const string RouteLocal = "local";
 
-    /// <summary>A route id as card kickers and chips say it: "VIA ARK API", "NEBIUS DIRECT", "VIA HIVEMIND" or "NOT CONNECTED".</summary>
+    /// <summary>A route id as card kickers and chips say it: "VIA ARK API", "NEBIUS DIRECT", "VIA HIVEMIND", "ON THIS PC" or "NOT CONNECTED".</summary>
     public static string RouteLabelFor(string route) => route switch
     {
         RouteArkApi => "VIA ARK API",
         RouteHivemind => "VIA HIVEMIND",
+        RouteLocal => "ON THIS PC",
         RouteNone => "NOT CONNECTED",
         _ => "NEBIUS DIRECT"
     };
@@ -1072,6 +1120,8 @@ public sealed class ArkStationClient
     {
         string chosen = model ?? SelectedModel;
         bool image = !string.IsNullOrEmpty(imageDataUrl);
+        // A model on this PC answers only from its own server; it never falls over to a cloud route unasked.
+        if (IsLocalModel(chosen)) return await AskLocalAsync(prompt, imageDataUrl, chosen, systemPrompt ?? HolodexSystemPrompt);
         // A screen goes to a model that can read it: the VL model unless the choice already reads images.
         if (image && !ReadsImages(chosen)) chosen = DefaultNemotronVisionModel;
 
@@ -1128,8 +1178,52 @@ public sealed class ArkStationClient
     /// The route the next text ask with <paramref name="model"/> takes, from what is known without asking: the Ark API
     /// when it was up and has a route, a Nebius key, Hivemind signed in, or none.
     /// </summary>
-    public string NextTextRoute(string? model) => PlanTextRoute(
+    public string NextTextRoute(string? model) => IsLocalModel(model) ? RouteLocal : PlanTextRoute(
         LastGatewayOnline && ArkRouteFor(model) != null, HasNebiusKey, HivemindClient.HasSavedSignIn);
+
+    /// <summary>The provider label for a local picker id ("LM Studio", "Ollama"), or null for any other model.</summary>
+    public string? LocalProviderLabel(string? model) =>
+        TryParseLocalModel(model, out string providerId, out _)
+            ? Models.Providers.FirstOrDefault(p => string.Equals(p.Id, providerId, StringComparison.OrdinalIgnoreCase))?.Label ?? providerId
+            : null;
+
+    /// <summary>
+    /// One chat completion from a model served on this PC (LM Studio or Ollama), through the provider's own
+    /// OpenAI-compatible <c>POST {BaseUrl}/chat/completions</c>: the same request the other routes send. A model that
+    /// is loading may take a while, so the wait is longer than the cloud routes'.
+    /// </summary>
+    internal async Task<ModelAnswer> AskLocalAsync(string prompt, string? imageDataUrl, string localId, string systemPrompt, CancellationToken ct = default)
+    {
+        if (!TryParseLocalModel(localId, out string providerId, out string modelId))
+            return new ModelAnswer(false, $"{localId} is not a local model id.", localId, RouteLocal);
+        var provider = Models.Providers.FirstOrDefault(p => string.Equals(p.Id, providerId, StringComparison.OrdinalIgnoreCase));
+        if (provider == null)
+            return new ModelAnswer(false, $"{providerId} is not connected on this PC. Connect it in Your ArkStation.", modelId, RouteLocal);
+        if (!string.IsNullOrEmpty(imageDataUrl) && !ReadsImages(modelId) && !modelId.Contains("llava", StringComparison.OrdinalIgnoreCase))
+            return new ModelAnswer(false, $"{ModelChip.ShortName(modelId)} reads text only. Pick a vision model, or ask without the screen.", modelId, RouteLocal);
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(90));
+            using var req = new HttpRequestMessage(HttpMethod.Post, provider.BaseUrl.TrimEnd('/') + "/chat/completions");
+            if (Models.KeyFor(provider) is { Length: > 0 } key) req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+            req.Content = new StringContent(ChatPayload(modelId, systemPrompt, prompt, imageDataUrl).ToJsonString(), Encoding.UTF8, "application/json");
+            using var resp = await AgentHttp.SendAsync(req, cts.Token);
+            string body = await resp.Content.ReadAsStringAsync(cts.Token);
+            if (!resp.IsSuccessStatusCode)
+                return new ModelAnswer(false, $"{provider.Label} HTTP {(int)resp.StatusCode} ({modelId}): {Truncate(body, 200)}", modelId, RouteLocal);
+            var (text, finish, answeredBy) = ReadCompletion(body);
+            if (string.IsNullOrWhiteSpace(text))
+                return new ModelAnswer(false, $"{modelId} on {provider.Label} returned no answer (finish_reason={finish ?? "none"}).", answeredBy ?? modelId, RouteLocal);
+            return new ModelAnswer(true, text, answeredBy ?? modelId, RouteLocal);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException)
+        {
+            return new ModelAnswer(false, ex is OperationCanceledException
+                ? $"{provider.Label} did not answer within 90 s ({modelId})."
+                : $"{provider.Label} is not reachable at {provider.BaseUrl}: {ex.Message}. Start it, then ask again.", modelId, RouteLocal);
+        }
+    }
 
     /// <summary>The first route a text ask tries, given what is available (the order <see cref="AskAsync"/> follows).</summary>
     internal static string PlanTextRoute(bool arkApi, bool nebiusKey, bool hivemindSignedIn) =>
