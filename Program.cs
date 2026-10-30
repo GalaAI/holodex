@@ -166,6 +166,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly HolodexLiteDrawerForm _holodexDrawer;
     private readonly AugmentInventoryForm _inventory = new();
     private readonly MouseModStationForm _station;
+    private readonly VaultForm _vault;
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
@@ -293,6 +294,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
         });
         _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
         _holodexDrawer.OpenMouseModStation = () => _station.Summon(GetCursorPoint());
+        _vault = new VaultForm(_ark);
+        _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
+        _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
@@ -347,6 +351,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Ctrl+Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
+
+        // The Vault needs no Ark and no Hivemind account: keys, MCP sign-ins and local services on this PC.
+        var vaultItem = home.Add(new ToolStripMenuItem("Vault") { Name = "Tray.Vault", ToolTipText = "Connect apps, services and keys. Keys stay in Windows Credential Manager." });
+        vaultItem.Click += (_, _) => _vault.Summon(GetCursorPoint());
 
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
@@ -600,6 +608,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         PhosphorToast.UiContext = _uiSync;
         // Follow the mouse that moves: its speed, buttons and name come with it.
         MouseHardwareAndWandEngine.UiContext = _uiSync;
+        HolodexTools.Ui = _uiSync;
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(
@@ -611,6 +620,18 @@ internal sealed class OmniwandAppContext : ApplicationContext
         if (isFirstRun)
         {
             _uiSync.Post(_ => SummonTutorialTooltips(), null);
+        }
+
+        // A public install with no Nebius key yet: open the Vault ready for it, since every answer needs one.
+        if (string.IsNullOrEmpty(_ark.ReadNebiusApiKey()) && !_ark.ArkInstalled)
+        {
+            var firstKey = new System.Windows.Forms.Timer { Interval = 2500 };
+            firstKey.Tick += (_, _) =>
+            {
+                firstKey.Dispose();
+                _vault.SummonFor(Screen.PrimaryScreen?.WorkingArea.Location + new Size(200, 200) ?? Point.Empty, "nebius");
+            };
+            firstKey.Start();
         }
 
         // One Ark API probe at start, so every model chip names the route the first ask takes before any surface opens.
@@ -706,7 +727,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "ainbox:send:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -743,6 +764,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SummonWizCrafting("flow"), null);
             return "ok:wiz:summon";
+        }
+        // ainbox:send:<ask> (developer pipe) opens AInbox, types the ask and presses Send to the chosen destination.
+        if (cmd.StartsWith("ainbox:send:", StringComparison.OrdinalIgnoreCase))
+        {
+            string ask = cmd["ainbox:send:".Length..].Trim();
+            _uiSync.Post(_ => { SummonAInboxIntake(); _ainboxWidget.SendFromPipe(ask); }, null);
+            return "ok:ainbox:send";
         }
         if (string.Equals(cmd, "ainbox:summon", StringComparison.OrdinalIgnoreCase))
         {
@@ -861,6 +889,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                         ("ainbox", _ainboxWidget),
                         ("holodex", _holodexDrawer),
                         ("snip", _snipWidget),
+                        ("vault", _vault),
                         ("tutorial", _tutorialTooltip));
                     result = $"ok:render:{files.Count}:{string.Join(",", files)}";
                 }
@@ -1082,6 +1111,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _ainboxWidget.Hide();
                 _inventory.Hide();
                 _station.Hide();
+                _vault.Hide();
                 _holodexDrawer.Hide();
                 _snipWidget.Hide();
                 _tutorialTooltip.Hide();
@@ -1097,6 +1127,32 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SurfaceMotion.Dismiss(_wizWidget), null);
             return "ok:wiz:close";
+        }
+        // vault:summon[:catalog] opens the Vault; vault:capture:<png>[|catalog] draws it offscreen; vault:close hides it.
+        if (cmd.StartsWith("vault:summon", StringComparison.OrdinalIgnoreCase))
+        {
+            bool? catalog = cmd.EndsWith(":catalog", StringComparison.OrdinalIgnoreCase) ? true : null;
+            var at = GetCursorPoint();
+            _uiSync.Post(_ => _vault.Summon(at, catalog), null);
+            return "ok:vault:summon";
+        }
+        if (cmd.StartsWith("vault:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string[] parts = cmd["vault:capture:".Length..].Split('|');
+            string png = parts[0].Trim();
+            bool catalog = parts.Length > 1 && parts[1].Trim().Equals("catalog", StringComparison.OrdinalIgnoreCase);
+            string result = "error:vault:capture:not-run";
+            _uiSync.Send(_ =>
+            {
+                try { result = "ok:vault:capture:" + _vault.CaptureTo(png, catalog); }
+                catch (Exception ex) { result = "error:vault:capture:" + ex.Message; }
+            }, null);
+            return result;
+        }
+        if (string.Equals(cmd, "vault:close", StringComparison.OrdinalIgnoreCase))
+        {
+            _uiSync.Post(_ => SurfaceMotion.Dismiss(_vault), null);
+            return "ok:vault:close";
         }
         // inventory:summon[:<base>] opens the Augment Inventory on the Ark API at base (default the live :8788).
         if (cmd.StartsWith("inventory:summon", StringComparison.OrdinalIgnoreCase))

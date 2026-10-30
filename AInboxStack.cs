@@ -591,8 +591,10 @@ internal static class HandoffSeal
     }
 
     public static string Markdown(StackHandoff h, ArkPodInboxInfo pod) =>
-        $"# Handoff scroll: {h.IntentLabel} -> {pod.Label}\n\n" +
-        $"- Scroll: {h.ScrollId}\n- Seal: sha256:{h.Sha256}\n- {(ArkStationClient.ArkOnThisPc ? "Pod" : "Destination")}: {pod.Label} ({pod.InboxChannel}), orchestrator {pod.OrchestratorLabel}\n" +
+        // A public install names its destination when it sends (AInbox adds the line); an Ark names the pod here.
+        (ArkStationClient.ArkOnThisPc ? $"# Handoff scroll: {h.IntentLabel} -> {pod.Label}\n\n" : $"# Handoff scroll: {h.IntentLabel}\n\n") +
+        $"- Scroll: {h.ScrollId}\n- Seal: sha256:{h.Sha256}\n" +
+        (ArkStationClient.ArkOnThisPc ? $"- Pod: {pod.Label} ({pod.InboxChannel}), orchestrator {pod.OrchestratorLabel}\n" : "") +
         $"- Stack {h.Group}: {h.GroupLabel}\n- Written: {h.CreatedAt}\n\n" +
         (h.Ask.Length > 0 ? $"## Ask\n\n{h.Ask}\n\n" : "") +
         string.Join("", h.Fields.Select(f => $"## {f.Label}\n\n{f.Value}\n\n_{f.Source.ToLowerInvariant()}_\n\n")) +

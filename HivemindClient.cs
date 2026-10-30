@@ -491,31 +491,43 @@ public sealed class HivemindClient : IAsyncDisposable
     /// The SDK hands over the authorization URL; this opens it in the default browser and catches the redirect on
     /// the fixed loopback port, then answers the browser with a short page.
     /// </summary>
-    private static async Task<AuthorizationResult?> BrowserSignInAsync(AuthorizationCallbackContext context, CancellationToken ct)
+    private static Task<AuthorizationResult?> BrowserSignInAsync(AuthorizationCallbackContext context, CancellationToken ct) =>
+        LoopbackSignInAsync(context, RedirectUri, "Hivemind", ct);
+
+    /// <summary>
+    /// Opens an authorization URL in the default browser and catches its redirect on a loopback <paramref name="redirect"/>,
+    /// then answers the browser with a short page naming <paramref name="service"/>. Shared by the Hivemind sign-in and
+    /// the Vault's MCP server sign-ins.
+    /// </summary>
+    internal static Task<AuthorizationResult?> LoopbackSignInAsync(AuthorizationCallbackContext context, Uri redirect, string service, CancellationToken ct) =>
+        LoopbackSignInAsync(context.AuthorizationUri, redirect, service, ct);
+
+    /// <summary>The same loopback sign-in for a flow that builds its own authorization URL (the Vault's Google sign-in).</summary>
+    internal static async Task<AuthorizationResult?> LoopbackSignInAsync(Uri authorizationUri, Uri redirect, string service, CancellationToken ct)
     {
         using var listener = new HttpListener();
-        listener.Prefixes.Add(RedirectUri.GetLeftPart(UriPartial.Path));
+        listener.Prefixes.Add(redirect.GetLeftPart(UriPartial.Path));
         listener.Start();
-        Process.Start(new ProcessStartInfo(context.AuthorizationUri.ToString()) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(authorizationUri.ToString()) { UseShellExecute = true });
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(SignInTimeout);
         var pending = listener.GetContextAsync();
         await Task.WhenAny(pending, Task.Delay(Timeout.Infinite, timeout.Token)).ConfigureAwait(false);
-        if (!pending.IsCompleted) throw new TimeoutException("The Hivemind sign-in was not finished in the browser within 5 minutes.");
+        if (!pending.IsCompleted) throw new TimeoutException($"The {service} sign-in was not finished in the browser within 5 minutes.");
 
         var http = await pending;
         var query = System.Web.HttpUtility.ParseQueryString(http.Request.Url?.Query ?? string.Empty);
         string? error = query["error"];
         string page = error == null
-            ? "Holodex is signed in to Hivemind. You can close this tab."
-            : $"Hivemind sign-in did not finish: {WebUtility.HtmlEncode(query["error_description"] ?? error)}";
+            ? $"Holodex is signed in to {WebUtility.HtmlEncode(service)}. You can close this tab."
+            : $"{WebUtility.HtmlEncode(service)} sign-in did not finish: {WebUtility.HtmlEncode(query["error_description"] ?? error)}";
         byte[] body = Encoding.UTF8.GetBytes($"<!doctype html><meta charset=utf-8><title>Holodex</title><body style=\"background:#050607;color:#e4d9c0;font:16px sans-serif;padding:40px\">{page}</body>");
         http.Response.ContentType = "text/html; charset=utf-8";
         await http.Response.OutputStream.WriteAsync(body, ct);
         http.Response.Close();
 
-        if (error != null) throw new InvalidOperationException($"Hivemind sign-in: {query["error_description"] ?? error}");
+        if (error != null) throw new InvalidOperationException($"{service} sign-in: {query["error_description"] ?? error}");
         return new AuthorizationResult { Code = query["code"], State = query["state"], Iss = query["iss"] };
     }
 
@@ -589,7 +601,7 @@ public sealed class HivemindClient : IAsyncDisposable
     /// The SDK's token cache, kept in Windows Credential Manager. The container carries the access and refresh
     /// tokens plus the registered client id and issuer, so a restart refreshes without registering again.
     /// </summary>
-    private sealed class WinCredTokenCache(string target) : ITokenCache
+    internal sealed class WinCredTokenCache(string target) : ITokenCache
     {
         public ValueTask<TokenContainer?> GetTokensAsync(CancellationToken cancellationToken)
         {
