@@ -6,7 +6,7 @@ Holodex is a native Windows desktop app. It replaces the cursor with a wand and 
 
 Holodex is the desktop client. **Hivemind**, its backend, is the hosted sign-in that serves Nemotron to Holodex with no key of your own.
 
-> **Nebius x NVIDIA Global AI Hackathon** · Track: **Personal AI** · License: **Apache-2.0** ([`LICENSE`](LICENSE))
+> **Nebius x NVIDIA Global AI Hackathon** · Track: **Best apps and agents** · License: **Apache-2.0** ([`LICENSE`](LICENSE))
 
 ### Why I built this
 
