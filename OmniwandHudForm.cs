@@ -327,7 +327,8 @@ public sealed class OmniwandHudForm : Form
     /// <summary>Gateway online, Nebius direct with a key, or no key: the gateway LED carries it.</summary>
     private void ShowWandStatus(bool gatewayOnline)
     {
-        _gatewayOnline = gatewayOnline;
+        // ARK API ONLINE only for the real gateway (health shape checked in the probe) with this PC's inbound key.
+        _gatewayOnline = gatewayOnline && _ark.HasGatewayInboundKey;
         SyncTelemetry();
     }
 

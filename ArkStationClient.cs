@@ -551,9 +551,66 @@ public sealed class ArkStationClient
         // A down Ark API is remembered for a few seconds, so asks in a row do not each wait out a refused connection.
         if (_arkApiDownSince is { } down && down.BaseUrl == baseUrl && DateTime.UtcNow - down.At < ArkApiDownMemory)
             return SetArkApiOnline(false);
-        bool online = !ForceStandaloneMode && await ProbeHttpAsync(baseUrl + "/model-gateway/health");
+        bool online = !ForceStandaloneMode && await ProbeArkGatewayHealthAsync(baseUrl + "/model-gateway/health");
         _arkApiDownSince = online ? null : (baseUrl, DateTime.UtcNow);
         return SetArkApiOnline(online);
+    }
+
+    /// <summary>
+    /// The Ark gateway's own health answer, not just any process on its port: HTTP 200 with <c>ok: true</c>,
+    /// <c>service: "ark-model-gateway"</c> and the OpenAI chat-completions compatibility (the shape apps/api serves,
+    /// read live 2026-10-30). Another app on :8788 answering below 500 is not the Ark.
+    /// </summary>
+    private async Task<bool> ProbeArkGatewayHealthAsync(string url)
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(900));
+            using var resp = await _http.GetAsync(url, cts.Token);
+            if (!resp.IsSuccessStatusCode) return false;
+            return IsArkGatewayHealth(await resp.Content.ReadAsStringAsync(cts.Token));
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    internal static bool IsArkGatewayHealth(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return false;
+            bool ok = root.TryGetProperty("ok", out var o) && o.ValueKind == JsonValueKind.True;
+            bool service = root.TryGetProperty("service", out var s) && s.ValueKind == JsonValueKind.String && s.GetString() == "ark-model-gateway";
+            bool chat = (root.TryGetProperty("compatibility", out var c) && c.ValueKind == JsonValueKind.String && c.GetString() == "openai-chat-completions")
+                || (root.TryGetProperty("compatibilities", out var cs) && cs.ValueKind == JsonValueKind.Array
+                    && cs.EnumerateArray().Any(e => e.ValueKind == JsonValueKind.String && e.GetString() == "openai-chat-completions"));
+            return ok && service && chat;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The Ark route is real: the gateway answered with its own health shape at the last probe and this PC holds its
+    /// inbound key (an ask without the key is refused, so without it the route is not offered or named).
+    /// </summary>
+    public bool ArkRouteReady => LastGatewayOnline && HasInboundKeyCached();
+
+    private (DateTime At, bool Has)? _inboundKeySeen;
+
+    /// <summary>Whether an inbound key is loaded, re-read at most every 30 s (chips ask on every repaint).</summary>
+    private bool HasInboundKeyCached()
+    {
+        if (_inboundKeySeen is { } seen && DateTime.UtcNow - seen.At < TimeSpan.FromSeconds(30)) return seen.Has;
+        bool has = !string.IsNullOrEmpty(ReadInboundKey());
+        _inboundKeySeen = (DateTime.UtcNow, has);
+        return has;
     }
 
     private static readonly TimeSpan ArkApiDownMemory = TimeSpan.FromSeconds(15);
@@ -1169,7 +1226,7 @@ public sealed class ArkStationClient
     /// Whether an ask can be answered at all right now: the Ark API was up at the last probe, a Nebius key is here, or
     /// Hivemind is signed in. Chips and LEDs go ember without one.
     /// </summary>
-    public bool HasAnswerRoute => LastGatewayOnline || HasNebiusKey || HivemindClient.HasSavedSignIn;
+    public bool HasAnswerRoute => ArkRouteReady || HasNebiusKey || HivemindClient.HasSavedSignIn;
 
     /// <summary>Whether an attached screen can be read: through the Ark API or a Nebius key. Hivemind takes text only.</summary>
     public bool CanReadImages => HasNebiusKey || (LastGatewayOnline && !string.IsNullOrEmpty(ReadInboundKey()));
@@ -1179,7 +1236,7 @@ public sealed class ArkStationClient
     /// when it was up and has a route, a Nebius key, Hivemind signed in, or none.
     /// </summary>
     public string NextTextRoute(string? model) => IsLocalModel(model) ? RouteLocal : PlanTextRoute(
-        LastGatewayOnline && ArkRouteFor(model) != null, HasNebiusKey, HivemindClient.HasSavedSignIn);
+        ArkRouteReady && ArkRouteFor(model) != null, HasNebiusKey, HivemindClient.HasSavedSignIn);
 
     /// <summary>The provider label for a local picker id ("LM Studio", "Ollama"), or null for any other model.</summary>
     public string? LocalProviderLabel(string? model) =>

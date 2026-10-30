@@ -239,6 +239,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private double _rightDownStartSec = -1;
     private double _middleMouseDownStartSec = -1;
     private int _rolePollCounter;
+    private readonly TriggerSettings _triggers;
     private volatile int _forcedRole; // a WindowsCursorRole set over the pipe (cursor:role:), 0 = detect
     private float _spinAngleDeg;
 
@@ -256,6 +257,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         // Zero-manual Wiz automated onboarding & environment/hardware scan
         bool isFirstRun = !WizOnboardingEngine.HasCompletedOnboarding();
+        // Middle-hold for the Orb and hold-to-draw are opt-in on a new install; an install that already ran keeps them.
+        _triggers = TriggerSettings.LoadOrCreate(existingInstall: !isFirstRun);
+        OmniwandSpellGestureEngine.HoldCtrlToArm = _triggers.HoldCtrlToDraw;
+        OmniwandSpellGestureEngine.HoldRightMouseToArm = _triggers.HoldRightClickToDraw;
         _onboardingReport = WizOnboardingEngine.RunZeroManualProvisioning(_ark);
 
         Win32.GetCursorPos(out Win32.POINT startPt);
@@ -339,7 +344,6 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _overlay.RegisterHotkeys(
             onSummonHud: SummonHud,
             onToggleNative: ToggleNativeCursor,
-            onQuit: ExitApp,
             onOpenWiz: () => SummonWizCrafting(),
             onOpenAInbox: () => SummonAInboxIntake(),
             onToggleOrb: ToggleOrbFromHotkey,
@@ -410,6 +414,18 @@ internal sealed class OmniwandAppContext : ApplicationContext
             slotItem.Click += (_, _) => ExecuteOrbSlotOnUiThread(s, GetCursorPoint());
         }
         orbPage.Add(new ToolStripSeparator());
+        var middleHoldToggle = orbPage.AddSetting(new ToolStripMenuItem("Hold the middle button to open it")
+        {
+            Name = "Tray.OrbMiddleHold",
+            Checked = _triggers.MiddleHoldOpensOrb,
+            CheckOnClick = true,
+            ToolTipText = "Off by default: a middle-drag to scroll would open the Orb. Ctrl+Shift+Space opens it any time."
+        });
+        middleHoldToggle.CheckedChanged += (_, _) =>
+        {
+            _triggers.MiddleHoldOpensOrb = middleHoldToggle.Checked;
+            _triggers.Save();
+        };
         orbPage.AddPage("Choose Spells", _spellPicksPage, "Pick which Spell each slot casts, from the Spells your Ark holds.");
         _spellPicksPage.Shown += async (_, _) => await FillSpellPicksAsync();
         home.AddPage("Spell Orb", orbPage);
@@ -446,14 +462,22 @@ internal sealed class OmniwandAppContext : ApplicationContext
             Checked = OmniwandSpellGestureEngine.HoldCtrlToArm,
             CheckOnClick = true
         });
-        ctrlGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldCtrlToArm = ctrlGestureToggle.Checked;
+        ctrlGestureToggle.CheckedChanged += (_, _) =>
+        {
+            OmniwandSpellGestureEngine.HoldCtrlToArm = _triggers.HoldCtrlToDraw = ctrlGestureToggle.Checked;
+            _triggers.Save();
+        };
 
         var rmbGestureToggle = gesturePage.AddSetting(new ToolStripMenuItem("Hold right-click to draw")
         {
             Checked = OmniwandSpellGestureEngine.HoldRightMouseToArm,
             CheckOnClick = true
         });
-        rmbGestureToggle.CheckedChanged += (_, _) => OmniwandSpellGestureEngine.HoldRightMouseToArm = rmbGestureToggle.Checked;
+        rmbGestureToggle.CheckedChanged += (_, _) =>
+        {
+            OmniwandSpellGestureEngine.HoldRightMouseToArm = _triggers.HoldRightClickToDraw = rmbGestureToggle.Checked;
+            _triggers.Save();
+        };
         gesturePage.Add(new ToolStripSeparator());
 
         var spell1Item = gesturePage.Add(new ToolStripMenuItem("Ask Wiz about it") { ShortcutKeyDisplayString = "SHAKE SIDEWAYS", ToolTipText = "Time Splitter: shake side to side." });
@@ -567,7 +591,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _modelTimer = new System.Threading.Timer(_ => _ = RefreshModelsAsync(), null, 4000, 300_000);
 
         home.Add(new ToolStripSeparator());
-        var exitItem = home.Add(new ToolStripMenuItem("Quit Holodex") { ShortcutKeyDisplayString = "Ctrl+Alt+Q", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
+        var exitItem = home.Add(new ToolStripMenuItem("Quit Holodex") { ToolTipText = "Puts your pointer and mouse speed back, then closes Holodex.", Tag = PhosphorMenuRenderer.DangerTag, Name = "Tray.Exit" });
         exitItem.Click += (_, _) => ExitApp();
 
         var menu = new PhosphorTrayMenu(home)
@@ -1618,11 +1642,14 @@ internal sealed class OmniwandAppContext : ApplicationContext
     {
         if (!_running) return;
 
+        string? detected = _vrMode == VrStreamMode.Off ? null : VrStreamDetector.Detect();
+        // OculusDash's cursor cache is flushed only during a real stream with VR mode on, never on a plain desktop.
+        VrStreamDetector.CacheFlushAllowed = VrStreamDetector.ShouldAllowCacheFlush(_vrMode, detected);
         string? stream = _vrMode switch
         {
             VrStreamMode.Off => null,
-            VrStreamMode.AlwaysOn => VrStreamDetector.Detect() ?? "Forced VR mode",
-            _ => VrStreamDetector.Detect()
+            VrStreamMode.AlwaysOn => detected ?? "Forced VR mode",
+            _ => detected
         };
 
         bool wasActive = _vrStreamName != null;
@@ -1973,9 +2000,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _currentRole = _forcedRole != 0 ? (WindowsCursorRole)_forcedRole : detectedRole;
             }
 
-            // Check hardware / mouse triggers for the Spell Orb (F15 = 0x7E or Middle Mouse Hold > 180ms)
+            // Check hardware / mouse triggers for the Spell Orb (F15 = 0x7E, or Middle Mouse Hold > 180ms when the user
+            // turned it on: off on a new install, TriggerSettings)
             bool f15Down = (Win32.GetAsyncKeyState(0x7E) & 0x8000) != 0;
-            bool mmbDown = (Win32.GetAsyncKeyState(0x04) & 0x8000) != 0;
+            bool mmbDown = _triggers.MiddleHoldOpensOrb && (Win32.GetAsyncKeyState(0x04) & 0x8000) != 0;
             if (mmbDown && _middleMouseDownStartSec < 0)
             {
                 _middleMouseDownStartSec = nowSec;
@@ -2433,9 +2461,9 @@ internal static class MagicUiCursorPaths
 internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 {
     private const int CanvasSize = 440;
+    // Ids match the one shortcut table (GlobalHotkeys). 9002 (Quit) is retired; 9006 (GhostTrailer) stays unbound.
     private const int HotkeySummonId = 9000;
     private const int HotkeyToggleId = 9001;
-    private const int HotkeyQuitId = 9002;
     private const int HotkeyWizId = 9003;
     private const int HotkeyAInboxId = 9004;
     private const int HotkeyOrbId = 9005;
@@ -2465,7 +2493,6 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 
     private Action? _onSummonHotkey;
     private Action? _onToggleHotkey;
-    private Action? _onQuitHotkey;
     private Action? _onOpenWizHotkey;
     private Action? _onOpenAInboxHotkey;
     private Action? _onToggleOrbHotkey;
@@ -2531,7 +2558,6 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
     public void RegisterHotkeys(
         Action onSummonHud,
         Action onToggleNative,
-        Action onQuit,
         Action onOpenWiz,
         Action onOpenAInbox,
         Action onToggleOrb,
@@ -2544,7 +2570,6 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
     {
         _onSummonHotkey = onSummonHud;
         _onToggleHotkey = onToggleNative;
-        _onQuitHotkey = onQuit;
         _onOpenWizHotkey = onOpenWiz;
         _onOpenAInboxHotkey = onOpenAInbox;
         _onToggleOrbHotkey = onToggleOrb;
@@ -2555,41 +2580,23 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
         _onOpenElementPickerHotkey = onOpenElementPicker;
         _onOpenTutorialHotkey = onOpenTutorial;
 
-        // Each shortcut is registered through Bind so one another app already owns is reported, not silently dead.
+        // Every global shortcut holds Ctrl+Alt (or Ctrl+Shift), never a lone Alt: Alt+letter opens app menus. Quit is
+        // tray only, and a Ctrl+Alt shortcut that types a character on one of this PC's keyboard layouts (AltGr is
+        // Ctrl+Alt to Windows) is skipped, so a judge's typing never opens or closes Holodex. GhostTrailer dictation is
+        // held back until speech capture lands, so it has no shortcut. One another app owns is reported, not silent.
         var taken = new List<string>();
-        void Bind(int id, uint mods, Keys key)
+        var typing = new List<string>();
+        foreach (var spec in GlobalHotkeys.All)
         {
-            if (Win32.RegisterHotKey(Handle, id, mods, (int)key)) return;
-            string label = ((mods & 0x0002) != 0 ? "Ctrl+" : "") + ((mods & 0x0004) != 0 ? "Shift+" : "") + ((mods & 0x0001) != 0 ? "Alt+" : "") + key;
-            taken.Add(label);
+            if (GlobalHotkeys.AltGrCollision(spec) is { } hit)
+            {
+                typing.Add($"{spec.Label} types {hit.Typed} on {hit.Layout}");
+                CursorCrashGuard.Log($"shortcut {spec.Label} skipped: it types {hit.Typed} on the {hit.Layout} keyboard layout");
+                continue;
+            }
+            if (Win32.RegisterHotKey(Handle, spec.Id, spec.Mods, (int)spec.Key)) GlobalHotkeys.MarkRegistered(spec);
+            else taken.Add(spec.Label);
         }
-
-        // Every global shortcut holds Ctrl+Alt (or Ctrl+Shift), never a lone Alt: Ctrl+Alt+Space is the window menu and
-        // Alt+letter opens app menus (Office's Ctrl+Alt+H, Ctrl+Alt+W), so a judge's apps keep their keys.
-        const uint Alt = 0x0001, Ctrl = 0x0002, Shift = 0x0004, NoRepeat = 0x4000;
-        // Ctrl+Alt+Space -> Phosphor Command HUD
-        Bind(HotkeySummonId, Ctrl | Alt | NoRepeat, Keys.Space);
-        // Ctrl+Alt+C -> Toggle Native Cursor
-        Bind(HotkeyToggleId, Ctrl | Alt | NoRepeat, Keys.C);
-        // Ctrl+Alt+Q -> Quit & Restore
-        Bind(HotkeyQuitId, Ctrl | Alt | NoRepeat, Keys.Q);
-        // Ctrl+Alt+W -> Slot 7 Wiz on Nemotron
-        Bind(HotkeyWizId, Ctrl | Alt | NoRepeat, Keys.W);
-        // Ctrl+Alt+I -> Slot 8 AInbox Pod Intake + Handoff Scroll
-        Bind(HotkeyAInboxId, Ctrl | Alt | NoRepeat, Keys.I);
-        // Ctrl+Shift+Space -> 8-slot Spell Orb
-        Bind(HotkeyOrbId, Ctrl | Shift | NoRepeat, Keys.Space);
-        // GhostTrailer dictation is held back until speech capture lands; no hotkey in v0.3.
-        // Ctrl+Alt+P -> Cycle the cursor (pointer) style
-        Bind(HotkeyCycleProfileId, Ctrl | Alt | NoRepeat, Keys.P);
-        // Ctrl+Alt+H -> Holodex Lite Drawer (Session, AInbox, Codex, GrimX, Mods)
-        Bind(HotkeyHolodexId, Ctrl | Alt | NoRepeat, Keys.H);
-        // Ctrl+Alt+S -> Free-Form Lasso & Phosphor Annotator
-        Bind(HotkeySnipLassoId, Ctrl | Alt | NoRepeat, Keys.S);
-        // Ctrl+Alt+E -> Desktop Element & Pixel Palette Picker
-        Bind(HotkeyElementPickerId, Ctrl | Alt | NoRepeat, Keys.E);
-        // Ctrl+Alt+T -> Animated Phosphor Tooltip Tutorials
-        Bind(HotkeyTutorialId, Ctrl | Alt | NoRepeat, Keys.T);
         if (taken.Count > 0)
             PhosphorToast.Show(
                 "Some shortcuts are taken",
@@ -2597,6 +2604,13 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
                 "HOLODEX // SHORTCUTS",
                 7000,
                 ToastTone.Warning);
+        if (typing.Count > 0)
+            PhosphorToast.Show(
+                "Some shortcuts are left to your keyboard",
+                $"{string.Join("; ", typing)}, so Holodex does not take them. Those tools are in the tray menu.",
+                "HOLODEX // SHORTCUTS",
+                7000,
+                ToastTone.Info);
     }
 
     public void ForceCursorRedraw()
@@ -2875,7 +2889,6 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
             {
                 case HotkeySummonId: _onSummonHotkey?.Invoke(); break;
                 case HotkeyToggleId: _onToggleHotkey?.Invoke(); break;
-                case HotkeyQuitId: _onQuitHotkey?.Invoke(); break;
                 case HotkeyWizId: _onOpenWizHotkey?.Invoke(); break;
                 case HotkeyAInboxId: _onOpenAInboxHotkey?.Invoke(); break;
                 case HotkeyOrbId: _onToggleOrbHotkey?.Invoke(); break;
@@ -2892,7 +2905,7 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
 
     public void Dispose()
     {
-        for (int id = HotkeySummonId; id <= HotkeyTutorialId; id++)
+        for (int id = GlobalHotkeys.FirstId; id <= GlobalHotkeys.LastId; id++)
         {
             Win32.UnregisterHotKey(Handle, id);
         }

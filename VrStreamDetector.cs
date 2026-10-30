@@ -45,6 +45,23 @@ internal static class VrStreamDetector
     [DllImport("kernel32.dll")]
     private static extern bool CloseHandle(IntPtr hObject);
 
+    private static volatile bool _cacheFlushAllowed;
+
+    /// <summary>
+    /// True only while <see cref="Detect"/> finds a real headset stream and VR mode is not Off. Until then
+    /// <see cref="EnsureOculusDashCursorCacheClean"/> never opens OculusDash, so hiding the cursor on an ordinary PC
+    /// touches no other process.
+    /// </summary>
+    public static bool CacheFlushAllowed
+    {
+        get => _cacheFlushAllowed;
+        set => _cacheFlushAllowed = value;
+    }
+
+    /// <summary>The gate's rule: a stream actually detected (not the forced placeholder) with VR mode on.</summary>
+    internal static bool ShouldAllowCacheFlush(VrStreamMode mode, string? detectedStream) =>
+        mode != VrStreamMode.Off && !string.IsNullOrEmpty(detectedStream);
+
     public static string? Detect()
     {
         try
@@ -72,6 +89,9 @@ internal static class VrStreamDetector
     /// </summary>
     public static bool EnsureOculusDashCursorCacheClean(bool forceFlush = false)
     {
+        // Writing into another process's memory is what antivirus watches for: only while a headset stream is really
+        // detected and the user has not turned VR mode off (Program.VrTick sets this). A plain desktop never gets it.
+        if (!CacheFlushAllowed) return false;
         try
         {
             var procs = Process.GetProcessesByName("OculusDash");
