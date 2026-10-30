@@ -363,17 +363,17 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // the tray icon and stays open until a click outside it, Esc, a click on the icon, or a row that does
         // something (PhosphorTrayMenu). Add closes after the row runs; AddSetting keeps the menu open.
         var home = new TrayPage();
-        var titleItem = new PhosphorMenuHeader("DESKTOP COMPANION // v0.3", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
+        var titleItem = new PhosphorMenuHeader($"YOUR ARKSTATION // {HolodexVersion.Display.ToUpperInvariant()}", "Holodex", MouseHardwareAndWandEngine.ActiveMouse.Name);
         _trayTitle = titleItem;
         home.Add(titleItem);
 
-        var summonItem = home.Add(new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = "Ctrl+Alt+Space", ToolTipText = "Opens the HUD ask box." });
+        var summonItem = home.Add(new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Ask), ToolTipText = "Opens the HUD ask box." });
         summonItem.Click += (_, _) => SummonHud();
 
-        var holodexItem = home.Add(new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "Ctrl+Alt+H" });
+        var holodexItem = home.Add(new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Holodex) });
         holodexItem.Click += (_, _) => ToggleHolodexDrawer();
 
-        var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Ctrl+Alt+W" });
+        var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Wiz) });
         wizItem.Click += (_, _) => SummonWizCrafting();
 
         // The Vault needs no Ark and no Hivemind account: keys, MCP sign-ins and local services on this PC.
@@ -395,13 +395,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
 
         var capturePage = new TrayPage("Grab from the screen");
-        var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Ctrl+Alt+S", ToolTipText = "Lasso: draw around anything on the screen." });
+        var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Lasso), ToolTipText = "Lasso: draw around anything on the screen." });
         lassoItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.FreeformLasso);
 
-        var elemItem = capturePage.Add(new ToolStripMenuItem("Pick a thing or a color") { ShortcutKeyDisplayString = "Ctrl+Alt+E", ToolTipText = "Point at a button, window or color to learn about it." });
+        var elemItem = capturePage.Add(new ToolStripMenuItem("Pick a thing or a color") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.ElementPicker), ToolTipText = "Point at a button, window or color to learn about it." });
         elemItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.ElementPicker);
 
-        var ainboxItem = capturePage.Add(new ToolStripMenuItem("Send to AInbox") { ShortcutKeyDisplayString = "Ctrl+Alt+I" });
+        var ainboxItem = capturePage.Add(new ToolStripMenuItem("Send to AInbox") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.AInbox) });
         ainboxItem.Click += (_, _) => SummonAInboxIntake();
         home.AddPage("Grab from the screen", capturePage);
 
@@ -434,7 +434,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         home.Add(new ToolStripSeparator());
         var settingsPage = new TrayPage("Settings");
 
-        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = "Ctrl+Alt+H", ToolTipText = "Opens every setting in Holodex." });
+        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Holodex), ToolTipText = "Opens every setting in Holodex." });
         openSettingsPanelItem.Click += (_, _) => _holodexDrawer.SummonDrawer(GetCursorPoint(), "mods");
         settingsPage.Add(new ToolStripSeparator());
 
@@ -537,7 +537,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _hideNativeMenuItem = settingsPage.AddSetting(new ToolStripMenuItem("Hide the normal pointer")
         {
             ToolTipText = "Shows only the wand pointer.",
-            ShortcutKeyDisplayString = "Ctrl+Alt+C",
+            ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.ToggleCursor),
             Checked = NativeCursorManager.IsHidden,
             CheckOnClick = false
         });
@@ -555,7 +555,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         FillModelsMenu();
         settingsPage.AddPage("Models", _modelsPage, "Every model Holodex found. New ones show up here by themselves.");
 
-        var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Ctrl+Alt+T" });
+        var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = GlobalHotkeys.Shown(GlobalHotkeys.Tutorial) });
         tutorialItem.Click += (_, _) => SummonTutorialTooltips();
 
         var vrPage = new TrayPage("VR headset");
@@ -606,7 +606,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _trayIcon = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
-            Text = "Holodex v0.3 (Ctrl+Alt+Space ask | Ctrl+Alt+H Holodex | Ctrl+Alt+S cut out | Ctrl+Alt+E point)",
+            Text = GlobalHotkeys.TrayTooltip(HolodexVersion.Display),
             ContextMenuStrip = menu,
             Visible = true
         };
@@ -660,9 +660,9 @@ internal sealed class OmniwandAppContext : ApplicationContext
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(
-            $"Holodex v0.3 · {MouseHardwareAndWandEngine.ActiveMouse.Name}",
-            "Ctrl+Alt+H  Holodex & Syndicate Session\nAlt+S  Free-Form Lasso   Ctrl+Alt+E  Element Picker\nAlt+W  Wiz Crafting      Ctrl+Alt+T  Animated Tooltips",
-            "PHOSPHOR SHELL // WIZ PROVISIONED",
+            $"Holodex {HolodexVersion.Display} is ready",
+            WelcomeBody(),
+            "HOLODEX // PHOSPHOR SHELL",
             5400);
 
         if (isFirstRun)
@@ -1914,7 +1914,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             NativeCursorManager.RestoreSystemCursors();
             _hideNativeMenuItem.Checked = false;
-            PhosphorToast.Show("Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "HOLODEX // CURSOR", 2400, ToastTone.Info);
+            PhosphorToast.Show("Windows cursor shown", (GlobalHotkeys.IsRegistered(GlobalHotkeys.ToggleCursor) ? $"Native cursor restored. {GlobalHotkeys.ToggleCursor.Label} hides it again." : "Native cursor restored. Settings, Hide the normal pointer, hides it again."), "HOLODEX // CURSOR", 2400, ToastTone.Info);
         }
         else
         {
@@ -2214,6 +2214,18 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 _spinAngleDeg,
                 nowSec);
         }
+    }
+
+    /// <summary>The welcome toast's body: the shortcuts this PC really registered, one per line, else the tray.</summary>
+    private static string WelcomeBody()
+    {
+        string keys = GlobalHotkeys.Summary("\n",
+            (GlobalHotkeys.Holodex, "  Holodex"),
+            (GlobalHotkeys.Ask, "  Ask a question"),
+            (GlobalHotkeys.Lasso, "  Cut out a picture"),
+            (GlobalHotkeys.ElementPicker, "  Pick a thing or a color"),
+            (GlobalHotkeys.Wiz, "  Wiz"));
+        return keys.Length > 0 ? keys : "Everything is in the tray menu.";
     }
 
     private void ExitApp()

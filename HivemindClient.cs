@@ -467,7 +467,7 @@ public sealed class HivemindClient : IAsyncDisposable
         }, _http);
         return McpClient.CreateAsync(transport, new McpClientOptions
         {
-            ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = "0.3.0" }
+            ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = HolodexVersion.Number }
         }, cancellationToken: ct);
     }
 
@@ -597,6 +597,13 @@ public sealed class HivemindClient : IAsyncDisposable
 
     public const string ScopeMissingForAnswers =
         "Your Hivemind sign-in does not allow model answers (model.invoke). Sign out in Holodex, sign in again and allow model access.";
+
+    /// <summary>
+    /// The one line under every "Sign in with Hivemind" step (drawer first steps, onboarding, Vault). It points at the
+    /// demo account in the Devpost testing instructions and never carries an account, email or invite code itself.
+    /// </summary>
+    public const string SignInHelp =
+        "Judges can use the demo account from the Devpost testing instructions, or create your own account with an invite code.";
 
     public const string NotSignedInForAnswers =
         "Sign in with Hivemind to get answers: open Holodex (Ctrl+Alt+H), then the profile at the foot of the rail, then Sign in. No key is needed.";

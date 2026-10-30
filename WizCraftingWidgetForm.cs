@@ -8,7 +8,7 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>
-/// Wiz: the GrimX Spell crafting agent (Alt+W, Actions Ring slot 7, pipe wiz:summon). The thread is the body and
+/// Wiz: the GrimX Spell crafting agent (Ctrl+Alt+W, Actions Ring slot 7, pipe wiz:summon). The thread is the body and
 /// shows its intro at rest; one composer under it takes the goal, with the screen toggle and three starters. The
 /// Spell type chip (Omnitek fills it from the goal's words, its description beside it) and the model chip sit
 /// above the host line, which names the runtime and model that actually answered. The header badge names the
@@ -382,7 +382,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
     {
         if (Visible && ContainsFocus) return;
         string first = text.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
-        PhosphorToast.Show(title, first.Length > 140 ? first[..140] + "..." : first, "WIZ // ALT+W OPENS IT", 4200, ok ? ToastTone.Success : ToastTone.Warning);
+        PhosphorToast.Show(title, first.Length > 140 ? first[..140] + "..." : first, (GlobalHotkeys.IsRegistered(GlobalHotkeys.Wiz) ? $"WIZ // {GlobalHotkeys.Wiz.Label.ToUpperInvariant()} OPENS IT" : "WIZ // TRAY OPENS IT"), 4200, ok ? ToastTone.Success : ToastTone.Warning);
     }
 
     /// <summary>While Wiz runs, the one primary turns into Stop.</summary>

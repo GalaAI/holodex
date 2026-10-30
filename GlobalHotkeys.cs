@@ -70,8 +70,17 @@ internal static class GlobalHotkeys
     public static string Shown(HotkeySpec spec) => IsRegistered(spec) ? spec.Label : "";
 
     /// <summary>"Ctrl+Alt+H Holodex" style list of the registered shortcuts, for the tray tooltip and the welcome toast.</summary>
-    public static string Summary(params (HotkeySpec Spec, string Name)[] items) =>
-        string.Join("   ", items.Where(i => IsRegistered(i.Spec)).Select(i => $"{i.Spec.Label} {i.Name}"));
+    public static string Summary(string separator, params (HotkeySpec Spec, string Name)[] items) =>
+        string.Join(separator, items.Where(i => IsRegistered(i.Spec)).Select(i => $"{i.Spec.Label} {i.Name}"));
+
+    /// <summary>The tray icon's hover text: name, version and the main registered shortcuts, within Windows' 127 characters.</summary>
+    public static string TrayTooltip(string version)
+    {
+        string text = $"Holodex {version}";
+        string keys = Summary(" | ", (Ask, "ask"), (Holodex, "Holodex"), (Lasso, "cut out"), (ElementPicker, "point"));
+        if (keys.Length > 0) text += $" ({keys})";
+        return text.Length <= 127 ? text : text[..127];
+    }
 
     /// <summary>
     /// The character a Ctrl+Alt combination types on some keyboard layout of this PC (AltGr is Ctrl+Alt to Windows),

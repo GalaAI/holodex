@@ -531,7 +531,7 @@ internal static class HolodexVault
             });
             await using var client = await McpClient.CreateAsync(transport, new McpClientOptions
             {
-                ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = "0.3.0" }
+                ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = HolodexVersion.Number }
             }, cancellationToken: ct);
             var tools = await client.ListToolsAsync(cancellationToken: ct);
             return (tools.Count, null);

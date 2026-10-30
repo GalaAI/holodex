@@ -11,7 +11,7 @@ Holodex is one of three related entries by the same author. Each runs on its own
 | Repo | What it is |
 | --- | --- |
 | **Holodex** (this repo) | Desktop companion: cursor, HUD, screen lasso, AInbox, Wiz agent. `.NET 10`, Win32. |
-| [Hivemind](https://github.com/GalaAI/hivemind) | Multi-agent MCP server. Holodex can sign in to it (optional) to talk to Gala and other agents. |
+| [Hivemind](https://github.com/GalaAI/hivemind) | Multi-agent MCP server. Signing in to it is how a fresh Holodex gets Nemotron answers with no key. |
 | [Ryozan](https://github.com/GalaAI/ryozan) | Shop operating system for independent artists and studios. |
 
 ### Why I built this
@@ -35,7 +35,7 @@ Holodex is one of three related entries by the same author. Each runs on its own
 
 ## How Holodex uses Nemotron and Token Factory
 
-Every model call is an OpenAI-compatible `POST /v1/chat/completions` from the desktop app straight to `https://api.tokenfactory.nebius.com/v1` with an NVIDIA open model. There is no server to run and no GPU to manage; one Token Factory key covers every size, so Holodex picks the size per job.
+Every model call is an OpenAI-compatible chat completion with an NVIDIA open model on Token Factory. With no key at all, Holodex asks through your Hivemind sign-in (`model_invoke`); with your own Token Factory key it calls `https://api.tokenfactory.nebius.com/v1` directly, and gets tools (web search, files, the approved PC command line, bridged MCP servers). There is no server to run and no GPU to manage, so Holodex picks the size per job.
 
 | Surface | Model id on Token Factory | Why this size |
 | --- | --- | --- |
@@ -49,15 +49,19 @@ Where this lives in the code: [`ArkStationClient.cs`](ArkStationClient.cs) (`Ask
 
 How Token Factory helped: the `/v1/models` listing let us check every model id the app ships against what the account can call, and the single OpenAI-compatible API made switching sizes a one-line change per surface. All five ids above were listed by `GET /v1/models` on 2026-10-29.
 
-### Optional: Hivemind sign-in
+### Answer routes, in order
 
-Signed out, everything above runs on Nemotron directly. Signed in to a Hivemind server (OAuth 2.1 with PKCE against `https://hivemind.arkomnitek.com/mcp`), the HUD and the drawer can hand a question to Gala and other Hivemind agents, and work orders become Hivemind missions. Answers that came from Nemotron instead of Gala are labelled as such.
+1. **Hivemind sign-in (no key).** Sign in from the Holodex drawer (OAuth 2.1 with PKCE against `https://hivemind.arkomnitek.com/mcp`). Nemotron answers through it as text; web search runs as a one-line `SEARCH:` request. Judges can use the demo account from the Devpost testing instructions, or create their own account with an invite code.
+2. **Your own Token Factory key (optional).** Paste it into the Vault and Holodex calls Token Factory directly, with images (Super VL) and tools.
+3. **A model on this PC (optional).** Chat models that LM Studio or Ollama serve show up in the model picker as local models and answer from your own machine.
+
+Signed in, the HUD and the drawer can also hand a question to Gala and other Hivemind agents, and work orders become Hivemind missions. Every answer card names the model and route that answered.
 
 ---
 
 ## Quickstart
 
-You need Windows 10 or 11 (x64) and a Nebius Token Factory API key. Nothing else.
+You need Windows 10 or 11 (x64). A Hivemind sign-in is enough for answers; a Nebius Token Factory key is optional.
 
 ### 1. Get Holodex
 
@@ -70,13 +74,15 @@ dotnet build Omniwand.csproj -c Release -nologo
 dotnet publish Omniwand.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish-win-x64 -nologo
 ```
 
-### 2. Give it your Token Factory key
+### 2. Sign in, or give it your Token Factory key
 
-Holodex ships with no keys. Each user brings their own, and every key stays on their own PC in Windows Credential Manager (`wincred://Omniwand:*`), never in source, config files, logs or screenshots.
+Launch Holodex. On a PC with no key, no Ark and no sign-in, the Holodex drawer opens on its first steps: **Sign in with Hivemind** is the one step answers need.
+
+To use your own key instead (or as well): Holodex ships with no keys, and every key stays on your PC in Windows Credential Manager (`wincred://Omniwand:*`), never in source, config files, logs or screenshots.
 
 1. Get a key at [tokenfactory.nebius.com](https://tokenfactory.nebius.com/).
-2. Launch Holodex. On a PC with no Nebius key, the **Vault** opens by itself, ready for it (later: tray menu **Vault**, or **Vault and adapters** in the drawer).
-3. Paste the key into **Universal intake** and press **Add to vault**. Holodex checks it against Token Factory and marks it **Works**. That key is now the default model for every surface.
+2. Open the **Vault** from the tray menu.
+3. Paste the key into the intake and press **Add to vault**. Holodex checks it against Token Factory and marks it **Works**.
 
 Prefer environment variables? Holodex reads them first, and the Vault lists them under **From your environment**:
 
@@ -120,24 +126,28 @@ Launch `Omniwand.exe`. The emblem appears in the system tray, the wand cursor ta
 - **AInbox (`Ctrl+Alt+I`).** Drop, paste or pick any number of captures. They stack by window context; a keyword first pass is re-ranked by Nemotron Nano, which explains its choice. Text captures and text files are scanned and secrets are redacted before anything leaves; the resulting Handoff Scroll is sealed with SHA-256.
 - **Wiz (`Ctrl+Alt+W`).** An agent on Nemotron Super that calls tools (capture, lasso, AInbox, Codex, work orders) and asks before it changes anything.
 - **Holodex drawer (`Ctrl+Alt+H`).** Session, AInbox, Codex, GrimX and Mods tabs, plus the profile panel for keys and Hivemind sign-in.
-- **Cursor and gestures.** A morphing cursor drawn per frame with layered windows, four cursor styles, and `Ctrl`-hold gestures (shake, circle, sweep) that open Wiz, the lasso, a spell slot or the drawer.
+- **Cursor and gestures.** A morphing cursor drawn per frame with layered windows and four cursor styles. Hold-to-draw gestures (shake, circle, sweep) that open Wiz, the lasso, a spell slot or the drawer are off on a new install; turn them on in tray **Settings**, **Spells you draw**.
 - **Mouse awareness.** Detects the connected mouse by vendor and model and keeps a per-device profile.
 
 ## Shortcuts
 
 | Action | Shortcut |
 | --- | --- |
-| HUD | `Ctrl+Alt+Space` (or double-click the tray icon) |
-| Holodex drawer | `Ctrl+Alt+H` or `Ctrl` + sweep right |
-| Lasso | `Ctrl+Alt+S` or `Ctrl` + shake up and down |
+| HUD | `Ctrl+Alt+Space` |
+| Holodex drawer | `Ctrl+Alt+H` (or `Ctrl` + sweep right, once hold-to-draw is on) |
+| Lasso | `Ctrl+Alt+S` (or `Ctrl` + shake up and down, once hold-to-draw is on) |
 | Element picker | `Ctrl+Alt+E` |
 | Wiz agent | `Ctrl+Alt+W` |
 | AInbox | `Ctrl+Alt+I` |
 | Guided tour | `Ctrl+Alt+T` |
-| Spell orb | `F15`, `Ctrl+Shift+Space`, or hold the middle button |
-| Cycle cursor style | `Ctrl+Alt+P` |
+| Spell orb | `F15` or `Ctrl+Shift+Space` (hold the middle button once you turn it on in tray **Spell Orb**) |
+| Next Input Studio profile (Ark installs) | `Ctrl+Alt+P` |
 | Show or hide the Windows cursor | `Ctrl+Alt+C` |
-| Quit and restore the Windows cursor | `Ctrl+Alt+Q` |
+| Quit and restore the Windows cursor | Tray menu, **Quit Holodex** |
+
+On a keyboard layout with AltGr (German, French, Polish and others), any `Ctrl+Alt` shortcut that types a character there (for example AltGr+E for the euro sign) is left to typing, and Holodex says which in a notice. Those tools stay in the tray menu.
+
+If Holodex is ever killed while the wand cursor is showing, the next start puts the Windows cursors and your mouse speed back first.
 
 ## Known limitations
 
@@ -145,6 +155,7 @@ Launch `Omniwand.exe`. The emblem appears in the system tray, the wand cursor ta
 - Images and recordings are not scanned for secrets; only text captures and text files are.
 - Screen recording and voice capture are designed but not built; the UI shows them as planned.
 - The AInbox first-pass ranking is keyword heuristics; Nemotron refines it when a key is set.
+- MCP servers connected over HTTP in the Vault are listed, not yet used in answers. Servers bridged from your other MCP clients offer their tools on the Nebius direct route only; each row says which.
 
 ## Built during the submission period
 

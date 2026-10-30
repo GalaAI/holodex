@@ -9,8 +9,8 @@ namespace Omniwand;
 /// Port of the ArkStation GhostTrailer Flow cubic Bezier ribbon engine into Omniwand's
 /// VSync-locked GDI+ renderer, styled in ArkStation Phosphor Shell tokens.
 /// Context-Aware Dual Mode:
-/// - Over IBeam (text fields): Dictation mode (Patina #79C4B7) — types/pastes text on release.
-/// - Over any other cursor role: Voice-Wand mode (Coral #D98A63) — sends spoken command + cursor context to ArkStation.
+/// - Over IBeam (text fields): Dictation mode (Patina #79C4B7): types/pastes text on release.
+/// - Over any other cursor role: Voice-Wand mode (Coral #D98A63): sends spoken command + cursor context to ArkStation.
 /// </summary>
 public sealed class GhostTrailerEngine
 {

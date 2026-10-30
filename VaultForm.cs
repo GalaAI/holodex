@@ -513,15 +513,18 @@ internal sealed class VaultForm : Form
         : url.StartsWith("app:", StringComparison.Ordinal) ? "App"
         : url;
 
-    /// <summary>Hivemind is optional: signing in shares the session with the Hivemind web app; the vault works without it.</summary>
+    /// <summary>
+    /// Hivemind sign-in is how a fresh install gets answers with no key (the primary path since v0.4); the vault itself
+    /// works without it and stays on this PC either way.
+    /// </summary>
     private void AddHivemindCard()
     {
-        _list.AddSection("HIVEMIND ACCOUNT // OPTIONAL");
+        _list.AddSection("HIVEMIND ACCOUNT");
         bool signedIn = _ark.Hivemind.State == HivemindState.Connected || HivemindClient.HasSavedSignIn;
-        var card = _list.Add(signedIn ? ThreadTone.Ok : ThreadTone.Step, "HIVEMIND // OPTIONAL",
+        var card = _list.Add(signedIn ? ThreadTone.Ok : ThreadTone.Action, "HIVEMIND // ANSWERS WITH NO KEY",
             signedIn
-                ? $"Signed in to {HivemindClient.EndpointHost}. Your vault stays on this PC either way."
-                : "Not needed. Nemotron on Nebius and everything above work without an account. Sign in to share Sessions and agents with the Hivemind web app.",
+                ? $"Signed in to {HivemindClient.EndpointHost}. Nemotron answers through it with no key. Your vault stays on this PC either way."
+                : $"Sign in to get Nemotron answers with no key. {HivemindClient.SignInHelp}",
             PhosphorGlyph.Holodex,
             new[] { signedIn ? (PhosphorTheme.Moss, "Signed in") : (PhosphorTheme.Ghost, "Not signed in"), (PhosphorTheme.Ghost, HivemindClient.EndpointHost) });
         card.Name = "Vault.Catalog.hivemind";

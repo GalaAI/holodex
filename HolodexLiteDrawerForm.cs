@@ -222,7 +222,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
 
         // Who Omniwand runs as on this machine: the Windows account, read from the system, never typed in.
         var identityLine = new LedRow { Dock = DockStyle.Top, Height = 28, Name = "Holodex.ProfileIdentity" };
-        identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, "HOLODEX v0.3"));
+        identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, $"HOLODEX {HolodexVersion.Display}"));
 
         // The profile panel, top to bottom: identity, Hivemind (sign in or out), the gateway and key, the key row.
         // It floats beside the rail, bottom-aligned with the avatar, in the ArkStation popover look (surface, line-2

@@ -15,7 +15,7 @@ public sealed record GrimXOrbSlot(
 
 /// <summary>
 /// 8-slot Spell Orb rendered in ArkStation Phosphor Shell tokens.
-/// Zero Ev3-Orb or Omnidex references — strictly GrimX Spell kinds (Slots 1-6),
+/// Zero Ev3-Orb or Omnidex references: strictly GrimX Spell kinds (Slots 1-6),
 /// Wiz Crafting Chatbot (Slot 7), and AInbox Pod Intake + Handoff Scroll (Slot 8).
 /// </summary>
 public sealed class GrimXFlowOrb

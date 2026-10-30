@@ -224,7 +224,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
             ? "Your Nebius key is linked, so answers come from NVIDIA Nemotron on Token Factory."
             : HivemindClient.HasSavedSignIn
                 ? "You are signed in with Hivemind, so NVIDIA Nemotron answers through it. No key needed."
-                : "To turn on answers, open Holodex (Ctrl+Alt+H) and Sign in with Hivemind. No key needed; a Nebius key is optional.";
+                : "To turn on answers, open Holodex (Ctrl+Alt+H) and Sign in with Hivemind. No key needed. " + HivemindClient.SignInHelp;
 
         _steps = new List<TutorialStepInfo>
         {

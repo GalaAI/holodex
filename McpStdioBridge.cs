@@ -102,7 +102,7 @@ internal static class McpBridges
         {
             client = await McpClient.CreateAsync(transport, new McpClientOptions
             {
-                ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = "0.4.0" }
+                ClientInfo = new Implementation { Name = "holodex", Title = "Holodex", Version = HolodexVersion.Number }
             }, cancellationToken: timeout.Token);
             var tools = (await client.ListToolsAsync(cancellationToken: timeout.Token)).ToList();
             var live = new Live(id, s.Name, client, tools);

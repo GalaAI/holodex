@@ -100,8 +100,11 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     private string _answerText = "";
 
     /// <summary>The output area's empty state: what the overlay does, visible until there is an answer.</summary>
-    private const string GuidanceText =
-        "Draw a free-form lasso or rectangle snip, add Phosphor annotations, or switch to Point at UI (Alt+E) to inspect any desktop window's HWND, geometry, and live pixel palette.";
+    // Names the real Point at UI shortcut (GlobalHotkeys), or none when this PC left it to the keyboard.
+    private static string GuidanceText =>
+        "Draw a free-form lasso or rectangle snip, add Phosphor annotations, or switch to Point at UI" +
+        (GlobalHotkeys.IsRegistered(GlobalHotkeys.ElementPicker) ? $" ({GlobalHotkeys.ElementPicker.Label})" : "") +
+        " to inspect any desktop window's HWND, geometry, and live pixel palette.";
     private string _visionModel;
 
     private const int DrawerLogicalWidth = 640;
