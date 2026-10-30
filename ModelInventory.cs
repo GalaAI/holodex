@@ -88,6 +88,17 @@ public sealed class ModelInventory
         BaseUrl = "http://127.0.0.1:8856/v1"
     };
 
+    /// <summary>
+    /// Ollama's OpenAI-compatible list (<c>GET /v1/models</c>). Not a default: it joins when the user connects Ollama in
+    /// Set up this PC, which saves it to the providers file so it stays after a restart.
+    /// </summary>
+    public static readonly ModelProvider OllamaDefault = new()
+    {
+        Id = "ollama",
+        Label = "Ollama",
+        BaseUrl = "http://127.0.0.1:11434/v1"
+    };
+
     public static readonly IReadOnlyList<ModelProvider> Defaults = new[] { NebiusDefault, LmStudioDefault, LocalVisionDefault };
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -100,12 +111,17 @@ public sealed class ModelInventory
     private readonly HttpClient _http;
     private readonly object _lock = new();
     private List<ModelEntry> _models = new();
+    private List<ModelProvider> _providers;
 
-    public IReadOnlyList<ModelProvider> Providers { get; }
+    /// <summary>The providers asked on each refresh; <see cref="AddProvider"/> grows it while Holodex runs.</summary>
+    public IReadOnlyList<ModelProvider> Providers
+    {
+        get { lock (_lock) return _providers.ToList(); }
+    }
 
     public ModelInventory(IReadOnlyList<ModelProvider> providers, Func<string, string?> readSecret, HttpClient? http = null)
     {
-        Providers = providers;
+        _providers = providers.ToList();
         _readSecret = readSecret;
         _http = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
         _models = providers.SelectMany(p => p.BuiltIn.Select(id => new ModelEntry(p.Id, id, InferCapabilities(id)))).ToList();
@@ -138,23 +154,60 @@ public sealed class ModelInventory
     }
 
     /// <summary>
+    /// Adds a provider for this run (a local server the user just connected). False when one with the same id is
+    /// already asked, so connecting LM Studio again changes nothing.
+    /// </summary>
+    public bool AddProvider(ModelProvider provider)
+    {
+        lock (_lock)
+        {
+            if (_providers.Any(p => string.Equals(p.Id, provider.Id, StringComparison.OrdinalIgnoreCase))) return false;
+            _providers.Add(provider);
+            return true;
+        }
+    }
+
+    /// <summary>Writes a provider into the saved providers file (same id replaces), so it is asked after a restart too.</summary>
+    public static void SaveProvider(ModelProvider provider, string? path = null)
+    {
+        path ??= DefaultConfigPath;
+        var saved = new List<ModelProvider>();
+        try
+        {
+            if (File.Exists(path))
+                saved = JsonSerializer.Deserialize<List<ModelProvider>>(File.ReadAllText(path), JsonOptions) ?? saved;
+        }
+        catch (JsonException)
+        {
+            // A broken file is replaced by the providers saved from now on.
+        }
+        saved.RemoveAll(p => string.Equals(p.Id, provider.Id, StringComparison.OrdinalIgnoreCase));
+        saved.Add(provider);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        string tmp = path + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(saved, JsonOptions));
+        File.Move(tmp, path, overwrite: true);
+    }
+
+    /// <summary>
     /// Lists every provider's models and returns the ones that are new since the last refresh. A provider that does
     /// not answer keeps the models it had, so a laptop going offline does not shrink the list.
     /// </summary>
     public async Task<IReadOnlyList<ModelEntry>> Refresh(CancellationToken ct = default)
     {
-        var lists = await Task.WhenAll(Providers.Select(p => ListAsync(p, ct)));
+        var providers = Providers;
+        var lists = await Task.WhenAll(providers.Select(p => ListAsync(p, ct)));
         lock (_lock)
         {
             var known = new HashSet<string>(_models.Select(m => m.Key), StringComparer.OrdinalIgnoreCase);
             var next = new List<ModelEntry>(_models);
             var added = new List<ModelEntry>();
-            for (int i = 0; i < Providers.Count; i++)
+            for (int i = 0; i < providers.Count; i++)
             {
                 if (lists[i] is not { } ids) continue;
                 foreach (string id in ids)
                 {
-                    var entry = new ModelEntry(Providers[i].Id, id, InferCapabilities(id));
+                    var entry = new ModelEntry(providers[i].Id, id, InferCapabilities(id));
                     if (known.Add(entry.Key))
                     {
                         next.Add(entry);

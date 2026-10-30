@@ -176,6 +176,17 @@ internal static class HolodexVault
         new("local-ollama", "Ollama", GroupLocal, VaultKind.LocalService, "Local models.", Url: "http://127.0.0.1:11434/api/tags"),
         new("local-lmstudio", "LM Studio", GroupLocal, VaultKind.LocalService, "Local models, OpenAI-compatible.", Url: "http://127.0.0.1:1234/v1/models"),
         new("local-comfyui", "ComfyUI", GroupLocal, VaultKind.LocalService, "Local image workflows.", Url: "http://127.0.0.1:8188/system_stats"),
+        // Found by Set up this PC (PcSetupScan), which holds how each one is detected.
+        new(PcSetupScan.DockerId, "Docker Desktop", GroupLocal, VaultKind.LocalService, "Containers. Holodex checks that the engine answers.",
+            Url: PcSetupScan.DockerUrl),
+        new(PcSetupScan.LogiId, "Logi Options+", GroupLocal, VaultKind.LocalService, "Your Logitech mouse and keyboard settings.",
+            Url: PcSetupScan.LogiUrl),
+        new(PcSetupScan.StreamDeckId, "Elgato Stream Deck", GroupLocal, VaultKind.LocalService, "Your Stream Deck keys and profiles.",
+            Url: PcSetupScan.StreamDeckUrl),
+        new(PcSetupScan.StreamDeckMcpId, "Stream Deck MCP", GroupLocal, VaultKind.McpServer,
+            "Stream Deck actions as tools, through Elgato's own bridge on this PC. No sign-in needed.", Url: PcSetupScan.StreamDeckMcpUrl),
+        new(PcSetupScan.InputStudioId, "Input Studio", GroupLocal, VaultKind.LocalService, "Ark's input service. Present on Ark PCs only.",
+            Url: PcSetupScan.InputStudioUrl),
     };
 
     public static VaultProvider? Find(string id) => Catalog.FirstOrDefault(p => p.Id == id);
@@ -418,6 +429,8 @@ internal static class HolodexVault
         if (entry.ProviderId == GoogleAdapter.Id) return await GoogleAdapter.VerifyAsync(entry, ct);
         if (entry.ProviderId == HolodexTools.FilesId) problem = Directory.Exists(entry.Url) ? null : "the folder is gone";
         else if (entry.ProviderId == HolodexTools.CliId) problem = null;
+        else if (entry.Kind == VaultKind.LocalService && !entry.Url.StartsWith("http", StringComparison.Ordinal))
+            problem = await PcSetupScan.CheckAsync(entry.ProviderId, ct);
         else if (entry.Kind == VaultKind.LocalService) problem = await LocalProbeAsync(entry.Url, ct);
         else if (entry.Kind == VaultKind.McpServer) problem = (await ListMcpToolsAsync(entry, interactive: false, ct)).Problem;
         else if (provider?.Probe == null) problem = "unchecked";

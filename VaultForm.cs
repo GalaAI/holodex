@@ -414,7 +414,7 @@ internal sealed class VaultForm : Form
             VaultKind.SignIn => $"{(entry.Detail.Length > 0 ? entry.Detail + ". " : "")}Read-only Drive access with your own Google client; tokens stay in Credential Manager.",
             _ when entry.ProviderId == HolodexTools.FilesId => $"{entry.Url}. Nemotron and your destinations reach only this folder.",
             _ when entry.ProviderId == HolodexTools.CliId => "PowerShell on this PC. Every command waits for your Run.",
-            _ => $"{new Uri(entry.Url).GetLeftPart(UriPartial.Authority)} on this PC. No key needed."
+            _ => $"{LocalWhere(entry.Url)} on this PC. No key needed."
         };
         if (entry.Status == "failed" && entry.Detail.Length > 0 && entry.Kind == VaultKind.ApiKey) body += $" Last check: {entry.Detail}.";
 
@@ -474,11 +474,36 @@ internal sealed class VaultForm : Form
         foreach (var group in HolodexVault.Catalog.GroupBy(p => p.Group))
         {
             _list.AddSection(group.Key.ToUpperInvariant());
+            if (group.Key == HolodexVault.GroupLocal) AddPcSetupCard();
             foreach (var provider in group) AddCatalogCard(provider, connected.Contains(provider.Id));
         }
         // Last on purpose: no account is the default, and nothing above needs one.
         AddHivemindCard();
     }
+
+    /// <summary>The way into Set up this PC from the Vault: one scan finds and connects the local tools below.</summary>
+    private void AddPcSetupCard()
+    {
+        var card = _list.Add(ThreadTone.Action, "LOCAL // SET UP THIS PC",
+            "Finds LM Studio, Ollama, ComfyUI, Docker, Logi Options+ and Stream Deck on this PC and connects them in one pass.",
+            PhosphorGlyph.Sparkles);
+        card.Name = "Vault.Catalog.pc-setup";
+        card.SetFooter("", new CardAction("Vault.SetUpPc", PhosphorGlyph.Sparkles, "Scan this PC", (_, _) => _ = OpenPcSetupAsync()));
+    }
+
+    private async Task OpenPcSetupAsync()
+    {
+        PcSetupScan.Models ??= _ark.Models;
+        await PcSetupScan.ShowAsync(this);
+        if (Visible) ShowTab(_showCatalog);
+    }
+
+    /// <summary>Where a service on this PC lives, in plain words: its address, a named pipe, or an installed app.</summary>
+    private static string LocalWhere(string url) =>
+        url.StartsWith("http", StringComparison.Ordinal) && Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.GetLeftPart(UriPartial.Authority)
+        : url.StartsWith("npipe:", StringComparison.Ordinal) ? "Named pipe"
+        : url.StartsWith("app:", StringComparison.Ordinal) ? "App"
+        : url;
 
     /// <summary>Hivemind is optional: signing in shares the session with the Hivemind web app; the vault works without it.</summary>
     private void AddHivemindCard()
@@ -511,8 +536,9 @@ internal sealed class VaultForm : Form
             VaultKind.ApiKey => provider.EnvName.Length > 0 ? provider.EnvName : "API key",
             VaultKind.McpServer => provider.Blurb.Contains("No sign-in") ? "MCP link" : "Sign-in link",
             VaultKind.SignIn => GoogleAdapter.HasClient ? "Client saved" : "Your own Google client",
-            _ => provider.Url.StartsWith("http", StringComparison.Ordinal) ? new Uri(provider.Url).GetLeftPart(UriPartial.Authority)
-                : provider.Id == HolodexTools.FilesId ? "Folder you choose" : "Approve each command"
+            _ => provider.Id == HolodexTools.FilesId ? "Folder you choose"
+                : provider.Id == HolodexTools.CliId ? "Approve each command"
+                : LocalWhere(provider.Url)
         }));
         if (provider.Id == "nebius") leds.Insert(0, (PhosphorTheme.Patina, "Default model"));
 
@@ -531,6 +557,10 @@ internal sealed class VaultForm : Form
                 actions.Add(new CardAction("Vault.AddKey", PhosphorGlyph.Plus, isConnected ? "Replace key" : "Add key", (_, _) => PinProvider(provider)));
                 if (provider.KeysUrl.Length > 0)
                     actions.Add(new CardAction("Vault.GetKey", PhosphorGlyph.ExternalLink, "Get a key", (_, _) => HolodexVault.OpenKeysPage(provider)));
+                break;
+            case VaultKind.McpServer when provider.Id == PcSetupScan.StreamDeckMcpId:
+                // Elgato's bridge may need starting first, which Set up this PC does with the user's approval.
+                actions.Add(new CardAction("Vault.SetUpPc", PhosphorGlyph.Sparkles, "Set up", (_, _) => _ = OpenPcSetupAsync()));
                 break;
             case VaultKind.McpServer:
                 actions.Add(new CardAction("Vault.SignIn", PhosphorGlyph.Link, isConnected ? "Sign in again" : "Sign in", async (c, _) =>

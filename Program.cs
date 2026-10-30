@@ -609,6 +609,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         // Follow the mouse that moves: its speed, buttons and name come with it.
         MouseHardwareAndWandEngine.UiContext = _uiSync;
         HolodexTools.Ui = _uiSync;
+        PcSetupScan.Models = _ark.Models;
         MouseHardwareAndWandEngine.ActiveMouseChanged += OnActiveMouseChanged;
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(
@@ -730,7 +731,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "ainbox:send:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "holodex:setup:capture:", "ainbox:send:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -1151,6 +1152,28 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 catch (Exception ex) { result = "error:vault:capture:" + ex.Message; }
             }, null);
             return result;
+        }
+        // holodex:setup:scan opens Set up this PC and answers with what the scan found; holodex:setup:capture:<png> draws it offscreen.
+        if (string.Equals(cmd, "holodex:setup:scan", StringComparison.OrdinalIgnoreCase))
+        {
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try { done.SetResult("ok:holodex:setup:scan:" + PcSetupScan.Summarize(await PcSetupScan.ShowAsync())); }
+                catch (Exception ex) { done.SetResult("error:holodex:setup:scan:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:holodex:setup:scan:timeout";
+        }
+        if (cmd.StartsWith("holodex:setup:capture:", StringComparison.OrdinalIgnoreCase))
+        {
+            string png = cmd["holodex:setup:capture:".Length..].Trim();
+            var done = new TaskCompletionSource<string>();
+            _uiSync.Post(async _ =>
+            {
+                try { done.SetResult("ok:holodex:setup:capture:" + await PcSetupScan.Panel.CaptureAsync(png)); }
+                catch (Exception ex) { done.SetResult("error:holodex:setup:capture:" + ex.Message); }
+            }, null);
+            return done.Task.Wait(TimeSpan.FromSeconds(20)) ? done.Task.Result : "error:holodex:setup:capture:timeout";
         }
         if (string.Equals(cmd, "vault:close", StringComparison.OrdinalIgnoreCase))
         {
