@@ -273,17 +273,29 @@ public static class MouseHardwareAndWandEngine
 
     private static int _originalSpeed = -1;
 
-    /// <summary>Remembers the user's pointer speed before Omniwand first changes it.</summary>
+    /// <summary>
+    /// Remembers the user's pointer speed before Omniwand first changes it, in memory and in a crash marker
+    /// (<see cref="CursorCrashGuard.OriginalMouseSpeed"/>), so a killed run still gets it back at the next start.
+    /// </summary>
     private static void RememberOriginalSpeed()
     {
-        if (_originalSpeed < 0) _originalSpeed = GetWindowsMouseSpeed();
+        if (_originalSpeed >= 0) return;
+        _originalSpeed = GetWindowsMouseSpeed();
+        CursorCrashGuard.OriginalMouseSpeed.Set(_originalSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     /// <summary>Puts the Windows pointer speed back to what it was before Omniwand touched it. Safe to call twice.</summary>
     public static void RestoreOriginalSpeed()
     {
         if (_originalSpeed < 1) return;
-        try { SystemParametersInfo(SPI_SETMOUSESPEED, 0, new IntPtr(_originalSpeed), SPIF_SENDCHANGE); } catch { }
+        WriteWindowsSpeed(_originalSpeed);
+        CursorCrashGuard.OriginalMouseSpeed.Clear();
+    }
+
+    /// <summary>Sets the Windows pointer speed (1..20) and nothing else: no profile save, no event, no marker.</summary>
+    internal static void WriteWindowsSpeed(int speed1To20)
+    {
+        try { SystemParametersInfo(SPI_SETMOUSESPEED, 0, new IntPtr(Math.Clamp(speed1To20, MinSpeed, MaxSpeed)), SPIF_SENDCHANGE); } catch { }
     }
 
     /// <summary>Sets the speed (1..20) now and saves it as the active mouse's speed.</summary>

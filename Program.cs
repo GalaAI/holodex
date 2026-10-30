@@ -33,14 +33,32 @@ internal static class Program
             return;
         }
 
-        // Always restore system cursors on any exit path
-        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        // A run that was killed or crashed left its markers: put the stock cursors and the user's pointer speed back
+        // before anything else, so a judge always has a visible pointer even if this run fails too.
+        CursorCrashGuard.RecoverAtStartup(NativeCursorManager.ResetToStockCursors, MouseHardwareAndWandEngine.WriteWindowsSpeed);
+
+        // Always restore system cursors and pointer speed on any exit path
+        static void RestoreAll()
         {
+            CursorCrashGuard.CancelPendingRehide();
             NativeCursorManager.RestoreSystemCursors();
             MouseHardwareAndWandEngine.RestoreOriginalSpeed();
+        }
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => RestoreAll();
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            CursorCrashGuard.Log($"unhandled (terminating={e.IsTerminating}): {e.ExceptionObject}");
+            RestoreAll();
         };
-        AppDomain.CurrentDomain.UnhandledException += (_, _) => NativeCursorManager.RestoreSystemCursors();
-        Application.ApplicationExit += (_, _) => NativeCursorManager.RestoreSystemCursors();
+        Application.ApplicationExit += (_, _) => RestoreAll();
+        // A task exception nobody awaited does not end the run, but it may have come from the overlay: the pointer
+        // comes back, and goes again only if no further error follows.
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            CursorCrashGuard.OnSurvivedError(e.Exception, NativeCursorManager.IsHidden,
+                NativeCursorManager.RestoreSystemCursors, () => NativeCursorManager.HideSystemCursors());
+            e.SetObserved();
+        };
 
         // A UI exception becomes a toast, never the WinForms crash dialog.
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
@@ -49,9 +67,11 @@ internal static class Program
         DateTime lastErrorToast = DateTime.MinValue;
         Application.ThreadException += (_, e) =>
         {
+            // The pointer comes back first (logged by the guard); a repeating UI failure keeps the stock pointer.
+            CursorCrashGuard.OnSurvivedError(e.Exception, NativeCursorManager.IsHidden,
+                NativeCursorManager.RestoreSystemCursors, () => NativeCursorManager.HideSystemCursors());
             try
             {
-                File.AppendAllText(Path.Combine(Path.GetTempPath(), "omniwand-errors.log"), $"{DateTime.Now:O} {e.Exception}\n");
                 bool fromToast = e.Exception.StackTrace?.Contains(nameof(PhosphorToast), StringComparison.Ordinal) == true
                     || e.Exception.Message.Contains(nameof(PhosphorToast), StringComparison.Ordinal);
                 if (!fromToast && DateTime.Now - lastErrorToast > TimeSpan.FromSeconds(15))
@@ -1858,6 +1878,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
     private void ToggleNativeCursor()
     {
+        // The user's own choice wins over a re-hide pending after an error.
+        CursorCrashGuard.CancelPendingRehide();
         if (NativeCursorManager.IsHidden)
         {
             NativeCursorManager.RestoreSystemCursors();
@@ -2169,6 +2191,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _vrTimer?.Dispose();
         _modelTimer?.Dispose();
         _progression?.Dispose();
+        CursorCrashGuard.CancelPendingRehide();
         NativeCursorManager.RestoreSystemCursors();
         MouseHardwareAndWandEngine.RestoreOriginalSpeed();
         _trayIcon.Visible = false;
@@ -3036,6 +3059,9 @@ internal static class NativeCursorManager
         }
 
         IsHidden = anySuccess;
+        // A kill from here on would leave no pointer: the marker lets the next start put the cursors back.
+        if (anySuccess && !CursorCrashGuard.CursorsHidden.Exists)
+            CursorCrashGuard.CursorsHidden.Set(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
         VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
         return anySuccess;
     }
@@ -3076,10 +3102,17 @@ internal static class NativeCursorManager
         return $"pt=({ci.ptScreenPos.X},{ci.ptScreenPos.Y}) flags={ci.flags} hCursor={ci.hCursor} slot={slot} class={cls} arrowStyle={ArrowStyle}";
     }
 
-    public static void RestoreSystemCursors()
+    /// <summary>Reloads the user's own cursor scheme into every system slot (SPI_SETCURSORS). Touches nothing else.</summary>
+    public static void ResetToStockCursors()
     {
         const uint SPI_SETCURSORS = 0x0057;
         Win32.SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
+    }
+
+    public static void RestoreSystemCursors()
+    {
+        ResetToStockCursors();
+        CursorCrashGuard.CursorsHidden.Clear();
         IsHidden = false;
         Suspended = false;
         CaptureStockCursorHandles();
