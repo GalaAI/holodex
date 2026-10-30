@@ -989,7 +989,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
             // The kicker names the model that answered and how it was reached, not the picker's choice.
             if (session == _session)
                 ShowAnswer(answer.Ok ? ThreadTone.Agent : ThreadTone.Fail,
-                    $"{ModelChip.ShortName(answer.Model)} // {answer.RouteLabel}{(answer.Ok ? "" : " // not answered")}", answer.Output);
+                    $"{ModelChip.ShortName(answer.Model)} // {answer.RouteLabel}{(answer.ReceiptTag.Length > 0 ? " // " + answer.ReceiptTag : "")}{(answer.Ok ? "" : " // not answered")}", answer.Output);
         }
         catch (Exception ex)
         {

@@ -1498,7 +1498,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         try
         {
             var answer = await _ark.AskAsync(msg);
-            string label = $"{ModelChip.ShortName(answer.Model).ToUpperInvariant()} // {answer.RouteLabel}";
+            // The receipt the route reported (Ark API or Hivemind), as the HUD shows it.
+            string label = $"{ModelChip.ShortName(answer.Model).ToUpperInvariant()} // {answer.RouteLabel}{(answer.ReceiptTag.Length > 0 ? " // " + answer.ReceiptTag : "")}";
             pending.Resolve(answer.Ok ? ThreadTone.Agent : ThreadTone.Fail, answer.Ok ? label : $"NOT ANSWERED // {label}", answer.Output);
             if (!Visible || !_sessionPanel.Visible)
                 PhosphorToast.Show(answer.Ok ? $"{ModelChip.ShortName(answer.Model)} replied" : "Not answered", Clip(answer.Output),

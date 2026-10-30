@@ -1142,6 +1142,19 @@ public sealed class ArkStationClient
         /// <summary>"VIA ARK API", "NEBIUS DIRECT", "VIA HIVEMIND" or "NOT CONNECTED", for card kickers and status lines.</summary>
         public string RouteLabel => RouteLabelFor(Route);
 
+        /// <summary>A hosted web_search's receipt behind this answer, when one ran ("" otherwise).</summary>
+        public string? SearchReceiptId { get; init; }
+
+        /// <summary>
+        /// The receipts as an answer card shows them: "RECEIPT 1a2b3c4d" for the Ark API or Hivemind model call, then
+        /// "SEARCH 5e6f7a8b" for a hosted web search. Empty when the route reported none.
+        /// </summary>
+        public string ReceiptTag => string.Join(" // ", new[]
+        {
+            ReceiptId is { Length: >= 8 } r ? $"RECEIPT {r[..8]}" : null,
+            SearchReceiptId is { Length: >= 8 } s ? $"SEARCH {s[..8]}" : null
+        }.Where(x => x != null));
+
         /// <summary>One line for logs and the control pipe: ok, route, model, receipt, fallback reason.</summary>
         public string Describe() =>
             $"ok={Ok}:route={Route}:model={Model}:receipt={ReceiptId ?? "none"}:fallback={(FallbackReason ?? "none").Replace(':', ' ')}";
@@ -1208,7 +1221,12 @@ public sealed class ArkStationClient
         else fallbackReason = Join(fallbackReason, "no Nebius key on this PC");
 
         if (image)
-            return new ModelAnswer(false, hivemind ? ImageNeedsKeyMessage : HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: fallbackReason);
+        {
+            if (!hivemind)
+                return new ModelAnswer(false, HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: Join(fallbackReason, "not signed in to Hivemind"));
+            var seen = await AskHivemindVisionAsync(prompt, imageDataUrl!, systemPrompt ?? HolodexSystemPrompt);
+            return seen with { FallbackReason = fallbackReason };
+        }
         if (!hivemind)
             return new ModelAnswer(false, HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: Join(fallbackReason, "not signed in to Hivemind"));
         var viaHivemind = await AskHivemindAsync(prompt, chosen, systemPrompt ?? HolodexSystemPrompt);
@@ -1231,7 +1249,9 @@ public sealed class ArkStationClient
     public bool HasAnswerRoute => ArkRouteReady || HasNebiusKey || HivemindClient.HasSavedSignIn;
 
     /// <summary>Whether an attached screen can be read: through the Ark API or a Nebius key. Hivemind takes text only.</summary>
-    public bool CanReadImages => HasNebiusKey || (LastGatewayOnline && !string.IsNullOrEmpty(ReadInboundKey()));
+    /// <remarks>A signed-in Hivemind counts: it reads images since GalaAI/ark#1337, and one that does not yet answers
+    /// with the plain Nebius-key message instead.</remarks>
+    public bool CanReadImages => HasNebiusKey || ArkRouteReady || (HivemindClient.HasSavedSignIn && !Hivemind.ImagesRefused);
 
     /// <summary>
     /// The route the next text ask with <paramref name="model"/> takes, from what is known without asking: the Ark API
@@ -1318,8 +1338,31 @@ public sealed class ArkStationClient
         if (!second.Ok) return new ModelAnswer(false, second.Error, FirstModel(second.Model, hivemindModel), RouteHivemind);
         // A model that asks again gets no second search: say what was found instead of a bare request.
         string text = WebSearch.SearchLine(second.Text) != null ? results : second.Text;
-        return new ModelAnswer(true, WebSearch.WithSources(text, sources), second.Model, RouteHivemind, NullIfEmpty(second.ReceiptId));
+        return new ModelAnswer(true, WebSearch.WithSources(text, sources), second.Model, RouteHivemind, NullIfEmpty(second.ReceiptId))
+        {
+            SearchReceiptId = NullIfEmpty(Hivemind.LastSearchReceiptId)
+        };
     }
+
+    /// <summary>
+    /// An image question through the user's Hivemind on Nemotron 3.5 Super VL (GalaAI/ark#1337). A Hivemind that
+    /// predates image parts refuses the shape; that answers with the plain "image questions need a Nebius key" message,
+    /// as before, instead of an error.
+    /// </summary>
+    internal async Task<ModelAnswer> AskHivemindVisionAsync(string prompt, string imageDataUrl, string systemPrompt, CancellationToken ct = default)
+    {
+        var seen = await Hivemind.InvokeVisionAsync(systemPrompt, prompt, imageDataUrl, AnswerMaxTokens, ct);
+        return VisionAnswerFrom(seen);
+    }
+
+    /// <summary>How a Hivemind vision result reads as an answer; a schema refusal is the old text-only message.</summary>
+    internal static ModelAnswer VisionAnswerFrom(HivemindModelAnswer seen) => seen switch
+    {
+        { Ok: true } => new ModelAnswer(true, seen.Text, FirstModel(seen.Model, HivemindClient.VisionModel), RouteHivemind, NullIfEmpty(seen.ReceiptId)),
+        { Kind: HivemindModelError.ImagesNotSupported } => new ModelAnswer(false, ImageNeedsKeyMessage, HivemindClient.VisionModel, RouteNone,
+            FallbackReason: "this Hivemind takes text only (no image parts yet)"),
+        _ => new ModelAnswer(false, seen.Error, FirstModel(seen.Model, HivemindClient.VisionModel), RouteHivemind, NullIfEmpty(seen.ReceiptId))
+    };
 
     private static string FirstModel(string a, string b) => string.IsNullOrWhiteSpace(a) ? b : a;
     private static string? NullIfEmpty(string s) => string.IsNullOrEmpty(s) ? null : s;

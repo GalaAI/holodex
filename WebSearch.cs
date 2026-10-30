@@ -154,6 +154,9 @@ internal static class WebSearch
             var found = await hivemind.WebSearchAsync(query, 5, ct);
             if (found != null) return Format(query, found, sources);
             hivemindError = hivemind.LastError;
+            // The per-account minute limit is said plainly, and not worked around with another key.
+            if (HivemindClient.IsSearchRateLimit(hivemindError ?? ""))
+                return $"Web search limit reached: {hivemindError} Answer without searching for now and say so.";
         }
         if (ReadKey() is not { } tavily)
             return hivemindError != null

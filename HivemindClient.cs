@@ -86,7 +86,8 @@ public sealed record HivemindSessionMessage(string Id, string Role, string Agent
 public sealed record HivemindAsk(string SessionId, string MessageId, string Status);
 
 /// <summary>Why a Hivemind model answer did not come back, so the card can say what to do.</summary>
-public enum HivemindModelError { None, NotSignedIn, ScopeMissing, RateLimited, Upstream, Unreachable }
+/// <summary>ImagesNotSupported: this Hivemind refused an image part with a schema error (it predates GalaAI/ark#1337).</summary>
+public enum HivemindModelError { None, NotSignedIn, ScopeMissing, RateLimited, Upstream, Unreachable, ImagesNotSupported }
 
 /// <summary>A <c>model_invoke</c> answer: the text and the model Hivemind reports, or the error and its cause.</summary>
 public sealed record HivemindModelAnswer(bool Ok, string Text, string Model, string Error, HivemindModelError Kind, string ReceiptId = "")
@@ -524,6 +525,12 @@ public sealed class HivemindClient : IAsyncDisposable
             var result = await _client!.CallToolAsync(tool, args, cancellationToken: ct);
             return (string.Concat(result.Content.OfType<TextContentBlock>().Select(b => b.Text)), result.IsError == true);
         }
+        catch (Exception ex) when (LooksLikeSchemaRejection(ex.Message))
+        {
+            // The server refused the arguments (-32602 input validation): the call failed, the connection did not.
+            LastError = ex.Message;
+            return (ex.Message, true);
+        }
         catch (Exception ex)
         {
             // A dropped session or an expired sign-in: the next call reconnects (silently, with the saved tokens).
@@ -594,6 +601,155 @@ public sealed class HivemindClient : IAsyncDisposable
         LastError = answer.Ok ? string.Empty : answer.Error;
         return answer;
     }
+
+    // ---- Images through Hivemind (model_invoke with an image part, GalaAI/ark#1337) -------------------------------------
+
+    /// <summary>Hivemind's image limit: one PNG or JPEG data URL of at most 4 MB decoded (MODEL_IMAGE_MAX_BYTES).</summary>
+    public const int MaxImageBytes = 4 * 1024 * 1024;
+
+    /// <summary>The hosted vision route; ark/nemotron-3-super refuses an image.</summary>
+    public const string VisionModel = "ark/nemotron-3.5-super-vl";
+
+    /// <summary>Vision answers need room: the hosted gateway takes at least 1024 tokens for them.</summary>
+    public const int MinVisionTokens = 1024;
+
+    /// <summary>
+    /// One image question through <c>model_invoke</c>: the system message, then the user's text and the image as
+    /// OpenAI-style parts, on <see cref="VisionModel"/>. A Hivemind that predates image parts refuses the shape with a
+    /// schema error; that comes back as <see cref="HivemindModelError.ImagesNotSupported"/> so the caller can say what
+    /// still works, never as a crash or a dropped sign-in.
+    /// </summary>
+    public async Task<HivemindModelAnswer> InvokeVisionAsync(string systemPrompt, string prompt, string imageDataUrl, int maxTokens, CancellationToken ct = default)
+    {
+        if (!HasSavedSignIn && State != HivemindState.Connected)
+            return HivemindModelAnswer.Fail(HivemindModelError.NotSignedIn, VisionModel, NotSignedInForAnswers);
+        if (!Granted(GrantedScopes, "model.invoke"))
+            return HivemindModelAnswer.Fail(HivemindModelError.ScopeMissing, VisionModel, ScopeMissingForAnswers);
+        if (FitImage(imageDataUrl) is not { } image)
+            return HivemindModelAnswer.Fail(HivemindModelError.Upstream, VisionModel, "The screen capture could not be read as an image.");
+        var args = VisionArguments(systemPrompt, prompt, image, maxTokens);
+        var raw = await CallRawAsync("model_invoke", args, ct);
+        if (raw is not { } r)
+        {
+            if (LooksLikeSchemaRejection(LastError))
+            {
+                ImagesRefused = true;
+                return HivemindModelAnswer.Fail(HivemindModelError.ImagesNotSupported, VisionModel, LastError);
+            }
+            return State == HivemindState.NotSignedIn
+                ? HivemindModelAnswer.Fail(HivemindModelError.NotSignedIn, VisionModel, LastError.Length > 0 ? LastError : NotSignedInForAnswers)
+                : HivemindModelAnswer.Fail(HivemindModelError.Unreachable, VisionModel, $"Hivemind did not answer: {FirstNonEmpty(LastError, "the connection failed")}.");
+        }
+        var answer = ReadVisionInvocation(r.Text, r.IsError);
+        LastError = answer.Ok ? string.Empty : answer.Error;
+        if (answer.Kind == HivemindModelError.ImagesNotSupported) ImagesRefused = true;
+        else if (answer.Ok) ImagesRefused = false;
+        return answer;
+    }
+
+    /// <summary>
+    /// This Hivemind refused an image part this run (it predates GalaAI/ark#1337). Surfaces stop attaching the screen
+    /// for it, so their questions go as text, as before.
+    /// </summary>
+    public bool ImagesRefused { get; private set; }
+
+    /// <summary>A model_invoke result for an image question: a schema refusal means this Hivemind takes text only.</summary>
+    internal static HivemindModelAnswer ReadVisionInvocation(string text, bool isError)
+    {
+        var answer = ReadModelInvocation(text, isError, VisionModel);
+        if (!answer.Ok && answer.Kind == HivemindModelError.Upstream && LooksLikeSchemaRejection(answer.Error + " " + text))
+            return answer with { Kind = HivemindModelError.ImagesNotSupported };
+        return answer;
+    }
+
+    /// <summary>The model_invoke arguments for one image question (2 messages, 2 parts, at most one image).</summary>
+    internal static Dictionary<string, object?> VisionArguments(string systemPrompt, string prompt, string imageDataUrl, int maxTokens)
+    {
+        const int MaxChars = 8000;
+        static string Clip(string s, int max) { s = s.Trim(); return s.Length > max ? s[..(max - 3)] + "..." : s; }
+        var messages = new List<Dictionary<string, object>>();
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+            messages.Add(new Dictionary<string, object> { ["role"] = "system", ["content"] = Clip(systemPrompt, MaxChars) });
+        messages.Add(new Dictionary<string, object>
+        {
+            ["role"] = "user",
+            ["content"] = new List<Dictionary<string, object>>
+            {
+                new() { ["type"] = "text", ["text"] = Clip(string.IsNullOrWhiteSpace(prompt) ? "What is in this image?" : prompt, MaxChars) },
+                new() { ["type"] = "image_url", ["image_url"] = new Dictionary<string, string> { ["url"] = imageDataUrl } }
+            }
+        });
+        return new Dictionary<string, object?>
+        {
+            ["messages"] = messages,
+            ["model"] = VisionModel,
+            ["maxTokens"] = Math.Clamp(Math.Max(MinVisionTokens, maxTokens), MinVisionTokens, 4096),
+            ["temperature"] = 0.2,
+            ["stream"] = false
+        };
+    }
+
+    /// <summary>
+    /// The words a Hivemind without image parts answers an array content with: the MCP input validation of
+    /// model_invoke (zod: invalid_type, expected string, received array), wrapped as -32602 or "Input validation error".
+    /// </summary>
+    internal static bool LooksLikeSchemaRejection(string error) =>
+        !string.IsNullOrEmpty(error) &&
+        (error.Contains("Input validation error", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("Invalid arguments", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("invalid_type", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("Expected string", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("-32602", StringComparison.Ordinal));
+
+    /// <summary>
+    /// The capture as Hivemind takes it: a PNG or JPEG data URL of at most <see cref="MaxImageBytes"/> decoded. A PNG
+    /// or JPEG within the limit goes as is; anything else, or anything larger, is re-encoded as JPEG and scaled down
+    /// until it fits. Null when the data is not an image.
+    /// </summary>
+    internal static string? FitImage(string dataUrl, int maxBytes = MaxImageBytes)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(dataUrl ?? "", @"^data:image/([a-zA-Z0-9.+-]+);base64,(.+)$", System.Text.RegularExpressions.RegexOptions.Singleline);
+        if (!m.Success) return null;
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(m.Groups[2].Value.Trim()); }
+        catch (FormatException) { return null; }
+        string mime = m.Groups[1].Value.ToLowerInvariant();
+        if (mime is "png" or "jpeg" && bytes.Length <= maxBytes) return $"data:image/{mime};base64,{Convert.ToBase64String(bytes)}";
+
+        try
+        {
+            using var input = new MemoryStream(bytes);
+            using var source = System.Drawing.Image.FromStream(input);
+            var jpeg = System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == System.Drawing.Imaging.ImageFormat.Jpeg.Guid);
+            using var quality = new System.Drawing.Imaging.EncoderParameters(1);
+            quality.Param[0] = new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 85L);
+            double scale = 1.0;
+            for (int attempt = 0; attempt < 12; attempt++)
+            {
+                int w = Math.Max(1, (int)(source.Width * scale)), h = Math.Max(1, (int)(source.Height * scale));
+                using var frame = new System.Drawing.Bitmap(w, h);
+                using (var g = System.Drawing.Graphics.FromImage(frame))
+                {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.Clear(System.Drawing.Color.Black);
+                    g.DrawImage(source, 0, 0, w, h);
+                }
+                using var output = new MemoryStream();
+                frame.Save(output, jpeg, quality);
+                if (output.Length <= maxBytes) return "data:image/jpeg;base64," + Convert.ToBase64String(output.ToArray());
+                scale *= 0.75;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or System.Runtime.InteropServices.ExternalException or OutOfMemoryException) { }
+        return null;
+    }
+
+    /// <summary>Hivemind's hosted web search refused for its per-account minute limit (or Tavily's own).</summary>
+    internal static bool IsSearchRateLimit(string error) =>
+        !string.IsNullOrEmpty(error) &&
+        (error.Contains("searches per minute", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("rate limit", StringComparison.OrdinalIgnoreCase) ||
+         error.Contains("HTTP 429", StringComparison.OrdinalIgnoreCase));
 
     public const string ScopeMissingForAnswers =
         "Your Hivemind sign-in does not allow model answers (model.invoke). Sign out in Holodex, sign in again and allow model access.";
@@ -690,8 +846,12 @@ public sealed class HivemindClient : IAsyncDisposable
         if (raw is not { } r) return null;
         var env = ReadEnvelope(r.Text, r.IsError, "web_search");
         LastError = env.Error;
+        LastSearchReceiptId = env.Root is { } root ? Str(root, "receiptId") : "";
         return env.Ok ? ReadSearchResults(env.Data!.Value) : null;
     }
+
+    /// <summary>The receiptId of the last hosted web_search envelope ("" when none), for the answer card.</summary>
+    public string LastSearchReceiptId { get; private set; } = "";
 
     /// <summary>Search results wherever the data keeps them (results, or items), each with a URL.</summary>
     internal static IReadOnlyList<WebSearchResult> ReadSearchResults(JsonElement data)

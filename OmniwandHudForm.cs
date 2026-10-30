@@ -663,7 +663,7 @@ public sealed class OmniwandHudForm : Form
             // The card names the model and route that actually answered, which a fallback can change.
             answeredBy = ModelChip.ShortName(answer.Model).ToUpperInvariant();
             route = answer.RouteLabel;
-            if (answer.ReceiptId is { Length: > 8 } id) receipt = $"RECEIPT {id[..8]} // ";
+            if (answer.ReceiptTag.Length > 0) receipt = answer.ReceiptTag + " // ";
         }
         catch (OperationCanceledException)
         {
