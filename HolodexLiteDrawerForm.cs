@@ -491,8 +491,25 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // A card per pod inbox in its zone accent: what the pod handles, then its channel and conductor as LEDs.
         var podBox = CardList("Holodex.PodInboxList");
         bool ark = ArkStationClient.ArkOnThisPc;
-        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Handoff Scrolls saved on this PC");
-        foreach (var p in ArkStationClient.PodInboxes)
+        podBox.AddSection(ark ? "Pod inboxes // Handoff Scroll routing" : "Destinations // Where AInbox sends a Scroll");
+        if (!ark)
+        {
+            // Public install: the destination table, built from what is connected (Holodex chat first).
+            foreach (var d in HandoffDestinations.Current(_ark))
+            {
+                var card = podBox.Add(ThreadTone.Action, d.Label, d.Detail, leds: new[]
+                {
+                    d.Kind == DestinationKind.HolodexChat ? (PhosphorTheme.Patina, "Default") : (PhosphorTheme.Ghost, d.Kind switch
+                    {
+                        DestinationKind.SaveOnPc => @"Documents\Holodex\Scrolls",
+                        DestinationKind.Hivemind => HivemindClient.EndpointHost,
+                        _ => "Connected in the Vault"
+                    })
+                });
+                card.Name = $"Holodex.Destination.{d.Id}";
+            }
+        }
+        foreach (var p in ark ? ArkStationClient.PodInboxes : Array.Empty<ArkPodInboxInfo>())
         {
             Color accent = PodAccent(p.AccentToken);
             var card = podBox.Add(ThreadTone.Action, $"{p.Label} // {p.Zone}", p.Description, leds: new[]
@@ -1242,6 +1259,33 @@ public sealed partial class HolodexLiteDrawerForm : Form
         .Select(c => $"[{c.Kicker}] {c.Body}{(c.Result != null ? $" => {c.Result}" : "")}{(c.Leds.Count > 0 ? " leds=" + string.Join(" | ", c.Leds.Select(l => l.Text)) : "")}".Replace("\r", " ").Replace("\n", " ")));
 
     /// <summary>Sends <paramref name="message"/> to <paramref name="agentId"/> exactly as the session's Send button does.</summary>
+    /// <summary>
+    /// A Handoff Scroll from AInbox on a public install: it lands in the Session chat as the user's card, the
+    /// destination answers in a card under it, and the drawer opens on Session.
+    /// </summary>
+    internal async Task ReceiveHandoffAsync(HandoffDestination to, string title, string scroll)
+    {
+        SummonDrawer(Cursor.Position, "session");
+        _sessionThread.Add(ThreadTone.You, $"YOU // HANDOFF TO {to.Label.ToUpperInvariant()}", scroll.Length > 1200 ? scroll[..1200] + "..." : scroll);
+        _setThinkingState(true);
+        var pending = _sessionThread.AddPending($"{to.Label.ToUpperInvariant()} // ANSWERING");
+        try
+        {
+            var (ok, text, by) = await HandoffDestinations.DeliverAsync(to, title, scroll, _ark);
+            pending.Resolve(ok ? ThreadTone.Agent : ThreadTone.Fail, ok ? by : $"NOT ANSWERED // {by}", text);
+            if (!Visible || !_sessionPanel.Visible)
+                PhosphorToast.Show(ok ? $"{to.Label} replied" : "Not answered", Clip(text), "HOLODEX // HANDOFF", 4200, ok ? ToastTone.Info : ToastTone.Warning);
+        }
+        catch (Exception ex)
+        {
+            if (pending.Pending) pending.Resolve(ThreadTone.Fail, $"{to.Label.ToUpperInvariant()} // NOT ANSWERED", ex.Message);
+        }
+        finally
+        {
+            _setThinkingState(false);
+        }
+    }
+
     public async void SendSessionMessage(string agentId, string message)
     {
         if (_roster.Any(a => a.Id == agentId.Trim())) SetSyndicateTarget(agentId.Trim());

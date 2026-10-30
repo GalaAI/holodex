@@ -283,6 +283,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             });
         _holodexDrawer.OpenAugmentInventory = () => _inventory.Summon(GetCursorPoint());
         _vault = new VaultForm(_ark);
+        _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
         _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         _hud = new OmniwandHudForm(
             _ark,
