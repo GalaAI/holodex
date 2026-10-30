@@ -290,7 +290,10 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Controls.Add(_contentHost);
         Controls.Add(WidgetChrome.Spacer(Gutter));
         Controls.Add(_profilePanel);
-        var header = WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? "ARK // HOLODEX" : "HOLODEX // DRAWER", "Holodex", PhosphorTheme.Patina, null, mark: false);
+        // "ARK //" only while the Ark route is really there (its gateway answered and this PC holds its key).
+        var header = WidgetChrome.Attach(this, "HOLODEX // DRAWER", "Holodex", PhosphorTheme.Patina, null, mark: false,
+            liveEyebrow: () => HeaderEyebrow(_ark.ArkRouteReady, "ARK // HOLODEX", "HOLODEX // DRAWER"));
+        _ark.ArkApiStateChanged += (_, _) => { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => header.Invalidate()); };
         header.Height = 48;
         // The rail's divider is the gutter's first pixel column, outside the rail, so the rail's whole width is the
         // column its items centre on.
@@ -384,14 +387,18 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _contentHost.Controls.Add(_sessionPanel);
     }
 
+    /// <summary>A header eyebrow: the Ark wording only while the Ark route is really present, else the Holodex one.</summary>
+    internal static string HeaderEyebrow(bool arkRoute, string arkEyebrow, string holodexEyebrow) => arkRoute ? arkEyebrow : holodexEyebrow;
+
     private void SetSyndicateTarget(string id)
     {
         CloseHivemindSession();
         var agent = _roster.FirstOrDefault(a => a.Id == id) ?? _roster[0];
         _selectedSyndicateTarget = agent.Id;
-        _rosterChip.Label = agent.Name;
-        // Signed out, the chip names the Nemotron model that will answer.
-        _rosterChip.Detail = agent.Id == "all" ? "" : agent == SignedOutRoster[0] ? ModelChip.ShortName(_ark.SelectedModel) : agent.Pod;
+        // Signed out, the chip names the model that will answer, once ("Nemotron 3 Nano", never "Nemotron // Nemotron 3 Nano").
+        bool modelOnly = agent == SignedOutRoster[0];
+        _rosterChip.Label = modelOnly ? ModelChip.ShortName(_ark.SelectedModel) : agent.Name;
+        _rosterChip.Detail = agent.Id == "all" || modelOnly ? "" : agent.Pod;
         _rosterChip.Accent = agent.Accent;
         _rosterChip.Confident = true;
         _rosterChip.Fit();

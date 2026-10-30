@@ -973,7 +973,8 @@ internal static class WidgetChrome
 
     /// <param name="mark">False when the window's own rail carries the ArkMark (Holodex): the title then starts at
     /// the header's left edge, aligned with the content column.</param>
-    public static Panel Attach(Form form, string eyebrow, string title, Color accent, Control? trailing, bool mark = true)
+    /// <param name="liveEyebrow">When set, read on every paint instead of <paramref name="eyebrow"/>, so a header can follow live state (the Ark route).</param>
+    public static Panel Attach(Form form, string eyebrow, string title, Color accent, Control? trailing, bool mark = true, Func<string>? liveEyebrow = null)
     {
         float s = PhosphorPaint.Scale(form);
         // Taskbar, Alt+Tab and the title-bar icon use the aperture app icon, not the WinForms default.
@@ -993,7 +994,7 @@ internal static class WidgetChrome
             using var titleFont = PhosphorFonts.Ui(PhosphorTheme.TextSection, heavy: true);
             using var bone = new SolidBrush(PhosphorTheme.Bone);
             float x = mark ? 44 * sc : 0f;
-            PhosphorPaint.DrawEyebrow(g, eyebrow, PhosphorTheme.Ghost, x, 4 * sc, sc);
+            PhosphorPaint.DrawEyebrow(g, liveEyebrow?.Invoke() ?? eyebrow, PhosphorTheme.Ghost, x, 4 * sc, sc);
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
             g.DrawString(title, titleFont, bone, x - 1, 20 * sc, PhosphorPaint.Typographic);
         };

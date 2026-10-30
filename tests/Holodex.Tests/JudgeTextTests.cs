@@ -56,6 +56,24 @@ public class JudgeTextTests
         Assert.Empty(offenders);
     }
 
+    [Fact]
+    public void Headers_say_ark_only_while_the_ark_route_is_there()
+    {
+        Assert.Equal("ARK // WAND", HolodexLiteDrawerForm.HeaderEyebrow(true, "ARK // WAND", "HOLODEX // WAND"));
+        Assert.Equal("HOLODEX // WAND", HolodexLiteDrawerForm.HeaderEyebrow(false, "ARK // WAND", "HOLODEX // WAND"));
+        // A client that never probed (any judge PC before the first ask) has no Ark route.
+        Assert.False(new ArkStationClient().ArkRouteReady);
+    }
+
+    [Fact]
+    public void Public_surfaces_print_no_port_numbers()
+    {
+        string root = RepoRoot();
+        // The HUD status row and the drawer header are what a judge sees first.
+        foreach (string name in new[] { "OmniwandHudForm.cs" })
+            Assert.DoesNotMatch(@"""[A-Z ]*SPINE 8842", File.ReadAllText(Path.Combine(root, name)));
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

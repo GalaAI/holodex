@@ -199,7 +199,10 @@ public sealed class OmniwandHudForm : Form
         Controls.Add(WidgetChrome.Spacer(2));
         Controls.Add(new Panel { Dock = DockStyle.Bottom, Height = 12, BackColor = Color.Transparent });
         Controls.Add(footer);
-        WidgetChrome.Attach(this, ArkStationClient.ArkOnThisPc ? "ARK // WAND" : "HOLODEX // WAND", "Holodex", PhosphorTheme.Patina, headerTools);
+        // "ARK //" only while the Ark route is really there (its gateway answered and this PC holds its key).
+        var header = WidgetChrome.Attach(this, "HOLODEX // WAND", "Holodex", PhosphorTheme.Patina, headerTools,
+            liveEyebrow: () => HolodexLiteDrawerForm.HeaderEyebrow(_ark.ArkRouteReady, "ARK // WAND", "HOLODEX // WAND"));
+        _ark.ArkApiStateChanged += (_, _) => { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => header.Invalidate()); };
         WidgetDrag.Enable(this);
         ShowWandStatus(gatewayOnline: _ark.LastGatewayOnline);
         // Any probe (an ask, the pickers, the drawer) can find the Ark API up or down; the LED follows it.
@@ -349,9 +352,9 @@ public sealed class OmniwandHudForm : Form
         }
         var spine = _spineOnline switch
         {
-            true => (PhosphorTheme.Moss, "SPINE 8842"),
-            false => (PhosphorTheme.Ember, "SPINE 8842 DOWN"),
-            null => (PhosphorTheme.Ghost, "SPINE 8842")
+            true => (PhosphorTheme.Moss, "INPUT SPINE"),
+            false => (PhosphorTheme.Ember, "INPUT SPINE DOWN"),
+            null => (PhosphorTheme.Ghost, "INPUT SPINE")
         };
         _telemetryLine.Set(_galaLed, gateway, spine, mouse);
     }
