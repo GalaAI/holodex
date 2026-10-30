@@ -113,7 +113,7 @@ public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyLi
 public sealed class HivemindClient : IAsyncDisposable
 {
     /// <summary>The hosted Hivemind, used when OMNIWAND_HIVEMIND_URL names no other.</summary>
-    public const string HostedHivemindUrl = "https://hivemind.arkomnitek.com/mcp";
+    public const string HostedHivemindUrl = "https://hivemind-public-production.up.railway.app/mcp";
 
     /// <summary>
     /// The Hivemind this install signs in to: OMNIWAND_HIVEMIND_URL (process, then user environment), else the hosted

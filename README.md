@@ -51,7 +51,7 @@ Hivemind is a hosted sign-in and remote MCP gateway: one account, and the tools 
 
 - **Sign-in.** Holodex signs in with OAuth 2.1, dynamic client registration and PKCE, in your browser (`HivemindClient`). Tokens stay in Windows Credential Manager on your PC.
 - **What it serves Holodex on Nebius Token Factory, with no key:** Nemotron text answers (`model_invoke`); image questions for Snip and Lasso where the Hivemind instance takes image parts (where it does not, Holodex says an image needs a Nebius key and keeps answering text); and Tavily web search (`web_search`) where the instance offers it. Answer cards show the receipt ids Hivemind returns.
-- **Using Hivemind directly.** Hivemind portal: see the Devpost testing instructions. Its **Connect a client** page connects other MCP clients.
+- **Using Hivemind directly.** Hivemind portal: https://hivemind-public-production.up.railway.app/portal/. Its **Connect a client** page connects other MCP clients.
 - **Demo login.** Use the demo account in the Devpost testing instructions, or create your own account with an invite code. No credentials are in this repository.
 
 ---
