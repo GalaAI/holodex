@@ -993,7 +993,9 @@ public sealed class ScreenSnipAndElementPickerForm : Form
         }
         catch (Exception ex)
         {
-            if (session == _session) ShowAnswer(ThreadTone.Fail, AnswerKicker(chosenVisionModel, " // failed"), $"Vision request to {chosenVisionModel} failed: {ex.GetType().Name}: {ex.Message}");
+            if (session == _session) ShowAnswer(ThreadTone.Fail, AnswerKicker(chosenVisionModel, " // failed"),
+                $"{ModelChip.ShortName(chosenVisionModel)} could not read this cutout. Check the connection and ask again.");
+            LogSnapshot($"vision ask failed: {ex.GetType().Name}: {ex.Message}");
         }
         finally
         {

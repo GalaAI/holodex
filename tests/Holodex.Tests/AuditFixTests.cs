@@ -43,7 +43,7 @@ public class AuditFixTests
         var banned = new (string File, string Pattern)[]
         {
             ("OmniwandHudForm.cs", "THE SCREEN NEEDS A NEBIUS KEY|fallback orb|GhostTrailer ribbon"),
-            ("ScreenSnipAndElementPickerForm.cs", "Phosphor annotations|HWND|\"Save to Codex\""),
+            ("ScreenSnipAndElementPickerForm.cs", "Phosphor annotations|HWND|\"Save to Codex\"|Vision request to \\{"),
             ("WizCraftingWidgetForm.cs", "4GE BENCH|Input Studio\\.|save to Codex"),
             ("AInboxStack.cs", "\"Scroll for content\""),
             ("Program.cs", "ARK APERTURE|Coral Bloom|Aegis Lock"),
