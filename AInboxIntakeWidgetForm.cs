@@ -240,6 +240,13 @@ public sealed class AInboxIntakeWidgetForm : Form
         _intentBox.Focus();
     }
 
+    /// <summary>Developer pipe (ainbox:send:): types the ask and presses Send, so the real countdown and delivery run.</summary>
+    internal void SendFromPipe(string ask)
+    {
+        PrefillAsk(ask);
+        OnSendClicked();
+    }
+
     // ---- Captures ----------------------------------------------------------------------------------------------
 
     private void WireDrop(Control c)

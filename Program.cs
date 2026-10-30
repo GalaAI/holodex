@@ -698,7 +698,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "vault:capture:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "vault:capture:", "ainbox:send:"
     };
 
     private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
@@ -735,6 +735,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             _uiSync.Post(_ => SummonWizCrafting("flow"), null);
             return "ok:wiz:summon";
+        }
+        // ainbox:send:<ask> (developer pipe) opens AInbox, types the ask and presses Send to the chosen destination.
+        if (cmd.StartsWith("ainbox:send:", StringComparison.OrdinalIgnoreCase))
+        {
+            string ask = cmd["ainbox:send:".Length..].Trim();
+            _uiSync.Post(_ => { SummonAInboxIntake(); _ainboxWidget.SendFromPipe(ask); }, null);
+            return "ok:ainbox:send";
         }
         if (string.Equals(cmd, "ainbox:summon", StringComparison.OrdinalIgnoreCase))
         {
