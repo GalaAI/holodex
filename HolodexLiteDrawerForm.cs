@@ -408,7 +408,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             HivemindState.SigningIn => (PhosphorTheme.Seal, "Signing in: finish in the browser"),
             HivemindState.Connecting => (PhosphorTheme.Ghost, "Connecting to Hivemind"),
             HivemindState.Unreachable => (PhosphorTheme.Rust, $"Hivemind unreachable{(error.Length > 0 ? $" ({(error.Length > 48 ? error[..47] + "\u2026" : error)})" : "")}: Nemotron answers"),
-            _ => (PhosphorTheme.Ember, error.Length > 0 ? error : "Signed out of Hivemind: Nemotron answers, orders stay here")
+            _ => (PhosphorTheme.Ember, error.Length > 0 ? error : "Signed out of Hivemind: Nemotron answers, sign in for work orders")
         };
         var leds = new List<(Color, string)> { status };
         // Connected with the roster not in yet: the signed-out stand-in's role would contradict the status, so it goes.
