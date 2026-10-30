@@ -40,7 +40,7 @@ Until both are done, run the walkthrough from your own machine and give the link
 
 ### 0:00 to 0:30, the aha (do it, then explain it)
 
-Put the cursor on the PR diff. Press **Alt+Space**, type *why would this hold the PR?*, press Enter.
+Put the cursor on the PR diff. Press **Ctrl+Alt+Space**, type *why would this hold the PR?*, press Enter.
 Wait for the answer; the status line reads ANSWERED BY NEMOTRON 3.5 SUPER VL.
 
 > "I pointed at a pull request and asked about it. No copy, no paste, no browser tab. The screen
@@ -66,14 +66,14 @@ Keep the HUD answer on screen while you say this. Point at the model chip as you
 
 ### 1:30 to 2:00, Lasso
 
-Press **Alt+S**, lasso the terminal error, draw an arrow on it, click **Ask** (the button names the model).
+Press **Ctrl+Alt+S**, lasso the terminal error, draw an arrow on it, click **Ask** (the button names the model).
 
 > "When the whole screen is too much, I lasso exactly what I mean and mark it up. Only that region
 > goes to the model."
 
 ### 2:00 to 3:15, AInbox
 
-Press **Alt+I**. Drop the CSV, press **Ctrl+V** on the fake-token file, press **Link** (the PR URL
+Press **Ctrl+Alt+I**. Drop the CSV, press **Ctrl+V** on the fake-token file, press **Link** (the PR URL
 is on the clipboard), then **Pick** the diff. Wait for the cards to change from RANKED BY OMNITEK
 to RANKED BY NEMOTRON 3 NANO.
 
@@ -94,7 +94,7 @@ Press **Send**. Read the footer as it is: SENT if delivered, QUEUED if not.
 
 ### 3:15 to 4:00, Wiz
 
-Press **Alt+W** and type *Schedule a summary of my open PRs every Friday.* The Spell chip flips to
+Press **Ctrl+Alt+W** and type *Schedule a summary of my open PRs every Friday.* The Spell chip flips to
 Ritual. Send it.
 
 > "Wiz is the agent. It picked a Ritual from the word schedule. It plans with Nemotron 3 Super, each
@@ -141,7 +141,7 @@ Do 0:00 to 0:30 exactly as written, then say:
 
 - **The answer is slow:** "That's the vision model reading a full screen region; Nano answers text
   questions much faster." Then ask a text-only question to show it.
-- **No answer, or a key error:** open Holodex (**Alt+H**) and show the connection line, then say what
+- **No answer, or a key error:** open Holodex (**Ctrl+Alt+H**) and show the connection line, then say what
   it reads. Do not fake an answer.
 - **AInbox says QUEUED:** "The local AInbox service isn't running here, so it's queued on disk and
   will retry. That's the designed fallback."

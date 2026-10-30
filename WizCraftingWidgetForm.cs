@@ -144,6 +144,14 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         chipRow.Controls.Add(_modelChip);
         chipRow.Controls.Add(new Panel { Dock = DockStyle.Left, Width = 8, BackColor = Color.Transparent });
         chipRow.Controls.Add(_lensChip);
+        // The model chip gets what the lens chip leaves of the row, so a long route ends in an ellipsis, not past the form.
+        chipRow.Layout += (_, _) =>
+        {
+            int room = Math.Max(120, chipRow.ClientSize.Width - _lensChip.Width - 8);
+            if (_modelChip.MaximumSize.Width == room) return;
+            _modelChip.MaximumSize = new Size(room, 0);
+            _modelChip.Fit();
+        };
 
         // Under the chips: the host line, and the one primary.
         var hostRow = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Wiz.HostRow" };
@@ -226,7 +234,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         _hostLine.Set((PhosphorTheme.Moss, host));
     }
 
-    /// <summary>Runtime ids from AskWizGeminiArgonAsync ("nebius-direct", "ark-api", "subscription-gemini (agy)") as hosts.</summary>
+    /// <summary>Runtime ids from AskWizAsync ("nebius-direct", "ark-api", "subscription-gemini (agy)") as hosts.</summary>
     private static string HostName(string runtime)
     {
         string r = runtime.ToLowerInvariant();
@@ -302,11 +310,11 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         {
             if (WizAgent.CanAct(model))
             {
-                Say(ThreadTone.Step, $"WIZ // AGENT // {Short(model)} // NEBIUS TOKEN FACTORY",
+                Say(ThreadTone.Step, $"WIZ // AGENT // {Short(model)} // NEBIUS DIRECT",
                     $"Up to {WizAgent.MaxSteps} steps.{(attachScreen ? $" {ModelChip.ShortName(WizAgent.VisionModel)} reads the screen first." : "")}");
                 var outcome = await _agent.RunAsync(prompt, lens, model, _summonPos, attachScreen, this, cancel.Token);
-                _modelChip.ShowRuntime("nebius-token-factory");
-                ShowRuntime("nebius-token-factory", outcome.Model);
+                _modelChip.ShowRuntime(ArkStationClient.RouteNebiusDirect);
+                ShowRuntime(ArkStationClient.RouteNebiusDirect, outcome.Model);
                 Say(outcome.Ok ? ThreadTone.Agent : ThreadTone.Fail,
                     outcome.Ok
                         ? $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(outcome.Model)}"
@@ -323,7 +331,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
                 var pending = _thread.AddPending($"WIZ // DRAFTING // {Short(model)}");
                 try
                 {
-                    var (_, runtime, answered, output) = await _ark.AskWizGeminiArgonAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
+                    var (_, runtime, answered, output) = await _ark.AskWizAsync(prompt, lens, snapshot, model).WaitAsync(cancel.Token);
                     _modelChip.ShowRuntime(runtime);
                     ShowRuntime(runtime, answered);
                     pending.Resolve(ThreadTone.Agent, $"WIZ // {lensTitle.ToUpperInvariant()} DRAFT // {Short(answered)}", output);
@@ -503,7 +511,7 @@ public sealed class WizCraftingWidgetForm : Form, IWizThread
         t.Action(queue);
         BeginApproval(queue, "QUEUES A HOLODEX WORK ORDER");
         SetWorking(true);
-        ShowRuntime("nebius-token-factory", model);
+        ShowRuntime(ArkStationClient.RouteNebiusDirect, model);
         FitToThread();
     }
 

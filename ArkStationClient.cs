@@ -659,7 +659,7 @@ public sealed class ArkStationClient
     /// Checks ArkStation routes first when reachable; when offline or when a Nemotron model is selected,
     /// calls Nebius Token Factory directly with NVIDIA Nemotron.
     /// </summary>
-    public async Task<(bool Ok, string Runtime, string Model, string Output)> AskWizGeminiArgonAsync(
+    public async Task<(bool Ok, string Runtime, string Model, string Output)> AskWizAsync(
         string prompt,
         string flowKind = "flow",
         string? imageDataUrl = null,

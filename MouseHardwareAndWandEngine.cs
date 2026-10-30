@@ -394,13 +394,13 @@ public static class MouseHardwareAndWandEngine
         var bindings = new List<MouseMacroBinding>();
         if (hw?.HasSideButtons ?? true)
         {
-            bindings.Add(new() { TriggerId = "Mouse4", TriggerLabel = "Back thumb button", ActionId = "snip:lasso", ActionLabel = "Cut out part of the screen", Parameter = "Alt+S" });
-            bindings.Add(new() { TriggerId = "Mouse5", TriggerLabel = "Front thumb button", ActionId = "holodex:toggle", ActionLabel = "Open or close Holodex", Parameter = "Alt+H" });
+            bindings.Add(new() { TriggerId = "Mouse4", TriggerLabel = "Back thumb button", ActionId = "snip:lasso", ActionLabel = "Cut out part of the screen", Parameter = "Ctrl+Alt+S" });
+            bindings.Add(new() { TriggerId = "Mouse5", TriggerLabel = "Front thumb button", ActionId = "holodex:toggle", ActionLabel = "Open or close Holodex", Parameter = "Ctrl+Alt+H" });
         }
-        bindings.Add(new() { TriggerId = "GestureNorth", TriggerLabel = "Hold right-click, flick up", ActionId = "element:inspect", ActionLabel = "Point at something to learn about it", Parameter = "Alt+E" });
-        bindings.Add(new() { TriggerId = "GestureEast", TriggerLabel = "Hold right-click, flick right", ActionId = "wiz:summon", ActionLabel = "Open Wiz to make a spell", Parameter = "Alt+W" });
-        bindings.Add(new() { TriggerId = "GestureSouth", TriggerLabel = "Hold right-click, flick down", ActionId = "hud:summon", ActionLabel = "Open the ask box", Parameter = "Alt+Space" });
-        bindings.Add(new() { TriggerId = "GestureWest", TriggerLabel = "Hold right-click, flick left", ActionId = "ainbox:summon", ActionLabel = "Open AInbox to send something", Parameter = "Alt+I" });
+        bindings.Add(new() { TriggerId = "GestureNorth", TriggerLabel = "Hold right-click, flick up", ActionId = "element:inspect", ActionLabel = "Point at something to learn about it", Parameter = "Ctrl+Alt+E" });
+        bindings.Add(new() { TriggerId = "GestureEast", TriggerLabel = "Hold right-click, flick right", ActionId = "wiz:summon", ActionLabel = "Open Wiz to make a spell", Parameter = "Ctrl+Alt+W" });
+        bindings.Add(new() { TriggerId = "GestureSouth", TriggerLabel = "Hold right-click, flick down", ActionId = "hud:summon", ActionLabel = "Open the ask box", Parameter = "Ctrl+Alt+Space" });
+        bindings.Add(new() { TriggerId = "GestureWest", TriggerLabel = "Hold right-click, flick left", ActionId = "ainbox:summon", ActionLabel = "Open AInbox to send something", Parameter = "Ctrl+Alt+I" });
         return bindings;
     }
 

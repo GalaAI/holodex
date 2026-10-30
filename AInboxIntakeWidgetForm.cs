@@ -11,7 +11,7 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>
-/// AInbox intake (Alt+I, Actions Ring slot 8, pipe ainbox:summon), built to the design targets "Capture tools" and
+/// AInbox intake (Ctrl+Alt+I, Actions Ring slot 8, pipe ainbox:summon), built to the design targets "Capture tools" and
 /// "Stack, predict, review". One composer takes any number of captures (file, screen, window, pick, lasso, snippet,
 /// link; record and whisper planned), each scanned for its origin and stacked into context groups. For each group
 /// Omnitek ranks what it should become, with the target pod and orchestrator, and Nemotron 3 Nano on Nebius Token

@@ -327,13 +327,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _trayTitle = titleItem;
         home.Add(titleItem);
 
-        var summonItem = home.Add(new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = "Alt+Space", ToolTipText = "Opens the HUD ask box." });
+        var summonItem = home.Add(new ToolStripMenuItem("Ask a question") { ShortcutKeyDisplayString = "Ctrl+Alt+Space", ToolTipText = "Opens the HUD ask box." });
         summonItem.Click += (_, _) => SummonHud();
 
-        var holodexItem = home.Add(new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "Alt+H" });
+        var holodexItem = home.Add(new ToolStripMenuItem("Open Holodex") { ShortcutKeyDisplayString = "Ctrl+Alt+H" });
         holodexItem.Click += (_, _) => ToggleHolodexDrawer();
 
-        var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Alt+W" });
+        var wizItem = home.Add(new ToolStripMenuItem("Make a spell with Wiz") { ShortcutKeyDisplayString = "Ctrl+Alt+W" });
         wizItem.Click += (_, _) => SummonWizCrafting();
 
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
@@ -344,13 +344,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
 
         var capturePage = new TrayPage("Grab from the screen");
-        var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Alt+S", ToolTipText = "Lasso: draw around anything on the screen." });
+        var lassoItem = capturePage.Add(new ToolStripMenuItem("Cut out a picture") { ShortcutKeyDisplayString = "Ctrl+Alt+S", ToolTipText = "Lasso: draw around anything on the screen." });
         lassoItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.FreeformLasso);
 
-        var elemItem = capturePage.Add(new ToolStripMenuItem("Pick a thing or a color") { ShortcutKeyDisplayString = "Alt+E", ToolTipText = "Point at a button, window or color to learn about it." });
+        var elemItem = capturePage.Add(new ToolStripMenuItem("Pick a thing or a color") { ShortcutKeyDisplayString = "Ctrl+Alt+E", ToolTipText = "Point at a button, window or color to learn about it." });
         elemItem.Click += (_, _) => _snipWidget.SummonAt(GetCursorPoint(), WandCaptureTool.ElementPicker);
 
-        var ainboxItem = capturePage.Add(new ToolStripMenuItem("Send to AInbox") { ShortcutKeyDisplayString = "Alt+I" });
+        var ainboxItem = capturePage.Add(new ToolStripMenuItem("Send to AInbox") { ShortcutKeyDisplayString = "Ctrl+Alt+I" });
         ainboxItem.Click += (_, _) => SummonAInboxIntake();
         home.AddPage("Grab from the screen", capturePage);
 
@@ -368,7 +368,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         home.Add(new ToolStripSeparator());
         var settingsPage = new TrayPage("Settings");
 
-        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = "Alt+H", ToolTipText = "Opens every setting in Holodex." });
+        var openSettingsPanelItem = settingsPage.Add(new ToolStripMenuItem("All settings...") { ShortcutKeyDisplayString = "Ctrl+Alt+H", ToolTipText = "Opens every setting in Holodex." });
         openSettingsPanelItem.Click += (_, _) => _holodexDrawer.SummonDrawer(GetCursorPoint(), "mods");
         settingsPage.Add(new ToolStripSeparator());
 
@@ -476,7 +476,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         FillYourMouseMenu();
         settingsPage.AddPage("Your mouse", _yourMousePage, "Holodex uses the mouse you are moving. Pick one to keep it.");
 
-        var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Alt+T" });
+        var tutorialItem = settingsPage.Add(new ToolStripMenuItem("Show me around") { ShortcutKeyDisplayString = "Ctrl+Alt+T" });
         tutorialItem.Click += (_, _) => SummonTutorialTooltips();
 
         var vrPage = new TrayPage("VR headset");
@@ -525,7 +525,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _trayIcon = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
-            Text = "Holodex v0.3 (Alt+Space ask | Alt+H Holodex | Alt+S cut out | Alt+E point)",
+            Text = "Holodex v0.3 (Ctrl+Alt+Space ask | Ctrl+Alt+H Holodex | Ctrl+Alt+S cut out | Ctrl+Alt+E point)",
             ContextMenuStrip = menu,
             Visible = true
         };
@@ -575,7 +575,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         MouseHardwareAndWandEngine.StartTracking();
         PhosphorToast.Show(
             $"Holodex v0.3 · {MouseHardwareAndWandEngine.ActiveMouse.Name}",
-            "Alt+H  Holodex & Syndicate Session\nAlt+S  Free-Form Lasso   Alt+E  Element Picker\nAlt+W  Wiz Crafting      Alt+T  Animated Tooltips",
+            "Ctrl+Alt+H  Holodex & Syndicate Session\nAlt+S  Free-Form Lasso   Ctrl+Alt+E  Element Picker\nAlt+W  Wiz Crafting      Ctrl+Alt+T  Animated Tooltips",
             "PHOSPHOR SHELL // WIZ PROVISIONED",
             5400);
 
@@ -1106,7 +1106,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             string q = cmd["wiz:ask:".Length..].Trim();
             string reply = "error:wiz:ask:not run";
-            var res = _ark.AskWizGeminiArgonAsync(string.IsNullOrEmpty(q) ? "Say hello in one sentence." : q, "spell").GetAwaiter().GetResult();
+            var res = _ark.AskWizAsync(string.IsNullOrEmpty(q) ? "Say hello in one sentence." : q, "spell").GetAwaiter().GetResult();
             reply = $"ok:wiz:ask:ok={res.Ok}:runtime={res.Runtime}:model={res.Model}:output={res.Output.Replace('\r', ' ').Replace('\n', ' ')}";
             return reply;
         }
@@ -1147,7 +1147,8 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 return $"ok:scale:{nextScale:0.00}x";
             }
         }
-        return $"ok:{cmd}";
+        // An unknown command fails loudly, so a typo in a proof script never reads as a pass.
+        return $"error:unknown command:{cmd}";
     }
 
     private static Point GetCursorPoint()
@@ -1191,7 +1192,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 case WandSpellGestureKind.ShakeHorizontal:
                     PhosphorToast.Show(
                         "TIME SPLITTER · WIZ INSPECT",
-                        "Horizontal shake spell cast — summoning Wiz Crafting on active target.",
+                        "Shake left and right: opening Wiz on the target.",
                         "WAND SPELL // SHAKE L-R",
                         2800,
                         ToastTone.Success);
@@ -1201,7 +1202,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 case WandSpellGestureKind.ShakeVertical:
                     PhosphorToast.Show(
                         "COPYCAT · LASSO CAPTURE",
-                        "Vertical shake spell cast — arming Free-Form Lasso & Vision Annotator.",
+                        "Shake up and down: the lasso is ready.",
                         "WAND SPELL // SHAKE U-D",
                         2800,
                         ToastTone.Success);
@@ -1211,7 +1212,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 case WandSpellGestureKind.CircleLoop:
                     PhosphorToast.Show(
                         "MUTATION · GRIMX SPELL CAST",
-                        "Circle gesture recognized — casting GrimX Spell on target under cursor.",
+                        "Circle: casting your slot 1 Spell on the target under the cursor.",
                         "WAND SPELL // CIRCLE LOOP",
                         2800,
                         ToastTone.Success);
@@ -1221,7 +1222,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 case WandSpellGestureKind.SweepRight:
                     PhosphorToast.Show(
                         "SYNTHESIZE · HOLODEX BRIDGE",
-                        "Rightward sweep recognized — opening Holodex Syndicate Session.",
+                        "Sweep right: opening the Holodex Session.",
                         "WAND SPELL // SWEEP RIGHT",
                         2800,
                         ToastTone.Success);
@@ -2300,29 +2301,32 @@ internal sealed class CursorOverlayWindow : NativeWindow, IDisposable
             taken.Add(label);
         }
 
-        // Alt+Space -> Phosphor Command HUD
-        Bind(HotkeySummonId, 0x0001 | 0x4000, Keys.Space);
+        // Every global shortcut holds Ctrl+Alt (or Ctrl+Shift), never a lone Alt: Ctrl+Alt+Space is the window menu and
+        // Alt+letter opens app menus (Office's Ctrl+Alt+H, Ctrl+Alt+W), so a judge's apps keep their keys.
+        const uint Alt = 0x0001, Ctrl = 0x0002, Shift = 0x0004, NoRepeat = 0x4000;
+        // Ctrl+Alt+Space -> Phosphor Command HUD
+        Bind(HotkeySummonId, Ctrl | Alt | NoRepeat, Keys.Space);
         // Ctrl+Alt+C -> Toggle Native Cursor
-        Bind(HotkeyToggleId, 0x0002 | 0x0001 | 0x4000, Keys.C);
+        Bind(HotkeyToggleId, Ctrl | Alt | NoRepeat, Keys.C);
         // Ctrl+Alt+Q -> Quit & Restore
-        Bind(HotkeyQuitId, 0x0002 | 0x0001 | 0x4000, Keys.Q);
-        // Alt+W -> Slot 7 Wiz Crafting Chatbot (Gemini Argon)
-        Bind(HotkeyWizId, 0x0001 | 0x4000, Keys.W);
-        // Alt+I -> Slot 8 AInbox Pod Intake + Handoff Scroll
-        Bind(HotkeyAInboxId, 0x0001 | 0x4000, Keys.I);
+        Bind(HotkeyQuitId, Ctrl | Alt | NoRepeat, Keys.Q);
+        // Ctrl+Alt+W -> Slot 7 Wiz on Nemotron
+        Bind(HotkeyWizId, Ctrl | Alt | NoRepeat, Keys.W);
+        // Ctrl+Alt+I -> Slot 8 AInbox Pod Intake + Handoff Scroll
+        Bind(HotkeyAInboxId, Ctrl | Alt | NoRepeat, Keys.I);
         // Ctrl+Shift+Space -> 8-slot Spell Orb
-        Bind(HotkeyOrbId, 0x0002 | 0x0004 | 0x4000, Keys.Space);
-        // Alt+V (GhostTrailer dictation) is held back until speech capture lands; no hotkey in v0.3.
-        // Alt+C -> Cycle Input Studio Cursor Icon Style
-        Bind(HotkeyCycleProfileId, 0x0001 | 0x4000, Keys.C);
-        // Alt+H -> Holodex Lite Drawer (Session, AInbox, Codex, GrimX, Mods)
-        Bind(HotkeyHolodexId, 0x0001 | 0x4000, Keys.H);
-        // Alt+S -> Free-Form Lasso & Phosphor Annotator
-        Bind(HotkeySnipLassoId, 0x0001 | 0x4000, Keys.S);
-        // Alt+E -> Desktop Element & Pixel Palette Picker
-        Bind(HotkeyElementPickerId, 0x0001 | 0x4000, Keys.E);
-        // Alt+T -> Animated Phosphor Tooltip Tutorials
-        Bind(HotkeyTutorialId, 0x0001 | 0x4000, Keys.T);
+        Bind(HotkeyOrbId, Ctrl | Shift | NoRepeat, Keys.Space);
+        // GhostTrailer dictation is held back until speech capture lands; no hotkey in v0.3.
+        // Ctrl+Alt+P -> Cycle the cursor (pointer) style
+        Bind(HotkeyCycleProfileId, Ctrl | Alt | NoRepeat, Keys.P);
+        // Ctrl+Alt+H -> Holodex Lite Drawer (Session, AInbox, Codex, GrimX, Mods)
+        Bind(HotkeyHolodexId, Ctrl | Alt | NoRepeat, Keys.H);
+        // Ctrl+Alt+S -> Free-Form Lasso & Phosphor Annotator
+        Bind(HotkeySnipLassoId, Ctrl | Alt | NoRepeat, Keys.S);
+        // Ctrl+Alt+E -> Desktop Element & Pixel Palette Picker
+        Bind(HotkeyElementPickerId, Ctrl | Alt | NoRepeat, Keys.E);
+        // Ctrl+Alt+T -> Animated Phosphor Tooltip Tutorials
+        Bind(HotkeyTutorialId, Ctrl | Alt | NoRepeat, Keys.T);
         if (taken.Count > 0)
             PhosphorToast.Show(
                 "Some shortcuts are taken",

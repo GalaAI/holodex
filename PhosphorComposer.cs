@@ -557,8 +557,23 @@ internal class SuggestionChip : Control
         using var g = PhosphorPaint.MeasureGraphics(s);
         using var font = PhosphorFonts.Mono(10.5f);
         float text = PhosphorPaint.MeasureTracked(g, Text2, font, 1f * s);
-        Width = (int)Math.Ceiling(text + (ShowArrow ? 88f : 66f) * s);
+        int want = (int)Math.Ceiling(text + Chrome(s));
+        // A row can cap the chip (MaximumSize); the text then ends in an ellipsis inside it, chevron kept.
+        Width = MaximumSize.Width > 0 ? Math.Min(want, MaximumSize.Width) : want;
         Invalidate();
+    }
+
+    /// <summary>Everything on the chip but its text: padding, the dot and the chevron.</summary>
+    private float Chrome(float s) => (ShowArrow ? 88f : 66f) * s;
+
+    /// <summary>The chip's text, cut with an ellipsis when the chip is narrower than the whole of it.</summary>
+    private string FittedText(Graphics g, Font font, float s)
+    {
+        string text = Text2;
+        float room = Width - Chrome(s);
+        if (PhosphorPaint.MeasureTracked(g, text, font, 1f * s) <= room) return text;
+        while (text.Length > 1 && PhosphorPaint.MeasureTracked(g, text + "…", font, 1f * s) > room) text = text[..^1];
+        return text.TrimEnd(' ', '·') + "…";
     }
 
     /// <summary>
@@ -678,7 +693,7 @@ internal class SuggestionChip : Control
 
         using (var font = PhosphorFonts.Mono(10.5f))
         using (var ink = new SolidBrush(_hover || _open ? PhosphorTheme.Bone : PhosphorTheme.Cream))
-            x += PhosphorPaint.DrawTracked(g, Text2, font, ink, x, cy - font.GetHeight(g) / 2f, 1f * s);
+            x += PhosphorPaint.DrawTracked(g, FittedText(g, font, s), font, ink, x, cy - font.GetHeight(g) / 2f, 1f * s);
 
         float dot = 6f * s;
         x += 8f * s;
@@ -767,17 +782,30 @@ internal sealed class ModelChip : SuggestionChip
         string r = runtime.ToLowerInvariant();
         _runtime = r.Contains("gemini") ? "Gemini"
             : r == ArkStationClient.RouteArkApi ? "Ark API"
-            : r == ArkStationClient.RouteNebiusDirect ? "Nebius direct"
+            : r.Contains("nebius") ? "Nebius direct"
             : runtime.Split(' ', '(')[0];
         Sync();
     }
+
+    /// <summary>
+    /// An agent that answers before the chip's model (Gala in the owner's Hivemind): the chip names it first and
+    /// its model as the fallback, so the chip and the ask button name the same answerer. Null names the model.
+    /// </summary>
+    public void FrontedBy(string? agent)
+    {
+        if (_agent == agent) return;
+        _agent = agent;
+        Sync();
+    }
+
+    private string? _agent;
 
     private void Sync()
     {
         string model = _get();
         bool keyed = _ark.LastGatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
-        Label = ShortName(model);
-        Detail = _runtime ?? Host(model);
+        Label = _agent ?? ShortName(model);
+        Detail = _agent != null ? $"Hivemind ({ShortName(model).Split(' ')[0]} fallback)" : _runtime ?? Host(model);
         Confident = keyed;
         DotColor = keyed ? null : PhosphorTheme.Ember;
         Fit();

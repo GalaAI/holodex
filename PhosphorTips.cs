@@ -28,10 +28,16 @@ internal static class PhosphorMotion
                 case "on": return true;
                 case "off": return false;
             }
-            try { return !SystemInformation.UIEffectsEnabled; }
+            // Windows 11 Settings > Accessibility > Animation effects is SPI_GETCLIENTAREAANIMATION, not UI effects.
+            try { return !SystemInformation.UIEffectsEnabled || (SystemParametersInfo(SpiGetClientAreaAnimation, 0, out bool animate, 0) && !animate); }
             catch { return false; }
         }
     }
+
+    private const uint SpiGetClientAreaAnimation = 0x1042;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)] out bool pvParam, uint fWinIni);
 
     /// <summary>cubic-bezier(0.45,0.05,0.35,1) solved for y at progress t.</summary>
     public static float EaseAnalog(float t) => CubicBezier(Math.Clamp(t, 0f, 1f), 0.45f, 0.05f, 0.35f, 1f);
@@ -299,11 +305,11 @@ internal static class PhosphorTips
         ["Hud.VisionToggle"] = new("Attach the screen", "On: the screen around the wand tip goes with the question so a vision model sees it."),
         ["Hud.ModelPicker"] = new("Model", "Which model answers and where it runs. The dot is ready (patina) or no key (ember). Click to switch."),
         ["Hud.AskButton"] = new("Ask", "Asks Gala in your Hivemind when Gala is ready (the first LED says so); otherwise the model on the chip answers and the card says why.", "Ctrl+Enter"),
-        ["Hud.SnipButton"] = new("Lasso", "Draw around anything on screen, annotate it, then ask about it.", "Alt+S"),
-        ["Hud.WizButton"] = new("Wiz", "Turns a goal into a Spell, an ordered chain of steps.", "Alt+W"),
-        ["Hud.AInboxButton"] = new("AInbox", "Drop a file, snippet or capture and hand it off with a goal.", "Alt+I"),
-        ["Hud.HolodexButton"] = new("Holodex", "Session chat, captures, Codex, Spells and mouse mods.", "Alt+H"),
-        ["Hud.Telemetry"] = new("Telemetry", "Where answers come from (the Ark API, Nemotron on Token Factory with a linked key, or no key: add one in Holodex), then the connected mouse.", "Alt+H"),
+        ["Hud.SnipButton"] = new("Lasso", "Draw around anything on screen, annotate it, then ask about it.", "Ctrl+Alt+S"),
+        ["Hud.WizButton"] = new("Wiz", "Turns a goal into a Spell, an ordered chain of steps.", "Ctrl+Alt+W"),
+        ["Hud.AInboxButton"] = new("AInbox", "Drop a file, snippet or capture and hand it off with a goal.", "Ctrl+Alt+I"),
+        ["Hud.HolodexButton"] = new("Holodex", "Session chat, captures, Codex, Spells and mouse mods.", "Ctrl+Alt+H"),
+        ["Hud.Telemetry"] = new("Telemetry", "Where answers come from (the Ark API, Nemotron on Token Factory with a linked key, or no key: add one in Holodex), then the connected mouse.", "Ctrl+Alt+H"),
         ["Hud.Shortcuts"] = new("Shortcuts", "The wand's keys and ring: Actions Ring slots, the fallback orb, GhostTrailer, Wiz and AInbox. Click to show or hide."),
 
         ["Wiz.PromptField"] = new("Describe the goal", "Say what you want done. Shift+Enter breaks a line.", "Enter"),
@@ -325,8 +331,8 @@ internal static class PhosphorTips
         ["AInbox.Kind.File"] = new("File", "Choose files, or drop or paste them on the composer. Each joins the stack."),
         ["AInbox.Kind.Screen"] = new("Screen", "Grabs 640x420 around the wand tip."),
         ["AInbox.Kind.Window"] = new("Window", "Captures the whole window under the wand tip, with its app and title as the origin."),
-        ["AInbox.Kind.Pick"] = new("Pick", "Point at a window or element, then Send to AInbox from the picker.", "Alt+E"),
-        ["AInbox.Kind.Lasso"] = new("Lasso", "Draw a free-form region on any screen, then Send to AInbox.", "Alt+S"),
+        ["AInbox.Kind.Pick"] = new("Pick", "Point at a window or element, then Send to AInbox from the picker.", "Ctrl+Alt+E"),
+        ["AInbox.Kind.Lasso"] = new("Lasso", "Draw a free-form region on any screen, then Send to AInbox.", "Ctrl+Alt+S"),
         ["AInbox.Kind.Record"] = new("Record (planned)", "Region recording with step marks, landing in the stack. Designed, not built yet."),
         ["AInbox.Kind.Whisper"] = new("Whisper (planned)", "A Ghost Whisper voice note pinned to a capture. Designed, not wired yet."),
         ["AInbox.Kind.Snippet"] = new("Snippet", "Adds text, code or notes from the clipboard."),
@@ -344,7 +350,7 @@ internal static class PhosphorTips
         ["AInbox.HandoffScroll"] = new("Handoff scroll", "What the receiving agent reads. Edit any field; the SHA-256 seal follows your edits."),
 
         ["Holodex.Tab.session"] = new("Session", "Messages and work orders to the Hivemind agents, a card each. Ctrl+1."),
-        ["Holodex.Tab.ainbox"] = new("AInbox", "The pod inboxes, and the way into AInbox (Alt+I). Ctrl+2."),
+        ["Holodex.Tab.ainbox"] = new("AInbox", "The pod inboxes, and the way into AInbox (Ctrl+Alt+I). Ctrl+2."),
         ["Holodex.Tab.codex"] = new("Codex", "What you saved from the lasso and the element picker. Ctrl+3."),
         ["Holodex.Tab.grimx"] = new("GrimX", "Mouse bindings and the eight Spell Orb slots. Ctrl+4."),
         ["Holodex.Tab.mods"] = new("Mods", "Mouse, pointer speed, cursor style, the spellbook and the equipped mods. Ctrl+5; Ctrl+Tab steps through the tabs."),
@@ -375,20 +381,20 @@ internal static class PhosphorTips
         ["Holodex.MouseLine"] = new("Your mouse", "The mouse you are using. Move another mouse and Holodex switches to it."),
         ["Holodex.PointerLine"] = new("Speed", "How fast the pointer moves, from 1 (slow) to 20 (fast). Each mouse keeps its own."),
         ["Holodex.DpiSlider"] = new("Mouse speed", "Drag to make the pointer slower or faster. It is saved for the mouse you are using."),
-        ["Holodex.RunOnboardingBtn"] = new("Show me around", "Shows you every Holodex tool again.", "Alt+T"),
-        ["Holodex.LassoButton"] = new("Free-form lasso", "Draw around anything on screen, annotate it, then ask about it.", "Alt+S"),
-        ["Holodex.OpenWizButton"] = new("Open Wiz", "Tell Wiz what you want, and it makes a Spell: a list of steps it does for you.", "Alt+W"),
+        ["Holodex.RunOnboardingBtn"] = new("Show me around", "Shows you every Holodex tool again.", "Ctrl+Alt+T"),
+        ["Holodex.LassoButton"] = new("Free-form lasso", "Draw around anything on screen, annotate it, then ask about it.", "Ctrl+Alt+S"),
+        ["Holodex.OpenWizButton"] = new("Open Wiz", "Tell Wiz what you want, and it makes a Spell: a list of steps it does for you.", "Ctrl+Alt+W"),
         ["Holodex.CodexListBox"] = new("Codex", "Saved captures, palettes and element picks."),
-        ["Holodex.PointButton"] = new("Point at UI", "Hover any window or element and click to lock it, then ask about it.", "Alt+E"),
-        ["Holodex.OpenAInboxButton"] = new("Open AInbox", "The full intake: stack captures and send a Handoff Scroll to a pod.", "Alt+I"),
+        ["Holodex.PointButton"] = new("Point at UI", "Hover any window or element and click to lock it, then ask about it.", "Ctrl+Alt+E"),
+        ["Holodex.OpenAInboxButton"] = new("Open AInbox", "The full intake: stack captures and send a Handoff Scroll to a pod.", "Ctrl+Alt+I"),
         ["Holodex.PodInboxList"] = new("Pod inboxes", "Where a Handoff Scroll can go: each pod, its channel and the conductor that reads it."),
         ["Holodex.AutoBindButton"] = new("Reset my buttons", "Puts the thumb buttons and right-click flicks of the mouse you are using back to how they started."),
         ["Holodex.GrimXList"] = new("Bindings and orb", "Each mouse binding and what it runs, then the eight Spell orb slots."),
         ["Holodex.ModsInfoBox"] = new("Turned on", "The spells you can draw and what Holodex is doing for you."),
 
-        ["Snip.Tool.Lasso"] = new("Lasso", "Drag around any shape on screen.", "Alt+S"),
+        ["Snip.Tool.Lasso"] = new("Lasso", "Drag around any shape on screen.", "Ctrl+Alt+S"),
         ["Snip.Tool.Rect"] = new("Rectangle", "Drag a rectangular frame."),
-        ["Snip.Tool.Point"] = new("Point at UI", "Hover any window or element; click to lock it.", "Alt+E"),
+        ["Snip.Tool.Point"] = new("Point at UI", "Hover any window or element; click to lock it.", "Ctrl+Alt+E"),
         ["Snip.Tool.Draw"] = new("Draw", "Freehand callouts on the capture."),
         ["Snip.Tool.Arrow"] = new("Arrow", "Drag to point at a target."),
         ["Snip.Tool.Box"] = new("Box", "Drag to highlight a target."),

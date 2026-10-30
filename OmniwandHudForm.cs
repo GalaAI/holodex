@@ -9,7 +9,7 @@ using System.Windows.Forms;
 namespace Omniwand;
 
 /// <summary>
-/// Summonable Phosphor Shell HUD (Alt+Space, Actions Ring "Summon HUD", pipe hud:summon). One composer: ask about
+/// Summonable Phosphor Shell HUD (Ctrl+Alt+Space, Actions Ring "Summon HUD", pipe hud:summon). One composer: ask about
 /// what the wand points at, with the screen around the tip attached by a toggle. The question goes to Gala in the
 /// operator's Hivemind when Gala can take the turn (a Hivemind Session, opened once and continued, with Open in
 /// Hivemind beside it); otherwise Nemotron answers directly and the answer card says why Gala did not. The header badge is the wand
@@ -26,7 +26,7 @@ public sealed class OmniwandHudForm : Form
         "Actions Ring casts the eight GrimX Spell slots.\n" +
         "F15 or Ctrl+Shift+Space opens the fallback orb.\n" +
         "F16 streams the GhostTrailer ribbon (Alt+V for it is planned, not bound yet).\n" +
-        "Alt+W opens Wiz. Alt+I opens AInbox.";
+        "Ctrl+Alt+W opens Wiz. Ctrl+Alt+I opens AInbox.";
 
     private readonly ArkStationClient _ark;
     private readonly Action<bool> _setThinkingState;
@@ -48,8 +48,17 @@ public sealed class OmniwandHudForm : Form
     private string? _galaSessionId;
     /// <summary>Whether Gala can take a turn, as the telemetry line's first LED says it.</summary>
     private (Color Led, string Text) _galaLed = (PhosphorTheme.Ghost, "HIVEMIND");
+    /// <summary>How long Hivemind may take on Gala's turn before Holodex stops watching the Session.</summary>
     private static readonly TimeSpan GalaReplyTimeout = TimeSpan.FromMinutes(3);
+    /// <summary>How long the ask waits on Gala before Nemotron answers too; Gala's reply still lands if it comes later.</summary>
+    private static readonly TimeSpan GalaHandoffAfter = TimeSpan.FromSeconds(15);
+    /// <summary>A failed Gala turn this recent makes Gala unavailable, so the next ask goes straight to Nemotron.</summary>
+    private static readonly TimeSpan GalaFailureHoldsFor = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan GalaPollInterval = TimeSpan.FromSeconds(2);
+    /// <summary>The watch on Gala's Session that outlives a handoff to Nemotron.</summary>
+    private Task? _galaWatch;
+    /// <summary>When Gala last failed a turn from this HUD; Hivemind's Session list covers turns asked elsewhere.</summary>
+    private DateTimeOffset? _galaFailedAt;
     /// <summary>The ask under way, cancelled by a pending card's Stop.</summary>
     private System.Threading.CancellationTokenSource? _askCancel;
     private Point _summonCursorPos;
@@ -247,8 +256,10 @@ public sealed class OmniwandHudForm : Form
     private void SyncAskLabel()
     {
         if (_working) return;
+        // One source: the chip names who answers (Gala with its Nemotron fallback, or the model), the button follows it.
+        _modelChip.FrontedBy(_galaLed.Text == "GALA IN HIVEMIND" ? "Gala" : null);
         string first = _modelChip.Label.Split(' ')[0];
-        _askBtn.Text = _galaLed.Text == "GALA IN HIVEMIND" ? "Ask Gala" : first.Length > 0 ? $"Ask {first}" : "Ask";
+        _askBtn.Text = first.Length > 0 ? $"Ask {first}" : "Ask";
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -284,7 +295,7 @@ public sealed class OmniwandHudForm : Form
             PhosphorToast.Show("Gateway unavailable",
                 status.NebiusKeyLoaded
                     ? "No inbound key in Keymaster, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work."
-                    : "The HUD cannot ask the Ark gateway: no inbound key in Keymaster. Wand and ring still work; add a Nebius key in Holodex (Alt+H).",
+                    : "The HUD cannot ask the Ark gateway: no inbound key in Keymaster. Wand and ring still work; add a Nebius key in Holodex (Ctrl+Alt+H).",
                 "GATEWAY // KEYMASTER", 4200, status.NebiusKeyLoaded ? ToastTone.Info : ToastTone.Warning);
         }
         await _modelChip.RefreshAsync();
@@ -324,7 +335,7 @@ public sealed class OmniwandHudForm : Form
         bool keyed = _gatewayOnline || !string.IsNullOrWhiteSpace(_ark.ReadNebiusApiKey());
         var gateway = _gatewayOnline ? (PhosphorTheme.Moss, "ARK API ONLINE")
             : keyed ? (PhosphorTheme.Patina, "NEMOTRON // TOKEN FACTORY")
-            : (PhosphorTheme.Ember, "NO MODEL KEY // ALT+H ADDS ONE");
+            : (PhosphorTheme.Ember, "NO MODEL KEY // CTRL+ALT+H ADDS ONE");
         var mouse = _mouseModel == null ? (PhosphorTheme.Ghost, "MOUSE")
             : _mouseModel.Length == 0 ? (PhosphorTheme.Ember, "NO MOUSE")
             : (PhosphorTheme.Moss, ShortMouse(_mouseModel));
@@ -425,7 +436,7 @@ public sealed class OmniwandHudForm : Form
                 // Esc hid the HUD mid-ask: the answer still arrives, so say where it is.
                 string first = answer.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "";
                 PhosphorToast.Show(answer.Ok ? TitleCase(answer.Kicker) : "Not answered", first.Length > 140 ? first[..140] + "..." : first,
-                    "WAND // ALT+SPACE OPENS IT", 4200, answer.Ok ? ToastTone.Success : ToastTone.Warning);
+                    "WAND // CTRL+ALT+SPACE OPENS IT", 4200, answer.Ok ? ToastTone.Success : ToastTone.Warning);
             }
             FitToAnswer();
         }
@@ -465,8 +476,23 @@ public sealed class OmniwandHudForm : Form
         if (!HivemindClient.HasSavedSignIn) state = (PhosphorTheme.Ghost, "HIVEMIND SIGNED OUT");
         else if (await _ark.Hivemind.ListAgentsAsync() is not { } agents) state = (PhosphorTheme.Rust, "HIVEMIND UNREACHABLE");
         else if (!agents.Any(a => a.Id == "gala")) state = (PhosphorTheme.Ember, "NO GALA IN HIVEMIND");
+        else if (_galaWatch is { IsCompleted: false }) state = (PhosphorTheme.Seal, "GALA STILL ON THE LAST ASK");
+        else if (await GalaFailedRecentlyAsync()) state = (PhosphorTheme.Rust, "GALA FAILED ITS LAST TURN");
         _galaLed = state ?? (PhosphorTheme.Moss, "GALA IN HIVEMIND");
         return state?.Text;
+    }
+
+    /// <summary>
+    /// Whether Gala's latest turn failed within <see cref="GalaFailureHoldsFor"/>: this HUD's own last failure, or
+    /// the newest Hivemind Session Gala is in ending failed. Older failures let Gala be tried again.
+    /// </summary>
+    private async Task<bool> GalaFailedRecentlyAsync()
+    {
+        var since = DateTimeOffset.UtcNow - GalaFailureHoldsFor;
+        if (_galaFailedAt > since) return true;
+        var sessions = await _ark.Hivemind.ListSessionsAsync();
+        var latest = sessions?.FirstOrDefault(s => s.Participants.Any(p => string.Equals(p, "gala", StringComparison.OrdinalIgnoreCase)));
+        return latest is { Status: "failed" } && latest.UpdatedAt > since;
     }
 
     /// <summary>
@@ -509,12 +535,35 @@ public sealed class OmniwandHudForm : Form
         if (ask == null)
         {
             pending.Resolve(ThreadTone.Fail, "GALA // NOT ASKED // HIVEMIND", _ark.Hivemind.LastError);
+            _galaFailedAt = DateTimeOffset.UtcNow;
             return (false, "", "GALA NOT ASKED");
         }
         _galaSessionId = ask.SessionId;
         _openInHivemindBtn.Visible = true;
 
-        // Hivemind runs the turn on its own schedule; the Session is read until Gala's reply to this ask lands.
+        // Gala gets GalaHandoffAfter to reply. After that Nemotron answers this ask, and the watch keeps reading the
+        // Session in the background, so a late Gala reply still lands in its own card.
+        var watchCancel = new System.Threading.CancellationTokenSource();
+        pending.SetFooter("", StopGalaAction(watchCancel));
+        var watch = WatchGalaAsync(pending, ask, prompt, clock, watchCancel);
+        _galaWatch = watch;
+        using (ct.Register(() => { try { watchCancel.Cancel(); } catch (ObjectDisposedException) { } }))
+        {
+            if (await Task.WhenAny(watch, Task.Delay(GalaHandoffAfter)) == watch) return await watch;
+        }
+        pending.SetFooter($"STILL WORKING // {ModelChip.ShortName(AnsweringModel(false)).ToUpperInvariant()} ANSWERS BELOW", StopGalaAction(watchCancel));
+        return (false, "", "GALA STILL WORKING");
+    }
+
+    /// <summary>
+    /// Reads Gala's Session until its reply to <paramref name="ask"/> lands, the Session fails, the operator stops
+    /// it, or <see cref="GalaReplyTimeout"/> passes, and settles <paramref name="pending"/> to what happened. A failure
+    /// is remembered, so the next ask goes straight to Nemotron.
+    /// </summary>
+    private async Task<(bool Ok, string Text, string Kicker)> WatchGalaAsync(ThreadCard pending, HivemindAsk ask, string prompt,
+        System.Diagnostics.Stopwatch clock, System.Threading.CancellationTokenSource watchCancel)
+    {
+        var ct = watchCancel.Token;
         var deadline = DateTime.UtcNow + GalaReplyTimeout;
         string failure = "";
         try
@@ -533,6 +582,8 @@ public sealed class OmniwandHudForm : Form
                     pending.Resolve(ThreadTone.Agent, kicker, reply.Content);
                     string receipt = reply.ExecutionId.Length > 8 ? $"RECEIPT {reply.ExecutionId[..8]} // " : "";
                     AnswerFooter(pending, prompt, $"{receipt}{Seconds(clock)}", gala: true);
+                    _galaFailedAt = null;
+                    SettleLateGala();
                     return (true, reply.Content, kicker);
                 }
                 if (session.Summary.Status is "failed" or "completed" || (session.Summary.Status == "paused" && session.Summary.Error.Length > 0))
@@ -546,13 +597,39 @@ public sealed class OmniwandHudForm : Form
         {
             pending.Resolve(ThreadTone.Fail, "STOPPED BY YOU // GALA", "Holodex stopped waiting. The ask stays in its Hivemind Session, where Gala may still answer.");
             pending.SetFooter("", OpenInHivemindAction());
+            SettleLateGala();
             return (false, "STOPPED", "STOPPED BY YOU");
         }
+        catch (Exception ex) { failure = ex.Message; }
+        finally { watchCancel.Dispose(); }
         if (failure.Length == 0) failure = $"Gala did not reply within {GalaReplyTimeout.TotalMinutes:0} minutes. The Session stays open in Hivemind.";
+        _galaFailedAt = DateTimeOffset.UtcNow;
         pending.Resolve(ThreadTone.Fail, "GALA // NOT ANSWERED // HIVEMIND", failure);
         FailFooterGala(pending);
+        SettleLateGala();
         return (false, "", "GALA DID NOT ANSWER");
     }
+
+    /// <summary>A Gala card that settled after the ask handed off: refit around it and relabel who answers next.</summary>
+    private void SettleLateGala()
+    {
+        if (_working || IsDisposed) return;
+        _ = RefreshGalaStateAsync();
+        FitToAnswer();
+        Invalidate();
+    }
+
+    private async Task RefreshGalaStateAsync()
+    {
+        await GalaUnavailableReasonAsync();
+        if (IsDisposed) return;
+        SyncTelemetry();
+        SyncAskLabel();
+    }
+
+    /// <summary>Stop on Gala's card: stops watching Gala's Session (the ask stays there), not the Nemotron answer.</summary>
+    private static CardAction StopGalaAction(System.Threading.CancellationTokenSource watch) =>
+        new("Thread.Stop", PhosphorGlyph.Stop, "Stop", (_, _) => { try { watch.Cancel(); } catch (ObjectDisposedException) { } });
 
     /// <summary>
     /// Nemotron through Token Factory (or the Ark gateway), as the HUD always asked. <paramref name="because"/> is why

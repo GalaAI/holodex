@@ -1,9 +1,9 @@
 # Holodex
 
-**Holodex** : Native 240Hz Windows AI cursor, radial spell gestures, Free-Form screen lasso (`Nemotron-3.5-Super-VL`), HWND element picker, and `Alt+Space` HUD (`Nemotron-3-Nano-30B-A3B` / `Nemotron-3-Super-120B-A12B`) powered by **NVIDIA Nemotron on Nebius Token Factory** and connected to **Hivemind** ([`GalaAI/hivemind`](https://github.com/GalaAI/hivemind)) and **Ryozan** ([`GalaAI/ryozan`](https://github.com/GalaAI/ryozan)).
+**Holodex** : Native 240Hz Windows AI cursor, radial spell gestures, Free-Form screen lasso (`Nemotron-3.5-Super-VL`), HWND element picker, and `Ctrl+Alt+Space` HUD (`Nemotron-3-Nano-30B-A3B` / `Nemotron-3-Super-120B-A12B`) powered by **NVIDIA Nemotron on Nebius Token Factory** and connected to **Hivemind** ([`GalaAI/hivemind`](https://github.com/GalaAI/hivemind)) and **Ryozan** ([`GalaAI/ryozan`](https://github.com/GalaAI/ryozan)).
 
 > **Nebius x NVIDIA Global AI Hackathon | Track: Personal AI**
-> Built on `.NET 10` (`net10.0-windows`), WinForms, and Win32/GDI+ (`UpdateLayeredWindow` + `DwmFlush`), Holodex brings NVIDIA Nemotron models to your Windows cursor in **Standalone Mode** with a `NEBIUS_API_KEY` or in **Hivemind Connected Mode (`Alt+H`)** orchestrated by **Gala**.
+> Built on `.NET 10` (`net10.0-windows`), WinForms, and Win32/GDI+ (`UpdateLayeredWindow` + `DwmFlush`), Holodex brings NVIDIA Nemotron models to your Windows cursor in **Standalone Mode** with a `NEBIUS_API_KEY` or in **Hivemind Connected Mode (`Ctrl+Alt+H`)** orchestrated by **Gala**.
 
 **Binary & Vault Compatibility Note:** The product is **Holodex** (`GalaAI/holodex`, renamed from Omniwand on 2026-10-27). To preserve compatibility with existing desktop launchers, the Logitech Actions Ring plugin, and saved user credentials, `Omniwand` remains the internal assembly/executable identifier (`Omniwand.csproj`, `Omniwand.exe`), named control pipe (`ArkStation.Omniwand.Control`), Windows Credential Manager namespace (`wincred://Omniwand:*`), environment variable prefix (`OMNIWAND_*`), and `%LOCALAPPDATA%\Omniwand` profile directory.
 
@@ -21,7 +21,7 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 
 | Product & Track | What It Is | How It Differs From the Other Two |
 | :--- | :--- | :--- |
-| **[Holodex](https://github.com/GalaAI/holodex)** *(This Repo)*<br>*Track: Personal AI* | **The Desktop Cursor & Vision Wand.** A native 240Hz Windows AI cursor (`Alt+Space` HUD, `Alt+S` Free-Form screen lasso, `Alt+E` HWND window picker, `Alt+H` drawer) that lets you point at or lasso anything on your screen and act on it immediately. | **OS-level cursor interaction and screen vision (`.NET 10 / C# / Win32`).** Holodex captures live visual context from any desktop window and sends it to **Hivemind** or **Nemotron-3.5-Super-VL**. |
+| **[Holodex](https://github.com/GalaAI/holodex)** *(This Repo)*<br>*Track: Personal AI* | **The Desktop Cursor & Vision Wand.** A native 240Hz Windows AI cursor (`Ctrl+Alt+Space` HUD, `Ctrl+Alt+S` Free-Form screen lasso, `Ctrl+Alt+E` HWND window picker, `Ctrl+Alt+H` drawer) that lets you point at or lasso anything on your screen and act on it immediately. | **OS-level cursor interaction and screen vision (`.NET 10 / C# / Win32`).** Holodex captures live visual context from any desktop window and sends it to **Hivemind** or **Nemotron-3.5-Super-VL**. |
 | **[Hivemind](https://github.com/GalaAI/hivemind)**<br>*Track: Coding & Agentic Engineering* | **The Shared Multi-Agent Brain, MCP Broker & OAuth Hub.** The command center where **NVIDIA Nemotron** leads **ArkHive local models** and **subscription CLI agents** (`Antigravity`, `Claude`, `Codex`), paired with clean Google, Pinterest, and TikTok OAuth adapters. | **Orchestration, security, and agentic engineering infrastructure (`TypeScript / Bun / MCP`).** Hivemind routes models, isolates Git worktrees (**SolaTree**), enforces policy (**Aegis**), and syncs credentials (**KeyMaster**). |
 | **[Ryozan](https://github.com/GalaAI/ryozan)**<br>*Track: Best Apps & Agents* | **The Brick-and-Mortar Studio & Shop Operating System.** Built on the production system proven at Blind Tiger Tattoo Co. in a **Neo-Ukiyo-e Phosphor** portal where **8 Ryōzanpaku Bandit NPCs** deal **MTG Action Cards** to run bookings, deposits, double-entry bookkeeping (`ryozan-econ`), DMs, and social posts. | **Business and creator operations (`Python FastAPI + React 19`).** Built for working artists and shop owners who talk to their Bandit crew and tap cards to run the shop. |
 
@@ -29,11 +29,11 @@ More about the Omnitek hardware & software ecosystem: **[arkomnitek.com](https:/
 
 ## Screenshots
 
-| Phosphor HUD (`Alt+Space`) | Holodex Drawer (`Alt+H`) | Wiz Crafting (`Alt+W`) |
+| Phosphor HUD (`Ctrl+Alt+Space`) | Holodex Drawer (`Ctrl+Alt+H`) | Wiz Crafting (`Ctrl+Alt+W`) |
 | --- | --- | --- |
 | ![HUD](docs/shots/as-built/hud.png) | ![Holodex](docs/shots/as-built/holodex.png) | ![Wiz](docs/shots/as-built/wiz.png) |
 
-| Free-Form Lasso & Element Picker (`Alt+S` / `Alt+E`) | Animated Tooltip Tutorial (`Alt+T`) | AInbox Intake (`Alt+I`) |
+| Free-Form Lasso & Element Picker (`Ctrl+Alt+S` / `Ctrl+Alt+E`) | Animated Tooltip Tutorial (`Ctrl+Alt+T`) | AInbox Intake (`Ctrl+Alt+I`) |
 | --- | --- | --- |
 | ![Snip](docs/shots/as-built/snip.png) | ![Tutorial](docs/shots/as-built/tutorial.png) | ![AInbox](docs/shots/as-built/ainbox.png) |
 
@@ -49,12 +49,12 @@ Holodex routes every pointed question, screen capture, AInbox intake stack, and 
 
 ```mermaid
 flowchart TD
-    Cursor["Holodex 240Hz Cursor & Surfaces\nAlt+Space HUD · Alt+S Lasso · Alt+E Element Picker · Alt+I AInbox · Alt+W Wiz · Alt+H Drawer"]
+    Cursor["Holodex 240Hz Cursor & Surfaces\nAlt+Space HUD · Ctrl+Alt+S Lasso · Ctrl+Alt+E Element Picker · Ctrl+Alt+I AInbox · Ctrl+Alt+W Wiz · Ctrl+Alt+H Drawer"]
 
     subgraph Tier1["1. Command Tier : NVIDIA Nemotron on Nebius Token Factory (https://api.tokenfactory.nebius.com/v1)"]
-        Nano["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B\n(ark/nemotron-3-nano)\nInstant Alt+Space HUD & Quick Actions"]
+        Nano["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B\n(ark/nemotron-3-nano)\nInstant Ctrl+Alt+Space HUD & Quick Actions"]
         SuperVL["nvidia/Nemotron-3.5-Super-VL\n(ark/nemotron-3.5-super-vl)\nFree-Form Screen Lasso & HWND Visual Inspection"]
-        Super120B["nvidia/nemotron-3-super-120b-a12b\n(ark/nemotron-3-super)\nGala Maestro Session Relay in Holodex Drawer (Alt+H) & Wiz Agent"]
+        Super120B["nvidia/nemotron-3-super-120b-a12b\n(ark/nemotron-3-super)\nGala Maestro Session Relay in Holodex Drawer (Ctrl+Alt+H) & Wiz Agent"]
         Ultra550B["nvidia/Nemotron-3-Ultra-550b-a55b\n(ark/nemotron-3-ultra)\nDeep Architectural Verification"]
     end
 
@@ -75,12 +75,12 @@ flowchart TD
 
 | Tier | Provider / Runtime | Model ID (`Ark Alias`) | Primary Role in Holodex |
 | --- | --- | --- | --- |
-| **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` (`ark/nemotron-3-nano`) | Instant `Alt+Space` HUD text queries, quick actions, and live AInbox stack re-ranking. |
-| **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/Nemotron-3.5-Super-VL` (`ark/nemotron-3.5-super-vl`) | Free-Form Screen Lasso (`Alt+S`), HWND Element Picker (`Alt+E`), and screen-attached HUD visual inspection. |
-| **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/nemotron-3-super-120b-a12b` (`ark/nemotron-3-super`) | **Gala Maestro** session relay in the docked **Holodex Drawer (`Alt+H`)** and multi-step **Wiz (`Alt+W`)** tool-calling workflows. |
+| **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` (`ark/nemotron-3-nano`) | Instant `Ctrl+Alt+Space` HUD text queries, quick actions, and live AInbox stack re-ranking. |
+| **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/Nemotron-3.5-Super-VL` (`ark/nemotron-3.5-super-vl`) | Free-Form Screen Lasso (`Ctrl+Alt+S`), HWND Element Picker (`Ctrl+Alt+E`), and screen-attached HUD visual inspection. |
+| **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/nemotron-3-super-120b-a12b` (`ark/nemotron-3-super`) | **Gala Maestro** session relay in the docked **Holodex Drawer (`Ctrl+Alt+H`)** and multi-step **Wiz (`Ctrl+Alt+W`)** tool-calling workflows. |
 | **1. Command Tier** | **NVIDIA Nemotron on Nebius Token Factory** (`https://api.tokenfactory.nebius.com/v1`) | `nvidia/Nemotron-3-Ultra-550b-a55b` (`ark/nemotron-3-ultra`) | Deep architectural verification and high-complexity synthesis. |
 | **2. Local Open-Weight Tier** | **ArkHive Local Runtime** | `LM Studio GGUF`, `Qwen`, `MiniCPM-V` | Local open-weight inference and vision inspection when running offline or paired with local GPU nodes. |
-| **3. Subscription CLI Specialist Tier** | **Hivemind Agent Fleet** | `Antigravity`, `Claude`, `Codex`, `Cursor` | Dispatched from the **Holodex Drawer (`Alt+H`)** Work Orders and **AInbox (`Alt+I`)** Handoff Scrolls to execute code and operations in isolated worktrees. |
+| **3. Subscription CLI Specialist Tier** | **Hivemind Agent Fleet** | `Antigravity`, `Claude`, `Codex`, `Cursor` | Dispatched from the **Holodex Drawer (`Ctrl+Alt+H`)** Work Orders and **AInbox (`Ctrl+Alt+I`)** Handoff Scrolls to execute code and operations in isolated worktrees. |
 
 ---
 
@@ -93,14 +93,14 @@ flowchart TD
 
 ---
 
-## Quickstart: Standalone Mode (`NEBIUS_API_KEY`) vs. Hivemind Connected Mode (`Alt+H`)
+## Quickstart: Standalone Mode (`NEBIUS_API_KEY`) vs. Hivemind Connected Mode (`Ctrl+Alt+H`)
 
 Holodex supports two operating modes out of the box:
 
 | Mode | What You Need | What Works |
 | --- | --- | --- |
-| **1. Standalone Mode** *(Default for Judges)* | Only a **Nebius Token Factory API Key** (`NEBIUS_API_KEY` or `wincred://Omniwand:NebiusTokenFactory`). Zero local servers required. | Full 240Hz cursor morphs, spell gestures, `Alt+Space` HUD, `Alt+S` Free-Form Lasso (`Nemotron-3.5-Super-VL`), `Alt+E` Element Picker, `Alt+I` AInbox Nemotron re-ranking & Aegis secret redaction, `Alt+W` Wiz agent tool calls (`Nemotron-3-Super-120B-A12B`), and `Alt+H` Holodex Drawer. |
-| **2. Hivemind Connected Mode** (`Alt+H`) | Click **Sign in** in the **Holodex Drawer (`Alt+H`)** profile header (OAuth 2.1 + PKCE against `https://hivemind.arkomnitek.com/mcp` or a local `GalaAI/hivemind` server). | Connects your desktop wand to your **Hivemind** (`GalaAI/hivemind`): your Hivemind's live agent roster, Session relay, and asynchronous Work Order mission dispatch & polling. Set `OMNIWAND_HIVEMIND_URL` (for example `http://127.0.0.1:18788/mcp` for a local Hivemind) to sign in to your own Hivemind instead of the hosted one. |
+| **1. Standalone Mode** *(Default for Judges)* | Only a **Nebius Token Factory API Key** (`NEBIUS_API_KEY` or `wincred://Omniwand:NebiusTokenFactory`). Zero local servers required. | Full 240Hz cursor morphs, spell gestures, `Ctrl+Alt+Space` HUD, `Ctrl+Alt+S` Free-Form Lasso (`Nemotron-3.5-Super-VL`), `Ctrl+Alt+E` Element Picker, `Ctrl+Alt+I` AInbox Nemotron re-ranking & Aegis secret redaction, `Ctrl+Alt+W` Wiz agent tool calls (`Nemotron-3-Super-120B-A12B`), and `Ctrl+Alt+H` Holodex Drawer. |
+| **2. Hivemind Connected Mode** (`Ctrl+Alt+H`) | Click **Sign in** in the **Holodex Drawer (`Ctrl+Alt+H`)** profile header (OAuth 2.1 + PKCE against `https://hivemind.arkomnitek.com/mcp` or a local `GalaAI/hivemind` server). | Connects your desktop wand to your **Hivemind** (`GalaAI/hivemind`): your Hivemind's live agent roster, Session relay, and asynchronous Work Order mission dispatch & polling. Set `OMNIWAND_HIVEMIND_URL` (for example `http://127.0.0.1:18788/mcp` for a local Hivemind) to sign in to your own Hivemind instead of the hosted one. |
 
 **Which route answered.** Every answer card names the Nemotron model that answered and its route. If an Ark API is running at `ARK_API_BASE_URL` (default `http://127.0.0.1:8788`) with an inbound key, Holodex asks Nemotron through its `ark/nemotron-*` routes and the card reads **VIA ARK API** with the gateway receipt. Otherwise, or when that call fails, Holodex asks Token Factory directly and the card reads **NEBIUS DIRECT**. A judge's PC needs only the Nebius key. To check either route from a terminal: `Omniwand.exe --ask "Say hello" --count 5` prints one JSON line per answer (route, model, receipt, latency) and a p50/p95 summary.
 
@@ -137,11 +137,11 @@ $env:NEBIUS_API_KEY = "your-nebius-token-factory-key"
 cmdkey /generic:Omniwand:NebiusTokenFactory /user:nebius /pass:your-nebius-token-factory-key
 ```
 
-You can also paste your Nebius Token Factory key inside the **Holodex Drawer (`Alt+H`)** profile popover (**Replace key**) to seal it in `wincred://Omniwand:NebiusTokenFactory`.
+You can also paste your Nebius Token Factory key inside the **Holodex Drawer (`Ctrl+Alt+H`)** profile popover (**Replace key**) to seal it in `wincred://Omniwand:NebiusTokenFactory`.
 
-### Step 3: Connect to Hivemind (`Alt+H`) *(Optional Connected Mode)*
+### Step 3: Connect to Hivemind (`Ctrl+Alt+H`) *(Optional Connected Mode)*
 
-1. Press **`Alt+H`** (or hold **`Ctrl` + Sweep Right**) to open the docked **Holodex Drawer**.
+1. Press **`Ctrl+Alt+H`** (or hold **`Ctrl` + Sweep Right**) to open the docked **Holodex Drawer**.
 2. Click the **Aperture Profile Avatar** at the bottom of the left rail and click **Sign in** under `HIVEMIND`.
 3. Holodex runs a native loopback OAuth 2.1 + PKCE flow against Hivemind (`https://hivemind.arkomnitek.com/mcp` or your `OMNIWAND_HIVEMIND_URL`), seals the refresh token in `wincred://Omniwand:HivemindToken`, loads the live agent roster, and streams real-time `@Gala` Maestro sessions and Work Orders.
 
@@ -149,7 +149,7 @@ You can also paste your Nebius Token Factory key inside the **Holodex Drawer (`A
 
 ## Key Features (v0.3)
 
-- **240Hz Ark Aperture Morph Engine & 4 On-Brand VSync Cursor Styles (`Alt+C`)**:
+- **240Hz Ark Aperture Morph Engine & 4 On-Brand VSync Cursor Styles (`Ctrl+Alt+P`)**:
   - Default cursor is the **Ark Aperture** (`CursorIconStyle.ArkAperture`) with banking tilt (`RotationMode.SubtleBank`) during operator use and automatic **True Path** rotation + **Coral Globe (`#E08B73`)** when **Wiz** is using the mouse or reasoning.
   - **Contextual State Morphs**:
     - `Arrow`: 3-Wing Cream Aperture + steady Patina Globe (`#69A389`).
@@ -165,16 +165,16 @@ You can also paste your Nebius Token Factory key inside the **Holodex Drawer (`A
     4. **Unbroken Sweep Right (`>= 280px`)**: Casts `SYNTHESIZE · HOLODEX BRIDGE` (opens Holodex Syndicate Session).
 - **Tray Menu That Turns Pages**:
   - Clicking the tray icon opens one panel centered above the icon. The home page holds the primary surfaces (`Ask a question`, `Open Holodex`, `Make a spell with Wiz`, `Grab from the screen >`, `Spell Orb >`, `Settings >`); a `>` row turns the same panel to its page, and `Back` (or `Esc`, `Backspace`, `Left`) returns.
-- **Zero-Manual Wiz Environment Onboarding & Animated Phosphor Tooltips (`Alt+T`)**:
+- **Zero-Manual Wiz Environment Onboarding & Animated Phosphor Tooltips (`Ctrl+Alt+T`)**:
   - On first launch, **Wiz** scans your hardware (connected mouse brand & model via VID/PID, Windows pointer speed, display DPI, installed CLIs, and Windows Credential Manager `wincred://` vault), provisions `~/.ark/agents/omniwand` (`omniwand.agent.bamf.json` + `SKILL.md` + `mouse-macros.json`), and launches a 7-step **guided tour** with eased Phosphor motion and keycap shortcuts.
 - **Intelligent Mouse Brand Detection, Live Pointer Speed Slider & Adaptive Profiles**:
   - Detects connected mice across **Logitech** (MX Master 4 / 3S, G PRO X Superlight 2, G502), **Razer**, **Corsair**, **SteelSeries**, **Glorious**, **Finalmouse**, **Pulsar**, **ASUS ROG**, and **Microsoft** via Windows Raw Input (`RIDEV_INPUTSINK`) and persists per-device profiles in `%LOCALAPPDATA%\Omniwand\mouse-profiles.json`.
-- **Free-Form Lasso, Phosphor Annotation Studio & Desktop Element Picker (`Alt+S` / `Alt+E`)**:
+- **Free-Form Lasso, Phosphor Annotation Studio & Desktop Element Picker (`Ctrl+Alt+S` / `Ctrl+Alt+E`)**:
   - Draw a **Free-Form Lasso** or **Rectangle Snip**, annotate with Coral/Patina/Amber pens, arrows, or boxes, or inspect any desktop window (`WindowFromPoint` HWND class, title, bounding rect, and live 6x pixel magnifier with click-to-copy HEX).
   - Route any capture to **NVIDIA Nemotron Vision** (`nvidia/Nemotron-3.5-Super-VL`) on Nebius Token Factory or save into the **Holodex Codex**.
-- **AInbox Multi-Capture Stack, Aegis Secret Redaction & Sealed Handoff Scrolls (`Alt+I`)**:
+- **AInbox Multi-Capture Stack, Aegis Secret Redaction & Sealed Handoff Scrolls (`Ctrl+Alt+I`)**:
   - Drop, paste, or pick any number of captures. Captures stack by window/repo context, Omnitek heuristics provide an initial pass, and **`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`** re-ranks intents and synthesizes a structured **Handoff Scroll** after **Aegis** redacts credentials and seals the payload with SHA-256.
-- **Holodex Drawer (`Alt+H`) & Hivemind MCP Session Relay**:
+- **Holodex Drawer (`Ctrl+Alt+H`) & Hivemind MCP Session Relay**:
   - Docked right-edge Relic Phosphor drawer with 5 operational tabs (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`), connecting `wincred://Omniwand:NebiusTokenFactory` and `wincred://Omniwand:HivemindToken`.
 
 ---
@@ -183,15 +183,15 @@ You can also paste your Nebius Token Factory key inside the **Holodex Drawer (`A
 
 | Action | Shortcut |
 | --- | --- |
-| Summon **Phosphor HUD** (`Nemotron-3-Nano-30B-A3B` / `Nemotron-3.5-Super-VL`) | `Alt+Space` (or double-click tray icon) |
-| Toggle **Holodex Drawer** (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`) | `Alt+H` or **Ctrl + Sweep Right** |
-| **Free-Form Lasso & Phosphor Annotator** (`Nemotron-3.5-Super-VL`) | `Alt+S` or **Ctrl + Shake Up and Down** |
-| **Desktop Element & Pixel Palette Picker** (`HWND` + `Nemotron-3.5-Super-VL`) | `Alt+E` or **Right-Hold + Flick West** |
-| Summon **Wiz Agent & Spell Crafting** (`Nemotron-3-Super-120B-A12B`) | `Alt+W` or **Right-Hold + Flick East** |
-| Summon **AInbox Multi-Capture Intake** (`Nemotron-3-Nano-30B-A3B` + `Aegis`) | `Alt+I` |
-| Launch **Animated Phosphor Tooltip Tutorials** | `Alt+T` (auto-runs on first onboarding) |
+| Summon **Phosphor HUD** (`Nemotron-3-Nano-30B-A3B` / `Nemotron-3.5-Super-VL`) | `Ctrl+Alt+Space` (or double-click tray icon) |
+| Toggle **Holodex Drawer** (`Session`, `AInbox`, `Codex`, `GrimX`, `Mods`) | `Ctrl+Alt+H` or **Ctrl + Sweep Right** |
+| **Free-Form Lasso & Phosphor Annotator** (`Nemotron-3.5-Super-VL`) | `Ctrl+Alt+S` or **Ctrl + Shake Up and Down** |
+| **Desktop Element & Pixel Palette Picker** (`HWND` + `Nemotron-3.5-Super-VL`) | `Ctrl+Alt+E` or **Right-Hold + Flick West** |
+| Summon **Wiz Agent & Spell Crafting** (`Nemotron-3-Super-120B-A12B`) | `Ctrl+Alt+W` or **Right-Hold + Flick East** |
+| Summon **AInbox Multi-Capture Intake** (`Nemotron-3-Nano-30B-A3B` + `Aegis`) | `Ctrl+Alt+I` |
+| Launch **Animated Phosphor Tooltip Tutorials** | `Ctrl+Alt+T` (auto-runs on first onboarding) |
 | Summon the **Spell Orb** | `F15` or hold **Middle Mouse Button** (`>180ms`) |
-| Cycle On-Brand Cursor Style (`Relic Wand`, `Ark Aperture`, `Phosphor Arrow`, `Viewfinder`) | `Alt+C` |
+| Cycle On-Brand Cursor Style (`Relic Wand`, `Ark Aperture`, `Phosphor Arrow`, `Viewfinder`) | `Ctrl+Alt+P` |
 | Toggle Native Windows Cursor Visibility | `Ctrl+Alt+C` |
 | Exit & Restore Default Windows Cursor | `Ctrl+Alt+Q` (or via Tray Menu) |
 

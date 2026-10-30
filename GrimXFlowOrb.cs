@@ -28,7 +28,7 @@ public sealed class GrimXFlowOrb
         new(3, "ultima",   "ULTIMA",   "PURSUE",  "Deluge synthesis",    "distribute", PhosphorTheme.Seal),
         new(4, "charm",    "CHARM",    "BIND",    "Relic enchantment",   "create",     PhosphorTheme.Coral),
         new(5, "summon",   "SUMMON",   "SUMMON",  "Invoke Automaton",    "operate",    PhosphorTheme.Patina),
-        new(6, "crafting", "CRAFTING", "WIZ",     "Gemini Argon Chat",   "create",     PhosphorTheme.Coral),
+        new(6, "crafting", "CRAFTING", "WIZ",     "Wiz on Nemotron",     "create",     PhosphorTheme.Coral),
         new(7, "ainbox",   "AINBOX",   "INTAKE",  "Pod + Handoff Scroll","distribute", PhosphorTheme.Seal)
     };
 

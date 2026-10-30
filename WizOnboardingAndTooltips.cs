@@ -42,7 +42,7 @@ public static class WizOnboardingEngine
         // 1. Scan monitors & DPI
         var screens = Screen.AllScreens;
         var primary = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
-        string displaySummary = $"{screens.Length} Display(s) · Primary {primary.Width}x{primary.Height}";
+        string displaySummary = $"{screens.Length} {(screens.Length == 1 ? "display" : "displays")} · Primary {primary.Width}x{primary.Height}";
 
         // 2. Scan installed CLIs on PATH without blocking
         var detectedClis = new List<string>();
@@ -110,11 +110,11 @@ public static class WizOnboardingEngine
                 "---\nname: wiz-omniwand\ndescription: Wiz 4GE Workflow-Crafting, Mouse Macro Intelligence, and GrimX Governance Agent\n---\n\n" +
                 "# Wiz // Holodex Desktop Conductor\n\n" +
                 $"Auto-provisioned for **{mouse.Brand} {mouse.Model}** (`{mouse.VidPid}`).\n" +
-                "- **Alt+Space**: Summon Holodex HUD\n" +
-                "- **Alt+H**: Open the Holodex drawer (Session, AInbox, Codex, GrimX, Mods)\n" +
-                "- **Alt+S**: Free-Form Lasso & Live Vision Annotator\n" +
-                "- **Alt+E**: Desktop Element Picker (`wand.point` / `wand.palette` / `wand.architect`)\n" +
-                "- **Alt+W**: Wiz Crafting Thread\n");
+                "- **Ctrl+Alt+Space**: Summon Holodex HUD\n" +
+                "- **Ctrl+Alt+H**: Open the Holodex drawer (Session, AInbox, Codex, GrimX, Mods)\n" +
+                "- **Ctrl+Alt+S**: Free-Form Lasso & Live Vision Annotator\n" +
+                "- **Ctrl+Alt+E**: Desktop Element Picker (`wand.point` / `wand.palette` / `wand.architect`)\n" +
+                "- **Ctrl+Alt+W**: Wiz Crafting Thread\n");
         }
 
         var report = new WizEnvironmentScanReport(
@@ -222,46 +222,46 @@ public sealed class PhosphorAnimatedTooltipForm : Form
 
         string vaultState = report.NebiusReady
             ? "Your Nebius key is linked, so answers come from NVIDIA Nemotron on Token Factory."
-            : "No model key yet. Open Holodex (Alt+H) and paste a Nebius Token Factory key to turn on answers.";
+            : "No model key yet. Open Holodex (Ctrl+Alt+H) and paste a Nebius Token Factory key to turn on answers.";
 
         _steps = new List<TutorialStepInfo>
         {
             new(1,
                 "WELCOME // HOLODEX",
                 "Your cursor is now a wand",
-                $"Holodex lives in the tray and draws the Ark Aperture cursor. It found your {report.MouseHardware.Brand} {report.MouseHardware.Model} and {report.DisplaySummary}. {vaultState}",
+                $"Holodex lives in the tray and draws the Aperture cursor. It found your {report.MouseHardware.Brand} {report.MouseHardware.Model} and {report.DisplaySummary}. {vaultState}",
                 "Cycle cursor style",
                 PhosphorTheme.Patina,
                 cycleCursorStyle,
-                "Alt+C"),
+                "Ctrl+Alt+P"),
             new(2,
                 "COMMAND HUD // ASK",
                 "Ask anything, from anywhere",
-                "Press Alt+Space to open the HUD at your cursor. Type a question and press Enter. Nemotron answers in place, and you can attach the screen when the question is about what you are looking at.",
+                "Press Ctrl+Alt+Space to open the HUD at your cursor. Type a question and press Enter. Nemotron answers in place, and you can attach the screen when the question is about what you are looking at.",
                 "Open the HUD",
                 PhosphorTheme.Patina,
                 openHud,
-                "Alt+Space"),
+                "Ctrl+Alt+Space"),
             new(3,
                 "LASSO // SEE",
                 "Circle it, then ask about it",
-                "Press Alt+S and draw around anything on screen. Ink on it to point, then Analyze to send the region to a vision model or Save to keep it in Codex.",
+                "Press Ctrl+Alt+S and draw around anything on screen. Ink on it to point, then Analyze to send the region to a vision model or Save to keep it in Codex.",
                 "Try the lasso",
                 PhosphorTheme.Patina,
                 openSnipLasso,
-                "Alt+S"),
+                "Ctrl+Alt+S"),
             new(4,
                 "ELEMENT PICKER // POINT",
                 "Inspect any window or pixel",
-                "Press Alt+E and hover. Holodex reads the window class, its bounds and the exact hex color under the wand, ready to copy or hand to Wiz.",
+                "Press Ctrl+Alt+E and hover. Holodex reads the window class, its bounds and the exact hex color under the wand, ready to copy or hand to Wiz.",
                 "Try the picker",
                 PhosphorTheme.Patina,
                 openElementPicker,
-                "Alt+E"),
+                "Ctrl+Alt+E"),
             new(5,
                 "SPELLS // GESTURES",
                 "Hold Ctrl, then draw a spell",
-                "Shake left and right for Wiz. Shake up and down for the lasso. Draw a circle for the Spell Orb. Sweep right for Holodex. A ghost ribbon follows the stroke so you can see it land.",
+                "Shake left and right for Wiz. Shake up and down for the lasso. Draw a circle to cast your slot 1 Spell. Sweep right for Holodex. A ghost ribbon follows the stroke so you can see it land.",
                 "Open the Spell Orb",
                 PhosphorTheme.Seal,
                 openOrb,
@@ -269,19 +269,19 @@ public sealed class PhosphorAnimatedTooltipForm : Form
             new(6,
                 "AINBOX // HAND OFF",
                 "Drop it, say what you want, send it",
-                "Press Alt+I. Drag in files, paste a snippet or capture the screen, add one line of intent, and Holodex writes the handoff for you.",
+                "Press Ctrl+Alt+I. Drag in files, paste a snippet or capture the screen, add one line of intent, and Holodex writes the handoff for you.",
                 "Open AInbox",
                 PhosphorTheme.Patina,
                 openAInbox,
-                "Alt+I"),
+                "Ctrl+Alt+I"),
             new(7,
                 "HOLODEX // YOUR DRAWER",
                 "Everything else lives here",
-                "Press Alt+H for session chat, saved captures, Spells and mouse DPI. Replay this tour any time with Alt+T. Ctrl+Alt+Q quits and restores the normal cursor.",
+                "Press Ctrl+Alt+H for session chat, saved captures, Spells and mouse DPI. Replay this tour any time with Ctrl+Alt+T. Ctrl+Alt+Q quits and restores the normal cursor.",
                 "Open Holodex",
                 PhosphorTheme.Patina,
                 openHolodex,
-                "Alt+H")
+                "Ctrl+Alt+H")
         };
 
         _stepBadge = new PhosphorBadge("STEP 1 / 7", PhosphorBadgeState.Unstated)
