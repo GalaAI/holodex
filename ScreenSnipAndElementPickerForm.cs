@@ -233,7 +233,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
         // The output is one card in the AInbox card language: the guidance at rest, then the asking card, then the
         // answer kicked with the model and route that answered (or a failure card).
-        _visionOutputBox = new ThreadView("Snip.VisionOutputBox") { Dock = DockStyle.Top, Height = 60, ReserveScrollbar = false };
+        _visionOutputBox = new ThreadView("Snip.VisionOutputBox") { Dock = DockStyle.Top, Height = 60 };
         _visionOutputBox.ContentChanged += (_, _) => FitDrawer();
         _outputGap = WidgetChrome.Spacer(8);
 

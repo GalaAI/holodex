@@ -364,7 +364,7 @@ internal sealed class ApexEvaluationForm : Form
     private readonly Action _done;
     private readonly Dictionary<Skill, PhosphorField> _ratings = new();
     private readonly Dictionary<Skill, PhosphorField> _canDo = new();
-    private readonly PhosphorField _goals = new("What do you want to get better at this year?", multiline: true, heightPx: 64);
+    private readonly PhosphorField _goals = new("What do you want to get better at this year?", multiline: true, heightPx: 64) { Dock = DockStyle.Top };
     private readonly PhosphorCheckBox _baselines = new("Also take the reasoning and emotional baselines later (optional)") { Dock = DockStyle.Top, Height = 32 };
     private readonly PhosphorButton _submit = new("Evaluate", PhosphorButtonVariant.Primary) { Dock = DockStyle.Bottom, Name = "Apex.Submit" };
 
@@ -379,8 +379,11 @@ internal sealed class ApexEvaluationForm : Form
         BackColor = PhosphorTheme.Surface;
         Size = new Size(620, 760);
         TopMost = true;
+        // The frame's own margins, like every Holodex window: nothing sits on the window edge.
+        Padding = WidgetChrome.FramePadding();
 
-        var body = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = PhosphorTheme.Surface, Padding = new Padding(16, 8, 16, 8) };
+        // No native bar: the scroll beam's lane on the right is kept clear of the fields.
+        var body = new BeamPanel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Padding = new Padding(0, 8, ScrollBeam.LanePx + 4, 8) };
         var rows = new List<Control>();
         foreach (Skill s in Enum.GetValues<Skill>())
         {
@@ -398,13 +401,15 @@ internal sealed class ApexEvaluationForm : Form
         rows.Add(new EyebrowLabel("GOALS") { Dock = DockStyle.Top });
         rows.Add(_goals);
         rows.Add(_baselines);
-        rows.Add(new DataLabel("Apex sets where each skill starts. It is separate from the Genesis profile Gala keeps about you.") { Dock = DockStyle.Top });
+        rows.Add(new DataLabel("Apex sets where each skill starts. Gala's own profile is separate.") { Dock = DockStyle.Top });
         foreach (var c in Enumerable.Reverse(rows)) body.Controls.Add(c);
 
         _submit.Click += async (_, _) => await SubmitAsync();
         Controls.Add(body);
         Controls.Add(_submit);
         WidgetChrome.Attach(this, "APEX // EVALUATION", "Where you start", PhosphorTheme.Patina, null);
+        // Opens at the first skill, not wherever focus scrolled the list.
+        Shown += (_, _) => body.AutoScrollPosition = Point.Empty;
         WidgetDrag.Enable(this);
     }
 
@@ -456,6 +461,7 @@ internal sealed class GauntletForm : Form
         BackColor = PhosphorTheme.Surface;
         Size = new Size(520, 460);
         TopMost = true;
+        Padding = WidgetChrome.FramePadding();
         _clock.Font = PhosphorFonts.Display(40);
         _notes.Font = PhosphorFonts.Body(14);
         _notes.Text = quest.Briefing;

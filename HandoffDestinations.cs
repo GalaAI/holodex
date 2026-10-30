@@ -71,12 +71,20 @@ internal static class HandoffDestinations
                 local ? $"{label}, through its OpenAI-compatible endpoint." : $"{label} with your own key from the Vault.",
                 baseUrl, keyTarget, prefer));
         }
-        if (ark.Hivemind.State == HivemindState.Connected || HivemindClient.HasSavedSignIn)
+        if (OffersHivemindAgent(ark.Hivemind.State == HivemindState.Connected || HivemindClient.HasSavedSignIn, HivemindClient.GrantedScopes))
             list.Add(new HandoffDestination("hivemind", "Hivemind", DestinationKind.Hivemind,
                 $"Gala in a new Hivemind Session on {HivemindClient.EndpointHost}; the reply lands there and in Holodex Sessions."));
         list.Add(SaveOnPc);
         return list;
     }
+
+    /// <summary>
+    /// Whether the Hivemind (Gala) destination is offered: only for a sign-in that may ask agents (runtime.execute).
+    /// A Hivemind account without it (the public instance's accounts) cannot start a Gala session, so its handoffs go
+    /// to Holodex chat, where Nemotron answers through the same account.
+    /// </summary>
+    internal static bool OffersHivemindAgent(bool signedIn, IReadOnlySet<string>? granted) =>
+        signedIn && HivemindClient.Granted(granted, "runtime.execute");
 
     private static string? ReadKey(HandoffDestination d) =>
         d.KeyTarget.StartsWith("env:", StringComparison.Ordinal) ? HolodexVault.FromEnvironment(d.KeyTarget[4..])

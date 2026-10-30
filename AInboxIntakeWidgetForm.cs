@@ -27,7 +27,7 @@ public sealed class AInboxIntakeWidgetForm : Form
     private readonly Action<bool> _setThinkingState;
     private readonly OutboundQueue _queue = OutboundQueue.Shared;
 
-    private readonly FlowLayoutPanel _body;
+    private readonly BeamFlowPanel _body;
     private readonly CaptureWellControl _composer;
     private readonly Panel _stackHost;
     private readonly Panel _stackGap;
@@ -125,7 +125,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         _scroll = new SpecCardPanel { Name = "AInbox.HandoffScroll", Margin = new Padding(0, 0, 0, 8), Visible = false };
 
         // The body scrolls when a big stack outgrows the screen; header and footer stay put.
-        _body = new FlowLayoutPanel
+        _body = new BeamFlowPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.TopDown,
@@ -138,7 +138,6 @@ public sealed class AInboxIntakeWidgetForm : Form
         _body.Controls.Add(_summary);
         _body.Controls.Add(_scroll);
         _body.Resize += (_, _) => SizeBodyChildren();
-        PhosphorPaint.UseDarkScrollbars(_body);
 
         // Footer: what is happening and the queue's state on the left, the one primary on the right.
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "AInbox.Footer" };
@@ -565,7 +564,7 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     private void SizeBodyChildren()
     {
-        int w = _body.ClientSize.Width;
+        int w = _body.ClientSize.Width - ScrollBeam.Lane(_body);
         foreach (Control c in _body.Controls) if (c.Width != w) c.Width = w;
     }
 
@@ -579,7 +578,7 @@ public sealed class AInboxIntakeWidgetForm : Form
         if (_scrollOpen) _scroll.Height = _scroll.Padding.Vertical + _scroll.Controls.Cast<Control>().Sum(c => c.Height);
 
         SizeBodyChildren();
-        int w = _body.ClientSize.Width;
+        int w = _body.ClientSize.Width - ScrollBeam.Lane(_body);
         foreach (var c in _cards)
         {
             if (c is PredictionCard p) p.Height = p.HeightFor(w);

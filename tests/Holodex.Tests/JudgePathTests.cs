@@ -173,4 +173,15 @@ public class JudgePathTests
         Assert.Equal(new[] { "https://a.example/1", "https://b.example/2" }, sources);
         Assert.EndsWith("- https://b.example/2", WebSearch.WithSources("Answer from https://a.example/1.", sources));
     }
+
+    [Fact]
+    public void Gala_handoff_needs_an_agent_capable_sign_in()
+    {
+        // Public Hivemind accounts get model.invoke, web.search and runtime.read: no Gala session for them.
+        var account = new HashSet<string> { "model.invoke", "web.search", "runtime.read" };
+        var owner = new HashSet<string> { "runtime.read", "runtime.execute", "model.invoke" };
+        Assert.False(HandoffDestinations.OffersHivemindAgent(true, account));
+        Assert.True(HandoffDestinations.OffersHivemindAgent(true, owner));
+        Assert.False(HandoffDestinations.OffersHivemindAgent(false, owner));
+    }
 }

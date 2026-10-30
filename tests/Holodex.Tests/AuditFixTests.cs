@@ -83,6 +83,29 @@ public class AuditFixTests
         finally { VrStreamDetector.CacheFlushAllowed = false; }
     }
 
+    [Fact]
+    public void A_failure_card_never_shows_an_environment_variable_or_worker_internals()
+    {
+        string shown = PlainFailure.For("Native mission worker failed: Missing environment variable: ARK_MODEL_GATEWAY_INBOUND_KEY.", "Gala");
+        Assert.DoesNotContain("ARK_MODEL_GATEWAY_INBOUND_KEY", shown);
+        Assert.DoesNotContain("worker", shown);
+        Assert.StartsWith("Gala could not answer", shown);
+        Assert.False(PlainFailure.LooksInternal("Gala did not reply within 3 minutes. The Session stays open in Hivemind."));
+        Assert.Equal("Gala did not reply within 3 minutes.", PlainFailure.For("Gala did not reply within 3 minutes.", "Gala"));
+        Assert.True(PlainFailure.LooksInternal("POST https://api.example.com/v1 returned 502"));
+    }
+
+    [Fact]
+    public void Mouse_bindings_show_the_shortcut_registered_now_not_a_saved_one()
+    {
+        // Whatever this PC registered: the table's own label, or nothing; never what a profile saved.
+        Assert.Equal(GlobalHotkeys.Shown(GlobalHotkeys.Lasso), MouseHardwareAndWandEngine.ShortcutFor("snip:lasso"));
+        Assert.StartsWith("Ctrl+Alt", GlobalHotkeys.Lasso.Label);
+        Assert.Equal("", MouseHardwareAndWandEngine.ShortcutFor("no:such-action"));
+        foreach (var b in MouseHardwareAndWandEngine.GetDefaultMacroBindings())
+            Assert.DoesNotMatch(@"^Alt\+", b.Parameter);
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

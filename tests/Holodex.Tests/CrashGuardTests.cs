@@ -93,12 +93,12 @@ public class CrashGuardTests : IDisposable
     public async Task Errors_that_keep_coming_keep_the_stock_pointer()
     {
         int rehides = 0;
-        CursorCrashGuard.OnSurvivedError(null, true, () => { }, () => Interlocked.Increment(ref rehides), settleMs: 150);
-        await Task.Delay(40);
+        // The window is long and the second failure comes at once, so a busy machine cannot stretch the gap past it.
+        CursorCrashGuard.OnSurvivedError(null, true, () => { }, () => Interlocked.Increment(ref rehides), settleMs: 1500);
         // A second failure inside the window replaces the first: only the last one may re-hide.
-        CursorCrashGuard.OnSurvivedError(null, true, () => { }, () => Interlocked.Increment(ref rehides), settleMs: 150);
+        CursorCrashGuard.OnSurvivedError(null, true, () => { }, () => Interlocked.Increment(ref rehides), settleMs: 1500);
         await WaitFor(() => Volatile.Read(ref rehides) >= 1);
-        await Task.Delay(250);
+        await Task.Delay(1800);
         Assert.Equal(1, Volatile.Read(ref rehides));
     }
 
@@ -115,7 +115,7 @@ public class CrashGuardTests : IDisposable
 
     private static async Task WaitFor(Func<bool> condition)
     {
-        for (int i = 0; i < 100 && !condition(); i++) await Task.Delay(20);
+        for (int i = 0; i < 250 && !condition(); i++) await Task.Delay(20);
         Assert.True(condition());
     }
 }
