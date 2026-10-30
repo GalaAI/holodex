@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -62,16 +63,22 @@ internal static class VrStreamDetector
     internal static bool ShouldAllowCacheFlush(VrStreamMode mode, string? detectedStream) =>
         mode != VrStreamMode.Off && !string.IsNullOrEmpty(detectedStream);
 
+    /// <summary>Whether OculusDash was running at the last <see cref="Detect"/> (Program.VrTick, every 1.5 s).</summary>
+    private static volatile bool _dashRunning;
+
+    /// <summary>
+    /// Names the headset stream, from one process list per call: listing processes costs tens of milliseconds on a
+    /// busy PC, so it happens here on the VR timer and never on the render thread (see <see cref="EnsureOculusDashCursorCacheClean"/>).
+    /// </summary>
     public static string? Detect()
     {
         try
         {
-            if (Process.GetProcessesByName("VirtualDesktop.Streamer").Any())
+            var names = new HashSet<string>(Process.GetProcesses().Select(p => p.ProcessName), StringComparer.OrdinalIgnoreCase);
+            _dashRunning = names.Contains("OculusDash");
+            if (names.Contains("VirtualDesktop.Streamer"))
                 return "Virtual Desktop";
-
-            bool ovr = Process.GetProcessesByName("OVRServer_x64").Any();
-            bool dash = Process.GetProcessesByName("OculusDash").Any();
-            if (ovr && dash)
+            if (names.Contains("OVRServer_x64") && _dashRunning)
                 return "Meta Air Link / Link";
         }
         catch
@@ -91,7 +98,9 @@ internal static class VrStreamDetector
     {
         // Writing into another process's memory is what antivirus watches for: only while a headset stream is really
         // detected and the user has not turned VR mode off (Program.VrTick sets this). A plain desktop never gets it.
-        if (!CacheFlushAllowed) return false;
+        // The render thread calls this on every pointer re-hide: without OculusDash at the last VR tick it returns
+        // before listing processes, which would stall the pointer for a frame or more.
+        if (!CacheFlushAllowed || !_dashRunning) return false;
         try
         {
             var procs = Process.GetProcessesByName("OculusDash");

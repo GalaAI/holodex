@@ -17,7 +17,8 @@ internal sealed class OverlayZGuard
 {
     private const double RaiseEverySec = 0.12;
     private const double CheckEverySec = 0.016;
-    private const int SettleChecks = 1;
+    /// <summary>Checks that must agree before the pointer swaps (about 50 ms): one changed reading never flips it.</summary>
+    private const int SettleChecks = 3;
     private const int CursorRadiusPad = 28;
     private static readonly uint SelfPid = (uint)Environment.ProcessId;
 
@@ -43,7 +44,15 @@ internal sealed class OverlayZGuard
         if (nowSec - _lastCheck < CheckEverySec) return false;
         _lastCheck = nowSec;
 
-        bool covered = IsPointCoveredAbove(overlay, x, y);
+        return Settle(IsPointCoveredAbove(overlay, x, y));
+    }
+
+    /// <summary>
+    /// Takes one reading and says whether <see cref="Covered"/> changed. A swap restyles every system cursor, so it
+    /// happens only after <see cref="SettleChecks"/> readings in a row agree; a pointer on an edge does not flicker.
+    /// </summary>
+    internal bool Settle(bool covered)
+    {
         if (covered == Covered) { _pendingCount = 0; return false; }
         if (covered != _pendingCovered) { _pendingCovered = covered; _pendingCount = 0; }
         if (++_pendingCount < SettleChecks) return false;
@@ -55,6 +64,11 @@ internal sealed class OverlayZGuard
 
     private static bool IsPointCoveredAbove(IntPtr overlay, int x, int y)
     {
+        // 0. Right over one of Holodex's own windows (the tray menu, a panel), the wand draws on top: the taskbar a
+        //    few pixels below does not count. The tray menu sits on the taskbar, so without this every bottom row
+        //    read as covered and the pointer swapped as it moved.
+        if (OwnWindowAt(overlay, x, y)) return false;
+
         // 1. Fast 5-point probe around the cursor radius using WindowFromPoint + GetWindowBand.
         //    Windows 11 Toast Notifications (Windows.UI.Core.CoreWindow), Start Menu, Search, Action Center,
         //    and Taskbar flyouts live in higher DWM Z-bands (ZBID > 1) that EnumWindows does not order before ZBID_DEFAULT.
@@ -112,6 +126,17 @@ internal sealed class OverlayZGuard
             return true;
         }, IntPtr.Zero);
         return covered;
+    }
+
+    private static bool OwnWindowAt(IntPtr overlay, int x, int y)
+    {
+        IntPtr hit = WindowFromPoint(new POINT { X = x, Y = y });
+        if (hit == IntPtr.Zero || hit == overlay) return false;
+        IntPtr root = GetAncestor(hit, GA_ROOT);
+        if (root == IntPtr.Zero) root = hit;
+        if (root == overlay) return false;
+        GetWindowThreadProcessId(root, out uint pid);
+        return pid == SelfPid;
     }
 
     private static bool IsAboveOverlayShellClass(string cls)

@@ -53,6 +53,36 @@ public class AuditFixTests
             Assert.DoesNotMatch(pattern, File.ReadAllText(Path.Combine(root, file)));
     }
 
+    [Fact]
+    public void Pointer_does_not_swap_on_one_reading_near_the_taskbar()
+    {
+        var guard = new OverlayZGuard();
+        Assert.False(guard.Settle(true));
+        Assert.False(guard.Settle(false));
+        Assert.False(guard.Settle(true));
+        Assert.False(guard.Settle(true));
+        Assert.False(guard.Covered);
+        Assert.True(guard.Settle(true));
+        Assert.True(guard.Covered);
+    }
+
+    [Fact]
+    public void Re_hiding_the_pointer_lists_no_processes_without_oculus_dash()
+    {
+        // The flush is allowed (a stream was seen), but Detect found no OculusDash: the call returns at once.
+        // With a real OculusDash running the call would write its memory, so the test leaves that PC alone.
+        if (System.Diagnostics.Process.GetProcessesByName("OculusDash").Length > 0) return;
+        VrStreamDetector.CacheFlushAllowed = true;
+        try
+        {
+            VrStreamDetector.Detect();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < 50; i++) VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
+            Assert.True(clock.ElapsedMilliseconds < 50, $"50 re-hides took {clock.ElapsedMilliseconds} ms");
+        }
+        finally { VrStreamDetector.CacheFlushAllowed = false; }
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
