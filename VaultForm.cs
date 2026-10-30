@@ -108,7 +108,7 @@ internal sealed class VaultForm : Form
         Controls.Add(WidgetChrome.Spacer(PhosphorTheme.S2));
         Controls.Add(intake);
         Controls.Add(WidgetChrome.Spacer(6));
-        WidgetChrome.Attach(this, "APPS, SERVICES AND KEYS // KEYMASTER", "Vault", PhosphorTheme.Coral, null);
+        WidgetChrome.Attach(this, "APPS, SERVICES AND KEYS // YOUR VAULT", "Vault", PhosphorTheme.Coral, null);
         WidgetDrag.Enable(this);
         ResumeLayout(false);
     }
@@ -260,7 +260,7 @@ internal sealed class VaultForm : Form
         ShowTab(catalog: false);
         SetStatus(StatusLine(entry));
         if (entry.Target == HolodexVault.NebiusTarget) _ = _ark.CheckStatusAsync();
-        PhosphorToast.Show($"{entry.Label} is in your vault", StatusLine(entry), "KEYMASTER // VAULT", 3600,
+        PhosphorToast.Show($"{entry.Label} is in your vault", StatusLine(entry), "YOUR VAULT // SAVED", 3600,
             entry.Status == "failed" ? ToastTone.Warning : ToastTone.Success);
     }
 
@@ -272,7 +272,7 @@ internal sealed class VaultForm : Form
         entry = await HolodexVault.VerifyAsync(entry);
         ShowTab(catalog: false);
         SetStatus(StatusLine(entry));
-        PhosphorToast.Show($"{entry.Label} rotated", StatusLine(entry), "KEYMASTER // ROTATE", 3600,
+        PhosphorToast.Show($"{entry.Label} rotated", StatusLine(entry), "YOUR VAULT // ROTATED", 3600,
             entry.Status == "failed" ? ToastTone.Warning : ToastTone.Success);
     }
 

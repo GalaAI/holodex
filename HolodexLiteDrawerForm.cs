@@ -1546,8 +1546,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         {
             PhosphorToast.Show(
                 "Token Saved to Windows Vault",
-                "Stored in Windows Credential Manager (wincred://) and applied to this session.",
-                "KEYMASTER // WINCRED VAULT",
+                "Stored in Windows Credential Manager on this PC and in use now.",
+                "YOUR VAULT // THIS PC",
                 3600,
                 ToastTone.Success);
         }
@@ -1556,7 +1556,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             PhosphorToast.Show(
                 "Token Applied for Session Only",
                 "Could not write to Windows Credential Manager. The token works until Holodex closes.",
-                "KEYMASTER // WINCRED VAULT",
+                "YOUR VAULT // THIS PC",
                 4200,
                 ToastTone.Warning);
         }
