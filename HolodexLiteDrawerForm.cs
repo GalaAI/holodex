@@ -112,7 +112,24 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// (<see cref="ArkStationClient.AskOfflineSyndicateAsync"/>); once signed in, <see cref="LoadLiveRosterAsync"/>
     /// replaces it with Hivemind's ark_agents.
     /// </summary>
-    public static readonly SyndicateAgentInfo[] OfflineRoster =
+    public static SyndicateAgentInfo[] OfflineRoster => _offlineRoster ?? ArkRoster;
+    private static SyndicateAgentInfo[]? _offlineRoster;
+
+    /// <summary>The offline roster on a Holodex with no Ark: the same agents under the public pod names.</summary>
+    private static readonly SyndicateAgentInfo[] PublicRoster =
+    {
+        new("all",     "ALL AGENTS", "Group session",            "Command",     PhosphorTheme.Patina),
+        new("gala",    "GALA",       "Orchestrator",             "Command",     PhosphorTheme.Patina),
+        new("wiz",     "WIZ",        "GrimX & Mouse Macros",     "Build",       PhosphorTheme.Coral),
+        new("smith",   "SMITH",      "Architecture & Code",      "Build",       PhosphorTheme.Coral),
+        new("arbiter", "ARBITER",    "Infrastructure",           "Systems",     PhosphorTheme.Patina),
+        new("scholar", "SCHOLAR",    "Research",                 "Research",    PhosphorTheme.Patina),
+        new("muse",    "MUSE",       "Visual & Motion",          "Media",       PhosphorTheme.Coral),
+        new("fabrix",  "FABRIX",     "Hardware",                 "Fabrication", PhosphorTheme.Seal),
+        new("herald",  "HERALD",     "Publishing",               "Publish",     PhosphorTheme.Seal)
+    };
+
+    private static readonly SyndicateAgentInfo[] ArkRoster =
     {
         new("all",     "ALL SYNDICATE", "Co-op Group Session",          "Nexus",    PhosphorTheme.Patina),
         new("gala",    "GALA",          "Co-op Orchestrator",           "Nexus",    PhosphorTheme.Patina),
@@ -135,6 +152,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         Action<CursorIconStyle> onCursorStyleChanged)
     {
         _ark = ark;
+        _offlineRoster = ark.ArkInstalled ? ArkRoster : PublicRoster;
+        _roster = OfflineRoster;
         _setThinkingState = setThinkingState;
         _openWiz = openWiz;
         _openAInbox = openAInbox;
