@@ -445,8 +445,10 @@ public sealed class OmniwandHudForm : Form
             _askCancel = null;
             _working = false;
             _setThinkingState(false);
-            // After _working clears: who answers the next ask, now that this one has settled.
+            // After _working clears: who answers the next ask, now that this one has settled (a handed-off Gala
+            // watch still running, or a failure just recorded, moves the LED, chip and button off Gala).
             SyncAskLabel();
+            _ = RefreshGalaStateAsync();
             _promptBox.Enabled = true;
             _askBtn.Enabled = true;
             _promptBox.Focus();
