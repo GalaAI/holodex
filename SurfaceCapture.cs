@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// As-built captures: the running app draws its real surfaces offscreen to PNG (pipe command
@@ -93,7 +93,7 @@ internal static class SurfaceCapture
                 Save(RenderForm(snip), Path.Combine(dir, "snip-answer.png"), written);
                 snip.PreviewState("reset");
             }
-            if (form is OmniwandHudForm hud)
+            if (form is HolodexHudForm hud)
             {
                 // A question with the screen, then the card it holds while asking, answered and failed.
                 foreach (var (state, file) in new[] { ("asking", "hud-asking"), ("answered", "hud-answer"), ("failed", "hud-failed") })
@@ -219,7 +219,7 @@ internal static class SurfaceCapture
     internal static readonly Rectangle TrayScreen = new(0, 0, 1920, 1080);
     internal static readonly Rectangle TrayWorkArea = new(0, 0, 1920, 1032);
 
-    /// <summary>Pointer on the Omniwand tray icon, near the clock at the bottom-right.</summary>
+    /// <summary>Pointer on the Holodex tray icon, near the clock at the bottom-right.</summary>
     internal static readonly Point TrayAnchor = new(1790, 1056);
 
     /// <summary>The tray icon on <see cref="TrayScreen"/>: a 24px slot centered on <see cref="TrayAnchor"/>.</summary>

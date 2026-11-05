@@ -13,7 +13,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 // The AInbox intake domain (AInboxUpload CP-27, design targets "Capture tools" and "Stack, predict, review"):
 // captures carry their origin, stack into context groups, Omnitek ranks what each group should become (Nemotron
@@ -515,7 +515,7 @@ internal sealed record AegisFinding(string Kind, string Masked, string Secret);
 
 /// <summary>
 /// Aegis secret gate: finds tokens and keys in text captures and text files. Found secrets are redacted in what
-/// leaves Omniwand; the operator can stow each one in Windows Credential Manager. Images are not scanned.
+/// leaves Holodex; the operator can stow each one in Windows Credential Manager. Images are not scanned.
 /// </summary>
 internal static class AegisScanner
 {
@@ -611,7 +611,7 @@ internal static class HandoffSeal
 internal sealed class OutboundQueue
 {
     public const string ServiceUrl = "http://127.0.0.1:8840";
-    private static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "ainbox-queue");
+    private static readonly string Root = Path.Combine(HolodexNames.DataRoot, "ainbox-queue");
     private static readonly string PendingDir = Path.Combine(Root, "pending");
     private static readonly string SentDir = Path.Combine(Root, "sent");
     private static readonly string BlobDir = Path.Combine(Root, "blobs");

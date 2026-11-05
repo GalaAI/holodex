@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 public sealed record SyndicateAgentInfo(
     string Id,
@@ -227,7 +227,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         // The key row is optional (Hivemind's sign-in answers without one), so Use a key is always offered.
         _connected = true;
 
-        // Who Omniwand runs as on this machine: the Windows account, read from the system, never typed in.
+        // Who Holodex runs as on this machine: the Windows account, read from the system, never typed in.
         var identityLine = new LedRow { Dock = DockStyle.Top, Height = 28, Name = "Holodex.ProfileIdentity" };
         identityLine.Set((PhosphorTheme.Patina, $"WINDOWS // {Environment.UserDomainName}\\{Environment.UserName}"), (PhosphorTheme.Ghost, $"HOLODEX {HolodexVersion.Display}"));
 
@@ -1304,7 +1304,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
             }
 
             // The model exactly as Hivemind's receipt names it, in the body (kickers are drawn uppercase), so the id can
-            // be checked against Hivemind; it is the receipt's claim, not Omniwand's.
+            // be checked against Hivemind; it is the receipt's claim, not Holodex's.
             string model = $"\n\nModel (Hivemind receipt): {(mission.Model.Length > 0 ? mission.Model : "not reported")}";
             if (mission.Status == "completed")
             {

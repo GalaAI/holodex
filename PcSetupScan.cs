@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Text.Json.Nodes;
 using Microsoft.Win32;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>Where a tool stands on this PC: not here, installed but not answering, or running.</summary>
 internal enum PcToolState { Missing, Installed, Running }

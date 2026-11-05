@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// AInbox intake (Ctrl+Alt+I, Actions Ring slot 8, pipe ainbox:summon), built to the design targets "Capture tools" and
@@ -767,18 +767,18 @@ public sealed class AInboxIntakeWidgetForm : Form
 
     // ---- Aegis -------------------------------------------------------------------------------------------------
 
-    /// <summary>Keeps each found secret in Windows Credential Manager (VaultStow) under an Omniwand:Aegis target.</summary>
+    /// <summary>Keeps each found secret in Windows Credential Manager (VaultStow) under an Holodex:Aegis target.</summary>
     private void StowSecrets()
     {
         var found = _items.SelectMany(i => i.Secrets).GroupBy(f => f.Secret).Select(x => x.First()).ToList();
         int stowed = 0;
         foreach (var f in found)
         {
-            string target = $"Omniwand:Aegis:{f.Kind.Replace(' ', '-')}:{ArkStationClient.Sha256Hex(Encoding.UTF8.GetBytes(f.Secret))[..8]}";
+            string target = $"Holodex:Aegis:{f.Kind.Replace(' ', '-')}:{ArkStationClient.Sha256Hex(Encoding.UTF8.GetBytes(f.Secret))[..8]}";
             if (ArkStationClient.TryWriteWindowsCredential(target, f.Secret)) stowed++;
         }
         PhosphorToast.Show(stowed == found.Count ? $"Stowed {stowed} in the vault" : $"Stowed {stowed} of {found.Count}",
-            "Windows Credential Manager, targets Omniwand:Aegis:*. The handoff still carries them redacted.", $"{AegisCard.GateName} // VAULT", 3600,
+            "Windows Credential Manager, targets Holodex:Aegis:*. The handoff still carries them redacted.", $"{AegisCard.GateName} // VAULT", 3600,
             stowed == found.Count ? ToastTone.Success : ToastTone.Warning);
     }
 

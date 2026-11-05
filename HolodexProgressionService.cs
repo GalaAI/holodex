@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>Model calls for the progression agents, routed by kind: Nebius Nemotron unless the router picked another provider.</summary>
 internal sealed class RoutedGalaModel : IGalaModel
@@ -35,8 +35,7 @@ internal sealed class RoutedGalaModel : IGalaModel
 /// </summary>
 public sealed class HolodexProgressionService : IDisposable
 {
-    public static readonly string HabitsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "habits.txt");
+    public static readonly string HabitsPath = Path.Combine(HolodexNames.DataRoot, "habits.txt");
 
     private readonly ArkStationClient _ark;
     private readonly SynchronizationContext _ui;

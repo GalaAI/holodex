@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>One plain value from @ark/tokens, as generated into PhosphorTokens.cs.</summary>
 internal readonly record struct PhosphorToken(string Name, string Value, string File, string Note);
 
-/// <summary>Omniwand-local value that deliberately differs from packages/tokens (operator rule). Never exported as a token edit.</summary>
+/// <summary>Holodex-local value that deliberately differs from packages/tokens (operator rule). Never exported as a token edit.</summary>
 internal readonly record struct PhosphorLocal(string Name, string Value, string TokenName, string Reason);
 
 /// <summary>
@@ -19,26 +19,26 @@ internal readonly record struct PhosphorLocal(string Name, string Value, string 
 public static class PhosphorTheme
 {
     /// <summary>
-    /// Omniwand-local metrics that differ from packages/tokens on purpose. CLAUDE.md rule 6 fixes eyebrows at
+    /// Holodex-local metrics that differ from packages/tokens on purpose. CLAUDE.md rule 6 fixes eyebrows at
     /// 10px with 0.16em tracking for widget density; the token says 12px and 0.12em. The UI Lab lists these
     /// beside the tokens (here and in CLAUDE.md) so the difference stays visible until the design system resolves it.
     /// </summary>
     internal static readonly PhosphorLocal[] Locals =
     {
-        new("omniwand-eyebrow-size", "10px", "eyebrow-size", "CLAUDE.md rule 6: widget eyebrows are 10px"),
-        new("omniwand-eyebrow-tracking", "0.16em", "eyebrow-tracking", "CLAUDE.md rule 6: 0.16em tracking"),
-        new("omniwand-tip-dwell", "180ms", "", "CP-34 AnimatedTooltip opens 180ms after hover"),
-        new("omniwand-tip-gap", "8px", "s2", "CP-34: 8px from the trigger"),
-        new("omniwand-tip-shift", "4px", "u", "CP-34: translateX(-u) toward the trigger"),
-        new("omniwand-tip-from-scale", "0.96", "", "CP-34: scale(0.96) at open"),
-        new("omniwand-select-radius-closed", "8px", "radius-menu-closed", "CP-32 trigger corner closed"),
-        new("omniwand-select-radius-open", "12px", "radius-menu-open", "CP-32 trigger and panel corner open"),
-        new("omniwand-select-gap", "8px", "s2", "CP-32: the drop sits s2 from the trigger"),
-        new("omniwand-select-row", "44px", "touch-min", "CP-32 rows are touch height"),
-        new("omniwand-select-chevron", "120ms", "", "CP-32 chevron turns over in 120ms"),
-        new("omniwand-select-stagger", "12ms", "", "CP-32 items stagger 12ms"),
-        new("omniwand-turn-shift", "0.2", "", "CP-31 drill-down pages slide in from 20%"),
-        new("omniwand-reduced-motion", "auto", "", "auto follows Windows animation effects; on or off forces it"),
+        new("holodex-eyebrow-size", "10px", "eyebrow-size", "CLAUDE.md rule 6: widget eyebrows are 10px"),
+        new("holodex-eyebrow-tracking", "0.16em", "eyebrow-tracking", "CLAUDE.md rule 6: 0.16em tracking"),
+        new("holodex-tip-dwell", "180ms", "", "CP-34 AnimatedTooltip opens 180ms after hover"),
+        new("holodex-tip-gap", "8px", "s2", "CP-34: 8px from the trigger"),
+        new("holodex-tip-shift", "4px", "u", "CP-34: translateX(-u) toward the trigger"),
+        new("holodex-tip-from-scale", "0.96", "", "CP-34: scale(0.96) at open"),
+        new("holodex-select-radius-closed", "8px", "radius-menu-closed", "CP-32 trigger corner closed"),
+        new("holodex-select-radius-open", "12px", "radius-menu-open", "CP-32 trigger and panel corner open"),
+        new("holodex-select-gap", "8px", "s2", "CP-32: the drop sits s2 from the trigger"),
+        new("holodex-select-row", "44px", "touch-min", "CP-32 rows are touch height"),
+        new("holodex-select-chevron", "120ms", "", "CP-32 chevron turns over in 120ms"),
+        new("holodex-select-stagger", "12ms", "", "CP-32 items stagger 12ms"),
+        new("holodex-turn-shift", "0.2", "", "CP-31 drill-down pages slide in from 20%"),
+        new("holodex-reduced-motion", "auto", "", "auto follows Windows animation effects; on or off forces it"),
     };
 
     private static volatile Dictionary<string, string> Values = BuildValues();
@@ -152,8 +152,8 @@ public static class PhosphorTheme
     public static float TextData => N("text-size-data");
     public static float TextBadge => N("text-size-badge");
     public static float TextButton => N("text-size-btn");
-    public static float EyebrowPx => N("omniwand-eyebrow-size");
-    public static float EyebrowTrackingEm => N("omniwand-eyebrow-tracking");
+    public static float EyebrowPx => N("holodex-eyebrow-size");
+    public static float EyebrowTrackingEm => N("holodex-eyebrow-tracking");
 
     /// <summary>Eyebrow letter spacing in px at the given DPI scale.</summary>
     public static float EyebrowTracking(float scale) => EyebrowPx * EyebrowTrackingEm * scale;

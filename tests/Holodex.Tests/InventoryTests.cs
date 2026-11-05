@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;

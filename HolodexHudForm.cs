@@ -6,7 +6,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Summonable Phosphor Shell HUD (Ctrl+Alt+Space, Actions Ring "Summon HUD", pipe hud:summon). One composer: ask about
@@ -17,7 +17,7 @@ namespace Omniwand;
 /// which model answers. Under the answer: one telemetry line (gateway, Input Spine 8842, the connected mouse) and
 /// the wand shortcuts behind a collapsed SHORTCUTS row (the answer area is not a help panel, operator 2026-10-18).
 /// </summary>
-public sealed class OmniwandHudForm : Form
+public sealed class HolodexHudForm : Form
 {
     /// <summary>The answer box grows with the answer up to this (logical px, scaled by DPI) or half the work area.</summary>
     private const int AnswerMaxHeight = 520;
@@ -68,7 +68,7 @@ public sealed class OmniwandHudForm : Form
     private string? _mouseModel;
     private Task? _mouseScan;
 
-    public OmniwandHudForm(
+    public HolodexHudForm(
         ArkStationClient ark,
         Action<bool> setThinkingState,
         Action<Point> openWizCrafting,
@@ -716,7 +716,7 @@ public sealed class OmniwandHudForm : Form
             if (!button.Selected) return;
             try
             {
-                string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
+                string dir = HolodexNames.DataRoot;
                 Directory.CreateDirectory(dir);
                 File.AppendAllText(Path.Combine(dir, "feedback.jsonl"), System.Text.Json.JsonSerializer.Serialize(new
                 {

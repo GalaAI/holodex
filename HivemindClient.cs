@@ -12,7 +12,7 @@ using ModelContextProtocol.Authentication;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
-namespace Omniwand;
+namespace Holodex;
 
 public enum HivemindState
 {
@@ -20,7 +20,7 @@ public enum HivemindState
     NotSignedIn,
     /// <summary>A saved sign-in that has not been tried yet (startup, before the first call).</summary>
     Connecting,
-    /// <summary>The browser sign-in is open and Omniwand is waiting for its redirect.</summary>
+    /// <summary>The browser sign-in is open and Holodex is waiting for its redirect.</summary>
     SigningIn,
     Connected,
     /// <summary>Signed in before, but the endpoint or the saved sign-in did not work just now (see LastError).</summary>
@@ -102,36 +102,36 @@ public sealed record WebSearchResult(string Title, string Url, string Content);
 public sealed record HivemindSession(HivemindSessionSummary Summary, IReadOnlyList<HivemindSessionMessage> Messages);
 
 /// <summary>
-/// Omniwand's connection to the user's Hivemind: the remote MCP server at <see cref="Endpoint"/> (OMNIWAND_HIVEMIND_URL,
+/// Holodex's connection to the user's Hivemind: the remote MCP server at <see cref="Endpoint"/> (HOLODEX_HIVEMIND_URL,
 /// else the hosted Hivemind), through the
 /// official MCP C# SDK (ModelContextProtocol.Core) and its OAuth 2.1 client. Sign-in is the server's public-client
 /// flow: dynamic registration, PKCE S256, and a browser sign-in that redirects to a fixed loopback port
 /// (Hivemind matches redirect URIs exactly, so the port never changes). Tokens and the registered client id live in
-/// the Windows Credential Manager slot <c>Omniwand:HivemindToken</c>; the SDK refreshes them, so the browser opens
+/// the Windows Credential Manager slot <c>Holodex:HivemindToken</c>; the SDK refreshes them, so the browser opens
 /// only on the sign-in the operator starts (<see cref="SignInAsync"/>), never from a background call.
 /// </summary>
 public sealed class HivemindClient : IAsyncDisposable
 {
-    /// <summary>The hosted Hivemind, used when OMNIWAND_HIVEMIND_URL names no other.</summary>
+    /// <summary>The hosted Hivemind, used when HOLODEX_HIVEMIND_URL names no other.</summary>
     public const string HostedHivemindUrl = "https://hivemind-public-production.up.railway.app/mcp";
 
     /// <summary>
-    /// The Hivemind this install signs in to: OMNIWAND_HIVEMIND_URL (process, then user environment), else the hosted
+    /// The Hivemind this install signs in to: HOLODEX_HIVEMIND_URL (process, then user environment), else the hosted
     /// one. A URL without a path gets Hivemind's /mcp. An unusable value falls back to the hosted Hivemind.
     /// </summary>
     public static readonly Uri Endpoint = ResolveEndpoint(
-        Environment.GetEnvironmentVariable("OMNIWAND_HIVEMIND_URL") ??
-        Environment.GetEnvironmentVariable("OMNIWAND_HIVEMIND_URL", EnvironmentVariableTarget.User));
+        HolodexNames.ReadEnv("HOLODEX_HIVEMIND_URL") ??
+        HolodexNames.ReadEnv("HOLODEX_HIVEMIND_URL", EnvironmentVariableTarget.User));
 
     public static readonly Uri RedirectUri = new("http://127.0.0.1:47613/hivemind/callback/");
 
     /// <summary>
-    /// The Credential Manager slot for the sign-in: <c>Omniwand:HivemindToken</c> for the hosted Hivemind, and one
+    /// The Credential Manager slot for the sign-in: <c>Holodex:HivemindToken</c> for the hosted Hivemind, and one
     /// per host for any other, so two Hiveminds never share tokens or a registered client id.
     /// </summary>
     public static readonly string CredentialTarget = Endpoint.AbsoluteUri == HostedHivemindUrl
-        ? "Omniwand:HivemindToken"
-        : $"Omniwand:HivemindToken:{Endpoint.Authority}";
+        ? "Holodex:HivemindToken"
+        : $"Holodex:HivemindToken:{Endpoint.Authority}";
 
     /// <summary>The Hivemind web app's Sessions view (it addresses views, not single rooms), on the same host.</summary>
     public static readonly Uri WebSessionsView = new(Endpoint, "/?view=sessions");
@@ -236,8 +236,8 @@ public sealed class HivemindClient : IAsyncDisposable
     public Task<bool> SignInAsync(CancellationToken ct = default) => ConnectAsync(interactive: true, ct);
 
     /// <summary>
-    /// Signs Omniwand out of Hivemind: drops the connection and deletes the saved tokens and client id from
-    /// <c>Omniwand:HivemindToken</c>. The next Sign in registers again and opens the browser.
+    /// Signs Holodex out of Hivemind: drops the connection and deletes the saved tokens and client id from
+    /// <c>Holodex:HivemindToken</c>. The next Sign in registers again and opens the browser.
     /// </summary>
     public async Task SignOutAsync()
     {

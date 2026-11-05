@@ -5,7 +5,7 @@ using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The Spells tab inventory: an orb per Spell kind, built from the Augment Inventory FolderPocket (CP-36) made round.

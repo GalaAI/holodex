@@ -7,7 +7,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Phosphor Shell primitives for the summoned widgets. Every color, radius, spacing step and type size resolves
@@ -102,7 +102,7 @@ internal static class PhosphorFonts
         return _body != null ? FromFamily(_body, Pt(px), FontStyle.Regular) : new Font("Segoe UI", Pt(px), GraphicsUnit.Point);
     }
 
-    /// <summary>The eyebrow face: mono at the Omniwand eyebrow size (CLAUDE.md rule 6).</summary>
+    /// <summary>The eyebrow face: mono at the Holodex eyebrow size (CLAUDE.md rule 6).</summary>
     public static Font Eyebrow() => Mono(PhosphorTheme.EyebrowPx);
 }
 
@@ -309,7 +309,7 @@ internal static class PhosphorPaint
     }
 }
 
-/// <summary>Eyebrow: uppercase JetBrains Mono, Omniwand eyebrow size and tracking, ghost. Route copy uses //.</summary>
+/// <summary>Eyebrow: uppercase JetBrains Mono, Holodex eyebrow size and tracking, ghost. Route copy uses //.</summary>
 internal sealed class EyebrowLabel : Control
 {
     private Color? _accent;

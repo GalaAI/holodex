@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Wiz: the GrimX Spell crafting agent (Ctrl+Alt+W, Actions Ring slot 7, pipe wiz:summon). The thread is the body and

@@ -1,4 +1,4 @@
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;

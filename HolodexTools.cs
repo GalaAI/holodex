@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The tools Nemotron gets on this PC, next to web_search (<see cref="WebSearch"/>), each switched on by a Vault

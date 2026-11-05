@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The skill tree: the overall level in the middle, the ten skills on a ring around it. Each node shows its level,
@@ -337,9 +337,9 @@ internal sealed class HolodexStatsPanel : Panel
         if (dest.Count == 0)
         {
             if (RealmConnectors.HivemindServesArkHub(HivemindClient.Endpoint))
-                PhosphorToast.Show("ArkHub is not set up", "Save a Discord webhook as Omniwand:DiscordWebhook in Credential Manager, or turn on the ArkHub slot in connectors.json.", "HERALD // ARKHUB", 6000, ToastTone.Warning);
+                PhosphorToast.Show("ArkHub is not set up", "Save a Discord webhook as Holodex:DiscordWebhook in Credential Manager, or turn on the ArkHub slot in connectors.json.", "HERALD // ARKHUB", 6000, ToastTone.Warning);
             else
-                PhosphorToast.Show("Nowhere to share yet", "ArkHub is not on the public Hivemind. To share to Discord, save a Discord webhook as Omniwand:DiscordWebhook in Credential Manager.", "HOLODEX // SHARE", 6000, ToastTone.Info);
+                PhosphorToast.Show("Nowhere to share yet", "ArkHub is not on the public Hivemind. To share to Discord, save a Discord webhook as Holodex:DiscordWebhook in Credential Manager.", "HOLODEX // SHARE", 6000, ToastTone.Info);
             return;
         }
         var standings = _svc.Ledger.Standings("user");

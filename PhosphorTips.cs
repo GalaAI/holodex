@@ -5,7 +5,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Motion helpers bound to the packages/tokens motion contract: dur-disclosure (240ms),
@@ -18,12 +18,12 @@ internal static class PhosphorMotion
     public static int DurDisclosureItem => Math.Max(1, PhosphorTheme.Px("dur-disclosure-item"));
     public static int DurBloom => Math.Max(1, PhosphorTheme.Px("dur-bloom"));
 
-    /// <summary>Whether to skip motion: omniwand-reduced-motion "on" or "off" forces it, "auto" follows Windows.</summary>
+    /// <summary>Whether to skip motion: holodex-reduced-motion "on" or "off" forces it, "auto" follows Windows.</summary>
     public static bool ReducedMotion
     {
         get
         {
-            switch (PhosphorTheme.Value("omniwand-reduced-motion"))
+            switch (PhosphorTheme.Value("holodex-reduced-motion"))
             {
                 case "on": return true;
                 case "off": return false;
@@ -288,7 +288,7 @@ internal static class SurfaceMotion
 internal sealed record PhosphorTipInfo(string Title, string Body, string? Keys = null);
 
 /// <summary>
-/// One hover tooltip for every Omniwand surface. Controls opt in by Name (the catalog below), so no form
+/// One hover tooltip for every Holodex surface. Controls opt in by Name (the catalog below), so no form
 /// carries its own tooltip code. A message filter watches mouse movement, waits a short dwell, then shows a
 /// non-activating tip the way the Augment Inventory's AnimatedTooltip (CP-34) opens: after 180ms of hover, 8px from
 /// the trigger, fading and scaling from 96% toward the trigger on dur-bloom with ease-analog, and closing the same way
@@ -297,7 +297,7 @@ internal sealed record PhosphorTipInfo(string Title, string Body, string? Keys =
 internal static class PhosphorTips
 {
     /// <summary>CP-34's open delay (AnimatedTooltip.tsx, Tooltip.Trigger delay={180}).</summary>
-    private static int DwellMs => Math.Max(1, PhosphorTheme.Px("omniwand-tip-dwell"));
+    private static int DwellMs => Math.Max(1, PhosphorTheme.Px("holodex-tip-dwell"));
 
     private static readonly Dictionary<string, PhosphorTipInfo> Catalog = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -342,7 +342,7 @@ internal static class PhosphorTips
         ["AInbox.CapturedRow"] = new("Capture", "One capture: its kind, name and origin detail. The x takes it out of the stack."),
         ["AInbox.Prediction"] = new("What should this become", "Holodex ranks the intents for this group; Nemotron 3 Nano re-ranks, explains and synthesizes. Click a row to steer.", "Up/Down"),
         ["AInbox.Aegis"] = new("Secret scan","Secrets found in text captures. They are redacted before anything is sent. Images are not scanned."),
-        ["AInbox.StowButton"] = new("Stow in Vault", "Keeps each found secret in Windows Credential Manager under Omniwand:Aegis."),
+        ["AInbox.StowButton"] = new("Stow in Vault", "Keeps each found secret in Windows Credential Manager under Holodex:Aegis."),
         ["AInbox.SyncStatus"] = new("Delivery", "Handoffs are saved on this PC under Documents\\Holodex\\Scrolls, or delivered to an AInbox service when one runs; queued ones retry every 30 seconds."),
         ["AInbox.ScrollSummary"] = new("Handoff scroll", "The active group's scroll in one line. Review opens it to read and edit."),
         ["AInbox.ScrollField"] = new("Scroll field", "Fields follow the chosen intent. The tag says where the value came from: predicted, from the stack, Nemotron, or you."),
@@ -593,10 +593,10 @@ internal static class PhosphorTips
     private sealed class TipForm : Form
     {
         /// <summary>CP-34's sideOffset: the --s2 spacing token.</summary>
-        private static float GapPx => PhosphorTheme.N("omniwand-tip-gap");
+        private static float GapPx => PhosphorTheme.N("holodex-tip-gap");
         /// <summary>The one-unit shift (--u) toward the trigger at the start and end of the motion.</summary>
-        private static float ShiftPx => PhosphorTheme.N("omniwand-tip-shift");
-        private static float FromScale => Math.Clamp(PhosphorTheme.N("omniwand-tip-from-scale"), 0.5f, 1f);
+        private static float ShiftPx => PhosphorTheme.N("holodex-tip-shift");
+        private static float FromScale => Math.Clamp(PhosphorTheme.N("holodex-tip-from-scale"), 0.5f, 1f);
         /// <summary>Where the trigger is from the tip: the scale origin and the direction of the shift.</summary>
         private Point _toward;
         private float _scale = 1f;

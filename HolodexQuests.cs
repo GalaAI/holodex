@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>A model call for the progression agents; the app routes it through <see cref="TaskRouter"/>.</summary>
 public interface IGalaModel
@@ -46,11 +46,10 @@ public sealed record Quest
     public DateTimeOffset OfferedAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-/// <summary>The quests on offer and in progress, saved to <c>%LOCALAPPDATA%\Omniwand\quests.json</c>.</summary>
+/// <summary>The quests on offer and in progress, saved to <c>%LOCALAPPDATA%\Holodex\quests.json</c>.</summary>
 public sealed class QuestBoard
 {
-    public static readonly string DefaultPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "quests.json");
+    public static readonly string DefaultPath = Path.Combine(HolodexNames.DataRoot, "quests.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -323,14 +322,13 @@ public sealed class LedgerActivitySource : IActivitySource
 }
 
 /// <summary>
-/// A demo account's day, read from <c>%LOCALAPPDATA%\Omniwand\demo-activity.json</c> (a list of
+/// A demo account's day, read from <c>%LOCALAPPDATA%\Holodex\demo-activity.json</c> (a list of
 /// <see cref="ActivityEvent"/>). It stands in for connected Google Photos, Maps and Mail until a dev account is
 /// connected in Hivemind, and every event it gives is labelled demo.
 /// </summary>
 public sealed class DemoActivitySource : IActivitySource
 {
-    public static readonly string DefaultPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "demo-activity.json");
+    public static readonly string DefaultPath = Path.Combine(HolodexNames.DataRoot, "demo-activity.json");
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

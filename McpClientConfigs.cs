@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using Tomlyn;
 using Tomlyn.Model;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// An MCP server the user already set up in another client. Only what is needed to show it and to start it the way

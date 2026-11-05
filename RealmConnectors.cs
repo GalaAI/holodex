@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// A service Holodex can hand tasks to (Hivemind, Ryozan, and any added later). Each slot holds an address, a
@@ -34,7 +34,7 @@ public sealed record RealmConnector
     {
         get
         {
-            string? env = string.IsNullOrEmpty(UrlEnvVar) ? null : Environment.GetEnvironmentVariable(UrlEnvVar);
+            string? env = string.IsNullOrEmpty(UrlEnvVar) ? null : HolodexNames.ReadEnv(UrlEnvVar);
             return (string.IsNullOrWhiteSpace(env) ? BaseUrl : env.Trim()).TrimEnd('/');
         }
     }
@@ -43,18 +43,17 @@ public sealed record RealmConnector
 public sealed record RealmHealth(string ConnectorId, bool Reachable, int StatusCode, bool KeyPresent, string Detail);
 
 /// <summary>
-/// Loads the connector slots from <c>%LOCALAPPDATA%\Omniwand\connectors.json</c>, falling back to the defaults, and
+/// Loads the connector slots from <c>%LOCALAPPDATA%\Holodex\connectors.json</c>, falling back to the defaults, and
 /// probes their health. Adding a service is one more entry in that file; nothing else changes.
 /// </summary>
 public sealed class RealmConnectors
 {
-    public static readonly string DefaultConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "connectors.json");
+    public static readonly string DefaultConfigPath = Path.Combine(HolodexNames.DataRoot, "connectors.json");
 
     /// <summary>The owner's private Hivemind, the only one that serves the ArkHub and Social Mod routes.</summary>
     public const string PrivateHivemindHost = "hivemind.arkomnitek.com";
 
-    /// <summary>The origin of the Hivemind this install signs in to (OMNIWAND_HIVEMIND_URL, else the public default).</summary>
+    /// <summary>The origin of the Hivemind this install signs in to (HOLODEX_HIVEMIND_URL, else the public default).</summary>
     public static readonly string HivemindOrigin = HivemindClient.Endpoint.GetLeftPart(UriPartial.Authority);
 
     /// <summary>Whether this install's Hivemind serves ArkHub and Social Mod; the public Hivemind does not.</summary>
@@ -65,7 +64,7 @@ public sealed class RealmConnectors
     {
         Id = "hivemind",
         Label = "Hivemind",
-        // HivemindClient.Endpoint already honours OMNIWAND_HIVEMIND_URL (which names the /mcp path), so the slot takes
+        // HivemindClient.Endpoint already honours HOLODEX_HIVEMIND_URL (which names the /mcp path), so the slot takes
         // its origin rather than reading the variable again.
         BaseUrl = HivemindOrigin,
         HealthPath = "/health",
@@ -82,8 +81,8 @@ public sealed class RealmConnectors
         Label = "Ryozan",
         BaseUrl = "https://ryozan-production.up.railway.app",
         HealthPath = "/health",
-        CredentialTarget = "Omniwand:RyozanToken",
-        UrlEnvVar = "OMNIWAND_RYOZAN_URL",
+        CredentialTarget = "Holodex:RyozanToken",
+        UrlEnvVar = "HOLODEX_RYOZAN_URL",
         Enabled = false,
         Accepts = new[] { TaskKind.Publish, TaskKind.Summarize }
     };
@@ -95,8 +94,8 @@ public sealed class RealmConnectors
         Label = "ArkHub",
         BaseUrl = HivemindOrigin + "/arkhub",
         HealthPath = "/health",
-        CredentialTarget = "Omniwand:ArkHubToken",
-        UrlEnvVar = "OMNIWAND_ARKHUB_URL",
+        CredentialTarget = "Holodex:ArkHubToken",
+        UrlEnvVar = "HOLODEX_ARKHUB_URL",
         Enabled = false,
         Accepts = new[] { TaskKind.Publish }
     };
@@ -108,8 +107,8 @@ public sealed class RealmConnectors
         Label = "Social Mod",
         BaseUrl = HivemindOrigin + "/social",
         HealthPath = "/health",
-        CredentialTarget = "Omniwand:SocialModToken",
-        UrlEnvVar = "OMNIWAND_SOCIAL_MOD_URL",
+        CredentialTarget = "Holodex:SocialModToken",
+        UrlEnvVar = "HOLODEX_SOCIAL_MOD_URL",
         Enabled = false,
         Accepts = new[] { TaskKind.Publish }
     };
@@ -121,7 +120,7 @@ public sealed class RealmConnectors
         Label = "Skool",
         BaseUrl = "https://www.skool.com",
         HealthPath = "/",
-        UrlEnvVar = "OMNIWAND_SKOOL_URL",
+        UrlEnvVar = "HOLODEX_SKOOL_URL",
         Enabled = false,
         Accepts = new[] { TaskKind.Publish }
     };

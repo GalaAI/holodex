@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <!-- Same WPF drop as Omniwand.csproj: WebView2 pulls in a WPF host and a second WindowsBase. -->
+    <!-- Same WPF drop as Holodex.csproj: WebView2 pulls in a WPF host and a second WindowsBase. -->
     <NoWarn>$(NoWarn);MSB3277</NoWarn>
   </PropertyGroup>
   <ItemGroup>
@@ -14,6 +14,6 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Omniwand.csproj" />
+    <ProjectReference Include="..\..\Holodex.csproj" />
   </ItemGroup>
 </Project>

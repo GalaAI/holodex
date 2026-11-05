@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// A small file that says "Holodex changed something system-wide and has not put it back yet". Written when the
@@ -60,7 +60,7 @@ internal sealed class CrashMarker
 internal static class CursorCrashGuard
 {
     private static readonly string Folder =
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
+        HolodexNames.DataRoot;
 
     /// <summary>Present while the system cursors are hidden.</summary>
     public static CrashMarker CursorsHidden { get; set; } = new(System.IO.Path.Combine(Folder, "cursors-hidden.marker"));
@@ -68,8 +68,8 @@ internal static class CursorCrashGuard
     /// <summary>Holds the user's pointer speed (1 to 20) while Holodex has changed it.</summary>
     public static CrashMarker OriginalMouseSpeed { get; set; } = new(System.IO.Path.Combine(Folder, "mouse-speed-original.marker"));
 
-    /// <summary>Where recoveries and errors are written: %TEMP%\omniwand-errors.log.</summary>
-    public static string LogPath { get; set; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "omniwand-errors.log");
+    /// <summary>Where recoveries and errors are written: %TEMP%\holodex-errors.log.</summary>
+    public static string LogPath { get; set; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "holodex-errors.log");
 
     /// <summary>
     /// Run first at startup. Undoes what a killed or crashed run left behind: the stock cursors come back and the

@@ -9,7 +9,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Quests and proof over AInbox, both ways.
@@ -194,13 +194,13 @@ public sealed record ArkHubShare(string Title, string Body, IReadOnlyList<SkillS
 
 /// <summary>
 /// Shares progress to ArkHub, the Guild's channel, by handing a Publish task to Herald. Herald posts to each
-/// enabled destination: a Discord webhook (the URL is the secret in Credential Manager <c>Omniwand:DiscordWebhook</c>),
+/// enabled destination: a Discord webhook (the URL is the secret in Credential Manager <c>Holodex:DiscordWebhook</c>),
 /// and Hivemind's ArkHub tab and Social Mod once their connector slots are wired. Skool has no public posting API,
 /// so its slot stays off. Nothing is posted unless the user presses Share.
 /// </summary>
 public sealed class HeraldPublisher
 {
-    public const string DiscordCredential = "Omniwand:DiscordWebhook";
+    public const string DiscordCredential = "Holodex:DiscordWebhook";
 
     private readonly RealmConnectors _connectors;
     private readonly Func<string, string?> _readSecret;

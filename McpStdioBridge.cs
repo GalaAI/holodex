@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Holodex's bridge to the user's own MCP servers found in other clients. A stdio server is started with exactly the

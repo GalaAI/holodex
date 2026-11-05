@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>One global shortcut: its RegisterHotKey id, modifiers and key, and what it does in plain words.</summary>
 internal sealed record HotkeySpec(int Id, uint Mods, Keys Key, string What)

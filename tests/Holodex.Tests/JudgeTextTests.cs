@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;
@@ -70,14 +70,14 @@ public class JudgeTextTests
     {
         string root = RepoRoot();
         // The HUD status row and the drawer header are what a judge sees first.
-        foreach (string name in new[] { "OmniwandHudForm.cs" })
+        foreach (string name in new[] { "HolodexHudForm.cs" })
             Assert.DoesNotMatch(@"""[A-Z ]*SPINE 8842", File.ReadAllText(Path.Combine(root, name)));
     }
 
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Omniwand.csproj"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("Omniwand.csproj not found above the test output.");
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Holodex.csproj"))) dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("Holodex.csproj not found above the test output.");
     }
 }

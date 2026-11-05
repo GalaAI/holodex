@@ -5,7 +5,7 @@ using System.Drawing.Text;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Phosphor Shell tray menu, composed like <see cref="PhosphorToast"/>: a rounded surface panel with a grey
@@ -436,7 +436,7 @@ internal sealed class PhosphorMenuSpacer : ToolStripItem
     }
 }
 
-/// <summary>Section eyebrow: uppercase JetBrains Mono at the Omniwand eyebrow size and tracking, ghost.</summary>
+/// <summary>Section eyebrow: uppercase JetBrains Mono at the Holodex eyebrow size and tracking, ghost.</summary>
 internal sealed class PhosphorMenuEyebrow : ToolStripItem
 {
     public PhosphorMenuEyebrow(string text) : base(text, null, null)

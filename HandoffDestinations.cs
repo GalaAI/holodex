@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>How a destination receives a Handoff Scroll and sends its reply back.</summary>
 internal enum DestinationKind { HolodexChat, OpenAiCompatible, Anthropic, Hivemind, SaveOnPc }

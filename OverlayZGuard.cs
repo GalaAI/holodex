@@ -3,14 +3,14 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Owns the cursor overlay's place in the z-order:
 /// 1. Re-asserts HWND_TOPMOST on a fast clock so ordinary topmost windows do not rise above the wand.
 /// 2. Detects higher DWM z-order bands (ZBID > 1: Windows Toast Notifications / Windows.UI.Core.CoreWindow,
 ///    Start, Search, Action Center, XAML Islands, Taskbar flyouts) via 5-point WindowFromPoint + GetWindowBand
-///    so Omniwand immediately promotes the Ark Aperture into the Windows DWM Hardware Cursor plane
+///    so Holodex immediately promotes the Ark Aperture into the Windows DWM Hardware Cursor plane
 ///    (rendering 100% IN FRONT OF Windows Notifications and shell surfaces with zero edge clipping).
 /// </summary>
 internal sealed class OverlayZGuard

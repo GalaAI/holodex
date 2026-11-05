@@ -6,7 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Threading;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Records what the cursor overlay actually draws, for the control pipe's <c>cursor:film:&lt;dir&gt;|&lt;seconds&gt;</c>.
@@ -41,7 +41,7 @@ internal static class CursorFilm
             {
                 try { write(); } catch { }
             }
-        }) { IsBackground = true, Name = "OmniwandCursorFilm" }.Start();
+        }) { IsBackground = true, Name = "HolodexCursorFilm" }.Start();
     }
 
     public static void Begin(string dir, double seconds)

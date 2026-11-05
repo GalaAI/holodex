@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Globalization;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Renders the Ark Omnitek emblem (ArkMark) from the approved path geometry: cube and Y stubs in

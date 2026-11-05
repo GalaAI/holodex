@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 internal static class Program
 {
@@ -87,7 +87,7 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        using var context = new OmniwandAppContext();
+        using var context = new HolodexAppContext();
         Application.Run(context);
     }
 }
@@ -171,7 +171,7 @@ public enum WindowsCursorRole
     Help = 32651
 }
 
-internal sealed class OmniwandAppContext : ApplicationContext
+internal sealed class HolodexAppContext : ApplicationContext
 {
     private readonly SynchronizationContext _uiSync;
     private readonly ArkStationClient _ark = new();
@@ -179,7 +179,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private readonly GhostTrailerEngine _ghostTrailer = new();
     private readonly CursorOverlayWindow _overlay;
     private readonly OverlayZGuard _zGuard = new();
-    private readonly OmniwandHudForm _hud;
+    private readonly HolodexHudForm _hud;
     private readonly WizCraftingWidgetForm _wizWidget;
     private readonly AInboxIntakeWidgetForm _ainboxWidget;
     private readonly ScreenSnipAndElementPickerForm _snipWidget;
@@ -231,7 +231,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private bool _wasOrbTriggerDown;
     private bool _wasGhostTriggerDown;
     private static readonly bool HardwareMacrosEnabled =
-        string.Equals(Environment.GetEnvironmentVariable("OMNIWAND_MOUSE_MACROS"), "1", StringComparison.Ordinal);
+        string.Equals(HolodexNames.ReadEnv("HOLODEX_MOUSE_MACROS"), "1", StringComparison.Ordinal);
     private bool _wasMouse4Down;
     private bool _wasMouse5Down;
     private bool _wasRightMouseDown;
@@ -243,7 +243,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private volatile int _forcedRole; // a WindowsCursorRole set over the pipe (cursor:role:), 0 = detect
     private float _spinAngleDeg;
 
-    public OmniwandAppContext()
+    public HolodexAppContext()
     {
         _uiSync = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
         Win32.timeBeginPeriod(1);
@@ -323,7 +323,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
         _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         _holodexDrawer.OpenYourArkStation = OpenYourArkStation;
-        _hud = new OmniwandHudForm(
+        _hud = new HolodexHudForm(
             _ark,
             thinking => _isAiThinking = thinking,
             pt => _wizWidget.SummonAt(pt),
@@ -615,7 +615,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             VrStreamDetector.EnsureOculusDashCursorCacheClean(forceFlush: true);
             _overlay.PulseCursorHandleForVr(_uiSync);
         };
-        var diagItem = vrPage.AddSetting(new ToolStripMenuItem("Keep a pointer log") { CheckOnClick = true, ToolTipText = "Writes notes to %TEMP%\\omniwand-pointer.log to help fix problems." });
+        var diagItem = vrPage.AddSetting(new ToolStripMenuItem("Keep a pointer log") { CheckOnClick = true, ToolTipText = "Writes notes to %TEMP%\\holodex-pointer.log to help fix problems." });
         diagItem.CheckedChanged += (_, _) => SetPointerDiagnostics(diagItem.Checked);
         var vrRow = settingsPage.AddPage("VR headset", vrPage, "For using your computer inside a VR headset.");
 
@@ -655,7 +655,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         {
             if (e.Button != MouseButtons.Left) return;
             // The icon toggles the menu: a click while it is open closes it. Pressing the icon usually closes it
-            // first (Omniwand loses the foreground), so a menu that closed a moment ago stays closed.
+            // first (Holodex loses the foreground), so a menu that closed a moment ago stays closed.
             if (menu.Visible)
             {
                 menu.Close();
@@ -683,7 +683,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
         _renderThread = new Thread(RenderLoop)
         {
-            Name = "OmniwandVSyncRenderThread",
+            Name = "HolodexVSyncRenderThread",
             IsBackground = true,
             Priority = ThreadPriority.Highest
         };
@@ -733,7 +733,13 @@ internal sealed class OmniwandAppContext : ApplicationContext
         StartControlPipeServer();
     }
 
+    /// <summary>Listens on every control pipe id: Holodex's, and the one clients from before the rename open.</summary>
     private void StartControlPipeServer()
+    {
+        foreach (string name in HolodexNames.ControlPipes) StartControlPipeServer(name);
+    }
+
+    private void StartControlPipeServer(string pipeName)
     {
         Task.Run(async () =>
         {
@@ -743,7 +749,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
                 try
                 {
                     pipe = new NamedPipeServerStream(
-                        "ArkStation.Omniwand.Control",
+                        pipeName,
                         PipeDirection.InOut,
                         NamedPipeServerStream.MaxAllowedServerInstances,
                         PipeTransmissionMode.Byte,
@@ -810,10 +816,10 @@ internal sealed class OmniwandAppContext : ApplicationContext
 
     /// <summary>
     /// Developer pipe commands (work orders, session sends, sign-out, an Inventory on another base, files written
-    /// anywhere) run on the owner's Ark or with OMNIWAND_DEV_PIPE=1. A public install refuses them, and writes
-    /// renders only under %LOCALAPPDATA%\Omniwand.
+    /// anywhere) run on the owner's Ark or with HOLODEX_DEV_PIPE=1. A public install refuses them, and writes
+    /// renders only under %LOCALAPPDATA%\Holodex.
     /// </summary>
-    private static readonly bool DevPipe = ArkStationClient.ArkOnThisPc || Environment.GetEnvironmentVariable("OMNIWAND_DEV_PIPE") == "1";
+    private static readonly bool DevPipe = ArkStationClient.ArkOnThisPc || HolodexNames.ReadEnv("HOLODEX_DEV_PIPE") == "1";
 
     private static readonly string[] DevOnlyPrefixes =
     {
@@ -821,7 +827,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "holodex:setup:capture:", "ainbox:send:"
     };
 
-    private static readonly string RenderRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand");
+    private static readonly string RenderRoot = HolodexNames.DataRoot;
 
     /// <summary>Whether a render may write to <paramref name="path"/>: anywhere for the developer pipe, else under RenderRoot.</summary>
     private static bool RenderPathAllowed(string path)
@@ -834,7 +840,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private string HandleControlPipeCommand(string cmd)
     {
         if (!DevPipe && DevOnlyPrefixes.Any(prefix => cmd.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
-            return "error:pipe:developer command; set OMNIWAND_DEV_PIPE=1 to allow it";
+            return "error:pipe:developer command; set HOLODEX_DEV_PIPE=1 to allow it";
         var pt = GetCursorPoint();
         if (string.Equals(cmd, "orb:toggle", StringComparison.OrdinalIgnoreCase))
         {
@@ -1096,7 +1102,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
         }
         if (cmd.StartsWith("snip:ask:holodex:", StringComparison.OrdinalIgnoreCase))
         {
-            // The lasso covers Omniwand's own Holodex window, so only its pixels go to the vision model.
+            // The lasso covers Holodex's own window, so only its pixels go to the vision model.
             string q = cmd["snip:ask:holodex:".Length..].Trim();
             string rects = "";
             RunOnUiAndWait(async () =>
@@ -1648,14 +1654,14 @@ internal sealed class OmniwandAppContext : ApplicationContext
     private System.Threading.Timer? _pointerDiagTimer;
     private string _lastPointerDiag = "";
 
-    /// <summary>Appends a line to %TEMP%\omniwand-pointer.log whenever what Windows reports for the pointer changes.</summary>
+    /// <summary>Appends a line to %TEMP%\holodex-pointer.log whenever what Windows reports for the pointer changes.</summary>
     private void SetPointerDiagnostics(bool on)
     {
         _pointerDiagTimer?.Dispose();
         _pointerDiagTimer = null;
         if (!on) return;
 
-        string path = Path.Combine(Path.GetTempPath(), "omniwand-pointer.log");
+        string path = Path.Combine(Path.GetTempPath(), "holodex-pointer.log");
         _pointerDiagTimer = new System.Threading.Timer(_ =>
         {
             try
@@ -2082,7 +2088,7 @@ internal sealed class OmniwandAppContext : ApplicationContext
             _wasGhostTriggerDown = f16Down;
 
             // Check Mouse4 (XButton1 = 0x05), Mouse5 (XButton2 = 0x06), and Right-Hold Gesture Flicks.
-            // Off by default: the side buttons are browser Back/Forward. Opt in with OMNIWAND_MOUSE_MACROS=1.
+            // Off by default: the side buttons are browser Back/Forward. Opt in with HOLODEX_MOUSE_MACROS=1.
             bool mouse4Down = HardwareMacrosEnabled && (Win32.GetAsyncKeyState(0x05) & 0x8000) != 0;
             if (mouse4Down && !_wasMouse4Down)
             {

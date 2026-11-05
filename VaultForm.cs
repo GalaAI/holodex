@@ -1,4 +1,4 @@
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The Vault in Holodex: Inventory // Adapters. The universal intake sits on top (paste a key, an ENV_NAME=value line,

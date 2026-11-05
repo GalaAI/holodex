@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The Augment Inventory in Holodex: the one inventory page (packages/ui in Ark, served by the Ark API at

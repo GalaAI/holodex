@@ -1,5 +1,5 @@
 using System.Text.Json.Nodes;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;

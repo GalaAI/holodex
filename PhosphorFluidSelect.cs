@@ -6,7 +6,7 @@ using System.Drawing.Text;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Sizes and beats of FluidSelect (Augment Inventory CP-32: packages/ui FluidSelect.tsx and fluid-select.css), in
@@ -16,15 +16,15 @@ namespace Omniwand;
 internal static class FluidSelectSpec
 {
     public static float U => PhosphorTheme.N("u");
-    public static float RadiusClosed => PhosphorTheme.N("omniwand-select-radius-closed");
-    public static float RadiusOpen => PhosphorTheme.N("omniwand-select-radius-open");
+    public static float RadiusClosed => PhosphorTheme.N("holodex-select-radius-closed");
+    public static float RadiusOpen => PhosphorTheme.N("holodex-select-radius-open");
     /// <summary>The drop sits --s2 from the trigger.</summary>
-    public static float Gap => PhosphorTheme.N("omniwand-select-gap");
+    public static float Gap => PhosphorTheme.N("holodex-select-gap");
     /// <summary>The list scrolls past --u * 72.</summary>
     public static float MaxListHeight => U * 72f;
-    public static float RowHeight => Math.Max(24f, PhosphorTheme.N("omniwand-select-row"));
-    public static int ChevronMs => Math.Max(1, PhosphorTheme.Px("omniwand-select-chevron"));
-    public static int StaggerMs => Math.Max(0, PhosphorTheme.Px("omniwand-select-stagger"));
+    public static float RowHeight => Math.Max(24f, PhosphorTheme.N("holodex-select-row"));
+    public static int ChevronMs => Math.Max(1, PhosphorTheme.Px("holodex-select-chevron"));
+    public static int StaggerMs => Math.Max(0, PhosphorTheme.Px("holodex-select-stagger"));
     public const int StaggerCap = 10;
     public static int PanelMs => PhosphorMotion.DurDisclosure;
     public static int ItemMs => PhosphorMotion.DurDisclosureItem;
@@ -113,7 +113,7 @@ internal sealed class FluidSelectDrop : ToolStripDropDown
 
     protected override void OnClosing(ToolStripDropDownClosingEventArgs e)
     {
-        // WinForms closes a dropdown whenever focus changes. Omniwand's own windows (a tooltip, a toast, a widget a
+        // WinForms closes a dropdown whenever focus changes. Holodex's own windows (a tooltip, a toast, a widget a
         // gesture summoned) can take focus while it is open; keep it open for those. Any other app, a click outside,
         // Esc or a pick still close it.
         if (e.CloseReason == ToolStripDropDownCloseReason.AppFocusChange && !_exited && SuggestionChip.OwnsForeground())

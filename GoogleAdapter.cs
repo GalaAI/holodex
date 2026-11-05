@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Google Drive in the Vault, with the user's own Google OAuth client: Holodex ships no Google client or secret.
@@ -18,8 +18,8 @@ namespace Omniwand;
 internal static class GoogleAdapter
 {
     public const string Id = "google";
-    public const string ClientTarget = "Omniwand:Vault:google-client";
-    public const string TokenTarget = "Omniwand:Vault:google";
+    public const string ClientTarget = "Holodex:Vault:google-client";
+    public const string TokenTarget = "Holodex:Vault:google";
     public const string Scope = "https://www.googleapis.com/auth/drive.readonly";
     public const string ConsoleUrl = "https://console.cloud.google.com/apis/credentials";
     private static readonly Uri Redirect = new("http://127.0.0.1:47613/vault/google/");

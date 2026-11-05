@@ -1,4 +1,4 @@
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;
@@ -49,7 +49,7 @@ public class RedesignTests
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Omniwand.csproj"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("Omniwand.csproj not found above the test output.");
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Holodex.csproj"))) dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("Holodex.csproj not found above the test output.");
     }
 }

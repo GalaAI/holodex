@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// <c>Holodex.exe --ask "&lt;prompt&gt;" [--model &lt;id&gt;] [--count &lt;n&gt;]</c>: the HUD's own ask

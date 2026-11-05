@@ -7,7 +7,7 @@ using System.Drawing.Text;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>The capture kinds AInbox accepts (Augment Inventory CP-27, AInboxUpload).</summary>
 internal enum CaptureKind { File, Screen, Window, Pick, Lasso, Record, Whisper, Snippet, Link, More }

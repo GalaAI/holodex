@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Text.Json;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;

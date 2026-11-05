@@ -1,4 +1,4 @@
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Your ArkStation: what Holodex found on this PC, grouped (models and engines, MCP servers, apps it can connect,

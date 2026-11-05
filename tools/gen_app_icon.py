@@ -1,4 +1,4 @@
-"""Builds assets/omniwand.ico, the Omniwand app icon (exe, desktop shortcut, taskbar, Alt+Tab).
+"""Builds assets/omniwand.ico, the Holodex app icon (exe, desktop shortcut, taskbar, Alt+Tab).
 
 Each size comes from the brand drawing ratified for it (@ark/packages/ui/src/brand/assets/ark-lockup),
 never one artwork scaled across every size:
@@ -8,7 +8,7 @@ never one artwork scaled across every size:
 App icons use the -tile versions: the cream A does not read on light desktops without the tile.
 
 Rasterizing reuses sharp from Ark's node_modules (librsvg); Pillow packs the per-size PNGs into one ICO.
-Run: python tools/gen_app_icon.py (from the omniwand folder)
+Run: python tools/gen_app_icon.py (from the repo root)
 """
 import io
 import json

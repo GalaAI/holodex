@@ -1,16 +1,16 @@
 using System.Text.Json;
+using Holodex;
 
 /// <summary>
 /// Which Spell each Spell Orb slot casts. A slot with no pick casts its kind's first Spell (the bare
 /// <c>grimx/&lt;slot&gt;</c> trigger); a pick casts <c>grimx/&lt;slot&gt;/&lt;spell&gt;</c>. Kept across restarts in
-/// %LOCALAPPDATA%\Omniwand\spell-picks.json, beside the app's other local state.
+/// %LOCALAPPDATA%\Holodex\spell-picks.json, beside the app's other local state.
 /// </summary>
 internal static class SpellPicks
 {
     public sealed record Pick(string Slug, string Name);
 
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "spell-picks.json");
+    private static readonly string FilePath = Path.Combine(HolodexNames.DataRoot, "spell-picks.json");
 
     private static Dictionary<string, Pick>? _picks;
 

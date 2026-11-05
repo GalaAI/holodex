@@ -9,7 +9,7 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32.SafeHandles;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Knows which physical mouse is in use. Windows Raw Input reports every mouse event with the device that sent it,
@@ -60,7 +60,7 @@ internal static class ActiveMouseTracker
         {
             using var window = new SinkWindow();
             Application.Run();
-        }) { IsBackground = true, Name = "OmniwandActiveMouse" };
+        }) { IsBackground = true, Name = "HolodexActiveMouse" };
         _thread.SetApartmentState(ApartmentState.STA);
         _thread.Start();
     }

@@ -1,6 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
-using Omniwand;
+using Holodex;
 using Xunit;
 using Xunit.Abstractions;
 

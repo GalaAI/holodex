@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 [Flags]
 public enum ModelCapability
@@ -60,15 +60,14 @@ public sealed class ModelInventory
 {
     public const string NebiusProviderId = "nebius";
 
-    public static readonly string DefaultConfigPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "model-providers.json");
+    public static readonly string DefaultConfigPath = Path.Combine(HolodexNames.DataRoot, "model-providers.json");
 
     public static readonly ModelProvider NebiusDefault = new()
     {
         Id = NebiusProviderId,
         Label = "Nebius Token Factory",
         BaseUrl = ArkStationClient.DefaultNebiusBaseUrl,
-        CredentialTarget = "Omniwand:NebiusTokenFactory",
+        CredentialTarget = "Holodex:NebiusTokenFactory",
         KeyEnvVar = "NEBIUS_API_KEY",
         BuiltIn = ArkStationClient.BuiltInNemotronModels
     };

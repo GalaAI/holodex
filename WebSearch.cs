@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>Where a web search runs: the user's Hivemind, the Holodex Vault's Tavily key, TAVILY_API_KEY, or nowhere.</summary>
 public enum WebSearchProvider { None, Hivemind, VaultKey, EnvKey }
@@ -28,7 +28,7 @@ public enum WebSearchProvider { None, Hivemind, VaultKey, EnvKey }
 /// </summary>
 internal static class WebSearch
 {
-    public const string Target = "Omniwand:Vault:tavily";
+    public const string Target = "Holodex:Vault:tavily";
     public const int MaxRounds = 3;
     public const string ToolName = "web_search";
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };

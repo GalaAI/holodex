@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;
@@ -160,7 +160,7 @@ public class ConnectorTests
     [Fact]
     public async Task Health_reports_reachability_and_whether_a_key_is_saved()
     {
-        var connectors = new RealmConnectors(RealmConnectors.Defaults, t => t == "Omniwand:RyozanToken" ? "k" : null, new HttpClient(new FakeModels()));
+        var connectors = new RealmConnectors(RealmConnectors.Defaults, t => t == "Holodex:RyozanToken" ? "k" : null, new HttpClient(new FakeModels()));
         var health = await connectors.CheckHealthAsync(connectors.Find("ryozan")!);
         Assert.True(health.Reachable);
         Assert.True(health.KeyPresent);

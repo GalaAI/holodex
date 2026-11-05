@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Holodex as a native Hivemind client: the owner's saved Hivemind Sessions, the same rooms the Hivemind web app

@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The live tray menu, driven through the control pipe so it can be checked without touching the mouse or
@@ -65,7 +65,7 @@ internal static class TrayProbe
         ToolStripDropDownClosedEventHandler onClosed = (_, e) => closedBy ??= e.CloseReason.ToString();
         menu.Closed += onClosed;
         var steps = new List<string>();
-        // A real click lets the shell hand Omniwand the foreground; the probe's first SetForegroundWindow from a
+        // A real click lets the shell hand Holodex the foreground; the probe's first SetForegroundWindow from a
         // background process is refused, and the menu closes on AppFocusChange. That first try earns the right, so
         // one retry opens it the way a click does.
         for (int attempt = 0; attempt < 2; attempt++)

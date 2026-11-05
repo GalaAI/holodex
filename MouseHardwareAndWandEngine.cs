@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// On-brand ArkStation cursor icon styles rendered at VSync in the overlay window.
@@ -118,7 +118,7 @@ public static class MouseHardwareAndWandEngine
     public static bool AutoSwitch { get; set; } = true;
 
     /// <summary>
-    /// The mice to offer: known mouse models, plus any device that has moved the pointer since Omniwand started.
+    /// The mice to offer: known mouse models, plus any device that has moved the pointer since Holodex started.
     /// Keyboards and keypads with a mouse channel (a Razer Huntsman or Tartarus) stay out until they move it.
     /// </summary>
     public static IReadOnlyList<MouseHardwareReport> KnownMice
@@ -247,13 +247,13 @@ public static class MouseHardwareAndWandEngine
         new("", "Mouse", "HID-STANDARD", "universal-mouse", GetWindowsMouseSpeed(), false, true, false, Array.Empty<string>());
 
     // ── Speed ────────────────────────────────────────────────────────────────────────────────────────────────────
-    // Omniwand sets the Windows pointer speed (1 to 20), the sensitivity every mouse has. A mouse's real DPI is set
+    // Holodex sets the Windows pointer speed (1 to 20), the sensitivity every mouse has. A mouse's real DPI is set
     // by its maker's app (G HUB, Options+, Synapse), so no mouse reports CanSetDpi yet and the setting is speed.
 
     public const int MinSpeed = 1;
     public const int MaxSpeed = 20;
 
-    /// <summary>Raised with the new speed (1 to 20) whenever Omniwand changes it.</summary>
+    /// <summary>Raised with the new speed (1 to 20) whenever Holodex changes it.</summary>
     public static event Action<int>? SpeedChanged;
 
     /// <summary>Gets the live Windows pointer speed (1..20, default 10).</summary>
@@ -274,7 +274,7 @@ public static class MouseHardwareAndWandEngine
     private static int _originalSpeed = -1;
 
     /// <summary>
-    /// Remembers the user's pointer speed before Omniwand first changes it, in memory and in a crash marker
+    /// Remembers the user's pointer speed before Holodex first changes it, in memory and in a crash marker
     /// (<see cref="CursorCrashGuard.OriginalMouseSpeed"/>), so a killed run still gets it back at the next start.
     /// </summary>
     private static void RememberOriginalSpeed()
@@ -284,7 +284,7 @@ public static class MouseHardwareAndWandEngine
         CursorCrashGuard.OriginalMouseSpeed.Set(_originalSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    /// <summary>Puts the Windows pointer speed back to what it was before Omniwand touched it. Safe to call twice.</summary>
+    /// <summary>Puts the Windows pointer speed back to what it was before Holodex touched it. Safe to call twice.</summary>
     public static void RestoreOriginalSpeed()
     {
         if (_originalSpeed < 1) return;
@@ -322,7 +322,7 @@ public static class MouseHardwareAndWandEngine
     }
 
     public static string ProfilesPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "mouse-profiles.json");
+        Path.Combine(HolodexNames.DataRoot, "mouse-profiles.json");
 
     private static Dictionary<string, MouseProfile>? _profiles;
 
@@ -362,7 +362,7 @@ public static class MouseHardwareAndWandEngine
 
     /// <summary>The single bindings file from before per-mouse profiles; read once to seed a mouse's bindings.</summary>
     private static string LegacyMacroConfigPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "mouse-macros.json");
+        Path.Combine(HolodexNames.DataRoot, "mouse-macros.json");
 
     /// <summary>The bindings of <paramref name="hw"/> (the active mouse when null): saved ones, else its defaults.</summary>
     public static List<MouseMacroBinding> LoadOrCreateMacroBindings(MouseHardwareReport? hw = null)

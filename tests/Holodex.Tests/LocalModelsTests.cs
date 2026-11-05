@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;

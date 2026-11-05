@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Security.Cryptography;
 using System.Windows.Forms;
-using Omniwand;
+using Holodex;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,7 +14,7 @@ namespace Holodex.Tests;
 /// Chromium (live/judge-signup.mjs, so no person's browser is used); Holodex's own OAuth client signs in; and the real
 /// HUD and drawer, built offscreen and never shown, ask through model_invoke. With HOLODEX_RENDER set, each state is
 /// saved as a PNG there.
-/// Runs only with HOLODEX_LIVE_HIVEMIND=1 and OMNIWAND_HIVEMIND_URL set to a loopback gateway (set in the environment
+/// Runs only with HOLODEX_LIVE_HIVEMIND=1 and HOLODEX_HIVEMIND_URL set to a loopback gateway (set in the environment
 /// of the test run, before any Holodex type loads). Needs PLAYWRIGHT_CORE and HOLODEX_SIGNUP_INVITE. It signs out and
 /// revokes after. The generated password is never printed. HOLODEX_SIGNUP_EMAIL and HOLODEX_SIGNUP_PASSWORD reuse an
 /// account (signed up on first use); HOLODEX_SIGNED_OUT_ONLY=1 stops after the signed-out states.
@@ -77,7 +77,7 @@ public class JudgePathLiveTests(ITestOutputHelper output)
         Assert.False(ark.HasAnswerRoute);
         Assert.Equal(ArkStationClient.RouteNone, ark.NextTextRoute(ark.SelectedModel));
 
-        var hud = new OmniwandHudForm(ark, _ => { }, _ => { }, _ => { });
+        var hud = new HolodexHudForm(ark, _ => { }, _ => { }, _ => { });
         var drawer = new HolodexLiteDrawerForm(ark, _ => { }, _ => { }, _ => { }, (_, _) => { }, () => { });
         _ = hud.Handle;
         _ = drawer.Handle;

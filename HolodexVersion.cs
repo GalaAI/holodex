@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The version Holodex shows (tray, drawer, toasts, MCP client info), read from the assembly so it can never drift

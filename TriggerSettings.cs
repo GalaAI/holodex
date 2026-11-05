@@ -1,13 +1,13 @@
 using System.Text.Json;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The mouse and keyboard triggers that act without a click on Holodex itself: holding the middle button opens the
 /// Spell Orb, and holding Ctrl (or right-click) arms a drawn Spell. On someone else's PC they surprise (a middle-drag
 /// to scroll opens the Orb; Ctrl held for a shortcut starts a gesture), so a new install starts with them off and they
 /// are switched on in the tray. An install that already ran keeps them on, as it had them, the first time this file is
-/// written; after that the file is the user's choice. Saved in %LOCALAPPDATA%\Omniwand\triggers.json.
+/// written; after that the file is the user's choice. Saved in %LOCALAPPDATA%\Holodex\triggers.json.
 /// </summary>
 internal sealed class TriggerSettings
 {
@@ -16,7 +16,7 @@ internal sealed class TriggerSettings
     public bool HoldRightClickToDraw { get; set; }
 
     public static string DefaultPath { get; set; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "triggers.json");
+        Path.Combine(HolodexNames.DataRoot, "triggers.json");
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 

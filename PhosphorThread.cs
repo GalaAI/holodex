@@ -5,7 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>What a thread card is, which sets its edge and kicker ink.</summary>
 internal enum ThreadTone { Intro, You, Agent, Step, Action, Approval, Ok, Fail }

@@ -4,8 +4,8 @@ What to say while you drive the working build for someone live: a judge call, a 
 table, a Discord screen share. This is not the video (that is `DEMO_SCRIPT.md`). Target 5 minutes,
 with the aha inside the first 30 seconds and the rest cut to fit whatever time you get.
 
-The repo, folder and exe still say Omniwand (the codename); if anyone asks, say
-"Omniwand is the codename, the product is Holodex."
+The folder and exe still carry the app's name from before the rename; if anyone asks, say
+"The app is Holodex; the Omniwand is one item in its inventory."
 
 Built on the "Will It Ship?" judges' advice (Devpost email, 2026-10-21): get to the aha fast, put the
 action first with only a little onboarding, show which model is doing what, and say the limitations

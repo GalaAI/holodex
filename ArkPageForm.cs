@@ -3,7 +3,7 @@ using System.Net.Http;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// A Holodex window that hosts one page an Ark service serves, in WebView2 inside the Phosphor chrome. Holodex keeps
@@ -100,7 +100,7 @@ internal abstract class ArkPageForm : Form
         {
             if (!_initialized)
             {
-                string data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "webview2");
+                string data = Path.Combine(HolodexNames.DataRoot, "webview2");
                 var env = await CoreWebView2Environment.CreateAsync(null, data);
                 await Web.EnsureCoreWebView2Async(env);
                 var core = Web.CoreWebView2!;

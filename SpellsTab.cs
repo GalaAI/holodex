@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The drawer's Spells tab: the orb inventory (<see cref="SpellOrbsView"/>) above the Wiz composer. The orbs read

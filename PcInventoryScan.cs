@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using WmiOptions = System.Management.EnumerationOptions;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>The groups Your ArkStation lists, in order.</summary>
 internal enum InvGroup { Engines, Mcp, OnThisPc, Cli, Services, Apps, Endpoints, Gear, Hardware, Firmware }

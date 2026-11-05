@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>The skills on the Stats page skill tree. The same list is used for the user, the agents and Apex.</summary>
 public enum Skill { Academics, Art, Code, Cooking, Business, Learning, Fitness, Social, Gaming, Craft }
@@ -153,12 +153,11 @@ public sealed record SkillStanding(Skill Skill, int Level, double TotalXp, doubl
 
 /// <summary>
 /// The local XP ledger for every subject (the user, each agent, Apex), saved to
-/// <c>%LOCALAPPDATA%\Omniwand\progression.json</c>. A skill's level counts its Apex baseline plus every accepted award.
+/// <c>%LOCALAPPDATA%\Holodex\progression.json</c>. A skill's level counts its Apex baseline plus every accepted award.
 /// </summary>
 public sealed class ProgressionLedger
 {
-    public static readonly string DefaultPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "progression.json");
+    public static readonly string DefaultPath = Path.Combine(HolodexNames.DataRoot, "progression.json");
 
     /// <summary>Evaluators that may mint XP. Anything else is refused.</summary>
     public static readonly IReadOnlySet<string> Evaluators = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "watcher", "gala", "apex", "holodex" };

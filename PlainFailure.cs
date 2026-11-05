@@ -1,11 +1,11 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// What a failure card says. A worker's stderr line, an exception message or a gateway error can carry environment
-/// variable names, paths, URLs or stack frames; those go to the log (%TEMP%\omniwand-errors.log) and the card says in
+/// variable names, paths, URLs or stack frames; those go to the log (%TEMP%\holodex-errors.log) and the card says in
 /// plain words who could not answer. A failure that is already a plain sentence is shown as it is.
 /// </summary>
 internal static class PlainFailure

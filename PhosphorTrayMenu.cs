@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// One page of the tray menu: its rows in order and the eyebrow over them. Pages replace submenus: a page row
@@ -239,7 +239,7 @@ internal sealed class PhosphorTrayMenu : ContextMenuStrip
     {
         float p = Math.Clamp((SurfaceMotion.Now - _turnAt) / (float)PhosphorMotion.DurDisclosure, 0f, 1f);
         float e = PhosphorMotion.EaseDisclosure(p);
-        _pageOffset = _turnDirection * Math.Clamp(PhosphorTheme.N("omniwand-turn-shift"), 0f, 1f) * Width * (1f - e);
+        _pageOffset = _turnDirection * Math.Clamp(PhosphorTheme.N("holodex-turn-shift"), 0f, 1f) * Width * (1f - e);
         // The page's own fade, on the panel: a native dropdown cannot fade its rows apart from its surface.
         Opacity = 0.85 + 0.15 * e;
         if (p >= 1f || IsDisposed || !Visible)

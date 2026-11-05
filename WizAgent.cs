@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// What Wiz can reach outside its own widget. Program.cs fills these the way the HUD gets openWizCrafting: each

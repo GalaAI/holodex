@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;
@@ -42,7 +42,7 @@ public class AuditFixTests
         string root = RepoRoot();
         var banned = new (string File, string Pattern)[]
         {
-            ("OmniwandHudForm.cs", "THE SCREEN NEEDS A NEBIUS KEY|fallback orb|GhostTrailer ribbon"),
+            ("HolodexHudForm.cs", "THE SCREEN NEEDS A NEBIUS KEY|fallback orb|GhostTrailer ribbon"),
             ("ScreenSnipAndElementPickerForm.cs", "Phosphor annotations|HWND|\"Save to Codex\"|Vision request to \\{"),
             ("WizCraftingWidgetForm.cs", "4GE BENCH|Input Studio\\.|save to Codex"),
             ("AInboxStack.cs", "\"Scroll for content\""),
@@ -109,7 +109,7 @@ public class AuditFixTests
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Omniwand.csproj"))) dir = dir.Parent;
-        return dir?.FullName ?? throw new InvalidOperationException("Omniwand.csproj not found above the test output.");
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Holodex.csproj"))) dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("Holodex.csproj not found above the test output.");
     }
 }

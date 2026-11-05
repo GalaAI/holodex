@@ -4,7 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>What a toast reports; sets the panel-edge color (cat-panel / sb-agent states).</summary>
 internal enum ToastTone

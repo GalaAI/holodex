@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 public sealed record WizEnvironmentScanReport(
     string AgentFolder,
@@ -25,13 +25,13 @@ public sealed record WizEnvironmentScanReport(
 /// <summary>
 /// Zero-manual Wiz automated onboarding engine + Animated Phosphor Tooltip Tutorial overlay.
 /// Scans environment, detects mouse brand/model &amp; DPI, sets up dependencies, creates the local
-/// %LOCALAPPDATA%\Omniwand\agents\omniwand workspace folder &amp; .bamf manifest, and walks the user through Omniwand
+/// %LOCALAPPDATA%\Holodex\agents\omniwand workspace folder &amp; .bamf manifest, and walks the user through Holodex
 /// with animated Phosphor tooltips.
 /// </summary>
 public static class WizOnboardingEngine
 {
     public static string ReceiptPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "wiz-onboarding-receipt.json");
+        Path.Combine(HolodexNames.DataRoot, "wiz-onboarding-receipt.json");
 
     public static bool HasCompletedOnboarding() => File.Exists(ReceiptPath);
 
@@ -51,8 +51,8 @@ public static class WizOnboardingEngine
             if (IsCommandOnPath(cli)) detectedClis.Add(cli);
         }
 
-        // 3. Provision %LOCALAPPDATA%\Omniwand\agents\omniwand and \wiz: Holodex's own folder, on any PC.
-        string agentsRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "agents");
+        // 3. Provision %LOCALAPPDATA%\Holodex\agents\omniwand and \wiz: Holodex's own folder, on any PC.
+        string agentsRoot = Path.Combine(HolodexNames.DataRoot, "agents");
         string agentFolder = Path.Combine(agentsRoot, "omniwand");
         string wizSubFolder = Path.Combine(agentsRoot, "wiz");
         Directory.CreateDirectory(agentFolder);

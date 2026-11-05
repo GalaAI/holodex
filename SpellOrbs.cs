@@ -3,7 +3,7 @@ using System.Drawing.Drawing2D;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// One GrimX Spell kind as the Spells tab shows it: an orb. The kinds, their order and their descriptions are Wiz's
@@ -59,13 +59,12 @@ internal sealed record CraftedSpell(string Id, string Kind, string Name, string 
 
 /// <summary>
 /// The Spells Wiz crafts on this PC. Input Spine (Ark) owns bound Spells and has no route to create one, so a crafted
-/// Spell is kept here, beside the Spell picks (<see cref="SpellPicks"/>) in %LOCALAPPDATA%\Omniwand, as
+/// Spell is kept here, beside the Spell picks (<see cref="SpellPicks"/>) in %LOCALAPPDATA%\Holodex, as
 /// spellbook.json: one list, newest last, rewritten whole on each add.
 /// </summary>
 internal sealed class Spellbook
 {
-    public static string DefaultPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "spellbook.json");
+    public static string DefaultPath { get; } = Path.Combine(HolodexNames.DataRoot, "spellbook.json");
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
     private readonly string _path;

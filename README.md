@@ -22,7 +22,7 @@ Every question goes to an NVIDIA Nemotron open model on **Nebius Token Factory**
 | Surface | Model | Where in the code |
 | --- | --- | --- |
 | HUD ask box (`Ctrl+Alt+Space`) and the Holodex drawer chat (`Ctrl+Alt+H`) | **Nemotron 3 Nano** (`nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B`) by default; another can be picked on the model chip | `ArkStationClient.SelectedModel` starts at `DefaultNemotronFastModel` |
-| HUD with the screen attached | **Nemotron 3.5 Super VL** (`nvidia/Nemotron-3.5-Super-VL`) | `OmniwandHudForm.AnsweringModel`; `ArkStationClient.AskAsync` sends any image to the VL model |
+| HUD with the screen attached | **Nemotron 3.5 Super VL** (`nvidia/Nemotron-3.5-Super-VL`) | `HolodexHudForm.AnsweringModel`; `ArkStationClient.AskAsync` sends any image to the VL model |
 | Snip and Lasso (`Ctrl+Alt+S`), Pick a thing (`Ctrl+Alt+E`) | **Nemotron 3.5 Super VL**, first in the vision picker | `ScreenSnipAndElementPickerForm.VisionModels`, `ArkStationClient.AskVisionModelAsync` |
 | Wiz plan and agent loop (`Ctrl+Alt+W`) | **Nemotron 3 Super** (`nvidia/nemotron-3-super-120b-a12b`) | `WizAgent.DefaultReasoningModel`; the tool-calling loop is `WizAgent.RunAsync` |
 | AInbox re-rank of captures | **Nemotron 3 Nano** | `AInboxStack.cs` (`Model = DefaultNemotronFastModel`) |
@@ -62,7 +62,7 @@ You need Windows 10 or 11 (x64). A Nebius key is optional.
 
 1. Download `Holodex-<version>-win-x64.zip` and the `.sha256` file beside it from [Releases](../../releases).
 2. Check it: `(Get-FileHash .\Holodex-<version>-win-x64.zip -Algorithm SHA256).Hash.ToLower()` must match the `.sha256` file. Extract it anywhere.
-3. Run `Omniwand.exe`. (The executable, the `Omniwand:*` credential names and the `%LOCALAPPDATA%\Omniwand` folder keep the project's earlier name so existing installs keep working.)
+3. Run `Omniwand.exe`. (The executable and the `%LOCALAPPDATA%\Omniwand` folder keep the app's name from before the rename so existing installs keep working. Credentials may be saved as `Holodex:*`; Holodex also reads the older `Omniwand:*` names. The Omniwand itself is one item in the Holodex inventory.)
 4. On a fresh install the Holodex drawer opens on three first steps. **Sign in with Hivemind** is the one answers need; then ask Nemotron in the box below.
 5. **Your PC** (tray menu, or the third first step) scans this PC: apps, local models, MCP servers, services and hardware. Nothing connects without your OK; each row has its own Connect.
 
@@ -71,7 +71,7 @@ You need Windows 10 or 11 (x64). A Nebius key is optional.
 **From source.** Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), then:
 
 ```powershell
-dotnet publish Omniwand.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish-win-x64 -nologo
+dotnet publish Holodex.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish-win-x64 -nologo
 ```
 
 ---

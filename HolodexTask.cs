@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// What a task asks for. The router picks a model by kind, and an agent says which kinds it takes.

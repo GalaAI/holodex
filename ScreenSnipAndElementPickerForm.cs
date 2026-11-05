@@ -11,7 +11,7 @@ using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 public enum WandCaptureTool
 {
@@ -472,7 +472,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
 
     private static void LogSnapshot(string line)
     {
-        try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "omniwand-snip.log"), $"{DateTime.Now:O} {line}{Environment.NewLine}"); } catch { }
+        try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "holodex-snip.log"), $"{DateTime.Now:O} {line}{Environment.NewLine}"); } catch { }
     }
 
     public void SummonAt(Point cursorPos, WandCaptureTool initialTool = WandCaptureTool.FreeformLasso)
@@ -1067,7 +1067,7 @@ public sealed class ScreenSnipAndElementPickerForm : Form
     }
 
     public static string CodexLogPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "codex-entries.jsonl");
+        Path.Combine(HolodexNames.DataRoot, "codex-entries.jsonl");
 
     public const string CodexEmptyStateText = "Nothing saved yet. Lasso something and press Save to Library.";
 

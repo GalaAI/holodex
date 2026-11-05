@@ -9,9 +9,9 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Omniwand</AssemblyName>
-    <RootNamespace>Omniwand</RootNamespace>
+    <RootNamespace>Holodex</RootNamespace>
     <Version>0.4.5</Version>
-    <!-- The product is Holodex. AssemblyName stays Omniwand: the Input Studio runtime task and the Logi plugin launch and watch Omniwand.exe. -->
+    <!-- The product is Holodex. AssemblyName stays Omniwand until phase 2 of the rename: the Input Studio runtime task, the Logi plugin and the Startup shortcut launch and watch Omniwand.exe. -->
     <Product>Holodex</Product>
     <AssemblyTitle>Holodex</AssemblyTitle>
     <Description>Holodex, your own ArkStation on this PC: ask NVIDIA Nemotron, grab from the screen, and connect your tools</Description>

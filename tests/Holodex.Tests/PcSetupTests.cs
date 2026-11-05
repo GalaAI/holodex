@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using Omniwand;
+using Holodex;
 using Xunit;
 
 namespace Holodex.Tests;

@@ -1,4 +1,4 @@
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The Mouse Mod Station: everything about the mouse in one Holodex window. Down the left, the mouse in use (it

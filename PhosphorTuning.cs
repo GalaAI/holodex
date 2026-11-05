@@ -1,25 +1,24 @@
 using System.Text.Json;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// Live overrides over PhosphorTheme's tokens, for tuning motion and metrics while the app runs. The overlay is a
-/// flat map of token names to CSS values ("dur-disclosure": "240ms") in %LOCALAPPDATA%\Omniwand\tuning.json. A
+/// flat map of token names to CSS values ("dur-disclosure": "240ms") in %LOCALAPPDATA%\Holodex\tuning.json. A
 /// hand edit is picked up on save; the pipe's holodex:tune:set merges values and holodex:tune:reset clears them.
 /// Only names PhosphorTheme already knows are applied, so a typo cannot invent a token.
 /// </summary>
 internal static class PhosphorTuning
 {
-    internal static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "tuning.json");
+    internal static readonly string FilePath = Path.Combine(HolodexNames.DataRoot, "tuning.json");
 
     /// <summary>The tunable names: motion beats, the FluidSelect and tooltip metrics, the tray page turn and the accent.</summary>
     internal static readonly string[] Tunable =
     {
         "dur-disclosure", "dur-disclosure-item", "dur-bloom",
-        "omniwand-tip-dwell", "omniwand-tip-gap", "omniwand-tip-shift", "omniwand-tip-from-scale",
-        "omniwand-select-radius-closed", "omniwand-select-radius-open", "omniwand-select-gap", "omniwand-select-row",
-        "omniwand-select-chevron", "omniwand-select-stagger", "omniwand-turn-shift", "omniwand-reduced-motion",
+        "holodex-tip-dwell", "holodex-tip-gap", "holodex-tip-shift", "holodex-tip-from-scale",
+        "holodex-select-radius-closed", "holodex-select-radius-open", "holodex-select-gap", "holodex-select-row",
+        "holodex-select-chevron", "holodex-select-stagger", "holodex-turn-shift", "holodex-reduced-motion",
         "color-coral",
     };
 
@@ -33,7 +32,8 @@ internal static class PhosphorTuning
             if (!File.Exists(FilePath)) return new(StringComparer.Ordinal);
             var map = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(File.ReadAllText(FilePath)) ?? new();
             var d = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var (k, v) in map) d[k] = v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : v.GetRawText();
+            // A file saved before the rename keys Holodex-local metrics as omniwand-*; read them as holodex-*.
+            foreach (var (k, v) in map) d[HolodexNames.CurrentTuningKey(k)] = v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : v.GetRawText();
             return d;
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
@@ -65,9 +65,10 @@ internal static class PhosphorTuning
         var incoming = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json) ?? new();
         var overlay = Read();
         var refused = new List<string>();
-        foreach (var (k, v) in incoming)
+        foreach (var (given, v) in incoming)
         {
-            if (Array.IndexOf(Tunable, k) < 0) { refused.Add(k); continue; }
+            string k = HolodexNames.CurrentTuningKey(given);
+            if (Array.IndexOf(Tunable, k) < 0) { refused.Add(given); continue; }
             if (v.ValueKind == JsonValueKind.Null) overlay.Remove(k);
             else overlay[k] = v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : v.GetRawText();
         }

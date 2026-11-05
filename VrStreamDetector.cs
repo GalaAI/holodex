@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace Omniwand;
+namespace Holodex;
 
 internal enum VrStreamMode
 {
@@ -25,7 +25,7 @@ internal enum ArrowSlotStyle
 /// Heuristic detection of an active desktop stream to a headset, plus cache invalidation for Meta Air Link (OculusDash).
 /// OculusDash caches HCURSOR -> CursorTexture in a std::map at [ReactSystem + 0x218] and never invalidates entries when
 /// Windows SetSystemCursor updates a system cursor slot in-place. Flushing stale nodes forces OculusDash to re-read
-/// GetIconInfo(65539) after Omniwand replaces the system cursors with 32x32 transparent ARGB icons (hotspot 16,16).
+/// GetIconInfo(65539) after Holodex replaces the system cursors with 32x32 transparent ARGB icons (hotspot 16,16).
 /// </summary>
 internal static class VrStreamDetector
 {
@@ -90,7 +90,7 @@ internal static class VrStreamDetector
 
     /// <summary>
     /// Checks OculusDash's in-memory std::map&lt;HCURSOR, CursorTexture&gt; at [ReactSystem + 0x218].
-    /// If forceFlush is true or any cached stock cursor entry was captured before Omniwand's 32x32 ARGB
+    /// If forceFlush is true or any cached stock cursor entry was captured before Holodex's 32x32 ARGB
     /// cursor (hotspot 16,16 with non-zero hbmColor), clears the map so OculusDash re-reads GetIconInfo.
     /// Returns true if the cache was flushed.
     /// </summary>
@@ -130,7 +130,7 @@ internal static class VrStreamDetector
                 if (sentinel != 0x0101) return false;
 
                 long root = ReadInt64(hProc, head + 0x08);
-                bool hasStale = forceFlush || (count > 0 && HasNonOmniwandNode(hProc, root, head, 0));
+                bool hasStale = forceFlush || (count > 0 && HasNonHolodexNode(hProc, root, head, 0));
                 if (!hasStale) return false;
 
                 WriteInt64(hProc, head + 0x00, head); // _Left = head
@@ -150,7 +150,7 @@ internal static class VrStreamDetector
         }
     }
 
-    private static bool HasNonOmniwandNode(IntPtr hProc, long node, long head, int depth)
+    private static bool HasNonHolodexNode(IntPtr hProc, long node, long head, int depth)
     {
         if (node == 0 || node == head || depth > 24) return false;
         if (ReadByte(hProc, node + 0x19) != 0) return false;
@@ -168,8 +168,8 @@ internal static class VrStreamDetector
 
         long left = ReadInt64(hProc, node + 0x00);
         long right = ReadInt64(hProc, node + 0x10);
-        return HasNonOmniwandNode(hProc, left, head, depth + 1) ||
-               HasNonOmniwandNode(hProc, right, head, depth + 1);
+        return HasNonHolodexNode(hProc, left, head, depth + 1) ||
+               HasNonHolodexNode(hProc, right, head, depth + 1);
     }
 
     private static long ReadInt64(IntPtr hProc, long addr)

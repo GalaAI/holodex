@@ -14,7 +14,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Omniwand;
+namespace Holodex;
 
 public sealed class ArkStationStatus
 {
@@ -52,7 +52,7 @@ public sealed record OmnitekAutoDetectInfo(
 }
 
 /// <summary>
-/// Connects Omniwand to ArkStation Model Gateway (:8788), Input Studio / Spine (:8842),
+/// Connects Holodex to ArkStation Model Gateway (:8788), Input Studio / Spine (:8842),
 /// PC-Modz (:8830), Antigravity CLI (Wiz), and AInbox Pod Inboxes when available, or
 /// operates in Standalone Mode directly against Nebius Token Factory (NVIDIA Nemotron).
 /// </summary>
@@ -67,7 +67,7 @@ public sealed class ArkStationClient
     // Optional ArkStation integration. A public install has no Ark checkout, so these resolve from ARK_ROOT and
     // ARK_RUNTIMES_ROOT, and otherwise point at folders that simply do not exist (standalone Nebius mode).
     public static readonly string DefaultArkRoot =
-        Environment.GetEnvironmentVariable("ARK_ROOT") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "ark-root-not-configured");
+        Environment.GetEnvironmentVariable("ARK_ROOT") ?? Path.Combine(HolodexNames.DataRoot, "ark-root-not-configured");
     private static readonly string RuntimesRoot =
         Environment.GetEnvironmentVariable("ARK_RUNTIMES_ROOT") ?? Path.Combine(Path.GetDirectoryName(DefaultArkRoot.TrimEnd('\\', '/')) ?? DefaultArkRoot, "runtimes");
     public static readonly string DefaultCursorsDir = Path.Combine(RuntimesRoot, "cursors");
@@ -119,7 +119,7 @@ public sealed class ArkStationClient
     }
 
     /// <summary>
-    /// True when this PC runs its owner's Ark (not OMNIWAND_STANDALONE, and an Ark root or a gateway inbound key is
+    /// True when this PC runs its owner's Ark (not HOLODEX_STANDALONE, and an Ark root or a gateway inbound key is
     /// present), read once at startup. Surfaces that name the owner's private Ark (its pods, agents and gates) show
     /// them only then; a public install sees neutral names.
     /// </summary>
@@ -133,7 +133,7 @@ public sealed class ArkStationClient
          !string.IsNullOrWhiteSpace(TryReadWindowsCredential(GatewayInboundKeyTarget))));
 
     private static bool StandaloneRequested() =>
-        Environment.GetEnvironmentVariable("OMNIWAND_STANDALONE") is { } v &&
+        HolodexNames.ReadEnv("HOLODEX_STANDALONE") is { } v &&
         (v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Where an AInbox Handoff Scroll can go: the owner's Ark pods on an Ark, neutral destinations saved on this PC otherwise.</summary>
@@ -263,7 +263,7 @@ public sealed class ArkStationClient
     public string ReadNebiusApiKey()
     {
         if (SimulateFreshInstall) return string.Empty;
-        foreach (string envName in new[] { "NEBIUS_API_KEY", "TOKEN_FACTORY_API_KEY", "OMNIWAND_NEBIUS_API_KEY" })
+        foreach (string envName in new[] { "NEBIUS_API_KEY", "TOKEN_FACTORY_API_KEY", "HOLODEX_NEBIUS_API_KEY", "OMNIWAND_NEBIUS_API_KEY" })
         {
             string? val = Environment.GetEnvironmentVariable(envName);
             if (!string.IsNullOrWhiteSpace(val))
@@ -276,7 +276,7 @@ public sealed class ArkStationClient
                 return val.Trim();
         }
 
-        foreach (string target in new[] { "Omniwand:NebiusTokenFactory", "NebiusTokenFactory", "NEBIUS_API_KEY", "TOKEN_FACTORY_API_KEY" })
+        foreach (string target in new[] { "Holodex:NebiusTokenFactory", "NebiusTokenFactory", "NEBIUS_API_KEY", "TOKEN_FACTORY_API_KEY" })
         {
             string? secret = TryReadWindowsCredential(target);
             if (!string.IsNullOrWhiteSpace(secret))
@@ -307,17 +307,17 @@ public sealed class ArkStationClient
 
     public static bool HasWinCredVaultBundle() =>
         !string.IsNullOrWhiteSpace(TryReadWindowsCredential("ArkKeymaster:VaultBundle:Manifest")) ||
-        !string.IsNullOrWhiteSpace(TryReadWindowsCredential("Omniwand:NebiusTokenFactory"));
+        !string.IsNullOrWhiteSpace(TryReadWindowsCredential("Holodex:NebiusTokenFactory"));
 
-    private const string GatewayInboundKeyTarget = "Omniwand:GatewayInboundKey";
+    private const string GatewayInboundKeyTarget = "Holodex:GatewayInboundKey";
 
     public bool SaveTokenToWindowsVault(string rawToken)
     {
         string trimmed = rawToken.Trim();
         if (string.IsNullOrEmpty(trimmed)) return false;
 
-        // An Ark gateway key (ark_ or hm_) goes to Omniwand:GatewayInboundKey; anything else is a Nebius Token Factory
-        // key (Omniwand:NebiusTokenFactory). Omniwand:HivemindToken belongs to the Hivemind OAuth sign-in (HivemindClient).
+        // An Ark gateway key (ark_ or hm_) goes to Holodex:GatewayInboundKey; anything else is a Nebius Token Factory
+        // key (Holodex:NebiusTokenFactory). Holodex:HivemindToken belongs to the Hivemind OAuth sign-in (HivemindClient).
         bool isArkToken = trimmed.StartsWith("ark_", StringComparison.OrdinalIgnoreCase) ||
                           trimmed.StartsWith("hm_", StringComparison.OrdinalIgnoreCase);
 
@@ -329,11 +329,22 @@ public sealed class ArkStationClient
         else
         {
             Environment.SetEnvironmentVariable("NEBIUS_API_KEY", trimmed);
-            return TryWriteWindowsCredential("Omniwand:NebiusTokenFactory", trimmed);
+            return TryWriteWindowsCredential("Holodex:NebiusTokenFactory", trimmed);
         }
     }
 
+    /// <summary>
+    /// Writes a generic Windows credential. A Holodex: target is written under whichever spelling already holds it
+    /// (see <see cref="HolodexNames"/>), else under the Omniwand: one installs from before the rename read.
+    /// </summary>
     internal static bool TryWriteWindowsCredential(string targetName, string secret)
+    {
+        string[] spellings = HolodexNames.CredentialTargets(targetName);
+        string target = spellings.FirstOrDefault(t => ReadWindowsCredential(t) != null) ?? spellings[^1];
+        return WriteWindowsCredential(target, secret);
+    }
+
+    private static bool WriteWindowsCredential(string targetName, string secret)
     {
         IntPtr targetPtr = IntPtr.Zero;
         IntPtr userPtr = IntPtr.Zero;
@@ -376,7 +387,11 @@ public sealed class ArkStationClient
 
     private bool HasArkGatewayCredentials() => !string.IsNullOrEmpty(ReadInboundKey());
 
-    internal static string? TryReadWindowsCredential(string targetName)
+    /// <summary>Reads a generic Windows credential; a Holodex: target also finds its Omniwand: spelling from before the rename.</summary>
+    internal static string? TryReadWindowsCredential(string targetName) =>
+        HolodexNames.CredentialTargets(targetName).Select(ReadWindowsCredential).FirstOrDefault(v => v != null);
+
+    private static string? ReadWindowsCredential(string targetName)
     {
         if (!CredReadW(targetName, 1 /* CRED_TYPE_GENERIC */, 0, out IntPtr credPtr) || credPtr == IntPtr.Zero)
             return null;
@@ -434,8 +449,10 @@ public sealed class ArkStationClient
     private static extern bool CredDeleteW(string target, uint type, uint flags);
 
     /// <summary>Deletes a generic Windows credential; true when it is gone (deleted, or was never there).</summary>
+    /// A Holodex: target is deleted under both spellings.
     internal static bool TryDeleteWindowsCredential(string targetName) =>
-        CredDeleteW(targetName, 1, 0) || Marshal.GetLastWin32Error() == 1168; // ERROR_NOT_FOUND
+        HolodexNames.CredentialTargets(targetName).Select(t => CredDeleteW(t, 1, 0) || Marshal.GetLastWin32Error() == 1168) // ERROR_NOT_FOUND
+            .ToArray().All(gone => gone);
 
     [DllImport("advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
     private static extern void CredFree(IntPtr cred);
@@ -1466,12 +1483,12 @@ public sealed class ArkStationClient
         {
             PhosphorToast.Show(
                 "Token Factory Key Missing",
-                "Set NEBIUS_API_KEY or add Omniwand:NebiusTokenFactory in Windows Credential Manager to run NVIDIA Nemotron.",
+                "Set NEBIUS_API_KEY or add Holodex:NebiusTokenFactory in Windows Credential Manager to run NVIDIA Nemotron.",
                 "NEBIUS TOKEN FACTORY",
                 5200,
                 ToastTone.Warning);
             return new ModelAnswer(false,
-                "Nebius Token Factory API key not found. Set NEBIUS_API_KEY in your environment or add generic credential 'Omniwand:NebiusTokenFactory' in Windows Credential Manager.",
+                "Nebius Token Factory API key not found. Set NEBIUS_API_KEY in your environment or add generic credential 'Holodex:NebiusTokenFactory' in Windows Credential Manager.",
                 targetModel, RouteNebiusDirect);
         }
 
@@ -1569,11 +1586,11 @@ public sealed class ArkStationClient
         {
             PhosphorToast.Show(
                 "Token Factory Key Missing",
-                "Set NEBIUS_API_KEY or add Omniwand:NebiusTokenFactory in Windows Credential Manager to run NVIDIA Nemotron.",
+                "Set NEBIUS_API_KEY or add Holodex:NebiusTokenFactory in Windows Credential Manager to run NVIDIA Nemotron.",
                 "STANDALONE // NEBIUS TOKEN FACTORY",
                 5200,
                 ToastTone.Warning);
-            return (false, null, "Nebius Token Factory API key not found. Set NEBIUS_API_KEY or add 'Omniwand:NebiusTokenFactory' in Windows Credential Manager.");
+            return (false, null, "Nebius Token Factory API key not found. Set NEBIUS_API_KEY or add 'Holodex:NebiusTokenFactory' in Windows Credential Manager.");
         }
 
         var payload = new JsonObject

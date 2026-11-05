@@ -9,7 +9,7 @@ using ModelContextProtocol.Authentication;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>How a catalog adapter connects: a pasted key, an MCP server's own sign-in, or a service on this PC.</summary>
 internal enum VaultKind { ApiKey, McpServer, LocalService, SignIn }
@@ -60,20 +60,19 @@ internal sealed record VaultDetection(VaultProvider? Provider, string Value, str
 /// <summary>
 /// The user's own KeyMaster vault on this PC, shaped like ArkStation's (KeyMaster, apps/api/src/keymaster-routes.ts):
 /// a universal intake that recognizes a key by its prefix or its ENV_NAME=value line, and failing that by asking each
-/// provider's read-only endpoint; secrets in Windows Credential Manager (<c>Omniwand:Vault:*</c>) and never in a file,
+/// provider's read-only endpoint; secrets in Windows Credential Manager (<c>Holodex:Vault:*</c>) and never in a file,
 /// a log or Hivemind; and copy, rotate and delete. It needs no Ark and no Hivemind account. The Nebius Token Factory
-/// key keeps its own target (<c>Omniwand:NebiusTokenFactory</c>), so a key added here is the one Holodex's models use.
+/// key keeps its own target (<c>Holodex:NebiusTokenFactory</c>), so a key added here is the one Holodex's models use.
 /// </summary>
 internal static class HolodexVault
 {
-    public const string NebiusTarget = "Omniwand:NebiusTokenFactory";
-    private const string TargetPrefix = "Omniwand:Vault:";
+    public const string NebiusTarget = "Holodex:NebiusTokenFactory";
+    private const string TargetPrefix = "Holodex:Vault:";
     public static readonly Uri McpRedirectUri = new("http://127.0.0.1:47613/vault/callback/");
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(12) };
     private static readonly object Gate = new();
 
-    public static string ManifestPath { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Omniwand", "vault.json");
+    public static string ManifestPath { get; set; } = Path.Combine(HolodexNames.DataRoot, "vault.json");
 
     private static HttpRequestMessage Bearer(string url, string key)
     {

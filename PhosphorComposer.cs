@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The simplified-surface kit (skill simplify-ui, first shipped as the AInbox composer 2026-10-26): one composer
@@ -54,7 +54,7 @@ internal static class PhosphorIcons
     private static readonly Dictionary<PhosphorGlyph, GraphicsPath[]> LucidePaths = new();
 
     /// <summary>
-    /// Stroke icons on a 24-unit grid, drawn into <paramref name="box"/>. They follow the canvas glyphs (Omniwand
+    /// Stroke icons on a 24-unit grid, drawn into <paramref name="box"/>. They follow the canvas glyphs (Holodex
     /// UI, AInbox upload board) with GDI shapes in place of SVG paths.
     /// </summary>
     public static void Draw(Graphics g, PhosphorGlyph glyph, RectangleF box, Color ink, float stroke)
@@ -639,10 +639,10 @@ internal class SuggestionChip : Control
         return _open ? e : 1f - e;
     }
 
-    /// <summary>Whether the foreground window is one of Omniwand's own.</summary>
+    /// <summary>Whether the foreground window is one of Holodex's own.</summary>
     internal static bool OwnsForeground() => GetWindowThreadProcessId(GetForegroundWindow(), out uint pid) != 0 && pid == (uint)Environment.ProcessId;
 
-    /// <summary>One line per chip-menu close (why, and whether it was kept open) in %TEMP%\omniwand-menu.log.</summary>
+    /// <summary>One line per chip-menu close (why, and whether it was kept open) in %TEMP%\holodex-menu.log.</summary>
     internal static void LogMenuClose(string chip, ToolStripDropDownCloseReason reason, bool kept)
     {
         try
@@ -651,7 +651,7 @@ internal class SuggestionChip : Control
             var cls = new System.Text.StringBuilder(128);
             GetClassName(fg, cls, cls.Capacity);
             GetWindowThreadProcessId(fg, out uint pid);
-            System.IO.File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "omniwand-menu.log"),
+            System.IO.File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "holodex-menu.log"),
                 $"{DateTime.Now:O} {chip} {reason}{(kept ? " KEPT-OPEN" : "")} foreground={cls} pid={pid}{Environment.NewLine}");
         }
         catch (System.IO.IOException) { }

@@ -4,7 +4,7 @@ using System.Drawing.Drawing2D;
 using Svg;
 using Svg.Pathing;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>
 /// The one SVG path reader: SVG.NET (NuGet Svg) parses full path data (absolute and relative commands, H/V, arcs

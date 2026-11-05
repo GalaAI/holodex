@@ -6,7 +6,7 @@ using System.Drawing.Text;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace Omniwand;
+namespace Holodex;
 
 /// <summary>Shared painting for the AInbox stack cards: the card panel with an optional accent edge.</summary>
 internal static class StackPaint
