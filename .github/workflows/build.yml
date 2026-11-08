@@ -25,6 +25,9 @@ jobs:
       - name: Build
         run: dotnet build Holodex.csproj -c Release --disable-build-servers -p:UseSharedCompilation=false -nologo
 
+      - name: Test
+        run: dotnet test tests/Holodex.Tests --disable-build-servers -p:UseSharedCompilation=false -nologo
+
       - name: Publish self-contained win-x64
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
