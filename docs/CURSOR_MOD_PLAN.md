@@ -1,6 +1,6 @@
 # Holodex Cursor Mod: moving the Input Spine inside Holodex
 
-Status: plan, 2026-11-08. Nothing is built yet. Ruling (Justin, 2026-11-08, index
+Status: plan, 2026-11-08, decisions recorded. Nothing is built yet. Ruling (Justin, 2026-11-08, index
 session question card): Input Studio is now the Holodex Cursor Mod, and its
 input endpoint lives inside Holodex.
 
@@ -52,7 +52,7 @@ the Stream Deck, the AHK bridge and Spells change nothing on day one.
 
 ## Steps (one draft PR each)
 
-1. **Holodex: spine endpoint.** Port `resolve.ts` and `run.ts` to C# with tests that replay `spine.test.ts` cases. Serve the 7 spine routes on 8842 only when nothing else holds the port, so it runs side by side with Input Studio while testing.
+1. **Holodex: spine endpoint.** Port (decision 1: C#) `resolve.ts` and `run.ts` to C# with tests that replay `spine.test.ts` cases. Serve the 7 spine routes on 8842 only when nothing else holds the port, so it runs side by side with Input Studio while testing.
 2. **Holodex: cursor routes.** Port the 8 cursor routes and the `.cur`/`.ani` writer. Test the writer byte for byte against Input Studio's output for the same input.
 3. **Holodex: Cursor Mod tab.** Replace the WebView2 embed in `MouseModStationForm.cs` with native panels. Drop the dead `/api/omniwand/wiz/chat` call.
 4. **Ark: point callers at Holodex.** Remove `input-studio` from `start-ark-local.ps1`, point the `ark://input-studio` registry entry at the Holodex Cursor Mod, and move the AHK bridge into the holodex repo. The Stream Deck keeps its URL.
@@ -61,8 +61,17 @@ the Stream Deck, the AHK bridge and Spells change nothing on day one.
 `packages/input-spine-core` stays in Ark until step 5. If no other app imports
 it then, it goes too.
 
-## Open questions
+## Decisions (Justin, 2026-11-08, index session question cards 8 to 10)
 
-1. Port the spine to C# (one runtime, as planned above), or have Holodex start a bundled Bun process for the existing TypeScript? Recommended: C#.
-2. Should Holodex hold port 8842 when Ark is not installed (a public user with a Stream Deck)? Recommended: yes, loopback only.
-3. The spine can run shell commands (`run.ts`). Keep that in the public build, or limit it to Ark owner PCs? Recommended: owner PCs only.
+1. **Spine runtime:** port to C#. Holodex runs one runtime; no bundled Bun.
+2. **Port 8842 without Ark:** yes, local only. Holodex binds `127.0.0.1:8842` on every install, never a public interface.
+3. **Shell actions:** allowed everywhere, public build included. These safeguards stay because they don't contradict that ruling:
+   - Loopback-only binding, plus the same Origin check Input Studio uses, so no remote caller and no web page can reach the spine.
+   - Shell actions are off until the user turns them on, per install, in the Cursor Mod tab. Each install opts in locally; nothing turns it on remotely.
+   - Every shell action is logged with the binding, the trigger and the command it ran.
+   - A spine config edited on disk does not bypass the opt-in: the runner checks the opt-in at run time, not only at save time.
+
+### Risks the safeguards don't cover
+
+- **Local processes.** Any program already running as the same Windows user can POST to `127.0.0.1:8842`. The Origin check stops browsers, not local programs. Once the opt-in is on, a local program can run any shell command the bindings allow. Requiring a per-install token on `/api/spine/event` would close this, but the Stream Deck plugin and the AHK bridge would then have to read that token. This needs Justin's call.
+- **Shared bindings.** A spine config copied from someone else can carry shell actions. Recommend showing the commands and asking the user to confirm them when a config is imported.
