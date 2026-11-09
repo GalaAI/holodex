@@ -87,8 +87,13 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
+        // The Input Spine on 127.0.0.1:8842 (Cursor Mod, step 1). If Input Studio still holds the port it stays off.
+        var spine = new InputSpineServer(KitStore.Default, ShellGate.Default, new WindowsSpineRunner(new ArkStationClient()));
+        spine.TryStart();
+
         using var context = new HolodexAppContext();
         Application.Run(context);
+        spine.Stop();
     }
 }
 
