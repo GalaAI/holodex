@@ -25,8 +25,8 @@ jobs:
       - name: Build
         run: dotnet build Holodex.csproj -c Release --disable-build-servers -p:UseSharedCompilation=false -nologo
 
-      - name: Input Spine tests
-        run: dotnet test tests/Holodex.Tests --filter "FullyQualifiedName~InputSpineTests" --disable-build-servers -p:UseSharedCompilation=false -nologo
+      - name: Cursor Mod tests
+        run: dotnet test tests/Holodex.Tests --filter "FullyQualifiedName~InputSpineTests|FullyQualifiedName~CursorStudioTests" --disable-build-servers -p:UseSharedCompilation=false -nologo
 
       - name: Publish self-contained win-x64
         if: startsWith(github.ref, 'refs/tags/v')
