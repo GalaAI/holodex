@@ -41,8 +41,41 @@ internal sealed record CursorKit(IReadOnlyList<KitAction> Actions, IReadOnlyList
         ["bindings"] = new JsonArray(Bindings.Select(b => (JsonNode)b.ToJson()).ToArray()),
     };
 
-    /// <summary>Every shell command in the kit, for the import check and the save check.</summary>
-    public IEnumerable<string> ShellCommands => Actions.Where(a => a.Kind == "shell").Select(a => a.Command!);
+    /// <summary>
+    /// Everything in the kit that runs code, for the import check and the save check: each shell command, and each
+    /// open target that starts a program or script (as <c>open &lt;target&gt;</c>).
+    /// </summary>
+    public IEnumerable<string> ShellCommands => Actions.Select(RunsCode).OfType<string>();
+
+    private static string? RunsCode(KitAction a) => a.Kind switch
+    {
+        "shell" => a.Command,
+        "open" when OpenRunsCode(a.Target!) => "open " + a.Target,
+        _ => null,
+    };
+
+    private static readonly string[] SafeSchemes = { "http", "https", "mailto" };
+    private static readonly string[] ProgramExtensions =
+    {
+        ".exe", ".com", ".bat", ".cmd", ".ps1", ".psm1", ".vbs", ".vbe", ".js", ".jse", ".wsf", ".wsh", ".msi", ".msp",
+        ".lnk", ".scr", ".pif", ".cpl", ".hta", ".reg", ".jar", ".py", ".pyw", ".appref-ms", ".url", ".application",
+        ".msc", ".inf", ".sh",
+    };
+
+    /// <summary>
+    /// Whether opening a target starts a program or script rather than showing a page, folder or document. Such an
+    /// open is as powerful as a shell command, so it passes the same gate. A web or mail link is safe; any other
+    /// protocol can hand the target to a program and is not; a bare name ("notepad") resolves to a program on PATH.
+    /// </summary>
+    public static bool OpenRunsCode(string target)
+    {
+        string t = target.Trim().Trim('"');
+        int colon = t.IndexOf(':');
+        if (colon > 1) return !SafeSchemes.Contains(t[..colon].ToLowerInvariant());
+        if (Directory.Exists(t)) return false;
+        string ext = System.IO.Path.GetExtension(t).ToLowerInvariant();
+        return ext.Length == 0 || ProgramExtensions.Contains(ext);
+    }
 
     private static KitAction ParseAction(JsonNode? node, string at)
     {

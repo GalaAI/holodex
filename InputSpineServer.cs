@@ -346,7 +346,15 @@ internal sealed class InputSpineServer
 /// <summary>Applies the shell rules for one request: shell actions on, a valid token, and a log line for every run.</summary>
 internal sealed class GatedRunner(ISpineRunner inner, ShellGate gate, bool tokenOk, string source) : ISpineRunner
 {
-    public Task<SpineOutcome> InputAsync(string operation, KitAction action) => inner.InputAsync(operation, action);
+    /// <summary>Opening a program or script is as powerful as a shell command, so it passes the same gate.</summary>
+    public async Task<SpineOutcome> InputAsync(string operation, KitAction action)
+    {
+        if (operation != "pc.app.open" || !CursorKit.OpenRunsCode(action.Target!)) return await inner.InputAsync(operation, action);
+        if (Refusal($"open {action.Id}") is { } refused) return refused;
+        var outcome = await inner.InputAsync(operation, action);
+        gate.Log($"ran {action.Id} from {source} ok={outcome.Ok}: open {action.Target}");
+        return outcome;
+    }
     public Task<SpineOutcome> CursorAsync(string profile) => inner.CursorAsync(profile);
     public long Now() => inner.Now();
 

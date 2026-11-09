@@ -307,7 +307,7 @@ public class InputSpineTests
     public async Task Every_event_is_recorded_and_grimx_gestures_list_as_spells()
     {
         using var rig = new Rig();
-        rig.Store.Save(Kit("""[{"id":"go","name":"Go","kind":"open","target":"notepad"}]""",
+        rig.Store.Save(Kit("""[{"id":"go","name":"Go","kind":"open","target":"https://example.com"}]""",
             """[{"id":"g","trigger":{"kind":"gesture","match":"grimx/orb-1/go-now"},"actionId":"go"}]"""));
         await rig.Post("/api/spine/event", """{"trigger":{"kind":"gesture","match":"grimx/orb-1/go-now"}}""");
         await rig.Post("/api/spine/event", """{"trigger":{"kind":"voice","match":"nothing bound"}}""");
@@ -319,6 +319,38 @@ public class InputSpineTests
 
         var (_, spells) = await rig.Server.HandleAsync("GET", "/api/spine/grimx/spells", new Dictionary<string, string>(), "");
         Assert.Equal("go-now", spells["spells"]!["orb-1"]![0]!["slug"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData("https://example.com/page", false)]
+    [InlineData("mailto:me@example.com", false)]
+    [InlineData("C:\\Users\\me\\notes.txt", false)]
+    [InlineData("notepad", true)]
+    [InlineData("C:\\tools\\run.bat", true)]
+    [InlineData("payload.lnk", true)]
+    [InlineData("ms-msdt:/id", true)]
+    [InlineData("file:///C:/x.exe", true)]
+    public void An_open_that_starts_a_program_counts_as_running_code(string target, bool runsCode) =>
+        Assert.Equal(runsCode, CursorKit.OpenRunsCode(target));
+
+    [Fact]
+    public async Task Opening_a_program_passes_the_shell_gate_and_needs_confirming_on_save()
+    {
+        using var rig = new Rig();
+        string kit = """{"actions":[{"id":"go","name":"Go","kind":"open","target":"C:\\tools\\run.bat"}]}""";
+        var (_, refused) = await rig.Post("/api/spine/save", $$"""{"config":{{kit}}}""");
+        Assert.False(refused["ok"]!.GetValue<bool>());
+
+        string token = rig.Gate.TurnOn();
+        var (_, saved) = await rig.Post("/api/spine/save", $$"""{"config":{{kit}},"confirmedShellCommands":["open C:\\tools\\run.bat"]}""", token: token);
+        Assert.True(saved["ok"]!.GetValue<bool>());
+
+        var (_, noToken) = await rig.Post("/api/spine/run", """{"actionId":"go"}""");
+        Assert.False(noToken["result"]!["ok"]!.GetValue<bool>());
+        Assert.Empty(rig.Runner.Ops);
+        var (_, ran) = await rig.Post("/api/spine/run", """{"actionId":"go"}""", token: token);
+        Assert.True(ran["result"]!["ok"]!.GetValue<bool>());
+        Assert.Equal(new[] { "pc.app.open" }, rig.Runner.Ops);
     }
 
     // ---- Windows runner pieces that need no input device --------------------------------------------------------------
