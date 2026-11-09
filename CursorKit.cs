@@ -174,8 +174,12 @@ internal sealed record CursorKit(IReadOnlyList<KitAction> Actions, IReadOnlyList
         return values.Contains(s) ? s : throw new KitException($"{at} must be one of {string.Join(", ", values)}");
     }
 
+    // A number node built in code holds an int, not a double, so it is read through its JSON text, which is the same
+    // for either backing.
     private static int Int(JsonNode? n, string at) =>
-        n is JsonValue v && v.TryGetValue(out double d) && d == Math.Floor(d) && d is >= int.MinValue and <= int.MaxValue
+        n is JsonValue v && v.GetValueKind() == JsonValueKind.Number
+            && double.TryParse(v.ToJsonString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double d)
+            && d == Math.Floor(d) && d is >= int.MinValue and <= int.MaxValue
             ? (int)d : throw new KitException($"{at} must be a whole number");
 
     private static int? OptInt(JsonNode? n, string at, int min, int max)
