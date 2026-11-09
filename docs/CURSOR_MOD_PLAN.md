@@ -48,7 +48,7 @@ the Stream Deck, the AHK bridge and Spells change nothing on day one.
 - **Cursor writing:** `.cur` and `.ani` files and the Windows cursor scheme move into C#. Holodex already restores cursors on crash (`CursorCrashGuard.cs`), so install and restore share one owner.
 - **Real input:** Holodex already drives input natively (`MouseHardwareAndWandEngine.cs`). The runner calls that directly instead of PC Mod's missing route.
 - **Page:** the Mouse Mod window becomes the Cursor Mod tab, built from the Holodex Phosphor kit rather than an embedded web page.
-- **Spine config:** keeps its file format and contract version (`INPUT_SPINE_CONTRACT_VERSION` 0.1.0), so saved bindings carry over.
+- **Cursor Kit:** the shareable file that holds key bindings, cursor sets and shell actions is a Cursor Kit (Justin, 2026-11-09), as in "import a Cursor Kit". It keeps the current spine config format and contract version (`INPUT_SPINE_CONTRACT_VERSION` 0.1.0), so saved bindings carry over. Code and UI copy use the name Cursor Kit.
 
 ## Steps (one draft PR each)
 
@@ -69,9 +69,10 @@ it then, it goes too.
    - Loopback-only binding, plus the same Origin check Input Studio uses, so no remote caller and no web page can reach the spine.
    - Shell actions are off until the user turns them on, per install, in the Cursor Mod tab. Each install opts in locally; nothing turns it on remotely.
    - Every shell action is logged with the binding, the trigger and the command it ran.
-   - A spine config edited on disk does not bypass the opt-in: the runner checks the opt-in at run time, not only at save time.
+   - A Cursor Kit edited on disk does not bypass the opt-in: the runner checks the opt-in at run time, not only at save time.
+   - **Per-install token (Justin, 2026-11-09):** shell actions need a token minted per install when the user turns them on locally. A request without it runs no shell action. The Stream Deck plugin and the AHK bridge read the token from a file only the current Windows user can read.
+   - **Import confirmation (Justin, 2026-11-09):** when an imported Cursor Kit contains shell actions, Holodex shows each command and asks the user to confirm before saving it.
 
-### Risks the safeguards don't cover
+### Remaining risk
 
-- **Local processes.** Any program already running as the same Windows user can POST to `127.0.0.1:8842`. The Origin check stops browsers, not local programs. Once the opt-in is on, a local program can run any shell command the bindings allow. Requiring a per-install token on `/api/spine/event` would close this, but the Stream Deck plugin and the AHK bridge would then have to read that token. This needs Justin's call.
-- **Shared bindings.** A spine config copied from someone else can carry shell actions. Recommend showing the commands and asking the user to confirm them when a config is imported.
+- A program already running as the same Windows user can read that user's token file. The token stops web pages, other users and anything that does not know the file's location, but not malware running in the user's own session. This is the normal limit for a local desktop app.
