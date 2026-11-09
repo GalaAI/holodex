@@ -846,35 +846,7 @@ public sealed class ArkStationClient
 
         if (!ForceStandaloneMode && !isNemotronSelected)
         {
-            // 1. Try Input Studio's /api/omniwand/wiz/chat endpoint first
-            try
-            {
-                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(4));
-                var payload = new { prompt, flowKind, model = selected };
-                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                using var resp = await _http.PostAsync($"{DefaultInputSpineUrl}/api/omniwand/wiz/chat", content, cts.Token);
-                if (resp.IsSuccessStatusCode)
-                {
-                    using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-                    var root = doc.RootElement;
-                    if (root.TryGetProperty("ok", out var okProp) && okProp.GetBoolean())
-                    {
-                        string rt = root.TryGetProperty("runtime", out var r) ? r.GetString() ?? "subscription-gemini" : "subscription-gemini";
-                        string mdl = root.TryGetProperty("model", out var m) ? m.GetString() ?? selected : selected;
-                        string txt = root.TryGetProperty("output", out var o) ? o.GetString() ?? "" : "";
-                        if (!string.IsNullOrWhiteSpace(txt))
-                        {
-                            return (true, rt, mdl, txt);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Fall through to direct Antigravity CLI, Ark Model Gateway, or Nebius Token Factory
-            }
-
-            // 2. Direct Antigravity CLI (`agy` / `gemini`) with the selected `--model` when ArkRoot exists
+            // 1. Direct Antigravity CLI (`agy` / `gemini`) with the selected `--model` when ArkRoot exists
             if (Directory.Exists(ArkRoot))
             {
                 foreach (string cli in new[] { "agy", "gemini" })
@@ -913,7 +885,7 @@ public sealed class ArkStationClient
             }
         }
 
-        // 3. Nemotron: through the Ark API when it is up, else Token Factory direct. AskAsync owns that choice and
+        // 2. Nemotron: through the Ark API when it is up, else Token Factory direct. AskAsync owns that choice and
         // reports the route and model that answered.
         var answer = await AskAsync(wizSystem, imageDataUrl, isNemotronSelected ? selected : DefaultGatewayModelSlug);
         return (answer.Ok, answer.Route, answer.Model, answer.Output);
