@@ -48,6 +48,31 @@ public class CursorStudioTests
         Assert.Equal(100000u, BinaryPrimitives.ReadUInt32LittleEndian(buf.AsSpan(rate + 12)));
     }
 
+    /// <summary>
+    /// The writer matches Input Studio byte for byte: these hashes are what ark <c>packages/cursor-mod</c>'s
+    /// <c>encodeCur</c> and <c>encodeAni</c> produced for the same input (bun, 2026-11-09).
+    /// </summary>
+    [Theory]
+    [InlineData("cur32", "ac6d602ebb0048d939b2d60e03403d985000ca8826cdf34182aeb569a2f8f09d")]
+    [InlineData("cur48", "37e92390e84d8cf85baf06f63bfc3e3aa77b11ed4d951d76465d723cb71de056")]
+    [InlineData("ani32", "96829443663503caa26810d0c5fc10e054c04752f260e82e7f48552c0cad2e5e")]
+    public void The_writer_matches_input_studio_byte_for_byte(string which, string sha256)
+    {
+        static byte[] Frame(int size, int seed)
+        {
+            var px = new byte[size * size * 4];
+            for (int i = 0; i < px.Length; i++) px[i] = (byte)((i * 31 + seed * 7) % 256);
+            return px;
+        }
+        byte[] bytes = which switch
+        {
+            "cur32" => CursorFiles.EncodeCur(Frame(32, 1), 32, 5, 9),
+            "cur48" => CursorFiles.EncodeCur(Frame(48, 2), 48, 0, 47),
+            _ => CursorFiles.EncodeAni(new[] { Frame(32, 1), Frame(32, 2), Frame(32, 3) }, 32, 16, 16, new uint[] { 2, 3, 100000 }),
+        };
+        Assert.Equal(sha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant());
+    }
+
     // ---- Design check ------------------------------------------------------------------------------------------------
 
     [Fact]
