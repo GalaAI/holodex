@@ -48,6 +48,11 @@ public class AuditFixTests
             ("AInboxStack.cs", "\"Scroll for content\""),
             ("Program.cs", "ARK APERTURE|Coral Bloom|Aegis Lock"),
             ("PhosphorComposer.cs", "\"Sign in with Hivemind\""),
+            // UI audit 2026-11-10: Holodex serves the Cursor Mod now, so its own copy does not send people to Input Studio.
+            ("GlobalHotkeys.cs", "Input Studio"),
+            ("ArkStationClient.cs", "Bind it in Input Studio"),
+            ("SurfaceCapture.cs", "4GE BENCH|Input Studio"),
+            ("assets/cursor-studio/index.html", "<h1>Input Studio</h1>"),
         };
         foreach (var (file, pattern) in banned)
             Assert.DoesNotMatch(pattern, File.ReadAllText(Path.Combine(root, file)));
