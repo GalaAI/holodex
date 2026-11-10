@@ -7,9 +7,11 @@ picker, the Mouse Mod Station (offscreen and live), PC setup, the tour, the appr
 morph sheet, and every page of the right-click and tray menus.
 
 Evidence: the `ui-renders` artifact of the UI renders workflow (`.github/workflows/ui-renders.yml`), run
-42855962149 on `ui-audit` at e1726b9. It holds 75 PNGs drawn by the app itself on a Windows runner through
+42855962149 on `ui-audit` at e1726b9. It holds 72 PNGs: 71 drawn by the app itself on a Windows runner through
 `render:<folder>` (SurfaceCapture), plus `station-live.png`, a capture of the Station with its page loaded. The CI
 machine is signed out with no key, so every surface shows its signed-out state.
+
+Artboard (every render, pinned): https://claude.ai/artifact/WKM9nzTKUhHDpgy6GttwWK (private until shared).
 
 How to read the ranks: **Defect** is broken layout, clipped text, stale copy or a dead control, fixed without asking.
 **Ask** is a design or copy call that is Justin's. **Polish** is small and safe, left for a later pass. **Coverage**
@@ -48,7 +50,7 @@ is a gap in what the renders show, not in the product.
 | P3 | Kit, approval cards | The first SKIP is wider than the other two. |
 | P4 | Wiz, AInbox, Vault catalog | Scrolled lists cut the last or first card mid-card with no fade at the edge. |
 | P5 | Drawer, Library tab | The button row ends about 5 px right of the card column under it. |
-| P6 | Code only | Literal colours outside the tokens: `AInboxIntakeWidgetForm.cs:1028` (22, 27, 34) and `ScrollBeam.cs:27` (228, 217, 192). Neither is visible in a render; check against the tokens when those files are next touched. |
+| P6 | Code only | Literal colours: `AInboxIntakeWidgetForm.cs:1028` paints (22, 27, 34), which is no Phosphor token; `ScrollBeam.cs:27` (228, 217, 192) is `color-cream` written out by hand. Use the tokens when those files are next touched. |
 
 ## Coverage gaps in the renders
 
