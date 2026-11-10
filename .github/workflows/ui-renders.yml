@@ -1,0 +1,82 @@
+# As-built UI renders: builds Holodex, starts it on the runner's desktop and asks it, over its control pipe, to draw
+# every surface offscreen (SurfaceCapture, pipe command render:<folder>) plus a live capture of the Mouse Mod Station.
+# The PNGs are uploaded as the "ui-renders" artifact so a UI audit can read what the code actually draws.
+name: UI renders
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "**/*.cs"
+      - "assets/**"
+      - ".github/workflows/ui-renders.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build Holodex.csproj -c Release --disable-build-servers -p:UseSharedCompilation=false -nologo
+
+      - name: Render every surface
+        shell: pwsh
+        env:
+          HOLODEX_DEV_PIPE: "1"
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "ui-renders"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $exe = Resolve-Path "bin\Release\net10.0-windows\Omniwand.exe"
+          $app = Start-Process -FilePath $exe -PassThru
+
+          function Send-Pipe([string]$command, [int]$timeoutMs = 60000) {
+            $client = New-Object System.IO.Pipes.NamedPipeClientStream(".", "ArkStation.Holodex.Control", [System.IO.Pipes.PipeDirection]::InOut)
+            try {
+              $client.Connect(3000)
+              $writer = New-Object System.IO.StreamWriter($client)
+              $writer.AutoFlush = $true
+              $writer.WriteLine($command)
+              $reader = New-Object System.IO.StreamReader($client)
+              $task = $reader.ReadLineAsync()
+              if (-not $task.Wait($timeoutMs)) { return "timeout" }
+              return $task.Result
+            } finally { $client.Dispose() }
+          }
+
+          $ready = $false
+          for ($i = 0; $i -lt 60 -and -not $ready; $i++) {
+            if ($app.HasExited) { throw "Holodex exited during startup with code $($app.ExitCode)" }
+            try { $reply = Send-Pipe "mouse:status" 5000; if ($reply) { $ready = $true; Write-Host "ready: $reply" } }
+            catch { Start-Sleep -Seconds 2 }
+          }
+          if (-not $ready) { throw "Holodex control pipe never answered" }
+          Start-Sleep -Seconds 5
+
+          $render = Send-Pipe "render:$out" 180000
+          Write-Host "render: $render"
+
+          Write-Host (Send-Pipe "station:summon")
+          Start-Sleep -Seconds 8
+          Write-Host (Send-Pipe ("station:capture:" + (Join-Path $out "station-live.png")))
+          Write-Host (Send-Pipe "station:close")
+
+          Get-ChildItem $out | Select-Object Name, Length | Format-Table -AutoSize | Out-String | Write-Host
+          if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force }
+          if ($render -notlike "ok:render:*") { throw "render failed: $render" }
+
+      - name: Upload renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-renders
+          path: ${{ runner.temp }}/ui-renders
+          if-no-files-found: warn

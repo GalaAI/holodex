@@ -994,7 +994,9 @@ internal sealed class HolodexAppContext : ApplicationContext
                         ("holodex", _holodexDrawer),
                         ("snip", _snipWidget),
                         ("vault", _vault),
-                        ("tutorial", _tutorialTooltip));
+                        ("tutorial", _tutorialTooltip),
+                        ("station", _station),
+                        ("pc-setup", PcSetupScan.Panel));
                     result = $"ok:render:{files.Count}:{string.Join(",", files)}";
                 }
                 catch (Exception ex) { result = $"error:render:{ex.Message}"; }

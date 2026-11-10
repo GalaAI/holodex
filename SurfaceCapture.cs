@@ -56,6 +56,19 @@ internal static class SurfaceCapture
         foreach (var t in ToastCatalog)
             Save(PhosphorToast.RenderPreview(t.Title, t.Body, t.Eyebrow, t.Tone), Path.Combine(dir, $"{t.File}.png"), written);
 
+        // The approval dialogs: a command Nemotron wants to run, turning shell actions on, and a Cursor Kit import.
+        using (var approval = new CommandApprovalForm("Get-ChildItem $env:USERPROFILE\\Downloads | Sort-Object Length -Descending | Select-Object -First 5", "Finds the five largest files in Downloads, as you asked."))
+            Save(RenderForm(approval), Path.Combine(dir, "dialog-command-approval.png"), written);
+        using (var shellOn = new CursorModConfirmForm("Turn shell actions on?", "HOLODEX // CURSOR MOD // SHELL ACTIONS",
+            "Cursor Kit buttons will be able to run commands and open programs on this PC.",
+            "Only a caller with this PC's token can run them (the Stream Deck and the AHK bridge read it from your Holodex folder). Every run is logged. Turning them off again deletes the token.",
+            "Turn on"))
+            Save(RenderForm(shellOn), Path.Combine(dir, "dialog-shell-on.png"), written);
+        using (var import = new CursorModConfirmForm("Import 2 commands?", "HOLODEX // CURSOR MOD // IMPORT // CONFIRM EACH COMMAND",
+            "3 actions and 1 binding from studio-kit.json. Actions and bindings with the same id are replaced. It adds these commands:",
+            "Get-Date" + Environment.NewLine + Environment.NewLine + "open C:\\tools\\obs-scene.bat", "Import", mono: true))
+            Save(RenderForm(import), Path.Combine(dir, "dialog-kit-import.png"), written);
+
         foreach (var (name, form) in widgets)
         {
             if (form is VaultForm vaultForm)
