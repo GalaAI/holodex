@@ -430,7 +430,7 @@ internal sealed class HolodexAppContext : ApplicationContext
             inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
         }
 
-        // The Mouse Mod Station: the mouse in use, its speed, the pointer look and Input Studio in one window.
+        // The Mouse Mod Station: the mouse in use, its speed, the pointer look and the Cursor Mod in one window.
         if (MouseModStationForm.Available(_ark))
         {
             var stationItem = home.Add(new ToolStripMenuItem("Mouse Mod Station") { Name = "Tray.MouseModStation", ToolTipText = "Your mouse, its speed, the pointer look, and the cursor designer and button bindings." });
@@ -1366,7 +1366,7 @@ internal sealed class HolodexAppContext : ApplicationContext
             string next = _ark.CycleCursorProfile();
             _uiSync.Post(_ =>
             {
-                PhosphorToast.Show("Cursor profile", $"Active Input Studio profile: {next}", "MX MASTER 4", 1800);
+                PhosphorToast.Show("Cursor profile", $"Active cursor profile: {next}", "MX MASTER 4", 1800);
             }, null);
             return $"ok:profile:{next}";
         }
@@ -1535,7 +1535,7 @@ internal sealed class HolodexAppContext : ApplicationContext
     private void CycleProfileFromHotkey()
     {
         string next = _ark.CycleCursorProfile();
-        PhosphorToast.Show("Cursor profile", $"Active Input Studio profile: {next}", "HOLODEX", 1800);
+        PhosphorToast.Show("Cursor profile", $"Active cursor profile: {next}", "HOLODEX", 1800);
     }
 
     private void ExecuteOrbSlotOnUiThread(GrimXOrbSlot slot, Point pt)

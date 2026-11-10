@@ -282,6 +282,39 @@ internal sealed class InputSpineServer
         return o;
     }
 
+    // ------------------------------------------------------------------------------------------------- the page
+
+    /// <summary>Where the cursor designer page and its token CSS live: <c>cursor-studio</c> beside the exe, fonts in <c>fonts</c>.</summary>
+    public string PageRoot { get; init; } = AppContext.BaseDirectory;
+
+    private static readonly Regex TokenFile = new(@"^/tokens/(src/[a-z]+\.css|assets/fonts/[A-Za-z-]+\.ttf)$", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// The cursor designer page (ruling 2026-11-10: Holodex serves Input Studio's page until it is ported to native
+    /// panels) and the token files it reads, on the paths Input Studio used. Names are matched exactly, so nothing
+    /// else on disk can be read. Null for anything that is not one of these files.
+    /// </summary>
+    public (string ContentType, byte[] Body)? StaticFile(string method, string path)
+    {
+        if (method != "GET") return null;
+        string? file = null;
+        string type = "";
+        if (path is "/" or "/index.html")
+        {
+            file = Path.Combine(PageRoot, "cursor-studio", "index.html");
+            type = "text/html; charset=utf-8";
+        }
+        else if (TokenFile.Match(path) is { Success: true } m)
+        {
+            string rel = m.Groups[1].Value;
+            file = rel.StartsWith("src/", StringComparison.Ordinal)
+                ? Path.Combine(PageRoot, "cursor-studio", "tokens", "src", rel[4..])
+                : Path.Combine(PageRoot, "fonts", rel["assets/fonts/".Length..]);
+            type = rel.EndsWith(".css", StringComparison.Ordinal) ? "text/css; charset=utf-8" : "font/ttf";
+        }
+        return file != null && File.Exists(file) ? (type, File.ReadAllBytes(file)) : null;
+    }
+
     // ------------------------------------------------------------------------------------------------- the socket
 
     /// <summary>
@@ -332,6 +365,13 @@ internal sealed class InputSpineServer
                 client.ReceiveTimeout = 10_000;
                 var stream = client.GetStream();
                 var request = await HttpRequestReader.ReadAsync(stream, MaxBodyBytes);
+                if (request != null && StaticFile(request.Method, request.Path) is { } page)
+                {
+                    string pageHead = $"HTTP/1.1 200 OK\r\nContent-Type: {page.ContentType}\r\nContent-Length: {page.Body.Length}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
+                    await stream.WriteAsync(Encoding.ASCII.GetBytes(pageHead));
+                    await stream.WriteAsync(page.Body);
+                    return;
+                }
                 (int status, JsonObject reply) = request == null
                     ? (400, Error("bad request"))
                     : await HandleAsync(request.Method, request.Path, request.Headers, request.Body);
