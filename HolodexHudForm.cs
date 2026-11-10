@@ -178,7 +178,8 @@ public sealed class HolodexHudForm : Form
         var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent, Name = "Hud.Footer" };
         _modelChip = new ModelChip(_ark) { Dock = DockStyle.Left, Name = "Hud.ModelPicker" };
         _modelChip.ModelChanged += (_, _) => { SyncAskLabel(); SyncVisionHint(); };
-        _statusLine = new DataLabel("ENTER ASKS") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, Name = "Hud.StatusLine" };
+        // Beside a long model name the hint has about 70 px and read "ENTER..."; it is left out when it cannot read whole.
+        _statusLine = new DataLabel("ENTER ASKS") { Dock = DockStyle.Fill, Height = 44, ForeColor = PhosphorTheme.Ghost, WholeOrNothing = true, Name = "Hud.StatusLine" };
         _askBtn = new PhosphorButton("Ask", PhosphorButtonVariant.Primary) { Dock = DockStyle.Right, Width = 170, Name = "Hud.AskButton" };
         _askBtn.Click += async (_, _) => await AskAsync();
         footer.Controls.Add(_statusLine);
