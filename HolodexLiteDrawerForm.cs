@@ -44,6 +44,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
     /// <summary>Opens the Mouse Mod Station window (Program owns it).</summary>
     internal Action? OpenMouseModStation { get; set; }
     internal Action? OpenVault { get; set; }
+    /// <summary>Opens Horizon, the daily missions log, calendar and checklist (Program owns it).</summary>
+    internal Action? OpenHorizon { get; set; }
 
     private string _activeTab = "session";
     private string _selectedSyndicateTarget = "all";
@@ -811,6 +813,16 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         vaultBtn.Click += (_, _) => OpenVault?.Invoke();
 
+        // Horizon: the day's calendar, checklist and missions log. Always offered: it reads Ark's Horizon for a
+        // signed-in Hivemind account, and the user's own calendar plus this PC for everyone else.
+        var horizonBtn = new PhosphorButton("Horizon")
+        {
+            Dock = DockStyle.Top,
+            Height = 42,
+            Name = "Holodex.HorizonBtn"
+        };
+        horizonBtn.Click += (_, _) => OpenHorizon?.Invoke();
+
         // What is equipped: the mouse's buttons, the spellbook's gesture casts, the ring, then the mods, a card each.
         _modsList = CardList("Holodex.ModsInfoBox");
         RefreshModsList();
@@ -820,6 +832,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _modsPanel.Controls.Add(onboardRow);
         _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
         _modsPanel.Controls.Add(vaultBtn);
+        _modsPanel.Controls.Add(WidgetChrome.Spacer(6));
+        _modsPanel.Controls.Add(horizonBtn);
         // The Augment Inventory reads the owner's Ark API's Shell registry; offered only when that feed answers.
         if (AugmentInventoryForm.FeedAvailable(_ark))
         {

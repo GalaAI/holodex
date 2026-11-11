@@ -164,7 +164,7 @@ public sealed class HivemindClient : IAsyncDisposable
     /// no Nebius key and no Ark gets answers. A capped account may consent to model.invoke alone; the others then
     /// answer scope-denied and Holodex says so.
     /// </summary>
-    private static readonly string[] RequestedScopes = { "runtime.read", "runtime.execute", "model.invoke" };
+    internal static readonly string[] RequestedScopes = { "runtime.read", "runtime.execute", "model.invoke" };
 
     /// <summary>
     /// Asked for only when the server lists it in scopes_supported, so a Hivemind that predates it still signs in:
@@ -811,6 +811,17 @@ public sealed class HivemindClient : IAsyncDisposable
         return answer.Length == 0
             ? HivemindModelAnswer.Fail(HivemindModelError.Upstream, model, $"Hivemind returned no answer text from {model}.")
             : new HivemindModelAnswer(true, answer, model, "", HivemindModelError.None, receipt);
+    }
+
+    /// <summary>
+    /// Ark's Horizon calendar for one day, through Hivemind's <c>horizon_read</c> {day: YYYY-MM-DD} (scope
+    /// runtime.read, read-only): the tool's data, or null with why. Ask <see cref="OffersToolAsync"/> first; a
+    /// Hivemind from before the tool existed does not list it.
+    /// </summary>
+    public async Task<(JsonElement? Data, string Error)> HorizonReadDayAsync(DateOnly day, CancellationToken ct = default)
+    {
+        var data = await CallAsync(HorizonArkProvider.CalendarTool, new Dictionary<string, object?> { ["day"] = Horizon.DayKey(day) }, ct);
+        return data is { } root ? (root, "") : (null, LastError);
     }
 
     // ---- Tools this Hivemind offers, and its hosted web search -------------------------------------------------------

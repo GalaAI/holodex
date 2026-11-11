@@ -25,6 +25,11 @@ jobs:
       - name: Build
         run: dotnet build Holodex.csproj -c Release --disable-build-servers -p:UseSharedCompilation=false -nologo
 
+      # The unit suite is opt-in by filter: live and render tests need a signed-in PC. Add a class here when its
+      # tests run with no network, no sign-in and no window.
+      - name: Test
+        run: dotnet test tests/Holodex.Tests/Holodex.Tests.csproj -c Release --disable-build-servers -p:UseSharedCompilation=false -nologo --filter "FullyQualifiedName~Holodex.Tests.HorizonTests"
+
       - name: Publish self-contained win-x64
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
