@@ -1,0 +1,21 @@
+{
+  "name": "holodex-mcp",
+  "version": "0.1.0",
+  "description": "Local stdio MCP server that lets the Holodex UI Lab drive the running Holodex app over its control pipe.",
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "bin": {
+    "holodex-mcp": "index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
+  },
+  "license": "MIT"
+}
