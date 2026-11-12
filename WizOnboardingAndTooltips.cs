@@ -231,7 +231,7 @@ public sealed class PhosphorAnimatedTooltipForm : Form
             new(1,
                 "WELCOME // HOLODEX",
                 "Your cursor is now a wand",
-                $"Holodex lives in the tray and draws the Aperture cursor. It found your {report.MouseHardware.Brand} {report.MouseHardware.Model} and {report.DisplaySummary}. {vaultState}",
+                $"Holodex lives in the tray and draws the Aperture cursor. It found your {string.Join(" ", new[] { report.MouseHardware.Brand, report.MouseHardware.Model }.Where(p => !string.IsNullOrWhiteSpace(p)))} and {report.DisplaySummary}. {vaultState}",
                 "Cycle cursor style",
                 PhosphorTheme.Patina,
                 cycleCursorStyle,
@@ -313,9 +313,10 @@ public sealed class PhosphorAnimatedTooltipForm : Form
         _prevBtn.Click += (_, _) => StepTo(_currentIndex - 1);
         Controls.Add(_prevBtn);
 
+        // 214 wide: the longest step labels (Cycle cursor style, Open the Spell Orb) at 176 ran edge to edge.
         _tryBtn = new PhosphorButton("Cycle Wand Cursor")
         {
-            Size = new Size(176, 38),
+            Size = new Size(214, 38),
             Location = new Point(128, Height - 52),
             Name = "Tutorial.TryButton"
         };
