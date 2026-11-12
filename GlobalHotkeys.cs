@@ -40,7 +40,7 @@ internal static class GlobalHotkeys
     public static readonly HotkeySpec Wiz = new(9003, CtrlAlt, Keys.W, "Make a spell with Wiz");
     public static readonly HotkeySpec AInbox = new(9004, CtrlAlt, Keys.I, "Send to AInbox");
     public static readonly HotkeySpec Orb = new(9005, HotkeySpec.Ctrl | HotkeySpec.Shift | HotkeySpec.NoRepeat, Keys.Space, "Spell Orb");
-    public static readonly HotkeySpec CycleProfile = new(9007, CtrlAlt, Keys.P, "Next Input Studio profile");
+    public static readonly HotkeySpec CycleProfile = new(9007, CtrlAlt, Keys.P, "Next cursor profile");
     public static readonly HotkeySpec Holodex = new(9008, CtrlAlt, Keys.H, "Open Holodex");
     public static readonly HotkeySpec Lasso = new(9009, CtrlAlt, Keys.S, "Cut out a picture");
     public static readonly HotkeySpec ElementPicker = new(9010, CtrlAlt, Keys.E, "Pick a thing or a color");

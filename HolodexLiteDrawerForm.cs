@@ -632,6 +632,11 @@ public sealed partial class HolodexLiteDrawerForm : Form
         int bottom = _rail.Top + _profileBtn.Bottom;
         _profilePanel.Width = Math.Max(_profilePanel.Width / 2, ClientSize.Width - Padding.Right - x);
         _profilePanel.Location = new Point(x, Math.Max(_rail.Top, bottom - _profilePanel.Height));
+        // While it is open, every tab's content ends a gap above it, so a list scrolls above the panel and a
+        // composer (the Spells one) stays usable, rather than running under the panel and out below it.
+        if (_contentHost == null) return;
+        int inset = _profileOpen ? Math.Max(0, _contentHost.Bottom - _profilePanel.Top + gap) : 0;
+        if (_contentHost.Padding.Bottom != inset) _contentHost.Padding = new Padding(0, 0, 0, inset);
     }
 
     private static Color PodAccent(string token) => token switch
@@ -699,7 +704,8 @@ public sealed partial class HolodexLiteDrawerForm : Form
         _codexPanel = new Panel { Dock = DockStyle.Fill, BackColor = PhosphorTheme.Surface, Visible = false, Name = "Holodex.CodexPanel" };
 
         var btnRow = new Panel { Dock = DockStyle.Top, Height = 42, BackColor = PhosphorTheme.Surface };
-        var lassoBtn = new PhosphorButton("Lasso (Ctrl+Alt+S)")
+        // The shortcuts are in each button's tip; in the label, Point at UI (Ctrl+Alt+E) ran edge to edge.
+        var lassoBtn = new PhosphorButton("Lasso")
         {
             Dock = DockStyle.Left,
             Width = 216,
@@ -707,7 +713,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         lassoBtn.Click += (_, _) => _openSnipOrPicker(Location, WandCaptureTool.FreeformLasso);
 
-        var elemBtn = new PhosphorButton("Point at UI (Ctrl+Alt+E)")
+        var elemBtn = new PhosphorButton("Point at UI")
         {
             Dock = DockStyle.Right,
             Width = 216,

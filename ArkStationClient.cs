@@ -796,7 +796,7 @@ public sealed class ArkStationClient
             }
 
             if (!matched)
-                return (SpellCastOutcome.NoBinding, $"No Input Spine binding for {SpellTrigger(flowKind, spellSlug)}, so nothing was cast. Bind it in Input Studio.");
+                return (SpellCastOutcome.NoBinding, $"No Input Spine binding for {SpellTrigger(flowKind, spellSlug)}, so nothing was cast. Bind it in the Mouse Mod Station.");
             return succeeded
                 ? (SpellCastOutcome.Cast, string.IsNullOrEmpty(detail) ? $"{verb} {flowKind} cast through Input Spine." : detail)
                 : (SpellCastOutcome.Failed, string.IsNullOrEmpty(detail) ? "The bound action reported a failure." : detail);
