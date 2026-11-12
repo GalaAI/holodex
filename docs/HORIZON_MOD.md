@@ -1,111 +1,196 @@
 # Horizon mod
 
-Horizon is the daily missions log, calendar and checklist. In Holodex it is one mod with two modes. This page is
-the design; the code is `Horizon*.cs` at the repo root and `tests/Holodex.Tests/HorizonTests.cs`.
+Horizon is a gamified, autonomous task and project tracker: a calendar and a to-do list that reads the user's
+connected data, turns it into missions, verifies them from evidence, and pays out in real unlocks. It is the RPG
+of the work the user actually does. Lore is a skin; the product is getting things done.
 
-Status, 2026-11-11: the Holodex side is built. The Ark side that the Omnitek mode's calendar needs is a separate
-pull request on `GalaAI/ark` (the `horizon_read` Hivemind tool). Ark has no missions log or checklist yet.
+Status, 2026-11-12. This page is design. What exists in code is listed under "What is built". Everything else
+here is intent until it is built and proven.
 
-## Two modes, one mod
+## What is built
 
-| | Omnitek account | Public Holodex |
+| Piece | State | Where |
 |---|---|---|
-| Who | A saved Hivemind sign-in | No Hivemind sign-in |
-| Provider | `HorizonArkProvider` | `HorizonConnectedProvider` |
-| Calendar | Ark's Horizon, through Hivemind | The user's own calendar provider, their own OAuth |
-| Missions log | Ark's, when Ark has one | A file per day on this PC |
-| Checklist | Ark's, when Ark has one | A file per day on this PC |
-| Data lives in | Ark. Holodex keeps no copy | The user's calendar account and this PC |
+| Provider interface, both modes | Built, tested | `Horizon.cs`, `HorizonProviders.cs` |
+| Day window: calendar, checklist, missions log | Built, not yet seen on a real screen | `HorizonForm.cs` |
+| Local log and checklist, per Windows user | Built, tested | `HorizonLocalStore.cs` |
+| Google Calendar with the user's own OAuth | Built, sign-in not yet exercised live | `GoogleCalendarSource` |
+| Ark calendar through Hivemind | Client built; needs GalaAI/ark#1868 and a PC release | `HorizonArkProvider` |
+| Mission model, Ark's XP and quest math, source stubs | Built, tested; no source is wired yet | `HorizonMissions.cs` |
+| Quests, verification, rewards, party, Today view | Design and a clickable prototype | this page |
 
-## How the mode is chosen
+## The loop
 
-`Horizon.ModeFor(HivemindClient.HasSavedSignIn)`. A saved Hivemind sign-in is Ark mode; none is the public mode.
-The window asks again each time it reads a day, so signing in or out switches the mode on the next read.
+Capture, plan, do, reward, reflect.
 
-The choice does not depend on whether Hivemind answers. A signed-in account whose Ark is unreachable sees that
-state. It does not get a local Horizon, because a second copy would drift from Ark's. The two modes never mix:
-the Ark provider has no local store, and the public provider never calls Hivemind.
+1. **Capture.** One tap from anything: a line typed into Horizon, a grab from the screen, a shared link. Horizon
+   also proposes quests from connected data. The user accepts or dismisses each proposal; nothing is added
+   silently.
+2. **Plan.** A big task breaks into a questline. Steps are fitted into free calendar slots. The Today view shows
+   at most 3 quests plus the dailies (`HorizonQuests.TodayLimit`).
+3. **Do.** The user works, or hands the quest to an agent in their party.
+4. **Reward.** Completion is verified from evidence, XP is minted with Ark's formula, and XP feeds unlock tracks.
+5. **Reflect.** One morning brief, one evening recap, and a narrator agent that writes the day as a short journal
+   chapter. No other notifications except real deadlines.
 
-## The provider interface
+## Structures
 
-`IHorizonProvider` (`Horizon.cs`) is all the window talks to. Every call is for one calendar day:
+| Name | What it is in plain words | Example |
+|---|---|---|
+| Main quest | A project | Ship the Horizon mod |
+| Side quest | A chore | Renew the domain |
+| Daily | A habit or checklist item | Inbox to zero |
+| Bounty | Work posted by someone else or by a system | A review request, a failing gate |
+| Gauntlet, lesson | Skill training | Learn a new tool with a graded task |
+| Boss | A deadline or launch | Release day |
+| Raid | A shared goal with other people | A Huddl with a client |
+| Party | The user's agents | Hand a quest to Smith; a PR comes back |
 
-- `ReadCalendarAsync(day)`
-- `ReadLogAsync(day)`, `AppendLogAsync(day, text)`
-- `ReadChecklistAsync(day)`, `AddCheckItemAsync`, `SetCheckItemAsync`, `RemoveCheckItemAsync`
+Quest titles are always plain ("Review PR 22"). The lore name is a label the user can turn down to nothing.
 
-Each answers with a `HorizonPart<T>`: a state, a value when ready, and one plain sentence otherwise. The states
-are `Ready`, `NeedsSignIn`, `NeedsArkChange` and `Unavailable`. Nothing throws to the window and nothing falls
-back to the other mode. The window draws each part on its own, so a calendar that is down still leaves the
-checklist and log usable.
+## Build on Ark, do not fork it
 
-## The Ark provider
+Horizon uses Ark's progression contract as it is (`@ark/shared-types` `progression.ts`). Holodex mirrors the
+math in `HorizonXp` and `HorizonQuests` and tests it against Ark's numbers.
 
-Holodex is a client of Ark's Horizon. It finds what Ark exposes by asking the signed-in Hivemind which tools it
-lists (`HivemindClient.OffersToolAsync`), so parts light up as Ark ships them with no Holodex release.
+- **Quest states** are Ark's: offered, accepted, in_progress, submitted, evaluator_review, completed, failed,
+  abandoned, with Ark's transitions. Nothing jumps to completed without the evaluator gate.
+- **XP** is Ark's: `100 x difficulty (1 to 5) x quality (0 to 1) x evidence confidence (0 to 1) x novelty
+  (0.25 to 1)`, at most 500, policy `HAXES-XP-1.0.0`. Quality uses Ark's five weights.
+- **Levels** are Ark's: `floor(sqrt(xp / 10)) + 1`, capped at 100.
+- **Rarity** is Ark's loot rarity score and tiers: common, uncommon, rare, epic, legendary, mythic.
+- **The hard rule holds.** Progression is verified competence, never authority. An unlock makes a mod visible and
+  installable. What that mod may do at runtime still goes through its connector permissions and owner approval.
+  No level, tier or rarity is ever read as a permission.
 
-- **Calendar.** Hivemind tool `horizon_read {day: "YYYY-MM-DD"}`, scope `runtime.read`, which Holodex already
-  asks for. It returns Ark's day result (`horizonResultSchema` in `@ark/shared-types`): events, sources,
-  `complete`. Holodex shows the events, names the account each came from, and says so when a source did not
-  answer. If the tool is not listed, the calendar shows **needs an Ark change**. If Hivemind lists it but the PC
-  refuses it (`unknown-runtime-operation` from an older PC node, or the operator bridge refusal from an older
-  Ark API), the Ark on that PC has not adopted the release that carries it, and the card says that.
-- **Missions log and checklist.** Ark has neither (checked in code, not docs). Both show **needs an Ark
-  change**, and the entry box is off. Nothing is written anywhere.
+Ark gaps this design depends on (checked in code on main, 2026-11-12):
 
-Ark reads a day in its own Horizon time zone (`America/New_York` today). Holodex sends the PC's local date.
+- Ark's quest and XP routes exist but have no caller authentication and no Hivemind tool. They rely on the API
+  binding to loopback.
+- A new quest can be inserted directly in any state, including completed.
+- Ark's `humanGrowthCurveNode` is the only schema for a person's XP; awards are otherwise per agent and Talent.
+- Rarity is not derived anywhere for Omnitek items; only the loot math exists.
+- The GitHub webhook does not keep `merged` or `merged_by`, so "merged" cannot be told from "closed".
 
-## The connected-services provider
+## Mission sources
 
-- **Calendar.** `IHorizonCalendarSource`, one implementation: `GoogleCalendarSource`. It reads the primary
-  calendar for the PC's local day with Google's `events.list`, asking only for id, title, status, link, start
-  and end.
-- **Missions log and checklist.** `HorizonLocalStore`: `%LOCALAPPDATA%\Holodex\horizon\YYYY-MM-DD.json`, so it
-  is per Windows user. Writes replace the day's file in one step. A file that cannot be read is renamed
-  `.unreadable`, not overwritten. These files hold the user's own notes and no secrets.
+A mission source is a pluggable provider over the user's connected data (`IHorizonMissionSource`). It does two
+things: propose quests, and verify that a quest's work happened.
 
-The next calendar provider implements `IHorizonCalendarSource` and nothing else changes.
+Each source has a ready configuration stub (`HorizonSourceConfigs.Stubs`, example in
+`docs/horizon/sources.example.json`). Every stub is off. A stub names a connection and never holds a key; a
+file with anything that looks like a key in its settings is refused. Turning a source on is: sign in to the
+connection, then set `enabled` in `%LOCALAPPDATA%\Holodex\horizon\sources.json`.
+
+| Source | Mode | Proposes | Verifies |
+|---|---|---|---|
+| `capture` | both | captured notes | self-report only |
+| `calendar` (Google) | public | events that need prep, deadlines | the event ended |
+| `github` | public | review requests, assigned issues | PR merged, issue closed, review submitted |
+| `ark-calendar` | Ark | events that need prep, deadlines | the event ended |
+| `ark-agent-log` | Ark | none | an agent log entry with a PR or commit ref |
+| `ark-missions` | Ark | open work orders | mission completed, PR opened |
+| `ark-quests` | Ark | offered quests | evaluator accepted (needs an Ark change) |
+
+Ark mode reaches all of these through Hivemind: Ark's own APIs plus the third-party adapters, services,
+subscriptions and clients the owner has connected there. Public mode has only what the user's own connections
+give it.
+
+## How progress is verified
+
+- **Evidence first.** Where a connected source can prove the work, it decides: a merged PR, an event that took
+  place, a sent email, a confirmed booking, an agent log entry, a mission receipt. The user cannot tick those
+  quests done by hand.
+- **Self-report is a fallback and pays less.** A quest no source can see (a chore, a phone call) can be ticked.
+  Its evidence confidence is capped at 0.25 (`HorizonXp.SelfReportConfidence`). A tick never raises the
+  confidence of connected evidence.
+- **No proof, no XP.** Confidence 0 mints 0.
+- **Evaluator gate.** In Ark mode the evaluator is Ark (an `xpAwardRecord` accepted by an evaluator). In public
+  mode the evaluator is the source's own answer, recorded with the quest.
+- **Agent work counts as party work.** A quest handed to an agent completes on the mission receipt and the PR it
+  delivered, and the award records the agent, not the user, as the one who did it.
+
+## Rewards
+
+- **Unlocks with real value.** Mod blueprints by tier and rarity, agent abilities, Holodex cosmetics, and "time
+  back" automations that take a recurring chore off the list.
+- **One starter inventory.** A fixed set of the owner's mods is there from day one. Rarer, more capable
+  blueprints unlock through harder missions. Crafting your own mod unlocks after the premade ones.
+- **Loot only on bosses and milestones.** Ordinary quests pay XP and nothing else, so loot keeps its meaning.
+- **Forgiving streaks.** A streak bends before it breaks: a missed day spends a rest day instead of resetting.
+- **Difficulty tuned to about 80 percent success.** If the user clears everything, quests get harder; if they
+  clear half, quests get smaller.
+- **Owner and developer bypass.** The owner can unlock anything for testing. A bypassed unlock is marked as one
+  and mints no XP.
+
+## Where state lives
+
+| | Ark mode (signed in to Hivemind) | Public mode |
+|---|---|---|
+| Quests and XP | Ark (`ark_quest_records`, `ark_xp_awards`), once Ark exposes them | `%LOCALAPPDATA%\Holodex\horizon\` on this PC |
+| Calendar | Ark's Horizon, through `horizon_read` | The user's calendar provider |
+| Log and checklist today | This PC, labelled "ON THIS PC", until Ark has Horizon missions | This PC |
+| Source sign-ins | The owner's Ark | Windows Credential Manager |
+| Source configuration | `horizon\sources.json` on this PC | same |
+
+The mode is `Horizon.ModeFor(HivemindClient.HasSavedSignIn)`, asked each time a day is read.
+
+Stopgap, owner ruling 2026-11-12: a signed-in account keeps its log and checklist on this PC, and the window
+says so, until Ark has Horizon missions. Both modes use the one local store, so there is one copy on the PC.
+When Ark exposes missions, the local days are imported once and Holodex stops keeping them.
+
+## Privacy
+
+- A user's RAG data stays theirs. Sources read with the user's own access and results stay on this PC or, in Ark
+  mode, in the owner's own Ark. Nothing is pooled, shared with other users, or used to train anything.
+- Public mode makes no call to Omnitek or Hivemind.
+- A source asks for the narrowest read scope its provider offers. Horizon never writes to a source without an
+  explicit action by the user.
+- Proposals are generated from titles and metadata first. Reading bodies (an email's text, a document) is a
+  separate, per-source opt-in.
+- Raids share only the quest and its state with the other people in it, never the evidence behind it.
+
+## Anti-gaming
+
+- Evidence beats self-report wherever evidence exists, and self-report is capped.
+- XP is minted once per award id. A duplicate is refused.
+- Novelty falls for repeated work of the same shape, down to Ark's floor of 0.25, so farming a trivial quest
+  pays less each time.
+- The actor on the evidence must be the user or an agent in their party. Someone else's merged PR is not proof.
+- Evidence must fall inside the quest's window. An old PR does not complete a new quest.
+- Splitting one task into many small quests does not raise the total: difficulty is set per questline.
+- Quests the user writes for themselves cannot be bosses and drop no loot.
+- Bypass and test unlocks are marked and mint nothing.
 
 ## Auth
 
-- **Public mode is the user's own OAuth, never a shared key.** Holodex ships no Google client, key or account.
-  The user pastes their own Google OAuth client into the Vault (the flow Drive already uses), then connects the
-  calendar from Horizon. The sign-in is PKCE S256 with a state check and a loopback redirect
-  (`http://127.0.0.1:47613/horizon/google/`).
-- **Least scope, separate grant.** The calendar asks for `calendar.events.readonly` only, and its tokens live
-  under their own Credential Manager target (`Holodex:Vault:google-calendar`). Connecting the calendar does not
-  widen the Drive grant, and Horizon cannot write to a calendar.
-- **No secrets in the repo or in env defaults.** Tokens live in Windows Credential Manager. Horizon adds no
-  environment variable and no default credential.
-- **Ark mode adds no scope.** It uses the existing Hivemind sign-in and `runtime.read`.
-- **Shell actions are unchanged.** Horizon adds no shell action and no listener beyond the loopback OAuth
-  redirect. It opens only `https` event links, in the browser. Holodex shell actions stay loopback-only and
-  token-gated.
+- Public mode is the user's own OAuth, never a shared key. Holodex ships no provider client, key or account.
+- Google Calendar: the user's own Google client from the Vault, PKCE S256, state check, loopback redirect,
+  `calendar.events.readonly`, a grant separate from Drive.
+- No secrets in the repo or in environment defaults. Tokens live in Windows Credential Manager.
+- Ark mode adds no Hivemind scope: `horizon_read` rides on `runtime.read`.
+- Horizon adds no shell action. Holodex shell actions stay loopback-only and token-gated.
 
 ## The surface
 
-A button on the drawer's Mods tab opens `HorizonForm`, a window like the Vault. It is native Phosphor, built
-from the kit only: `WidgetChrome`, `ThreadCard`, `PhosphorCheckBox`, `PhosphorField`, `PhosphorButton`,
-`EyebrowLabel`, the scroll beam. Colors, spacing and type come from `PhosphorTheme` tokens; there are no literal
-colors. It follows the Shell Inventory rules that apply to a native panel: bone is primary, ember is for gates
-only (the "needs an Ark change" cards), rust is for failures, touch rows are 44px, and there is one scroll
-region. The eyebrow ends in `ARK` or `THIS PC`, so the mode is always on screen.
-
-Layout, top to bottom: the day strip (Earlier, Later, the date, Today), one status line, the day (Calendar,
-Checklist, Missions log), and one entry line. Enter adds a checklist item; Shift+Enter writes to the log.
+Native Phosphor, from the kit and tokens only, following the Shell Inventory rules that apply to a native
+panel: bone is primary, ember is for gates, rust is for failures, touch rows are 44px, one scroll region. The
+first slice is prototyped as a web page in the Holodex UI Lab look before any more native work: the Today view,
+one-tap capture, auto-verified completions, XP feeding one unlock track, and agents as a party.
 
 ## What Ark must add
 
-1. **`horizon_read`** (in the Ark pull request): a read-only Hivemind tool over `GET /api/horizon`, under
-   `runtime.read`. It needs the tool in `hivemind-core`, the route on the Desktop Node relay allowlist, and
-   `/api/horizon` accepting the PC capability assertion as well as the operator bridge. No new scope or
-   credential. The owner's PC must adopt the release before it works end to end.
-2. **A missions log and a checklist** (not started, needs a decision): a data model, storage, routes, and
-   Hivemind tools for reads (`runtime.read`) and writes (`runtime.execute`). ArkStation's own Horizon panel
-   needs the same data, so Ark should define it once and Holodex should follow.
+1. `horizon_read` (GalaAI/ark#1868): the calendar for an owner's client. Built, draft.
+2. Horizon missions for an owner's client: authenticated quest reads and writes and XP reads as Hivemind tools,
+   with a person as the principal. This replaces the home dashboard in Nexus with Horizon, per the owner's
+   prototype and specs.
+3. Evidence feeds Horizon can trust: `merged` on the GitHub webhook, and the agent log and mission receipts
+   as they already are.
+4. Caller authentication on the progression and legacy routes, and a guard on inserting a quest in a late state.
 
-## Not in this version
+## Open decisions
 
-- A month view. Ark already serves month markers (`horizon_read {month}`); Holodex reads days only.
-- Calendar providers other than Google.
-- Carrying unticked checklist items to the next day.
+- The order of public calendar providers after Google. Proposed: an ICS feed (no sign-in), then Microsoft.
+- The starter mod list.
+- Whether dailies carry over when missed, and what a rest day costs.
+- Which agent narrates the journal chapter.

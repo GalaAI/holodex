@@ -325,10 +325,12 @@ internal sealed class HolodexAppContext : ApplicationContext
         _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
         // Horizon picks its provider each time it reads a day: Ark's Horizon through Hivemind for a signed-in
         // account, the user's own calendar and this PC's missions log and checklist for everyone else.
-        var horizonLocal = new HorizonConnectedProvider(new HorizonLocalStore(), new GoogleCalendarSource());
+        var horizonStore = new HorizonLocalStore();
+        var horizonLocal = new HorizonConnectedProvider(horizonStore, new GoogleCalendarSource());
         var horizonArk = new HorizonArkProvider(
             (tool, ct) => _ark.Hivemind.OffersToolAsync(tool, ct),
-            (day, ct) => _ark.Hivemind.HorizonReadDayAsync(day, ct));
+            (day, ct) => _ark.Hivemind.HorizonReadDayAsync(day, ct),
+            untilArk: horizonStore);
         _horizon = new HorizonForm(() => Horizon.ModeFor(HivemindClient.HasSavedSignIn) == HorizonMode.Ark ? horizonArk : horizonLocal)
         {
             OpenVault = () => _vault.Summon(GetCursorPoint())

@@ -366,7 +366,7 @@ public class HorizonTests : IDisposable
     }
 
     [Fact]
-    public async Task In_ark_mode_the_log_and_checklist_need_ark_and_nothing_is_kept_on_this_pc()
+    public async Task With_no_stopgap_the_log_and_checklist_need_ark_and_nothing_is_kept_on_this_pc()
     {
         var provider = Ark(offers: true, _ => (Json(ArkDay), ""));
 
@@ -383,8 +383,168 @@ public class HorizonTests : IDisposable
         Assert.All(states, s => Assert.Equal(HorizonPartState.NeedsArkChange, s));
         Assert.Equal(HorizonArkProvider.LogNeedsArk, (await provider.ReadLogAsync(Day)).Note);
         Assert.Equal(HorizonArkProvider.ChecklistNeedsArk, (await provider.ReadChecklistAsync(Day)).Note);
-        // The Ark provider has no local store to write to: nothing landed on disk.
         Assert.False(Directory.Exists(_root));
+    }
+
+    [Fact]
+    public async Task Until_ark_has_missions_a_signed_in_account_keeps_its_log_and_checklist_here_and_says_so()
+    {
+        var provider = new HorizonArkProvider(
+            (_, _) => Task.FromResult(false),
+            (_, _) => Task.FromResult<(JsonElement?, string)>((null, "")),
+            untilArk: Store());
+
+        var added = await provider.AddCheckItemAsync(Day, "Works while Ark catches up");
+        var logged = await provider.AppendLogAsync(Day, "Logged signed in");
+
+        Assert.True(added.Ready);
+        Assert.Equal(HorizonArkProvider.KeptHereUntilArk, added.Note);
+        Assert.Equal(HorizonArkProvider.KeptHereUntilArk, logged.Note);
+        Assert.Single((await provider.ReadChecklistAsync(Day)).Value!);
+        // The same days the public mode reads: one store on this PC, not a second one per mode.
+        Assert.Equal("Works while Ark catches up", Assert.Single(Store().ReadChecklist(Day)).Text);
+        // The calendar is still Ark's alone.
+        Assert.Equal(HorizonPartState.NeedsArkChange, (await provider.ReadCalendarAsync(Day)).State);
+    }
+
+    // ---- Missions: Ark's progression math and quest states, unchanged ----
+
+    [Fact]
+    public void Xp_is_arks_formula_and_tops_out_at_500()
+    {
+        Assert.Equal(1.0, HorizonXp.QualityScore(1, 1, 1, 1, 1), 6);
+        Assert.Equal(0.4, HorizonXp.QualityScore(1, 0, 0, 0, 0), 6);
+        Assert.Equal(500, HorizonXp.VerifiedXp(5, 1, 1, 1), 6);
+        Assert.Equal(100 * 3 * 0.8 * 0.9 * 0.5, HorizonXp.VerifiedXp(3, 0.8, 0.9, 0.5), 6);
+        // Out-of-range inputs are clamped to Ark's ranges, never extrapolated.
+        Assert.Equal(500, HorizonXp.VerifiedXp(9, 2, 2, 2), 6);
+        Assert.Equal(100 * 1 * 1 * 1 * 0.25, HorizonXp.VerifiedXp(0, 1, 1, 0), 6);
+        Assert.Equal("HAXES-XP-1.0.0", HorizonXp.PolicyVersion);
+    }
+
+    [Fact]
+    public void Levels_and_rarity_follow_arks_thresholds()
+    {
+        Assert.Equal(1, HorizonXp.LevelFromXp(0));
+        Assert.Equal(2, HorizonXp.LevelFromXp(10));
+        Assert.Equal(11, HorizonXp.LevelFromXp(1000));
+        Assert.Equal(100, HorizonXp.LevelFromXp(98_010));
+        Assert.Equal(100, HorizonXp.LevelFromXp(5_000_000));
+        Assert.Equal(1000, HorizonXp.XpForLevel(11), 6);
+
+        Assert.Equal(1.0, HorizonXp.RarityScore(1, 1, 1, 1, 1), 3);
+        Assert.Equal("mythic", HorizonXp.RarityTier(0.92));
+        Assert.Equal("legendary", HorizonXp.RarityTier(0.82));
+        Assert.Equal("epic", HorizonXp.RarityTier(0.7));
+        Assert.Equal("rare", HorizonXp.RarityTier(0.55));
+        Assert.Equal("uncommon", HorizonXp.RarityTier(0.38));
+        Assert.Equal("common", HorizonXp.RarityTier(0.379));
+    }
+
+    [Fact]
+    public void A_self_reported_tick_earns_a_fraction_and_no_proof_earns_nothing()
+    {
+        var at = DateTimeOffset.UnixEpoch;
+        var merged = new HorizonEvidence("github", "pull-request-merged", "GalaAI/holodex#22", "github:owner", at, 0.95);
+        var tick = new HorizonEvidence("capture", "self-report", "tick", "user", at, 1.0, SelfReported: true);
+
+        Assert.Equal(0, HorizonXp.EvidenceConfidence(Array.Empty<HorizonEvidence>()));
+        Assert.Equal(HorizonXp.SelfReportConfidence, HorizonXp.EvidenceConfidence(new[] { tick }));
+        // A tick cannot raise what the connected evidence says.
+        Assert.Equal(0.95, HorizonXp.EvidenceConfidence(new[] { tick, merged }));
+        Assert.Equal(0, HorizonXp.VerifiedXp(3, 1, HorizonXp.EvidenceConfidence(Array.Empty<HorizonEvidence>()), 1));
+    }
+
+    [Fact]
+    public void Quests_move_only_along_arks_transitions()
+    {
+        Assert.True(HorizonQuests.CanMove(HorizonQuestState.Offered, HorizonQuestState.Accepted));
+        Assert.True(HorizonQuests.CanMove(HorizonQuestState.InProgress, HorizonQuestState.Submitted));
+        Assert.True(HorizonQuests.CanMove(HorizonQuestState.EvaluatorReview, HorizonQuestState.Completed));
+        Assert.True(HorizonQuests.CanMove(HorizonQuestState.Failed, HorizonQuestState.Offered));
+        // Nothing jumps to done without the evaluator gate, and done stays done.
+        Assert.False(HorizonQuests.CanMove(HorizonQuestState.InProgress, HorizonQuestState.Completed));
+        Assert.False(HorizonQuests.CanMove(HorizonQuestState.Accepted, HorizonQuestState.Completed));
+        Assert.False(HorizonQuests.CanMove(HorizonQuestState.Completed, HorizonQuestState.Offered));
+        Assert.False(HorizonQuests.CanMove(HorizonQuestState.Abandoned, HorizonQuestState.Accepted));
+    }
+
+    [Fact]
+    public void Today_shows_at_most_three_quests_and_never_counts_dailies()
+    {
+        var soon = new DateTimeOffset(2026, 11, 12, 0, 0, 0, TimeSpan.Zero);
+        HorizonQuest Q(string id, HorizonQuestKind kind, HorizonQuestState state, int difficulty, DateTimeOffset? due = null) =>
+            new(id, id, kind, state, difficulty, "capture", due);
+        var quests = new[]
+        {
+            Q("offered", HorizonQuestKind.Main, HorizonQuestState.Offered, 5),
+            Q("daily", HorizonQuestKind.Daily, HorizonQuestState.InProgress, 1),
+            Q("easy", HorizonQuestKind.Side, HorizonQuestState.Accepted, 1),
+            Q("hard", HorizonQuestKind.Main, HorizonQuestState.Accepted, 4),
+            Q("boss", HorizonQuestKind.Boss, HorizonQuestState.Accepted, 3, soon),
+            Q("doing", HorizonQuestKind.Side, HorizonQuestState.InProgress, 2),
+            Q("done", HorizonQuestKind.Main, HorizonQuestState.Completed, 5)
+        };
+
+        Assert.Equal(new[] { "doing", "boss", "hard" }, HorizonQuests.Today(quests).Select(q => q.Id));
+        Assert.Equal(3, HorizonQuests.TodayLimit);
+    }
+
+    // ---- Mission sources: ready stubs, all off, never a key ----
+
+    [Fact]
+    public void Every_source_stub_starts_off_names_a_connection_and_holds_no_secret()
+    {
+        var stubs = HorizonSourceConfigs.Stubs();
+
+        Assert.Contains(stubs, s => s.Id == "github");
+        Assert.Contains(stubs, s => s.Id == "calendar");
+        Assert.Contains(stubs, s => s.Id == "ark-agent-log");
+        Assert.All(stubs, s =>
+        {
+            Assert.False(s.Enabled);
+            Assert.NotEmpty(s.Connection);
+            Assert.Contains(s.Mode, new[] { "ark", "public", "both" });
+            Assert.False(HorizonSourceConfigs.HoldsSecret(s));
+        });
+        Assert.Equal(stubs.Count, stubs.Select(s => s.Id).Distinct().Count());
+        // With everything off, neither mode has a source until the user turns one on.
+        Assert.Empty(HorizonSourceConfigs.For(HorizonMode.Ark, stubs));
+        Assert.Empty(HorizonSourceConfigs.For(HorizonMode.ConnectedServices, stubs));
+    }
+
+    [Fact]
+    public void The_users_file_turns_sources_on_by_id_and_each_mode_sees_only_its_own()
+    {
+        Directory.CreateDirectory(_root);
+        string path = Path.Combine(_root, "sources.json");
+        var mine = HorizonSourceConfigs.Stubs().Where(s => s.Id is "github" or "ark-agent-log").ToList();
+        foreach (var s in mine) s.Enabled = true;
+        mine[0].Settings["repositories"] = "GalaAI/holodex";
+        File.WriteAllText(path, HorizonSourceConfigs.ToJson(mine));
+
+        var loaded = HorizonSourceConfigs.Load(path);
+
+        Assert.Equal(HorizonSourceConfigs.Stubs().Count, loaded.Count);
+        Assert.Equal("GalaAI/holodex", loaded.Single(s => s.Id == "github").Settings["repositories"]);
+        Assert.Equal(new[] { "github" }, HorizonSourceConfigs.For(HorizonMode.ConnectedServices, loaded).Select(s => s.Id));
+        Assert.Equal(new[] { "ark-agent-log" }, HorizonSourceConfigs.For(HorizonMode.Ark, loaded).Select(s => s.Id));
+    }
+
+    [Fact]
+    public void A_sources_file_with_a_key_in_it_or_that_cannot_be_read_changes_nothing()
+    {
+        Directory.CreateDirectory(_root);
+        string path = Path.Combine(_root, "sources.json");
+        var withKey = HorizonSourceConfigs.Stubs().Where(s => s.Id == "github").ToList();
+        withKey[0].Enabled = true;
+        withKey[0].Settings["apiKey"] = "not-a-real-key";
+        File.WriteAllText(path, HorizonSourceConfigs.ToJson(withKey));
+        Assert.All(HorizonSourceConfigs.Load(path), s => Assert.False(s.Enabled));
+
+        File.WriteAllText(path, "{ not json");
+        Assert.All(HorizonSourceConfigs.Load(path), s => Assert.False(s.Enabled));
+        Assert.All(HorizonSourceConfigs.Load(Path.Combine(_root, "missing.json")), s => Assert.False(s.Enabled));
     }
 
     [Fact]
@@ -435,8 +595,8 @@ public class HorizonTests : IDisposable
                 {
                     form.CaptureTo(Path.Combine(folder, "horizon-ark.png"), Day,
                         HorizonPart<HorizonCalendarDay>.Of(calendar),
-                        HorizonPart<IReadOnlyList<HorizonCheckItem>>.Not(HorizonPartState.NeedsArkChange, HorizonArkProvider.ChecklistNeedsArk),
-                        HorizonPart<IReadOnlyList<HorizonLogEntry>>.Not(HorizonPartState.NeedsArkChange, HorizonArkProvider.LogNeedsArk));
+                        HorizonPart<IReadOnlyList<HorizonCheckItem>>.Of(items, HorizonArkProvider.KeptHereUntilArk),
+                        HorizonPart<IReadOnlyList<HorizonLogEntry>>.Of(log, HorizonArkProvider.KeptHereUntilArk));
                     form.CaptureTo(Path.Combine(folder, "horizon-ark-needs-change.png"), Day,
                         HorizonPart<HorizonCalendarDay>.Not(HorizonPartState.NeedsArkChange, HorizonArkProvider.CalendarNeedsArk),
                         HorizonPart<IReadOnlyList<HorizonCheckItem>>.Not(HorizonPartState.NeedsArkChange, HorizonArkProvider.ChecklistNeedsArk),

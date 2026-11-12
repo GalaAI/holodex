@@ -1,0 +1,115 @@
+[
+  {
+    "id": "capture",
+    "provider": "local",
+    "name": "One-tap capture",
+    "enabled": false,
+    "mode": "both",
+    "connection": "this-pc",
+    "proposes": [
+      "captured-note"
+    ],
+    "verifies": [
+      "self-report"
+    ],
+    "settings": {}
+  },
+  {
+    "id": "calendar",
+    "provider": "google-calendar",
+    "name": "Google Calendar",
+    "enabled": false,
+    "mode": "public",
+    "connection": "Holodex:Vault:google-calendar",
+    "proposes": [
+      "event-with-prep",
+      "deadline"
+    ],
+    "verifies": [
+      "event-ended"
+    ],
+    "settings": {
+      "calendarId": "primary"
+    }
+  },
+  {
+    "id": "github",
+    "provider": "github",
+    "name": "GitHub",
+    "enabled": false,
+    "mode": "public",
+    "connection": "Holodex:Vault:github",
+    "proposes": [
+      "review-requested",
+      "assigned-issue"
+    ],
+    "verifies": [
+      "pull-request-merged",
+      "issue-closed",
+      "review-submitted"
+    ],
+    "settings": {
+      "repositories": ""
+    }
+  },
+  {
+    "id": "ark-calendar",
+    "provider": "ark-horizon",
+    "name": "Ark Horizon calendar",
+    "enabled": false,
+    "mode": "ark",
+    "connection": "hivemind:horizon_read",
+    "proposes": [
+      "event-with-prep",
+      "deadline"
+    ],
+    "verifies": [
+      "event-ended"
+    ],
+    "settings": {}
+  },
+  {
+    "id": "ark-agent-log",
+    "provider": "ark-agent-log",
+    "name": "Ark agent log",
+    "enabled": false,
+    "mode": "ark",
+    "connection": "hivemind:agent_log_read",
+    "proposes": [],
+    "verifies": [
+      "agent-log-entry"
+    ],
+    "settings": {}
+  },
+  {
+    "id": "ark-missions",
+    "provider": "ark-agent-runtime",
+    "name": "Ark agent missions",
+    "enabled": false,
+    "mode": "ark",
+    "connection": "hivemind:agent_mission_status",
+    "proposes": [
+      "open-work-order"
+    ],
+    "verifies": [
+      "mission-completed",
+      "pull-request-opened"
+    ],
+    "settings": {}
+  },
+  {
+    "id": "ark-quests",
+    "provider": "ark-progression",
+    "name": "Ark quests",
+    "enabled": false,
+    "mode": "ark",
+    "connection": "hivemind:needs-ark-change",
+    "proposes": [
+      "offered-quest"
+    ],
+    "verifies": [
+      "evaluator-accepted"
+    ],
+    "settings": {}
+  }
+]

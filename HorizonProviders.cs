@@ -249,8 +249,9 @@ internal sealed class HorizonConnectedProvider : IHorizonProvider
 /// The Omnitek mode: Horizon is Ark's, reached through the signed-in Hivemind. Holodex is a client and keeps no
 /// copy. What Ark exposes to an owner's client is found by asking Hivemind which tools it offers, so this provider
 /// lights up part by part as Ark ships them and says "needs an Ark change" for the rest. Today that is:
-/// the calendar through <c>horizon_read</c> (scope runtime.read) once Ark carries it, and nothing for the missions
-/// log and checklist, which Ark does not have yet. It never falls back to the local store.
+/// the calendar through <c>horizon_read</c> (scope runtime.read) once Ark carries it. The missions log and
+/// checklist are not in Ark yet; they are kept on this PC, labelled as such, until Ark has them. The calendar
+/// never falls back to another source.
 /// </summary>
 internal sealed class HorizonArkProvider : IHorizonProvider
 {
@@ -268,20 +269,30 @@ internal sealed class HorizonArkProvider : IHorizonProvider
         "Ark does not offer Horizon to Holodex yet. It needs the Ark change that adds the horizon_read Hivemind tool. Your calendar is still in ArkStation.";
     public const string CalendarNeedsRelease =
         "Your Hivemind offers Horizon, but the Ark on your PC has not adopted the release that carries it. Update Ark on your PC, then try again.";
+    /// <summary>What the log and checklist say while they are kept on this PC for a signed-in account.</summary>
+    public const string KeptHereUntilArk =
+        "Kept on this PC for now. Ark has no Horizon missions yet; when it does, these move to Ark and Holodex stops keeping them.";
     public const string LogNeedsArk =
-        "Ark has no missions log for Horizon yet, so there is nothing to read or write. It appears here when Ark adds it. Holodex keeps no second copy.";
+        "Ark has no missions log for Horizon yet, so there is nothing to read or write. It appears here when Ark adds it.";
     public const string ChecklistNeedsArk =
-        "Ark has no Horizon checklist yet, so there is nothing to read or write. It appears here when Ark adds it. Holodex keeps no second copy.";
+        "Ark has no Horizon checklist yet, so there is nothing to read or write. It appears here when Ark adds it.";
 
     private readonly Func<string, CancellationToken, Task<bool>> _offersTool;
     private readonly Func<DateOnly, CancellationToken, Task<(JsonElement? Data, string Error)>> _readDay;
+    private readonly HorizonConnectedProvider? _untilArk;
 
     /// <param name="offersTool">Whether the signed-in Hivemind lists a tool.</param>
     /// <param name="readDay">Calls <see cref="CalendarTool"/> for a day: the envelope's data, or null with why.</param>
-    public HorizonArkProvider(Func<string, CancellationToken, Task<bool>> offersTool, Func<DateOnly, CancellationToken, Task<(JsonElement? Data, string Error)>> readDay)
+    /// <param name="untilArk">
+    /// The stopgap (owner ruling 2026-11-12, least friction): until Ark has Horizon missions, a signed-in account's
+    /// log and checklist are kept in this PC's store, and say so. Ark is still the only calendar. When Ark exposes
+    /// missions this is where the hand-over happens, and the local days are imported once. Null keeps nothing here.
+    /// </param>
+    public HorizonArkProvider(Func<string, CancellationToken, Task<bool>> offersTool, Func<DateOnly, CancellationToken, Task<(JsonElement? Data, string Error)>> readDay, HorizonLocalStore? untilArk = null)
     {
         _offersTool = offersTool;
         _readDay = readDay;
+        _untilArk = untilArk == null ? null : new HorizonConnectedProvider(untilArk, null);
     }
 
     public HorizonMode Mode => HorizonMode.Ark;
@@ -303,12 +314,25 @@ internal sealed class HorizonArkProvider : IHorizonProvider
             : HorizonPart<HorizonCalendarDay>.Not(HorizonPartState.Unavailable, "Ark's Horizon answered with something Holodex does not read as a day.");
     }
 
-    public Task<HorizonPart<IReadOnlyList<HorizonLogEntry>>> ReadLogAsync(DateOnly day, CancellationToken ct = default) => NoLog();
-    public Task<HorizonPart<IReadOnlyList<HorizonLogEntry>>> AppendLogAsync(DateOnly day, string text, CancellationToken ct = default) => NoLog();
-    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> ReadChecklistAsync(DateOnly day, CancellationToken ct = default) => NoChecklist();
-    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> AddCheckItemAsync(DateOnly day, string text, CancellationToken ct = default) => NoChecklist();
-    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> SetCheckItemAsync(DateOnly day, string id, bool done, CancellationToken ct = default) => NoChecklist();
-    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> RemoveCheckItemAsync(DateOnly day, string id, CancellationToken ct = default) => NoChecklist();
+    public Task<HorizonPart<IReadOnlyList<HorizonLogEntry>>> ReadLogAsync(DateOnly day, CancellationToken ct = default) =>
+        _untilArk == null ? NoLog() : Here(_untilArk.ReadLogAsync(day, ct));
+    public Task<HorizonPart<IReadOnlyList<HorizonLogEntry>>> AppendLogAsync(DateOnly day, string text, CancellationToken ct = default) =>
+        _untilArk == null ? NoLog() : Here(_untilArk.AppendLogAsync(day, text, ct));
+    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> ReadChecklistAsync(DateOnly day, CancellationToken ct = default) =>
+        _untilArk == null ? NoChecklist() : Here(_untilArk.ReadChecklistAsync(day, ct));
+    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> AddCheckItemAsync(DateOnly day, string text, CancellationToken ct = default) =>
+        _untilArk == null ? NoChecklist() : Here(_untilArk.AddCheckItemAsync(day, text, ct));
+    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> SetCheckItemAsync(DateOnly day, string id, bool done, CancellationToken ct = default) =>
+        _untilArk == null ? NoChecklist() : Here(_untilArk.SetCheckItemAsync(day, id, done, ct));
+    public Task<HorizonPart<IReadOnlyList<HorizonCheckItem>>> RemoveCheckItemAsync(DateOnly day, string id, CancellationToken ct = default) =>
+        _untilArk == null ? NoChecklist() : Here(_untilArk.RemoveCheckItemAsync(day, id, ct));
+
+    /// <summary>A part kept on this PC says so, so the eyebrow's ARK is never read as "this is in Ark".</summary>
+    private static async Task<HorizonPart<T>> Here<T>(Task<HorizonPart<T>> local)
+    {
+        var part = await local;
+        return part.Ready ? part with { Note = KeptHereUntilArk } : part;
+    }
 
     private static Task<HorizonPart<IReadOnlyList<HorizonLogEntry>>> NoLog() =>
         Task.FromResult(HorizonPart<IReadOnlyList<HorizonLogEntry>>.Not(HorizonPartState.NeedsArkChange, LogNeedsArk));

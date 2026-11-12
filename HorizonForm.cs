@@ -145,7 +145,7 @@ internal sealed class HorizonForm : Form
         var day = _day;
         _dayLabel.Text = Horizon.DayHeader(day, Today());
         SetStatus(_provider.Mode == HorizonMode.Ark
-            ? "Reading your Horizon from Ark, through Hivemind."
+            ? "Calendar from Ark, through Hivemind. Checklist and log stay on this PC until Ark has them."
             : "Your calendar comes from your own sign-in. The checklist and log stay on this PC.");
         Invalidate();
 
@@ -194,7 +194,7 @@ internal sealed class HorizonForm : Form
             }
             else AddNotReady("CALENDAR", calendar.State, calendar.Note, calendarPart: true);
 
-            _list.AddSection("CHECKLIST");
+            _list.AddSection(checklist.Ready && checklist.Note.Length > 0 ? "CHECKLIST // ON THIS PC" : "CHECKLIST");
             if (checklist is { Ready: true, Value: { } items })
             {
                 if (items.Count == 0) _list.AddCard(ThreadTone.Intro, "No missions yet", "Add the things this day is for. Tick them off as they land.");
@@ -207,7 +207,7 @@ internal sealed class HorizonForm : Form
             }
             else AddNotReady("CHECKLIST", checklist.State, checklist.Note, calendarPart: false);
 
-            _list.AddSection("MISSIONS LOG");
+            _list.AddSection(log.Ready && log.Note.Length > 0 ? "MISSIONS LOG // ON THIS PC" : "MISSIONS LOG");
             if (log is { Ready: true, Value: { } entries })
             {
                 if (entries.Count == 0) _list.AddCard(ThreadTone.Intro, "Nothing logged", "Write what happened as the day goes. Each line keeps its time.");
