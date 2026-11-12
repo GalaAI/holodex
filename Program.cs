@@ -194,6 +194,7 @@ internal sealed class HolodexAppContext : ApplicationContext
     private readonly AugmentInventoryForm _inventory = new();
     private readonly MouseModStationForm _station;
     private readonly VaultForm _vault;
+    private readonly HorizonForm _horizon;
     private readonly PhosphorAnimatedTooltipForm _tutorialTooltip;
     private readonly WizEnvironmentScanReport _onboardingReport;
     private readonly NotifyIcon _trayIcon;
@@ -329,6 +330,19 @@ internal sealed class HolodexAppContext : ApplicationContext
         _vault = new VaultForm(_ark);
         _ainboxWidget.DeliverHandoff = (to, title, scroll) => _holodexDrawer.ReceiveHandoffAsync(to, title, scroll);
         _holodexDrawer.OpenVault = () => _vault.Summon(GetCursorPoint());
+        // Horizon picks its provider each time it reads a day: Ark's Horizon through Hivemind for a signed-in
+        // account, the user's own calendar and this PC's missions log and checklist for everyone else.
+        var horizonStore = new HorizonLocalStore();
+        var horizonLocal = new HorizonConnectedProvider(horizonStore, new GoogleCalendarSource());
+        var horizonArk = new HorizonArkProvider(
+            (tool, ct) => _ark.Hivemind.OffersToolAsync(tool, ct),
+            (day, ct) => _ark.Hivemind.HorizonReadDayAsync(day, ct),
+            untilArk: horizonStore);
+        _horizon = new HorizonForm(() => Horizon.ModeFor(HivemindClient.HasSavedSignIn) == HorizonMode.Ark ? horizonArk : horizonLocal)
+        {
+            OpenVault = () => _vault.Summon(GetCursorPoint())
+        };
+        _holodexDrawer.OpenHorizon = () => _horizon.Summon(GetCursorPoint());
         _holodexDrawer.OpenYourArkStation = OpenYourArkStation;
         _hud = new HolodexHudForm(
             _ark,

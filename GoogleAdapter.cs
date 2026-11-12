@@ -73,6 +73,18 @@ internal static class GoogleAdapter
     /// <summary>The browser sign-in: PKCE S256, loopback redirect, offline access so the refresh token is kept.</summary>
     public static async Task<VaultEntry> SignInAsync(CancellationToken ct = default)
     {
+        await SignInForAsync(Scope, TokenTarget, Redirect, ct);
+        var entry = Entry();
+        return await VerifyAsync(entry, ct);
+    }
+
+    /// <summary>
+    /// The same browser sign-in for another Google grant that uses the Vault's client: its own scope, its own
+    /// loopback redirect and its own Credential Manager target, so one grant never widens another (Horizon's
+    /// calendar asks for calendar.events.readonly and leaves Drive's grant as it is).
+    /// </summary>
+    internal static async Task SignInForAsync(string scope, string tokenTarget, Uri redirect, CancellationToken ct = default)
+    {
         var (clientId, secret) = Client();
         string verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
         string challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
@@ -80,16 +92,16 @@ internal static class GoogleAdapter
         var auth = new Uri("https://accounts.google.com/o/oauth2/v2/auth?" + string.Join("&", new Dictionary<string, string>
         {
             ["client_id"] = clientId,
-            ["redirect_uri"] = Redirect.ToString(),
+            ["redirect_uri"] = redirect.ToString(),
             ["response_type"] = "code",
-            ["scope"] = Scope,
+            ["scope"] = scope,
             ["code_challenge"] = challenge,
             ["code_challenge_method"] = "S256",
             ["state"] = state,
             ["access_type"] = "offline",
             ["prompt"] = "consent"
         }.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}")));
-        var result = await HivemindClient.LoopbackSignInAsync(auth, Redirect, "Google", ct)
+        var result = await HivemindClient.LoopbackSignInAsync(auth, redirect, "Google", ct)
             ?? throw new InvalidOperationException("Google sign-in returned nothing.");
         if (result.State != state) throw new InvalidOperationException("Google sign-in came back with a different state; nothing was saved.");
 
@@ -99,25 +111,22 @@ internal static class GoogleAdapter
             ["code"] = result.Code ?? "",
             ["code_verifier"] = verifier,
             ["grant_type"] = "authorization_code",
-            ["redirect_uri"] = Redirect.ToString()
+            ["redirect_uri"] = redirect.ToString()
         };
         if (secret.Length > 0) form["client_secret"] = secret;
         using var res = await Http.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(form), ct);
         string body = await res.Content.ReadAsStringAsync(ct);
         if (!res.IsSuccessStatusCode) throw new InvalidOperationException($"Google token exchange answered HTTP {(int)res.StatusCode}.");
         var tokens = JsonNode.Parse(body)!;
-        StoreTokens(tokens["access_token"]?.GetValue<string>() ?? "", tokens["refresh_token"]?.GetValue<string>(), tokens["expires_in"]?.GetValue<int>() ?? 3600);
-
-        var entry = Entry();
-        return await VerifyAsync(entry, ct);
+        StoreTokens(tokenTarget, tokens["access_token"]?.GetValue<string>() ?? "", tokens["refresh_token"]?.GetValue<string>(), tokens["expires_in"]?.GetValue<int>() ?? 3600);
     }
 
-    private static void StoreTokens(string access, string? refresh, int expiresIn)
+    private static void StoreTokens(string target, string access, string? refresh, int expiresIn)
     {
         string? keptRefresh = refresh;
-        if (string.IsNullOrEmpty(keptRefresh) && ArkStationClient.TryReadWindowsCredential(TokenTarget) is { } old)
+        if (string.IsNullOrEmpty(keptRefresh) && ArkStationClient.TryReadWindowsCredential(target) is { } old)
             keptRefresh = JsonNode.Parse(old)?["refresh_token"]?.GetValue<string>();
-        ArkStationClient.TryWriteWindowsCredential(TokenTarget, new JsonObject
+        ArkStationClient.TryWriteWindowsCredential(target, new JsonObject
         {
             ["access_token"] = access,
             ["refresh_token"] = keptRefresh ?? "",
@@ -126,9 +135,11 @@ internal static class GoogleAdapter
     }
 
     /// <summary>A current access token, refreshed with the saved refresh token when it has expired.</summary>
-    private static async Task<string> AccessTokenAsync(CancellationToken ct)
+    private static Task<string> AccessTokenAsync(CancellationToken ct) => AccessTokenAsync(TokenTarget, "Google Drive", ct);
+
+    private static async Task<string> AccessTokenAsync(string target, string service, CancellationToken ct)
     {
-        var saved = JsonNode.Parse(ArkStationClient.TryReadWindowsCredential(TokenTarget) ?? throw new InvalidOperationException("Google Drive is not signed in."))!;
+        var saved = JsonNode.Parse(ArkStationClient.TryReadWindowsCredential(target) ?? throw new InvalidOperationException($"{service} is not signed in."))!;
         if (saved["expires_at"]?.GetValue<long>() > DateTimeOffset.UtcNow.ToUnixTimeSeconds())
             return saved["access_token"]!.GetValue<string>();
         var (clientId, secret) = Client();
@@ -144,8 +155,19 @@ internal static class GoogleAdapter
         if (!res.IsSuccessStatusCode) throw new InvalidOperationException($"Google refresh answered HTTP {(int)res.StatusCode}; sign in again.");
         var tokens = JsonNode.Parse(body)!;
         string access = tokens["access_token"]!.GetValue<string>();
-        StoreTokens(access, tokens["refresh_token"]?.GetValue<string>(), tokens["expires_in"]?.GetValue<int>() ?? 3600);
+        StoreTokens(target, access, tokens["refresh_token"]?.GetValue<string>(), tokens["expires_in"]?.GetValue<int>() ?? 3600);
         return access;
+    }
+
+    /// <summary>An authorized GET for another Google grant (see <see cref="SignInForAsync"/>), as text. Throws with a plain message when Google refuses.</summary>
+    internal static async Task<string> GetTextAsync(string url, string tokenTarget, string service, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await AccessTokenAsync(tokenTarget, service, ct));
+        using var res = await Http.SendAsync(req, ct);
+        string body = await res.Content.ReadAsStringAsync(ct);
+        if (!res.IsSuccessStatusCode) throw new InvalidOperationException($"{service} answered HTTP {(int)res.StatusCode}.");
+        return body;
     }
 
     private static async Task<JsonNode?> GetAsync(string url, CancellationToken ct)
@@ -178,10 +200,11 @@ internal static class GoogleAdapter
         return entry;
     }
 
-    /// <summary>Signs out: deletes the tokens and the client from Credential Manager.</summary>
+    /// <summary>Signs out: deletes the tokens and the client from Credential Manager. Horizon's calendar grant used that client, so it goes too.</summary>
     public static void Forget()
     {
         ArkStationClient.TryDeleteWindowsCredential(TokenTarget);
+        GoogleCalendarSource.SignOut();
         ArkStationClient.TryDeleteWindowsCredential(ClientTarget);
     }
 

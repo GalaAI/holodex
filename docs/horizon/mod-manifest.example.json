@@ -1,0 +1,40 @@
+{
+  "$comment": "Proposal only. Fields above the line exist in Ark's integrationRecordSchema; connections, logic, extensions and progression are proposed. No keys or tokens belong in this file.",
+  "id": "integration.horizon.review-queue",
+  "displayAlias": "Review Queue",
+  "grouping": "capability",
+  "technicalRole": "Turns GitHub review requests into Horizon bounties and verifies them from submitted reviews and merged pull requests.",
+  "capabilities": [
+    { "id": "integration.horizon.review-queue.propose", "name": "Propose review bounties", "description": "Offers a bounty for each open review request.", "type": "read" },
+    { "id": "integration.horizon.review-queue.verify", "name": "Verify reviews", "description": "Confirms a review was submitted or the pull request merged.", "type": "read" }
+  ],
+  "aegisPolicy": { "fastPathActions": ["github.read"], "gatedActions": [], "capabilityActions": {} },
+  "registryProfile": {
+    "schemaVersion": 1,
+    "technicalClass": "plugin",
+    "loreAlias": { "label": "Bounty Board", "semantics": "display-only", "executable": false }
+  },
+  "distribution": { "surfaces": ["arkstation", "local-runtime"], "visibility": "owner-only", "releaseStage": "planned" },
+
+  "connections": [
+    { "id": "github", "provider": "github", "required": true, "scopes": ["repo:read"], "purpose": "Read review requests and merged pull requests" }
+  ],
+  "logic": [
+    { "id": "review-brief", "kind": "skill", "ref": "skills/review-brief/SKILL.md" }
+  ],
+  "extensions": [
+    { "id": "holodex-panel", "host": "holodex", "kind": "panel", "ref": "panels/review-queue" }
+  ],
+  "progression": {
+    "tier": "planned",
+    "rarity": { "tier": "rare", "derivedFrom": "loot-rarity-1", "score": 0.61 },
+    "unlock": {
+      "starter": false,
+      "anyOf": [
+        { "kind": "quest-completed", "questRef": "quest:horizon.first-boss" },
+        { "kind": "talent-level", "talentRef": "talent:code-review", "minLevel": 10 }
+      ],
+      "bypass": ["owner", "developer"]
+    }
+  }
+}
