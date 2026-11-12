@@ -5,10 +5,11 @@ namespace Holodex;
 
 /// <summary>
 /// What a mission is, in the user's words. The structure is the product; the names are a skin over plain work:
-/// a main quest is a project, a side quest a chore, a daily a habit, a bounty work posted by someone else or by a
-/// system, a gauntlet or lesson skill training, a boss a deadline or launch, a raid a shared goal.
+/// a campaign is a multi-step project, a side quest a chore, a daily a habit, a bounty one bounded fix posted by a
+/// person or a system, a gauntlet or lesson skill training, a boss a deadline or launch, a raid a shared goal. The
+/// first five are the types in the Arkhive Mission Log mockup; daily, boss and raid are proposed additions.
 /// </summary>
-internal enum HorizonQuestKind { Main, Side, Daily, Bounty, Gauntlet, Lesson, Boss, Raid }
+internal enum HorizonQuestKind { Campaign, Bounty, Gauntlet, Side, Lesson, Daily, Boss, Raid }
 
 /// <summary>
 /// Ark's quest states, unchanged (@ark/shared-types progression.ts questStateSchema), so a quest means the same

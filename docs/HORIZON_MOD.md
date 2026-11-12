@@ -19,6 +19,43 @@ here is intent until it is built and proven.
 | Mission model, Ark's XP and quest math, source stubs | Built, tested; no source is wired yet | `HorizonMissions.cs` |
 | Quests, verification, rewards, party, Today view | Design and a clickable prototype | this page |
 
+## The UI reference
+
+The owner's mockup is the Arkhive Mission Log (https://claude.ai/artifact/NfPje7gS9L4m6wWvRJ26fN). It is the
+reference for Horizon's layout and rules, and it is the page meant to replace the home dashboard in Nexus. Where
+this document and the mockup disagree, the mockup wins until the owner rules otherwise.
+
+What the mockup already settles:
+
+- **Layout.** A status HUD (operator level and XP, the tracked mission with its next step, the party of
+  agents), the Horizon day strip (a scrubbable day with calendar events, missions due and AInbox deposits), then
+  three views: Board, Sessions and AInbox, with a mission inspector beside them.
+- **Mission types.** Campaign, Bounty, Gauntlet, Side quest, Lesson (solo or multiplayer). Each has a project,
+  a track (development or learning), a priority P0 to P3, an assignee, an optional due or target date, an XP
+  reward and an optional unlock.
+- **Objectives and evidence.** A mission is a list of objectives. Each objective names the evidence it needs:
+  PR merged, gate passed, receipt, owner ruling, or "Justin runs it".
+- **The AInbox is the evidence path.** Everything that happened arrives as a deposit (human entry, Watcher
+  finding, system feed, courier). A deposit is attached to an objective, then an evaluator accepts it. Only then
+  is the objective proven.
+- **Rules.** A Watcher finding observes and never closes a step. Only the operator's own entry closes an
+  operator gate. The evidence kind must fit the step. A tick alone never grants XP.
+- **No day checklist.** Missions are not scoped to a day and nothing carries over. A day shows what is due,
+  what is waiting on the operator, and what was deposited.
+- **Live data.** Sessions, the gate feed and the agent roster come from Hivemind; the calendar comes from the
+  Google Calendar connector as a stand-in for Google Mod.
+
+What this means for the code in this repo:
+
+| Built here | Against the mockup |
+|---|---|
+| Day window with a free checklist and a missions log (`HorizonForm`) | The mockup has no checklist. This window is a stopgap and should be rebuilt as the HUD, day strip and Board |
+| A self-reported tick pays 0.25 confidence (`HorizonXp.SelfReportConfidence`) | The mockup says a tick alone never grants XP; an operator entry is a deposit, not a tick. Needs a ruling |
+| Level curve from Ark's `progression.ts` (`floor(sqrt(xp / 10)) + 1`) | The mockup uses 400 XP per level, labelled "proposed scoring". Needs a ruling |
+| Mission sources propose and verify (`IHorizonMissionSource`) | Matches: a source's verification is a deposit with an evidence kind |
+| Daily, boss and raid kinds | Not in the mockup. Proposed additions from the design pillars |
+| Public mode (the user's own connections, state on this PC) | Not in the mockup, which is the owner's Ark view. Still required for public Holodex |
+
 ## The loop
 
 Capture, plan, do, reward, reflect.
@@ -37,13 +74,14 @@ Capture, plan, do, reward, reflect.
 
 | Name | What it is in plain words | Example |
 |---|---|---|
-| Main quest | A project | Ship the Horizon mod |
-| Side quest | A chore | Renew the domain |
-| Daily | A habit or checklist item | Inbox to zero |
-| Bounty | Work posted by someone else or by a system | A review request, a failing gate |
-| Gauntlet, lesson | Skill training | Learn a new tool with a graded task |
-| Boss | A deadline or launch | Release day |
-| Raid | A shared goal with other people | A Huddl with a client |
+| Campaign | A multi-step project that spans PRs or repos | Ship the Horizon mod |
+| Bounty | One bounded fix with a clear finish line | A review request, a failing gate |
+| Gauntlet | An assessed learning session; grants XP when passed | A graded task with a new tool |
+| Side quest | Optional, low stakes, picked up when idle | Renew the domain |
+| Lesson | Guild curriculum, solo or multiplayer | How a PR reaches main |
+| Daily (proposed) | A habit | Inbox to zero |
+| Boss (proposed) | A hard deadline or launch | Release day |
+| Raid (proposed) | A shared goal with other people | A Huddl with a client |
 | Party | The user's agents | Hand a quest to Smith; a PR comes back |
 
 Quest titles are always plain ("Review PR 22"). The lore name is a label the user can turn down to nothing.
@@ -192,5 +230,7 @@ one-tap capture, auto-verified completions, XP feeding one unlock track, and age
 
 - The order of public calendar providers after Google. Proposed: an ICS feed (no sign-in), then Microsoft.
 - The starter mod list.
-- Whether dailies carry over when missed, and what a rest day costs.
+- Whether a tick alone can ever pay XP in public mode, where there is no operator deposit path yet.
+- Which level curve is canon: Ark's `progression.ts` or the mockup's 400 XP per level.
+- Whether daily, boss and raid join the five mission types.
 - Which agent narrates the journal chapter.

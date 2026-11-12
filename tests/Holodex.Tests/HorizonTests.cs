@@ -477,13 +477,13 @@ public class HorizonTests : IDisposable
             new(id, id, kind, state, difficulty, "capture", due);
         var quests = new[]
         {
-            Q("offered", HorizonQuestKind.Main, HorizonQuestState.Offered, 5),
+            Q("offered", HorizonQuestKind.Campaign, HorizonQuestState.Offered, 5),
             Q("daily", HorizonQuestKind.Daily, HorizonQuestState.InProgress, 1),
             Q("easy", HorizonQuestKind.Side, HorizonQuestState.Accepted, 1),
-            Q("hard", HorizonQuestKind.Main, HorizonQuestState.Accepted, 4),
+            Q("hard", HorizonQuestKind.Campaign, HorizonQuestState.Accepted, 4),
             Q("boss", HorizonQuestKind.Boss, HorizonQuestState.Accepted, 3, soon),
             Q("doing", HorizonQuestKind.Side, HorizonQuestState.InProgress, 2),
-            Q("done", HorizonQuestKind.Main, HorizonQuestState.Completed, 5)
+            Q("done", HorizonQuestKind.Campaign, HorizonQuestState.Completed, 5)
         };
 
         Assert.Equal(new[] { "doing", "boss", "hard" }, HorizonQuests.Today(quests).Select(q => q.Id));
