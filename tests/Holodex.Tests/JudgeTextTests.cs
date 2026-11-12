@@ -47,7 +47,8 @@ public class JudgeTextTests
             string text = File.ReadAllText(file);
             string name = Path.GetFileName(file);
             if (Regex.IsMatch(text, @"[vV]0\.3\b(?!\.\d)")) offenders.Add($"{name}: v0.3");
-            if (Regex.IsMatch(text, @"Version = ""0\.\d+\.\d+""")) offenders.Add($"{name}: hard-coded client version");
+            // \b keeps other version constants out, such as CursorKit's ContractVersion (the Input Spine contract).
+            if (Regex.IsMatch(text, @"\bVersion = ""0\.\d+\.\d+""")) offenders.Add($"{name}: hard-coded client version");
             if (text.Contains("\"Ctrl+Alt+Q\"")) offenders.Add($"{name}: Ctrl+Alt+Q");
             if (Regex.IsMatch(text, @"[""\s(]Alt\+[SWE]\b") && !name.Equals("GlobalHotkeys.cs")) offenders.Add($"{name}: Alt+S/W/E without Ctrl");
             // PhosphorTokens.cs is generated from packages/tokens and quotes their descriptions as they are.
