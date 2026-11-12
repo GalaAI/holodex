@@ -108,15 +108,17 @@ internal sealed class InputSpineServer
     private readonly KitStore _store;
     private readonly ShellGate _gate;
     private readonly ISpineRunner _runner;
+    private readonly CursorStudio? _cursors;
     private readonly List<JsonObject> _recent = new();
     private readonly object _recentLock = new();
     private TcpListener? _listener;
 
-    public InputSpineServer(KitStore store, ShellGate gate, ISpineRunner runner)
+    public InputSpineServer(KitStore store, ShellGate gate, ISpineRunner runner, CursorStudio? cursors = null)
     {
         _store = store;
         _gate = gate;
         _runner = runner;
+        _cursors = cursors;
     }
 
     private static readonly string[] ReadOnlyRoutes = { "/api/spine/config", "/api/spine/recent", "/api/spine/grimx/spells" };
@@ -131,9 +133,12 @@ internal sealed class InputSpineServer
         bool tokenOk = _gate.TokenMatches(headers.TryGetValue(ShellGate.TokenHeader.ToLowerInvariant(), out var t) ? t : null);
         try
         {
-            if (method == "GET" && !ReadOnlyRoutes.Contains(path)) return (404, Error("not found"));
+            if (method == "GET" && !ReadOnlyRoutes.Contains(path) && !CursorStudio.ReadOnlyRoutes.Contains(path)) return (404, Error("not found"));
             if (method != "GET" && method != "POST") return (404, Error("not found"));
             JsonNode? json = method == "POST" && body.Length > 0 ? JsonNode.Parse(body) : null;
+            if (_cursors != null && path.StartsWith("/api/cursor/", StringComparison.Ordinal)
+                && await _cursors.HandleAsync(path, json) is { } cursorReply)
+                return (200, cursorReply);
             return path switch
             {
                 "/api/spine/config" => (200, Config()),
@@ -145,7 +150,7 @@ internal sealed class InputSpineServer
                 _ => (404, Error("not found")),
             };
         }
-        catch (Exception ex) when (ex is KitException or JsonException)
+        catch (Exception ex) when (ex is KitException or JsonException or FormatException or InvalidOperationException)
         {
             return (400, Error(ex.Message));
         }
