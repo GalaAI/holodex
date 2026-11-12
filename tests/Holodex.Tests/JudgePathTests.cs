@@ -11,16 +11,16 @@ namespace Holodex.Tests;
 /// </summary>
 public class JudgePathTests
 {
-    // ---- Route order: Ark gateway, then a local Nebius key, then Hivemind, then the sign-in prompt -----------------
+    // ---- Route order: Ark gateway, then Hivemind, then a local Nebius key as fallback, then the sign-in prompt ------
 
     [Theory]
     [InlineData(true, true, true, ArkStationClient.RouteArkApi)]
     [InlineData(true, false, false, ArkStationClient.RouteArkApi)]
-    [InlineData(false, true, true, ArkStationClient.RouteNebiusDirect)]
+    [InlineData(false, true, true, ArkStationClient.RouteHivemind)]
     [InlineData(false, true, false, ArkStationClient.RouteNebiusDirect)]
     [InlineData(false, false, true, ArkStationClient.RouteHivemind)]
     [InlineData(false, false, false, ArkStationClient.RouteNone)]
-    public void Text_asks_try_ark_then_key_then_hivemind_then_none(bool arkApi, bool nebiusKey, bool hivemind, string expected) =>
+    public void Text_asks_try_ark_then_hivemind_then_key_then_none(bool arkApi, bool nebiusKey, bool hivemind, string expected) =>
         Assert.Equal(expected, ArkStationClient.PlanTextRoute(arkApi, nebiusKey, hivemind));
 
     [Fact]

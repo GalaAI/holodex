@@ -796,7 +796,7 @@ public sealed class ArkStationClient
             }
 
             if (!matched)
-                return (SpellCastOutcome.NoBinding, $"No Input Spine binding for {SpellTrigger(flowKind, spellSlug)}, so nothing was cast. Bind it in Input Studio.");
+                return (SpellCastOutcome.NoBinding, $"No Input Spine binding for {SpellTrigger(flowKind, spellSlug)}, so nothing was cast. Bind it in the Mouse Mod Station.");
             return succeeded
                 ? (SpellCastOutcome.Cast, string.IsNullOrEmpty(detail) ? $"{verb} {flowKind} cast through Input Spine." : detail)
                 : (SpellCastOutcome.Failed, string.IsNullOrEmpty(detail) ? "The bound action reported a failure." : detail);
@@ -1169,13 +1169,14 @@ public sealed class ArkStationClient
     /// <list type="number">
     /// <item>the Ark API's Nemotron route (<see cref="ArkRouteFor"/>) when it is up and its inbound key is loaded
     /// (the owner's PC), which records a receipt;</item>
-    /// <item>Token Factory direct with this PC's Nebius key, when there is one;</item>
-    /// <item>the user's own Hivemind (<c>model_invoke</c>) when signed in, text only: a judge's fresh install with no
-    /// key and no Ark answers here;</item>
+    /// <item>the user's own Hivemind (<c>model_invoke</c>) when signed in: cloud calls go through Hivemind, not a key
+    /// on this PC (operator ruling 2026-11-08);</item>
+    /// <item>Token Factory direct with this PC's Nebius key, when there is one: kept as a fallback until the Hivemind
+    /// path is proven, then retired;</item>
     /// <item>otherwise no answer, with a plain "Sign in with Hivemind" prompt.</item>
     /// </list>
-    /// A failed route hands over to the next one. An attached screen needs the Ark API or a Nebius key: Hivemind takes
-    /// text only, and the answer says so. The answer names the model and route that actually answered.
+    /// A failed route hands over to the next one. An attached screen goes to Hivemind's vision route unless that
+    /// Hivemind refused images, then to a Nebius key. The answer names the model and route that actually answered.
     /// </summary>
     public async Task<ModelAnswer> AskAsync(string prompt, string? imageDataUrl = null, string? model = null, string? systemPrompt = null)
     {
@@ -1201,25 +1202,26 @@ public sealed class ArkStationClient
         }
 
         bool hivemind = HivemindClient.HasSavedSignIn;
-        if (HasNebiusKey)
+        bool nebiusKey = HasNebiusKey;
+        if (hivemind && !(image && Hivemind.ImagesRefused))
+        {
+            var viaHivemind = image
+                ? await AskHivemindVisionAsync(prompt, imageDataUrl!, systemPrompt ?? HolodexSystemPrompt)
+                : await AskHivemindAsync(prompt, chosen, systemPrompt ?? HolodexSystemPrompt);
+            if (viaHivemind.Ok || !nebiusKey) return viaHivemind with { FallbackReason = fallbackReason };
+            fallbackReason = Join(fallbackReason, viaHivemind.Output);
+        }
+        else if (!hivemind) fallbackReason = Join(fallbackReason, "not signed in to Hivemind");
+        else fallbackReason = Join(fallbackReason, "this Hivemind does not read images");
+
+        if (nebiusKey)
         {
             var direct = await AskNebiusTokenFactoryAsync(prompt, imageDataUrl, TokenFactoryModelFor(chosen), systemPrompt);
-            if (direct.Ok || image || !hivemind) return direct with { FallbackReason = fallbackReason };
-            fallbackReason = direct.Output;
+            return direct with { FallbackReason = fallbackReason };
         }
-        else fallbackReason = Join(fallbackReason, "no Nebius key on this PC");
-
-        if (image)
-        {
-            if (!hivemind)
-                return new ModelAnswer(false, HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: Join(fallbackReason, "not signed in to Hivemind"));
-            var seen = await AskHivemindVisionAsync(prompt, imageDataUrl!, systemPrompt ?? HolodexSystemPrompt);
-            return seen with { FallbackReason = fallbackReason };
-        }
-        if (!hivemind)
-            return new ModelAnswer(false, HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: Join(fallbackReason, "not signed in to Hivemind"));
-        var viaHivemind = await AskHivemindAsync(prompt, chosen, systemPrompt ?? HolodexSystemPrompt);
-        return viaHivemind with { FallbackReason = fallbackReason };
+        if (hivemind && image)
+            return new ModelAnswer(false, ImageNeedsKeyMessage, chosen, RouteNone, FallbackReason: Join(fallbackReason, "no Nebius key on this PC"));
+        return new ModelAnswer(false, HivemindClient.NotSignedInForAnswers, chosen, RouteNone, FallbackReason: Join(fallbackReason, "no Nebius key on this PC"));
     }
 
     private static string Join(string? a, string b) => string.IsNullOrEmpty(a) ? b : $"{a}; {b}";
@@ -1244,7 +1246,7 @@ public sealed class ArkStationClient
 
     /// <summary>
     /// The route the next text ask with <paramref name="model"/> takes, from what is known without asking: the Ark API
-    /// when it was up and has a route, a Nebius key, Hivemind signed in, or none.
+    /// when it was up and has a route, Hivemind signed in, a Nebius key, or none.
     /// </summary>
     public string NextTextRoute(string? model) => IsLocalModel(model) ? RouteLocal : PlanTextRoute(
         ArkRouteReady && ArkRouteFor(model) != null, HasNebiusKey, HivemindClient.HasSavedSignIn);
@@ -1295,7 +1297,7 @@ public sealed class ArkStationClient
 
     /// <summary>The first route a text ask tries, given what is available (the order <see cref="AskAsync"/> follows).</summary>
     internal static string PlanTextRoute(bool arkApi, bool nebiusKey, bool hivemindSignedIn) =>
-        arkApi ? RouteArkApi : nebiusKey ? RouteNebiusDirect : hivemindSignedIn ? RouteHivemind : RouteNone;
+        arkApi ? RouteArkApi : hivemindSignedIn ? RouteHivemind : nebiusKey ? RouteNebiusDirect : RouteNone;
 
     /// <summary>
     /// One answer through the user's Hivemind (<c>model_invoke</c>), by the Ark route of the chosen Nemotron
