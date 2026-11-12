@@ -31,8 +31,8 @@ Every question goes to an NVIDIA Nemotron open model on **Nebius Token Factory**
 **Route order.** Each ask tries, in order (`ArkStationClient.AskAsync`):
 
 1. **The Ark API**, only on a PC that runs its owner's Ark: the gateway must answer with its own health shape and the PC must hold its inbound key (`ProbeArkApiAsync`, `ArkRouteReady`).
-2. **Your own Nebius Token Factory key**, if you added one: Holodex calls `https://api.tokenfactory.nebius.com/v1` directly (`AskNebiusTokenFactoryAsync`).
-3. **Hivemind**, when you are signed in: the same Nemotron models, served by Hivemind with no key on your PC (`AskHivemindAsync`, Hivemind's `model_invoke`).
+2. **Hivemind**, when you are signed in: the same Nemotron models, served by Hivemind with no key on your PC (`AskHivemindAsync`, Hivemind's `model_invoke`). Screen questions use Hivemind's vision route unless that Hivemind refuses images.
+3. **Your own Nebius Token Factory key**, if you added one, as a fallback: Holodex calls `https://api.tokenfactory.nebius.com/v1` directly (`AskNebiusTokenFactoryAsync`) when Hivemind is not signed in or does not answer.
 
 A model that LM Studio or Ollama serves on your own PC can also be picked on the chip. It answers from your machine and never falls over to the cloud.
 
