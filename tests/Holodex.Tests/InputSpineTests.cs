@@ -353,6 +353,31 @@ public class InputSpineTests
         Assert.Equal(new[] { "pc.app.open" }, rig.Runner.Ops);
     }
 
+    [Fact]
+    public void The_cursor_designer_page_and_its_token_files_are_served_and_nothing_else()
+    {
+        using var rig = new Rig();
+        string root = Path.Combine(rig.Dir, "out");
+        Directory.CreateDirectory(Path.Combine(root, "cursor-studio", "tokens", "src"));
+        Directory.CreateDirectory(Path.Combine(root, "fonts"));
+        File.WriteAllText(Path.Combine(root, "cursor-studio", "index.html"), "<!doctype html>");
+        File.WriteAllText(Path.Combine(root, "cursor-studio", "tokens", "src", "tokens.css"), ":root{}");
+        File.WriteAllBytes(Path.Combine(root, "fonts", "ArchivoBlack-Regular.ttf"), new byte[] { 0, 1 });
+        File.WriteAllText(Path.Combine(root, "secret.txt"), "no");
+        var server = new InputSpineServer(rig.Store, rig.Gate, rig.Runner) { PageRoot = root };
+
+        Assert.StartsWith("text/html", server.StaticFile("GET", "/")!.Value.ContentType);
+        Assert.Equal("<!doctype html>", System.Text.Encoding.UTF8.GetString(server.StaticFile("GET", "/index.html")!.Value.Body));
+        Assert.StartsWith("text/css", server.StaticFile("GET", "/tokens/src/tokens.css")!.Value.ContentType);
+        Assert.Equal("font/ttf", server.StaticFile("GET", "/tokens/assets/fonts/ArchivoBlack-Regular.ttf")!.Value.ContentType);
+
+        Assert.Null(server.StaticFile("POST", "/"));
+        Assert.Null(server.StaticFile("GET", "/tokens/src/missing.css"));
+        Assert.Null(server.StaticFile("GET", "/tokens/src/../../secret.txt"));
+        Assert.Null(server.StaticFile("GET", "/secret.txt"));
+        Assert.Null(server.StaticFile("GET", "/api/spine/config"));
+    }
+
     // ---- Windows runner pieces that need no input device --------------------------------------------------------------
 
     [Theory]

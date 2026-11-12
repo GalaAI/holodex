@@ -794,7 +794,7 @@ public sealed partial class HolodexLiteDrawerForm : Form
         };
         inventoryBtn.Click += (_, _) => OpenAugmentInventory?.Invoke();
 
-        // The mouse, its speed, the pointer look and Input Studio live in the Mouse Mod Station, in its own window.
+        // The mouse, its speed, the pointer look and the Cursor Mod live in the Mouse Mod Station, in its own window.
         var stationBtn = new PhosphorButton("Mouse Mod Station")
         {
             Dock = DockStyle.Top,
