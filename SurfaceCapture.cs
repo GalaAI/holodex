@@ -33,113 +33,183 @@ internal static class SurfaceCapture
         ("toast-crafted", "Ritual crafted", "Ritual drafted in Wiz. It is in the Wiz thread.", "WIZ // SPELLS", ToastTone.Success),
     };
 
-    public static IReadOnlyList<string> CaptureAll(string dir, PhosphorTrayMenu trayMenu, params (string Name, Form Form)[] widgets)
+    /// <summary>
+    /// One surface the app can draw on request: its file name without the extension, and how to draw it. Draw stages
+    /// the state the surface is captured in, renders it, hands the root control to the inspector while it is still
+    /// shown (so the element map reads the tree the bitmap came from) and puts the live widget back. A surface that
+    /// is painted, not built from controls (a toast preview, a tray composite, a sheet), never calls the inspector
+    /// and so gets no element map.
+    /// </summary>
+    internal sealed record CaptureSurface(string Name, Func<Action<Control>?, Bitmap> Draw);
+
+    /// <summary>
+    /// Every surface the as-built render draws, in the order it draws them. <c>render:&lt;folder&gt;</c> walks the
+    /// whole list; the UI Lab bridge (<c>ui:render</c>, <c>ui:element</c>) picks one by name, so one surface is staged
+    /// the same way whether it is drawn alone or with the rest. Each entry restores what it changed.
+    /// </summary>
+    public static IReadOnlyList<CaptureSurface> Surfaces(PhosphorTrayMenu trayMenu, params (string Name, Form Form)[] widgets)
     {
-        Directory.CreateDirectory(dir);
-        var written = new List<string>();
-        // Every state is drawn as it settles: a surface easing open or resizing would be caught mid-tween.
-        using var still = SurfaceMotion.Instant();
+        var list = new List<CaptureSurface>();
 
         // Tray menu: the home page and every page it turns to, each as the panel alone (menu*.png) and as it opens
         // above the tray icon on a 1920x1080 screen (menu-tray*.png).
-        written.AddRange(CaptureTrayPages(dir, trayMenu));
+        foreach (var page in trayMenu.Home.AndBelow().ToList())
+        {
+            string slug = page == trayMenu.Home ? string.Empty : "-" + Slug(page.Title);
+            list.Add(new($"menu{slug}", inspect => OnTrayPage(trayMenu, page, () => Inspected(RenderMenu(trayMenu), trayMenu, inspect))));
+            list.Add(new($"menu-tray{slug}", _ => OnTrayPage(trayMenu, page, () => RenderTrayComposite(trayMenu, out Rectangle _))));
+        }
 
         // Render a composite sheet of the 240Hz ArkApertureMorphEngine states
-        Save(RenderCursorMorphSheet(), Path.Combine(dir, "cursor-morph-sheet.png"), written);
+        list.Add(new("cursor-morph-sheet", _ => RenderCursorMorphSheet()));
 
         // The AI card kit as it stands: every state and footer the surfaces compose, drawn by the real classes.
         // Two sheets: a form cannot be taller than the screen, and the kit is.
-        Save(RenderAiKitSheet(approvals: false), Path.Combine(dir, "kit-ai-components.png"), written);
-        Save(RenderAiKitSheet(approvals: true), Path.Combine(dir, "kit-ai-approvals.png"), written);
+        list.Add(new("kit-ai-components", inspect => RenderAiKitSheet(approvals: false, inspect)));
+        list.Add(new("kit-ai-approvals", inspect => RenderAiKitSheet(approvals: true, inspect)));
 
         // Toasts: every entry the toast catalog keeps or integrates, built by the real class with the copy the app raises.
         foreach (var t in ToastCatalog)
-            Save(PhosphorToast.RenderPreview(t.Title, t.Body, t.Eyebrow, t.Tone), Path.Combine(dir, $"{t.File}.png"), written);
+            list.Add(new(t.File, _ => PhosphorToast.RenderPreview(t.Title, t.Body, t.Eyebrow, t.Tone)));
 
         // The approval dialogs: a command Nemotron wants to run, turning shell actions on, and a Cursor Kit import.
-        using (var approval = new CommandApprovalForm("Get-ChildItem $env:USERPROFILE\\Downloads | Sort-Object Length -Descending | Select-Object -First 5", "Finds the five largest files in Downloads, as you asked."))
-            Save(RenderForm(approval), Path.Combine(dir, "dialog-command-approval.png"), written);
-        using (var shellOn = new CursorModConfirmForm("Turn shell actions on?", "HOLODEX // CURSOR MOD // SHELL ACTIONS",
-            "Cursor Kit buttons will be able to run commands and open programs on this PC.",
-            "Only a caller with this PC's token can run them (the Stream Deck and the AHK bridge read it from your Holodex folder). Every run is logged. Turning them off again deletes the token.",
-            "Turn on"))
-            Save(RenderForm(shellOn), Path.Combine(dir, "dialog-shell-on.png"), written);
-        using (var import = new CursorModConfirmForm("Import 2 commands?", "HOLODEX // CURSOR MOD // IMPORT // CONFIRM EACH COMMAND",
-            "3 actions and 1 binding from studio-kit.json. Actions and bindings with the same id are replaced. It adds these commands:",
-            "Get-Date" + Environment.NewLine + Environment.NewLine + "open C:\\tools\\obs-scene.bat", "Import", mono: true))
-            Save(RenderForm(import), Path.Combine(dir, "dialog-kit-import.png"), written);
+        list.Add(new("dialog-command-approval", inspect =>
+        {
+            using var approval = new CommandApprovalForm("Get-ChildItem $env:USERPROFILE\\Downloads | Sort-Object Length -Descending | Select-Object -First 5", "Finds the five largest files in Downloads, as you asked.");
+            return RenderForm(approval, inspect);
+        }));
+        list.Add(new("dialog-shell-on", inspect =>
+        {
+            using var shellOn = new CursorModConfirmForm("Turn shell actions on?", "HOLODEX // CURSOR MOD // SHELL ACTIONS",
+                "Cursor Kit buttons will be able to run commands and open programs on this PC.",
+                "Only a caller with this PC's token can run them (the Stream Deck and the AHK bridge read it from your Holodex folder). Every run is logged. Turning them off again deletes the token.",
+                "Turn on");
+            return RenderForm(shellOn, inspect);
+        }));
+        list.Add(new("dialog-kit-import", inspect =>
+        {
+            using var import = new CursorModConfirmForm("Import 2 commands?", "HOLODEX // CURSOR MOD // IMPORT // CONFIRM EACH COMMAND",
+                "3 actions and 1 binding from studio-kit.json. Actions and bindings with the same id are replaced. It adds these commands:",
+                "Get-Date" + Environment.NewLine + Environment.NewLine + "open C:\\tools\\obs-scene.bat", "Import", mono: true);
+            return RenderForm(import, inspect);
+        }));
 
         foreach (var (name, form) in widgets)
         {
             if (form is VaultForm vaultForm)
             {
                 // Both tabs, each sized to what it holds.
-                vaultForm.CaptureTo(Path.Combine(dir, "vault.png"), catalog: false);
-                written.Add(Path.Combine(dir, "vault.png"));
-                vaultForm.CaptureTo(Path.Combine(dir, "vault-catalog.png"), catalog: true);
-                written.Add(Path.Combine(dir, "vault-catalog.png"));
+                list.Add(new("vault", inspect => { vaultForm.ShowTab(catalog: false); return RenderForm(vaultForm, inspect); }));
+                list.Add(new("vault-catalog", inspect => { vaultForm.ShowTab(catalog: true); return RenderForm(vaultForm, inspect); }));
                 continue;
             }
-            Save(RenderForm(form), Path.Combine(dir, $"{name}.png"), written);
+            list.Add(new(name, inspect => RenderForm(form, inspect)));
             if (form is HolodexLiteDrawerForm holodex)
             {
                 // The session as a new user meets it (first steps) and once a conversation exists.
-                holodex.PreviewState("session-empty");
-                Save(RenderForm(holodex), Path.Combine(dir, "holodex-first-steps.png"), written);
-                holodex.PreviewState("session-conversation");
-                Save(RenderForm(holodex), Path.Combine(dir, "holodex-conversation.png"), written);
-                holodex.PreviewState("reset");
+                list.Add(Staged("holodex-first-steps", holodex, () => holodex.PreviewState("session-empty"), () => holodex.PreviewState("reset")));
+                list.Add(Staged("holodex-conversation", holodex, () => holodex.PreviewState("session-conversation"), () => holodex.PreviewState("reset")));
                 foreach (var tab in new[] { "ainbox", "codex", "grimx", "mods" })
-                {
-                    holodex.SwitchTab(tab);
-                    Save(RenderForm(holodex), Path.Combine(dir, $"holodex-{tab}.png"), written);
-                }
-                holodex.SwitchTab("codex");
-                holodex.PreviewState("codex");
-                Save(RenderForm(holodex), Path.Combine(dir, "holodex-codex-entry.png"), written);
-                holodex.PreviewState("reset");
-                holodex.SwitchTab("session");
+                    list.Add(Staged($"holodex-{tab}", holodex, () => holodex.SwitchTab(tab), () => holodex.SwitchTab("session")));
+                list.Add(Staged("holodex-codex-entry", holodex,
+                    () => { holodex.SwitchTab("codex"); holodex.PreviewState("codex"); },
+                    () => { holodex.PreviewState("reset"); holodex.SwitchTab("session"); }));
             }
             if (form is ScreenSnipAndElementPickerForm snip)
-            {
-                snip.PreviewState("answered");
-                Save(RenderForm(snip), Path.Combine(dir, "snip-answer.png"), written);
-                snip.PreviewState("reset");
-            }
+                list.Add(Staged("snip-answer", snip, () => snip.PreviewState("answered"), () => snip.PreviewState("reset")));
             if (form is HolodexHudForm hud)
             {
                 // A question with the screen, then the card it holds while asking, answered and failed.
                 foreach (var (state, file) in new[] { ("asking", "hud-asking"), ("answered", "hud-answer"), ("failed", "hud-failed") })
-                {
-                    hud.PreviewState(state);
-                    Save(RenderForm(hud), Path.Combine(dir, $"{file}.png"), written);
-                }
-                hud.PreviewState("reset");
+                    list.Add(Staged(file, hud, () => hud.PreviewState(state), () => hud.PreviewState("reset")));
             }
             if (form is WizCraftingWidgetForm wiz)
             {
                 // The agent mid-run: steps, an action and its result, then a work order waiting on Approve/Skip.
-                wiz.PreviewState("agent");
-                Save(RenderForm(wiz), Path.Combine(dir, "wiz-agent.png"), written);
-                wiz.PreviewState("reset");
+                list.Add(Staged("wiz-agent", wiz, () => wiz.PreviewState("agent"), () => wiz.PreviewState("reset")));
             }
             if (form is AInboxIntakeWidgetForm ainbox)
             {
                 // The composer's other states: a file dragged over (TraceBeam mid-orbit), one capture, a two-context
                 // stack with predictions and the Aegis gate, and that stack with its scroll open for review.
-                ainbox.PreviewState("drag");
-                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-drag.png"), written);
-                ainbox.PreviewState("captured");
-                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-captured.png"), written);
-                ainbox.PreviewState("stack");
-                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-stack.png"), written);
-                ainbox.PreviewState("review");
-                Save(RenderForm(ainbox), Path.Combine(dir, "ainbox-review.png"), written);
-                ainbox.PreviewState("reset");
+                foreach (var state in new[] { "drag", "captured", "stack", "review" })
+                    list.Add(Staged($"ainbox-{state}", ainbox, () => ainbox.PreviewState(state), () => ainbox.PreviewState("reset")));
             }
         }
 
+        return list;
+    }
+
+    /// <summary>A widget drawn in a preview state: staged, rendered, then put back even when the render throws.</summary>
+    private static CaptureSurface Staged(string name, Form form, Action stage, Action restore) => new(name, inspect =>
+    {
+        stage();
+        try { return RenderForm(form, inspect); }
+        finally { restore(); }
+    });
+
+    /// <summary>Turns the tray menu to <paramref name="page"/> for one draw, then back to its home page.</summary>
+    private static Bitmap OnTrayPage(PhosphorTrayMenu trayMenu, TrayPage page, Func<Bitmap> draw)
+    {
+        trayMenu.ShowPage(page);
+        try { return draw(); }
+        finally { trayMenu.ShowPage(trayMenu.Home); }
+    }
+
+    /// <summary>Lets the inspector read <paramref name="root"/> while it still stands as <paramref name="bmp"/> drew it.</summary>
+    private static Bitmap Inspected(Bitmap bmp, Control root, Action<Control>? inspect)
+    {
+        try { inspect?.Invoke(root); }
+        catch { bmp.Dispose(); throw; }
+        return bmp;
+    }
+
+    /// <summary>Draws every surface into <paramref name="dir"/>, each with its element map beside it when it has one. Returns the PNG names.</summary>
+    public static IReadOnlyList<string> CaptureAll(string dir, PhosphorTrayMenu trayMenu, params (string Name, Form Form)[] widgets)
+    {
+        Directory.CreateDirectory(dir);
+        var written = new List<string>();
+        foreach (var surface in Surfaces(trayMenu, widgets))
+        {
+            Capture(surface, Path.Combine(dir, $"{surface.Name}.png"));
+            written.Add($"{surface.Name}.png");
+        }
         return written;
+    }
+
+    /// <summary>
+    /// Draws one surface to <paramref name="pngPath"/> and writes its element map as the .json beside it. A surface
+    /// with no control tree leaves no map, and a map from an earlier capture of that name is removed so a stale one
+    /// cannot be read against the new picture.
+    /// </summary>
+    internal static (Size Size, string? MapPath) Capture(CaptureSurface surface, string pngPath)
+    {
+        // Every state is drawn as it settles: a surface easing open or resizing would be caught mid-tween.
+        using var still = SurfaceMotion.Instant();
+        SurfaceElementMap? map = null;
+        using var bmp = surface.Draw(root => map = SurfaceElementMap.Build(surface.Name, root));
+        return (bmp.Size, Write(bmp, map, pngPath));
+    }
+
+    /// <summary>
+    /// One element of a surface as it stands once the surface is staged: the live control's properties as JSON, or
+    /// null when the surface has no element with that id. The surface is drawn the way a capture draws it, because
+    /// a hidden widget's controls have no settled layout or visibility until then.
+    /// </summary>
+    internal static string? DescribeElement(CaptureSurface surface, string elementId)
+    {
+        using var still = SurfaceMotion.Instant();
+        string? json = null;
+        using var bmp = surface.Draw(root => json = SurfaceElementMap.Build(surface.Name, root).DescribeElement(elementId));
+        return json;
+    }
+
+    private static string? Write(Bitmap bmp, SurfaceElementMap? map, string pngPath)
+    {
+        bmp.Save(pngPath, ImageFormat.Png);
+        if (map != null) return map.WriteBeside(pngPath);
+        File.Delete(SurfaceElementMap.PathBeside(pngPath));
+        return null;
     }
 
     /// <summary>Draws a control offscreen and clips it to its window region (transparent outside).</summary>
@@ -163,20 +233,23 @@ internal static class SurfaceCapture
         return clipped;
     }
 
+    /// <summary>Renders one live form offscreen (as the as-built render does) and saves it as a PNG, with its element map beside it.</summary>
+    internal static Size SaveForm(Form form, string path)
+    {
+        SurfaceElementMap? map = null;
+        using var bmp = RenderForm(form, root => map = SurfaceElementMap.Build(Path.GetFileNameWithoutExtension(path), root));
+        Write(bmp, map, path);
+        return bmp.Size;
+    }
+
     /// <summary>
     /// A hidden form's children report themselves invisible and skip WM_PRINT, so a never-shown widget drew
     /// as an empty panel. Show it far off-screen without activating it (no focus taken from the operator),
     /// draw it, then hide it and put it back. A widget that is already open is drawn where it is.
+    /// <paramref name="inspect"/> runs after the draw and before the form is hidden again: only then do its
+    /// children report the visibility and layout the bitmap shows.
     /// </summary>
-    /// <summary>Renders one live form offscreen (as the as-built render does) and saves it as a PNG.</summary>
-    internal static Size SaveForm(Form form, string path)
-    {
-        using var bmp = RenderForm(form);
-        bmp.Save(path, ImageFormat.Png);
-        return bmp.Size;
-    }
-
-    private static Bitmap RenderForm(Form form)
+    private static Bitmap RenderForm(Form form, Action<Control>? inspect = null)
     {
         if (form is ScreenSnipAndElementPickerForm snipForm)
         {
@@ -189,7 +262,7 @@ internal static class SurfaceCapture
                 ShowWindow(snipForm.Handle, 4); // SW_SHOWNOACTIVATE
                 snipForm.PerformLayout();
                 snipForm.Refresh();
-                return Render(snipForm);
+                return Inspected(Render(snipForm), snipForm, inspect);
             }
             finally
             {
@@ -198,7 +271,7 @@ internal static class SurfaceCapture
                 snipForm.Location = homeSnip;
             }
         }
-        if (form.Visible) return Render(form);
+        if (form.Visible) return Inspected(Render(form), form, inspect);
         var home = form.Location;
         try
         {
@@ -207,7 +280,7 @@ internal static class SurfaceCapture
             ShowWindow(form.Handle, 4); // SW_SHOWNOACTIVATE
             form.PerformLayout();
             form.Refresh();
-            return Render(form);
+            return Inspected(Render(form), form, inspect);
         }
         finally
         {
@@ -237,31 +310,6 @@ internal static class SurfaceCapture
 
     /// <summary>The tray icon on <see cref="TrayScreen"/>: a 24px slot centered on <see cref="TrayAnchor"/>.</summary>
     internal static readonly Rectangle TrayIcon = new(TrayAnchor.X - 12, TrayAnchor.Y - 12, 24, 24);
-
-    /// <summary>
-    /// <c>menu{-page}.png</c> and <c>menu-tray{-page}.png</c> for the home page and every page under it, turned
-    /// the way a click on its row turns it. The menu is put back on the home page afterwards.
-    /// </summary>
-    public static IReadOnlyList<string> CaptureTrayPages(string dir, PhosphorTrayMenu trayMenu)
-    {
-        Directory.CreateDirectory(dir);
-        var written = new List<string>();
-        try
-        {
-            foreach (var page in trayMenu.Home.AndBelow())
-            {
-                string slug = page == trayMenu.Home ? string.Empty : "-" + Slug(page.Title);
-                trayMenu.ShowPage(page);
-                Save(RenderMenu(trayMenu), Path.Combine(dir, $"menu{slug}.png"), written);
-                Save(RenderTrayComposite(trayMenu, out _), Path.Combine(dir, $"menu-tray{slug}.png"), written);
-            }
-        }
-        finally
-        {
-            trayMenu.ShowPage(trayMenu.Home);
-        }
-        return written;
-    }
 
     /// <summary>
     /// The menu panel as it draws, with each hosted speed slider painted into its row: a hosted control is a child
@@ -327,7 +375,7 @@ internal static class SurfaceCapture
     /// keeping its cause, an agent action with its receipt, and approvals for a change, a client send and a payment.
     /// The copy is a labelled render sample, the same states the HUD, Wiz and Holodex show live.
     /// </summary>
-    private static Bitmap RenderAiKitSheet(bool approvals)
+    private static Bitmap RenderAiKitSheet(bool approvals, Action<Control>? inspect = null)
     {
         using var form = new Form
         {
@@ -385,7 +433,7 @@ internal static class SurfaceCapture
         // Section labels and approval buttons settle on layout; the headroom keeps the last card whole.
         int contentHeight = thread.ContentHeight(thread.FitWidth) + form.Padding.Vertical + 96;
         form.Height = Math.Min(contentHeight, 2400);
-        return RenderForm(form);
+        return RenderForm(form, inspect);
     }
 
     private static Bitmap RenderCursorMorphSheet()
@@ -441,11 +489,5 @@ internal static class SurfaceCapture
         }
 
         return bmp;
-    }
-
-    private static void Save(Bitmap bmp, string path, List<string> written)
-    {
-        using (bmp) bmp.Save(path, ImageFormat.Png);
-        written.Add(Path.GetFileName(path));
     }
 }

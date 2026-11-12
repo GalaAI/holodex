@@ -831,7 +831,7 @@ internal sealed class HolodexAppContext : ApplicationContext
     private static readonly string[] DevOnlyPrefixes =
     {
         "holodex:order:", "holodex:say:", "hivemind:signout", "inventory:summon:",
-        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "holodex:setup:capture:", "ainbox:send:"
+        "holodex:roster:shoot:", "inventory:capture:", "cursor:film:", "station:capture:", "vault:capture:", "holodex:setup:capture:", "ainbox:send:", "ui:"
     };
 
     private static readonly string RenderRoot = HolodexNames.DataRoot;
@@ -842,6 +842,62 @@ internal sealed class HolodexAppContext : ApplicationContext
         if (DevPipe) return true;
         try { return Path.GetFullPath(path).StartsWith(RenderRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase); }
         catch { return false; }
+    }
+
+    /// <summary>The widgets the as-built render draws, by file name: one list for <c>render:</c> and the UI Lab bridge.</summary>
+    private (string Name, Form Form)[] CaptureWidgets() => new (string, Form)[]
+    {
+        ("hud", _hud),
+        ("wiz", _wizWidget),
+        ("ainbox", _ainboxWidget),
+        ("holodex", _holodexDrawer),
+        ("snip", _snipWidget),
+        ("vault", _vault),
+        ("tutorial", _tutorialTooltip),
+        ("station", _station),
+        ("pc-setup", PcSetupScan.Panel),
+    };
+
+    /// <summary>
+    /// The UI Lab bridge (developer pipe): <c>ui:surfaces</c> lists what can be drawn, <c>ui:render:&lt;name&gt;:&lt;png&gt;</c>
+    /// draws one surface with its element map, and <c>ui:element:&lt;surface&gt;:&lt;id&gt;</c> reads one live control.
+    /// It reads the app and writes only PNG and JSON files under %TEMP%\Holodex\ui-lab; changing how the app
+    /// looks stays with <c>holodex:tune:*</c>. Replies are <c>ok:ui:&lt;verb&gt;:&lt;json&gt;</c> on one line.
+    /// </summary>
+    private string HandleUiLabCommand(string cmd)
+    {
+        var request = UiLabCommand.Parse(cmd, out string error);
+        if (request == null) return error;
+        string verb = request.Verb.ToString().ToLowerInvariant();
+        string result = $"error:ui:{verb}:not run";
+        _uiSync.Send(_ =>
+        {
+            try
+            {
+                var surfaces = SurfaceCapture.Surfaces(_trayMenu, CaptureWidgets());
+                if (request.Verb == UiLabVerb.Surfaces)
+                {
+                    result = $"ok:ui:surfaces:{System.Text.Json.JsonSerializer.Serialize(surfaces.Select(s => s.Name))}";
+                    return;
+                }
+                var surface = surfaces.FirstOrDefault(s => s.Name == request.Surface);
+                if (surface == null) { result = $"error:ui:{verb}:unknown surface {request.Surface}"; return; }
+                if (request.Verb == UiLabVerb.Element)
+                {
+                    string? element = SurfaceCapture.DescribeElement(surface, request.Argument);
+                    result = element != null ? $"ok:ui:element:{element}" : $"error:ui:element:no element {request.Argument} on {request.Surface}";
+                    return;
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(request.Argument)!);
+                var (size, map) = SurfaceCapture.Capture(surface, request.Argument);
+                result = "ok:ui:render:" + System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+                {
+                    ["surface"] = surface.Name, ["png"] = request.Argument, ["map"] = map, ["width"] = size.Width, ["height"] = size.Height,
+                });
+            }
+            catch (Exception ex) { result = $"error:ui:{verb}:{ex.Message.ReplaceLineEndings(" ")}"; } // one line out
+        }, null);
+        return result;
     }
 
     private string HandleControlPipeCommand(string cmd)
@@ -987,22 +1043,14 @@ internal sealed class HolodexAppContext : ApplicationContext
             {
                 try
                 {
-                    var files = SurfaceCapture.CaptureAll(dir, _trayMenu,
-                        ("hud", _hud),
-                        ("wiz", _wizWidget),
-                        ("ainbox", _ainboxWidget),
-                        ("holodex", _holodexDrawer),
-                        ("snip", _snipWidget),
-                        ("vault", _vault),
-                        ("tutorial", _tutorialTooltip),
-                        ("station", _station),
-                        ("pc-setup", PcSetupScan.Panel));
+                    var files = SurfaceCapture.CaptureAll(dir, _trayMenu, CaptureWidgets());
                     result = $"ok:render:{files.Count}:{string.Join(",", files)}";
                 }
                 catch (Exception ex) { result = $"error:render:{ex.Message}"; }
             }, null);
             return result;
         }
+        if (cmd.StartsWith("ui:", StringComparison.OrdinalIgnoreCase)) return HandleUiLabCommand(cmd);
         if (cmd.StartsWith("cursor:role:", StringComparison.OrdinalIgnoreCase))
         {
             string arg = cmd["cursor:role:".Length..].Trim();

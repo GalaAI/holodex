@@ -356,7 +356,7 @@ internal sealed class VaultForm : Form
 
     // ---- list ----
 
-    private void ShowTab(bool catalog)
+    internal void ShowTab(bool catalog)
     {
         _showCatalog = catalog;
         _connectedTab.Selected = !catalog;
