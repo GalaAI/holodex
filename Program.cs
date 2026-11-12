@@ -87,8 +87,15 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
+        // The Input Spine and the cursor routes on 127.0.0.1:8842 (Cursor Mod, steps 1 and 2). If Input Studio still holds the port it stays off.
+        var spineArk = new ArkStationClient();
+        var spine = new InputSpineServer(KitStore.Default, ShellGate.Default, new WindowsSpineRunner(spineArk),
+            new CursorStudio(WindowsSpineRunner.CursorDir, new WindowsCursorHost(spineArk)));
+        spine.TryStart();
+
         using var context = new HolodexAppContext();
         Application.Run(context);
+        spine.Stop();
     }
 }
 
@@ -437,7 +444,7 @@ internal sealed class HolodexAppContext : ApplicationContext
             inventoryItem.Click += (_, _) => _inventory.Summon(GetCursorPoint());
         }
 
-        // The Mouse Mod Station: the mouse in use, its speed, the pointer look and Input Studio in one window.
+        // The Mouse Mod Station: the mouse in use, its speed, the pointer look and the Cursor Mod in one window.
         if (MouseModStationForm.Available(_ark))
         {
             var stationItem = home.Add(new ToolStripMenuItem("Mouse Mod Station") { Name = "Tray.MouseModStation", ToolTipText = "Your mouse, its speed, the pointer look, and the cursor designer and button bindings." });
@@ -1001,7 +1008,9 @@ internal sealed class HolodexAppContext : ApplicationContext
                         ("holodex", _holodexDrawer),
                         ("snip", _snipWidget),
                         ("vault", _vault),
-                        ("tutorial", _tutorialTooltip));
+                        ("tutorial", _tutorialTooltip),
+                        ("station", _station),
+                        ("pc-setup", PcSetupScan.Panel));
                     result = $"ok:render:{files.Count}:{string.Join(",", files)}";
                 }
                 catch (Exception ex) { result = $"error:render:{ex.Message}"; }
@@ -1373,7 +1382,7 @@ internal sealed class HolodexAppContext : ApplicationContext
             string next = _ark.CycleCursorProfile();
             _uiSync.Post(_ =>
             {
-                PhosphorToast.Show("Cursor profile", $"Active Input Studio profile: {next}", "MX MASTER 4", 1800);
+                PhosphorToast.Show("Cursor profile", $"Active cursor profile: {next}", "MX MASTER 4", 1800);
             }, null);
             return $"ok:profile:{next}";
         }
@@ -1542,7 +1551,7 @@ internal sealed class HolodexAppContext : ApplicationContext
     private void CycleProfileFromHotkey()
     {
         string next = _ark.CycleCursorProfile();
-        PhosphorToast.Show("Cursor profile", $"Active Input Studio profile: {next}", "HOLODEX", 1800);
+        PhosphorToast.Show("Cursor profile", $"Active cursor profile: {next}", "HOLODEX", 1800);
     }
 
     private void ExecuteOrbSlotOnUiThread(GrimXOrbSlot slot, Point pt)

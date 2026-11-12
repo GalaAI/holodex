@@ -1,0 +1,87 @@
+/* Phosphor Chassis layer (Shell Inventory SH-01; locked 2026-10-13, joined
+   the Chassis 2026-10-29). Composition only: every value below is geometry or a
+   mix of an existing palette token. No new color. */
+:root {
+  /* LW-01 panel-edge: a 3px leading edge on every Panel, card, cell and list
+     surface. Grey and unlit by default; a status swaps the color while it is
+     live. Write it as `inset var(--panel-edge-w) 0 0 var(--panel-edge)` at the
+     use site, so a local --panel-edge override still reaches it. */
+  --panel-edge: var(--color-line-2);
+  --panel-edge-w: 3px;
+  --edge-agent: color-mix(in srgb, var(--color-patina) 78%, transparent);
+  --edge-gate: color-mix(in srgb, var(--color-ember) 80%, transparent);
+  --edge-error: color-mix(in srgb, var(--color-rust) 82%, transparent);
+  --edge-ok: var(--color-moss); /* unlit by Law 05: no beam, no photons */
+
+  /* Edge photons (LW-01, ruled 2026-10-29). Replaces the inset edge bloom.
+     Channels must move when the named color moves, same rule as --line-soft. */
+  --ph-rgb-agent: 121, 196, 183; /* --color-patina */
+  --ph-rgb-gate: 217, 154, 78; /* --color-ember */
+  --ph-rgb-error: 194, 91, 56; /* --color-rust */
+  --ph-rgb: var(--ph-rgb-agent); /* state color as r, g, b */
+  --ph-a: 1; /* 0 unlit, 1 live */
+  --ph-s: 0.11; /* beam strength, the old bloom strength */
+  --ph-x: 3px; /* where the gutter starts: the edge width */
+  --ph-w: 18px; /* gutter width; photons die at 82% of it, before any text */
+
+  /* LW-02 x-mark: a bare muted X, never boxed, circled or filled. */
+  --x-mark: color-mix(in srgb, var(--color-bone) 60%, transparent);
+  --x-mark-size: 10px;
+  --x-mark-stroke: 1.5px;
+
+  /* Clipped ear: the top right corner cut through a mask, so the cast shadow
+     stays on its own layer. */
+  --ear-size: 15px;
+  --ear-mask: linear-gradient(
+    225deg,
+    transparent var(--ear-size),
+    black calc(var(--ear-size) + 0.6px)
+  );
+
+  /* Hatch as state: bands mean held or blocked, never decoration. */
+  --hatch-band: 10px;
+  --hatch-gate: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-ember) 22%, transparent) 0 6px,
+    transparent 6px 14px
+  );
+  --hatch-error: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-rust) 24%, transparent) 0 6px,
+    transparent 6px 14px
+  );
+  --hatch-held: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-bone) 7%, transparent) 0 6px,
+    transparent 6px 14px
+  );
+
+  /* Numeral index: Archivo Black ordinals that carry a real position or code. */
+  --numeral-index: 22px;
+  --numeral-ticket: 64px;
+  --numeral-backdrop: 260px;
+
+  /* Registration marks and rulers on a frame. */
+  --mark-size: 14px;
+  --mark-inset: 10px;
+  --ruler-step: 12px;
+  --ruler-h: 8px;
+
+  /* Ticket: tear line notches and the receipt barcode (bars in currentColor). */
+  --ticket-notch: 18px;
+  --ticket-barcode: repeating-linear-gradient(
+    90deg,
+    currentColor 0 2px,
+    transparent 2px 4px,
+    currentColor 4px 5px,
+    transparent 5px 9px,
+    currentColor 9px 12px,
+    transparent 12px 14px,
+    currentColor 14px 15px,
+    transparent 15px 19px
+  );
+
+  /* Circuit trace: a run line with one pad per step. */
+  --trace-w: 1.5px;
+  --trace-pad: 9px;
+}

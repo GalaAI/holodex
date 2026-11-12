@@ -352,7 +352,7 @@ internal sealed class DataLabel : Control
         Height = 18;
         Dock = DockStyle.Top;
         ForeColor = PhosphorTheme.Dim;
-        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint, true);
+        SetStyle(ControlStyles.SupportsTransparentBackColor | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Color.Transparent;
     }
 
@@ -368,6 +368,9 @@ internal sealed class DataLabel : Control
         Invalidate();
     }
 
+    /// <summary>A hint that only reads whole (the HUD's ENTER ASKS): left out rather than cut to an ellipsis when it does not fit.</summary>
+    public bool WholeOrNothing { get; set; }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         using var font = PhosphorFonts.Mono(PhosphorTheme.TextData);
@@ -375,6 +378,7 @@ internal sealed class DataLabel : Control
         e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         var rect = new RectangleF(0, 0, Width, Height);
         using var fmt = new StringFormat(StringFormat.GenericTypographic) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap };
+        if (WholeOrNothing && e.Graphics.MeasureString(Text, font, PointF.Empty, fmt).Width > Width) return;
         e.Graphics.DrawString(Text, font, brush, rect, fmt);
     }
 }

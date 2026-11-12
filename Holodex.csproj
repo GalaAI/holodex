@@ -60,6 +60,10 @@
     <None Remove="dist\**" />
   </ItemGroup>
 
+  <!-- The cursor designer page Holodex serves on 8842 until it is ported to native panels (assets/cursor-studio/SOURCE.md). -->
+  <ItemGroup>
+    <None Include="assets\cursor-studio\**\*" Exclude="assets\cursor-studio\SOURCE.md" Link="cursor-studio\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <!-- Phosphor faces from the design source (@ark/tokens), bundled under OFL in assets/fonts. Loaded privately by PhosphorFonts. -->
   <ItemGroup>
     <None Include="assets\fonts\JetBrainsMono-Regular.ttf;assets\fonts\ArchivoBlack-Regular.ttf;assets\fonts\JetBrainsMono-OFL.txt;assets\fonts\OFL-ArchivoBlack.txt" Link="fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

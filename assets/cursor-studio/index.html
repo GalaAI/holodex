@@ -1,0 +1,1782 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cursor Mod</title>
+    <!-- The Phosphor Shell: @ark/tokens, served by this app at /tokens. -->
+    <link rel="stylesheet" href="/tokens/src/tokens.css" />
+    <style>
+      /* Local names for the page, each one a Phosphor token. */
+      :root {
+        --bg: var(--color-ground);
+        --panel: var(--color-surface);
+        --inset: var(--color-surface-2);
+        --line: var(--color-line);
+        --line-hot: var(--color-line-2);
+        --ink: var(--color-bone);
+        --dim: var(--color-dim);
+        --ghost: var(--color-ghost);
+        --accent: var(--color-patina);
+        --create: var(--color-coral);
+        --warn: var(--color-ember);
+        --bad: var(--color-rust);
+        --ok: var(--color-moss);
+        --mono: var(--font-mono);
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-ui);
+        font-size: var(--text-size-body);
+        line-height: 1.5;
+      }
+      :focus-visible {
+        outline: var(--focus-ring) solid var(--accent);
+        outline-offset: var(--focus-offset);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--s3);
+        padding: var(--s3) var(--s5);
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      h1 {
+        font-family: var(--font-display);
+        font-size: var(--text-size-section);
+        font-weight: 400;
+        margin: 0;
+        letter-spacing: var(--eyebrow-tracking);
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      nav {
+        display: flex;
+        gap: 4px;
+        margin-left: 8px;
+      }
+      nav button {
+        background: none;
+        border: 1px solid transparent;
+        color: var(--dim);
+        padding: var(--u) var(--s3);
+        border-radius: var(--radius-badge);
+        cursor: pointer;
+        font: inherit;
+        font-family: var(--font-mono);
+        font-size: var(--text-size-btn);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      nav button:hover {
+        color: var(--ink);
+      }
+      nav button[aria-selected="true"] {
+        color: var(--ink);
+        border-color: var(--accent);
+        background: var(--inset);
+      }
+      .spacer {
+        flex: 1;
+      }
+      button.act,
+      label.act {
+        background: var(--inset);
+        border: var(--border-hair) solid var(--line-hot);
+        color: var(--ink);
+        padding: var(--s2) var(--s4);
+        border-radius: var(--radius-btn);
+        cursor: pointer;
+        font: inherit;
+        font-family: var(--font-mono);
+        font-size: var(--text-size-btn);
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        transition: border-color var(--dur-step) var(--ease-analog);
+      }
+      button.act:hover {
+        border-color: var(--accent);
+      }
+      button.act.primary {
+        background: var(--create);
+        border-color: var(--create);
+        color: var(--color-accent-ink);
+      }
+      button.act.primary:hover {
+        border-color: var(--ink);
+      }
+      button.act:disabled {
+        opacity: 0.5;
+        cursor: progress;
+      }
+      button.act.danger:hover {
+        border-color: var(--bad);
+      }
+      #status {
+        font-family: var(--mono);
+        font-size: var(--text-size-data);
+        color: var(--dim);
+        flex: 1 1 200px;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #status.bad {
+        color: var(--bad);
+      }
+      #status.good {
+        color: var(--accent);
+      }
+
+      main {
+        padding: var(--s5);
+        display: none;
+      }
+      main[data-active="true"] {
+        display: block;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: minmax(380px, 460px) minmax(0, 1fr);
+        gap: var(--s5);
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .cols {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: var(--border-hair) solid var(--line);
+        border-radius: var(--radius-widget);
+        padding: var(--pad-surface);
+        box-shadow: var(--highlight-top);
+        min-width: 0;
+      }
+      .panel + .panel {
+        margin-top: var(--s4);
+      }
+      .panel h2 {
+        margin: 0 0 var(--s3);
+        font-family: var(--font-mono);
+        font-size: var(--eyebrow-size);
+        font-weight: 500;
+        letter-spacing: var(--eyebrow-tracking);
+        text-transform: uppercase;
+        color: var(--ghost);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 9px;
+      }
+      .row label {
+        flex: 0 0 110px;
+        color: var(--dim);
+        font-size: 12px;
+      }
+      input[type="range"] {
+        flex: 1;
+        min-width: 0;
+        accent-color: var(--accent);
+      }
+      input[type="color"] {
+        width: 42px;
+        height: 26px;
+        padding: 0;
+        border: var(--border-hair) solid var(--line-hot);
+        background: none;
+        border-radius: var(--radius-inset);
+      }
+      input[type="number"],
+      select,
+      input[type="text"] {
+        background: var(--inset);
+        border: var(--border-hair) solid var(--line-hot);
+        color: var(--ink);
+        padding: var(--u) var(--s2);
+        border-radius: var(--radius-inset);
+        font: inherit;
+        font-size: var(--text-size-body);
+        min-width: 0;
+      }
+      select {
+        max-width: 220px;
+      }
+      input[type="text"]:focus,
+      input[type="number"]:focus,
+      select:focus {
+        border-color: var(--accent);
+        outline: none;
+      }
+      .val {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--dim);
+        min-width: 46px;
+        text-align: right;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+      #editor {
+        border: var(--border-hair) solid var(--line);
+        border-radius: var(--radius-inset);
+        background: var(--bg);
+        cursor: crosshair;
+        max-width: 100%;
+      }
+      .shapetabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .shapetabs button {
+        flex: 1 0 auto;
+        background: var(--inset);
+        border: var(--border-hair) solid var(--line);
+        color: var(--dim);
+        padding: var(--u) var(--s2);
+        border-radius: var(--radius-badge);
+        cursor: pointer;
+        font: inherit;
+        font-family: var(--font-mono);
+        font-size: var(--text-size-data);
+      }
+      .shapetabs button[aria-selected="true"] {
+        color: var(--ink);
+        border-color: var(--accent);
+      }
+      .hint {
+        color: var(--dim);
+        font-size: 12px;
+        margin: 10px 0 0;
+      }
+      .agent-reply {
+        margin: 12px 0 0;
+        padding: 9px 11px;
+        border-left: 2px solid var(--accent);
+        background: var(--inset);
+        color: var(--ink);
+        font-size: 12px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+      }
+      .band {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: var(--s3);
+        border-radius: var(--radius-tile);
+        margin-bottom: var(--s2);
+      }
+      .band .name {
+        font-family: var(--mono);
+        font-size: 11px;
+        opacity: 0.65;
+        width: 80px;
+      }
+      .strip {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th {
+        text-align: left;
+        font-family: var(--font-mono);
+        font-weight: 500;
+        font-size: var(--text-size-caption);
+        text-transform: uppercase;
+        letter-spacing: var(--eyebrow-tracking);
+        color: var(--ghost);
+        padding: 6px 8px;
+      }
+      td {
+        padding: 7px 8px;
+        border-top: var(--border-hair) solid var(--line);
+        vertical-align: middle;
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--accent);
+      }
+      .empty {
+        color: var(--dim);
+        padding: 26px;
+        text-align: center;
+        font-size: 13px;
+      }
+      .note {
+        border-left: 2px solid var(--warn);
+        padding: 8px 12px;
+        color: var(--dim);
+        font-size: 12.5px;
+        background: var(--inset);
+        border-radius: 0 var(--radius-inset) var(--radius-inset) 0;
+      }
+      .led {
+        display: inline-block;
+        width: var(--dot-size);
+        height: var(--dot-size);
+        border-radius: 50%;
+        background: var(--ghost);
+        margin-right: var(--s2);
+        vertical-align: middle;
+      }
+      .led.ok {
+        background: var(--ok);
+      }
+      .led.bad {
+        background: var(--bad);
+      }
+      .led.live {
+        background: var(--accent);
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: var(--text-size-data);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Cursor Mod</h1>
+      <nav>
+        <button data-tab="cursor" aria-selected="true">Cursor</button>
+        <button data-tab="actions" aria-selected="false">Actions</button>
+        <button data-tab="voice" aria-selected="false">Voice</button>
+      </nav>
+      <div class="spacer"></div>
+      <select id="profileList" title="Saved profiles"></select>
+      <button class="act" id="profileSave">Save as…</button>
+      <button
+        class="act"
+        id="profileDelete"
+        title="Delete the selected profile"
+      >
+        ×
+      </button>
+      <span id="status"></span>
+      <button class="act primary" id="install">Build &amp; install</button>
+      <button class="act danger" id="restore">Restore Windows</button>
+    </header>
+
+    <main id="tab-cursor" data-active="true">
+      <div class="cols">
+        <div>
+          <div class="panel">
+            <h2>Generate</h2>
+            <div class="row">
+              <input
+                type="text"
+                id="genPrompt"
+                placeholder="a thin chevron pointer with a hollow diamond for links"
+                style="flex: 1"
+              />
+            </div>
+            <div class="row">
+              <button class="act" id="genGo">Ask the agent</button>
+              <label for="genImage" class="act" style="cursor: pointer"
+                >Trace an image…</label
+              >
+              <input type="file" id="genImage" accept="image/*" hidden />
+            </div>
+            <p id="genReply" class="agent-reply" aria-live="polite" hidden></p>
+            <p class="hint">
+              The agent sees the selected cursor and returns editable shape
+              parameters rather than a replacement picture. Image tracing stays
+              exact; the agent interprets what is already on the canvas and
+              changes geometry only when you ask.
+            </p>
+          </div>
+
+          <div class="panel">
+            <h2>Canvas</h2>
+            <div class="row">
+              <label>Cursor size</label>
+              <select id="size">
+                <option value="32">32 px</option>
+                <option value="48">48 px</option>
+                <option value="64">64 px</option>
+              </select>
+              <span class="val" id="sizeV"></span>
+            </div>
+            <div class="row">
+              <label>Hotspot X</label
+              ><input type="range" id="hotX" min="0" max="64" step="1" /><span
+                class="val"
+                id="hotXV"
+              ></span>
+            </div>
+            <div class="row">
+              <label>Hotspot Y</label
+              ><input type="range" id="hotY" min="0" max="64" step="1" /><span
+                class="val"
+                id="hotYV"
+              ></span>
+            </div>
+            <p class="hint">
+              The dashed box in the editor is the cursor boundary. Anything
+              outside it is lost when the file is written, so if a shape needs
+              more room, raise the size rather than pushing past the edge.
+            </p>
+          </div>
+
+          <div class="panel">
+            <h2>Shape</h2>
+            <div class="shapetabs"></div>
+            <canvas id="editor" width="416" height="416"></canvas>
+            <p class="hint" id="editorHint"></p>
+            <div id="shapeControls"></div>
+          </div>
+
+          <div class="panel">
+            <h2>Look</h2>
+            <div class="row">
+              <label>Ink</label><input type="color" id="ink" /><span
+                class="val"
+                id="inkV"
+              ></span>
+            </div>
+            <div class="row">
+              <label>Rim</label><input type="color" id="rim" /><span
+                class="val"
+                id="rimV"
+              ></span>
+            </div>
+            <div class="row">
+              <label>Ink width</label
+              ><input
+                type="range"
+                id="inkW"
+                min="0.4"
+                max="4"
+                step="0.1"
+              /><span class="val" id="inkWV"></span>
+            </div>
+            <div class="row">
+              <label>Rim width</label
+              ><input type="range" id="rimW" min="0" max="5" step="0.1" /><span
+                class="val"
+                id="rimWV"
+              ></span>
+            </div>
+            <p class="hint">
+              The rim is what keeps a dark cursor visible on a dark desktop.
+              Drop it to zero and the shape will disappear against your own
+              themes.
+            </p>
+            <div class="row" style="margin-top: 12px">
+              <label>Shadow</label>
+              <input
+                type="checkbox"
+                id="shOn"
+                style="accent-color: var(--accent)"
+              />
+              <span class="val" id="shOnV"></span>
+            </div>
+            <div class="row">
+              <label>Blur</label
+              ><input
+                type="range"
+                id="shBlur"
+                min="0"
+                max="6"
+                step="0.1"
+              /><span class="val" id="shBlurV"></span>
+            </div>
+            <div class="row">
+              <label>Offset Y</label
+              ><input type="range" id="shDy" min="-3" max="4" step="0.1" /><span
+                class="val"
+                id="shDyV"
+              ></span>
+            </div>
+            <div class="row">
+              <label>Strength</label
+              ><input
+                type="range"
+                id="shAlpha"
+                min="0"
+                max="1"
+                step="0.05"
+              /><span class="val" id="shAlphaV"></span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Morph</h2>
+            <div class="row">
+              <label>Frames</label
+              ><input type="range" id="frames" min="2" max="20" step="1" /><span
+                class="val"
+                id="framesV"
+              ></span>
+            </div>
+            <div class="row">
+              <label>Frame time</label
+              ><input
+                type="range"
+                id="frameMs"
+                min="16"
+                max="120"
+                step="4"
+              /><span class="val" id="frameMsV"></span>
+            </div>
+            <div class="row">
+              <label>Easing</label>
+              <select id="easing">
+                <option value="linear">linear</option>
+                <option value="quad">quad</option>
+                <option value="cubic">cubic</option>
+                <option value="expo">expo</option>
+                <option value="back">back (overshoots)</option>
+              </select>
+            </div>
+            <p class="hint">
+              Windows restarts an animated cursor from frame zero whenever that
+              cursor becomes current, so each morph plays once on arrival and
+              then holds on its last frame.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <h2>Transitions</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Windows role</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>File</th>
+                </tr>
+              </thead>
+              <tbody id="transitions"></tbody>
+            </table>
+            <p class="hint">
+              Nothing tells a cursor what the previous cursor was, so each one
+              morphs from a shape you pick. Ring into arrow makes leaving a link
+              reciprocal with entering it.
+            </p>
+          </div>
+
+          <div class="panel">
+            <h2>Preview</h2>
+            <div id="previews"></div>
+            <p class="hint">
+              Live, looping, at eight times size and at actual size on the
+              right. These are the exact pixels that get written to the cursor
+              file.
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <main id="tab-actions">
+      <div class="cols">
+        <div>
+          <div class="panel">
+            <h2>Input spine</h2>
+            <p id="spineState" class="mono"><span class="led"></span>checking</p>
+            <p class="hint">
+              Every button, gesture, Stream Deck key and Spell lands here first.
+              Anything that touches real input is sent on to PC Mod on port
+              8830; nothing is typed or clicked from this page.
+            </p>
+          </div>
+          <div class="panel">
+            <h2>Actions</h2>
+            <div id="actionsBody"><div class="empty">Loading actions</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Live inputs</h2>
+          <p class="hint" style="margin-top: 0">
+            Press a mouse button or cast a Spell and it shows here, with the
+            action it ran. The last 50, newest first; nothing is saved.
+          </p>
+          <div id="recentBody" class="table-wrap"><div class="empty">Nothing yet</div></div>
+        </div>
+      </div>
+    </main>
+
+    <main id="tab-voice">
+      <div class="panel">
+        <h2>Voice</h2>
+        <p class="note">
+          Voice commands are not built yet. When they are, a spoken phrase will
+          run through the same bindings as a mouse button, so anything you bind
+          here will also answer to your voice.
+        </p>
+        <p class="hint">
+          Ready today: the spine already accepts <code>voice</code> triggers, and
+          the model gateway already transcribes speech. Still to build: an
+          always-on wake word on this PC.
+        </p>
+      </div>
+    </main>
+
+    <script type="module">
+      const SS = 4; // supersample factor for drawing
+      const HOLD_JIFFIES = 60000;
+      // The editor shows this much beyond the cursor box on every side. Anything you
+      // draw out there is genuinely lost when the file is written, because a cursor
+      // is exactly `size` pixels square, so the boundary is drawn rather than hidden.
+      // Not seeing where the edge was is what made edits look like they got cut off.
+      const PAD = 6;
+
+      let SIZE = 32; // cursor pixel size, from state
+      let Z = 11; // editor zoom, derived from size
+
+      const DEFAULTS = {
+        size: 32,
+        hot: { x: 16, y: 16 },
+        ink: "#080a0c",
+        rim: "#f4f0e7",
+        inkW: 1.6,
+        rimW: 2.6,
+        frames: 9,
+        frameMs: 33,
+        easing: "cubic",
+        shadow: { on: true, blur: 1.6, dx: 0, dy: 0.8, alpha: 0.55 },
+        shapes: {
+          // Arrow points are relative to the hotspot, so the first point is the tip.
+          arrow: {
+            kind: "poly",
+            pts: [
+              [0, 0],
+              [0, 15.5],
+              [4, 11.8],
+              [6.6, 18.2],
+              [9.4, 17],
+              [6.9, 10.9],
+              [11.6, 10.6],
+            ],
+            scale: 0.78,
+          },
+          ring: { kind: "ring", r: 8.5, w: 2.6 },
+          beam: { kind: "beam", h: 19, gap: 1.6, w: 2.2 },
+          cross: { kind: "cross", len: 10, gap: 2.6, w: 1.8 },
+          // A double headed arrow at an angle. One generator covers all four resize
+          // cursors, because they differ only by rotation.
+          resizeNS: { kind: "dbl", angle: 90, len: 9, head: 4, w: 1.8 },
+          resizeWE: { kind: "dbl", angle: 0, len: 9, head: 4, w: 1.8 },
+          resizeNWSE: { kind: "dbl", angle: 45, len: 9, head: 4, w: 1.8 },
+          resizeNESW: { kind: "dbl", angle: -45, len: 9, head: 4, w: 1.8 },
+          move: { kind: "quad", len: 9, head: 4, w: 1.8 },
+          up: { kind: "tri", size: 9, w: 1.8 },
+          no: { kind: "no", r: 8, w: 2.6 },
+          busy: { kind: "spinner", r: 8, w: 2.8, sweep: 260 },
+        },
+        // Every Windows cursor role. `spin` rotates and loops rather than morphing
+        // and holding, because a busy cursor that froze on its last frame would be
+        // indistinguishable from a hung machine.
+        transitions: [
+          { role: "Arrow", name: "ark-arrow", from: "ring", to: "arrow" },
+          { role: "Hand", name: "ark-link", from: "arrow", to: "ring" },
+          { role: "IBeam", name: "ark-text", from: "arrow", to: "beam" },
+          { role: "Crosshair", name: "ark-cross", from: "arrow", to: "cross" },
+          {
+            role: "SizeNS",
+            name: "ark-size-ns",
+            from: "arrow",
+            to: "resizeNS",
+          },
+          {
+            role: "SizeWE",
+            name: "ark-size-we",
+            from: "arrow",
+            to: "resizeWE",
+          },
+          {
+            role: "SizeNWSE",
+            name: "ark-size-nwse",
+            from: "arrow",
+            to: "resizeNWSE",
+          },
+          {
+            role: "SizeNESW",
+            name: "ark-size-nesw",
+            from: "arrow",
+            to: "resizeNESW",
+          },
+          { role: "SizeAll", name: "ark-move", from: "arrow", to: "move" },
+          { role: "UpArrow", name: "ark-up", from: "arrow", to: "up" },
+          { role: "No", name: "ark-no", from: "arrow", to: "no" },
+          { role: "Help", name: "ark-help", from: "arrow", to: "arrow" },
+          {
+            role: "Wait",
+            name: "ark-wait",
+            from: "busy",
+            to: "busy",
+            mode: "spin",
+          },
+          {
+            role: "AppStarting",
+            name: "ark-working",
+            from: "busy",
+            to: "busy",
+            mode: "spin",
+          },
+        ],
+      };
+
+      const state = load();
+      let shape = "arrow";
+      let drag = null;
+
+      function load() {
+        try {
+          const raw = localStorage.getItem("ark.cursor.design");
+          if (raw) return { ...structuredClone(DEFAULTS), ...JSON.parse(raw) };
+        } catch {}
+        return structuredClone(DEFAULTS);
+      }
+      function save() {
+        try {
+          localStorage.setItem("ark.cursor.design", JSON.stringify(state));
+        } catch {}
+      }
+
+      // ---------------------------------------------------------------- drawing
+
+      // Decoded images, keyed by their data URL. Canvas cannot draw a URL directly,
+      // and re-decoding on every frame of every preview would be visibly slow.
+      const bitmapCache = new Map();
+      function loadBitmap(src) {
+        if (bitmapCache.has(src)) return;
+        const img = new Image();
+        img.onload = () => commit(); // redraw once the pixels actually exist
+        img.src = src;
+        bitmapCache.set(src, img);
+      }
+
+      /** Draws one shape into its own full-size layer, at `rotate` degrees. */
+      function layerFor(which, rotate = 0) {
+        const c = document.createElement("canvas");
+        c.width = c.height = SIZE * SS;
+        const g = c.getContext("2d");
+        g.lineJoin = "round";
+        g.lineCap = "round";
+        const hot = state.hot;
+        const s = state.shapes[which];
+        const P = (v) => v * SS;
+        const cx = P(hot.x),
+          cy = P(hot.y);
+
+        // Rotation is applied about the hotspot, so a shape spins around the pointer
+        // rather than drifting away from it.
+        g.translate(cx, cy);
+        g.rotate((rotate * Math.PI) / 180);
+        g.translate(-cx, -cy);
+
+        const path = new Path2D();
+
+        // A single arrow head at a point, aimed outward along `deg`. Shared by the
+        // resize and move cursors so their heads cannot drift apart.
+        const head = (deg, len, h) => {
+          const r = (deg * Math.PI) / 180;
+          const tx = cx + Math.cos(r) * P(len),
+            ty = cy + Math.sin(r) * P(len);
+          path.moveTo(cx + Math.cos(r) * P(1.5), cy + Math.sin(r) * P(1.5));
+          path.lineTo(tx, ty);
+          for (const off of [140, -140]) {
+            const a = ((deg + off) * Math.PI) / 180;
+            path.moveTo(tx, ty);
+            path.lineTo(tx + Math.cos(a) * P(h), ty + Math.sin(a) * P(h));
+          }
+        };
+
+        switch (s.kind) {
+          case "poly":
+            s.pts.forEach(([x, y], i) => {
+              const px = P(hot.x + x * s.scale),
+                py = P(hot.y + y * s.scale);
+              i === 0 ? path.moveTo(px, py) : path.lineTo(px, py);
+            });
+            path.closePath();
+            stroke(g, path, state.inkW, true);
+            break;
+
+          case "ring":
+            path.arc(cx, cy, P(s.r), 0, Math.PI * 2);
+            stroke(g, path, s.w, false);
+            break;
+
+          case "beam":
+            path.rect(
+              P(hot.x - s.gap - s.w),
+              P(hot.y - s.h / 2),
+              P(s.w),
+              P(s.h),
+            );
+            path.rect(P(hot.x + s.gap), P(hot.y - s.h / 2), P(s.w), P(s.h));
+            stroke(g, path, state.inkW, true);
+            break;
+
+          case "cross":
+            // A gap at the centre, so the thing you are aiming at stays visible.
+            for (const [dx, dy] of [
+              [1, 0],
+              [-1, 0],
+              [0, 1],
+              [0, -1],
+            ]) {
+              path.moveTo(cx + dx * P(s.gap), cy + dy * P(s.gap));
+              path.lineTo(cx + dx * P(s.len), cy + dy * P(s.len));
+            }
+            stroke(g, path, s.w, false);
+            break;
+
+          case "dbl":
+            head(s.angle, s.len, s.head);
+            head(s.angle + 180, s.len, s.head);
+            stroke(g, path, s.w, false);
+            break;
+
+          case "quad":
+            for (const deg of [0, 90, 180, 270]) head(deg, s.len, s.head);
+            stroke(g, path, s.w, false);
+            break;
+
+          case "tri":
+            path.moveTo(cx, cy - P(s.size));
+            path.lineTo(cx + P(s.size * 0.62), cy + P(s.size * 0.55));
+            path.lineTo(cx - P(s.size * 0.62), cy + P(s.size * 0.55));
+            path.closePath();
+            stroke(g, path, s.w, true);
+            break;
+
+          case "no": {
+            path.arc(cx, cy, P(s.r), 0, Math.PI * 2);
+            const d = P(s.r) * Math.SQRT1_2;
+            path.moveTo(cx - d, cy + d);
+            path.lineTo(cx + d, cy - d);
+            stroke(g, path, s.w, false);
+            break;
+          }
+
+          case "bitmap": {
+            // A traced image. Images are resampled here rather than described by a
+            // model, because turning a picture into a cursor is a scaling problem
+            // with an exact answer. Drawn centred on the hotspot and left alone: no
+            // rim, because an imported image already carries its own edges.
+            const img = bitmapCache.get(s.src);
+            if (img?.complete && img.naturalWidth) {
+              const w = P(SIZE) * (s.zoom ?? 1),
+                h = w * (img.naturalHeight / img.naturalWidth);
+              g.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+            }
+            break;
+          }
+
+          case "spinner":
+            // An open arc. It reads as motion when rotated, which a closed ring
+            // cannot: a full circle looks identical at every angle.
+            path.arc(cx, cy, P(s.r), 0, (s.sweep * Math.PI) / 180);
+            stroke(g, path, s.w, false);
+            break;
+        }
+        return c;
+      }
+
+      // Rim first and wider, then ink over it. Filling as well as stroking is what
+      // gives the solid shapes their rounded points.
+      //
+      // The shadow goes on the rim pass only. Applying it to both passes stacks two
+      // shadows and the glyph ends up looking smudged rather than lifted.
+      function stroke(g, path, w, fill) {
+        const sh = state.shadow;
+        if (sh?.on) {
+          g.shadowColor = `rgba(0,0,0,${sh.alpha})`;
+          g.shadowBlur = sh.blur * SS;
+          g.shadowOffsetX = sh.dx * SS;
+          g.shadowOffsetY = sh.dy * SS;
+        }
+        if (state.rimW > 0) {
+          g.strokeStyle = state.rim;
+          g.lineWidth = (w + state.rimW) * SS;
+          g.stroke(path);
+          if (fill) {
+            g.fillStyle = state.rim;
+            g.fill(path);
+          }
+        }
+        g.shadowColor = "transparent";
+        g.shadowBlur = 0;
+        g.shadowOffsetX = 0;
+        g.shadowOffsetY = 0;
+        g.strokeStyle = state.ink;
+        g.lineWidth = w * SS;
+        g.stroke(path);
+        if (fill) {
+          g.fillStyle = state.ink;
+          g.fill(path);
+        }
+      }
+
+      const EASINGS = {
+        linear: (t) => t,
+        quad: (t) => 1 - (1 - t) ** 2,
+        cubic: (t) => 1 - (1 - t) ** 3,
+        expo: (t) => (t === 1 ? 1 : 1 - 2 ** (-10 * t)),
+        // Overshoots past the target and settles back, which gives the ring a little
+        // pop as it arrives.
+        back: (t) => {
+          const c = 2.70158;
+          return 1 + c * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2;
+        },
+      };
+
+      /** Composite two layers at an alpha and a scale about the hotspot. */
+      function frameCanvas(fromLayer, toLayer, t) {
+        const c = document.createElement("canvas");
+        c.width = c.height = SIZE;
+        const g = c.getContext("2d");
+        g.imageSmoothingEnabled = true;
+        g.imageSmoothingQuality = "high";
+        const ease = (EASINGS[state.easing] ?? EASINGS.cubic)(t);
+        // The outgoing shape clears about twice as fast as the incoming one arrives.
+        // On the same curve the old shape sits ghosted inside the new one and the
+        // whole thing reads as muddy rather than as a morph.
+        const pairs = [
+          [fromLayer, Math.max(0, 1 - t * 2.4), 1 - 0.12 * ease],
+          [toLayer, ease, 0.55 + 0.45 * ease],
+        ];
+        for (const [layer, alpha, s] of pairs) {
+          if (!layer || alpha <= 0.001) continue;
+          g.globalAlpha = alpha;
+          const x = state.hot.x - state.hot.x * s,
+            y = state.hot.y - state.hot.y * s;
+          g.drawImage(layer, x, y, SIZE * s, SIZE * s);
+        }
+        g.globalAlpha = 1;
+        return c;
+      }
+
+      function framesFor(tr) {
+        const n = state.frames;
+        if (tr.mode === "spin") {
+          // A full turn split across the frames, so the loop closes seamlessly. The
+          // last frame must not repeat the first, hence dividing by n rather than
+          // n-1: at n-1 the animation stutters once per revolution.
+          return Array.from({ length: n }, (_, i) => {
+            const c = document.createElement("canvas");
+            c.width = c.height = SIZE;
+            const g = c.getContext("2d");
+            g.imageSmoothingEnabled = true;
+            g.imageSmoothingQuality = "high";
+            g.drawImage(layerFor(tr.to, (i / n) * 360), 0, 0, SIZE, SIZE);
+            return c;
+          });
+        }
+        const from = layerFor(tr.from),
+          to = layerFor(tr.to);
+        return Array.from({ length: n }, (_, i) =>
+          frameCanvas(from, to, n === 1 ? 1 : i / (n - 1)),
+        );
+      }
+
+      // ---------------------------------------------------------------- editor
+
+      const editor = document.getElementById("editor");
+
+      // Canvas coordinates, with the padded margin folded in once here so nothing
+      // else has to remember it. This is what was cutting edits off: the view was
+      // exactly the cursor box, so anything at or past the edge simply vanished with
+      // no indication that a boundary existed.
+      const toPx = (v) => (v + PAD) * Z;
+      const toUnits = (px) => px / Z - PAD;
+
+      // The editor's chrome reads the Phosphor tokens, so the canvas matches the page.
+      // The cursor's own colours and the preview backdrops stay literal: they are
+      // what gets written to the file and what a real desktop looks like.
+      const rootStyle = getComputedStyle(document.documentElement);
+      const tok = (name) => rootStyle.getPropertyValue(name).trim();
+
+      function drawEditor() {
+        const span = SIZE + PAD * 2;
+        editor.width = editor.height = span * Z;
+
+        const g = editor.getContext("2d");
+        g.clearRect(0, 0, editor.width, editor.height);
+
+        // The margin is tinted so it reads as out of bounds at a glance.
+        g.fillStyle = tok("--color-ground");
+        g.fillRect(0, 0, editor.width, editor.height);
+        g.fillStyle = tok("--color-surface-2");
+        g.fillRect(toPx(0), toPx(0), SIZE * Z, SIZE * Z);
+
+        g.strokeStyle = tok("--color-line");
+        g.lineWidth = 1;
+        for (let i = 0; i <= SIZE; i += 4) {
+          g.beginPath();
+          g.moveTo(toPx(i), toPx(0));
+          g.lineTo(toPx(i), toPx(SIZE));
+          g.stroke();
+          g.beginPath();
+          g.moveTo(toPx(0), toPx(i));
+          g.lineTo(toPx(SIZE), toPx(i));
+          g.stroke();
+        }
+
+        // The cursor boundary. Anything outside this is lost when the file is
+        // written, so it is drawn rather than left to be discovered.
+        g.strokeStyle = tok("--color-ember");
+        g.lineWidth = 1.5;
+        g.setLineDash([4, 3]);
+        g.strokeRect(toPx(0), toPx(0), SIZE * Z, SIZE * Z);
+        g.setLineDash([]);
+
+        // hotspot crosshair: this is where the actual pointer is
+        g.strokeStyle = tok("--color-patina");
+        g.globalAlpha = 0.5;
+        g.beginPath();
+        g.moveTo(toPx(state.hot.x), 0);
+        g.lineTo(toPx(state.hot.x), editor.height);
+        g.moveTo(0, toPx(state.hot.y));
+        g.lineTo(editor.width, toPx(state.hot.y));
+        g.stroke();
+        g.globalAlpha = 1;
+
+        g.imageSmoothingEnabled = false;
+        g.drawImage(layerFor(shape), toPx(0), toPx(0), SIZE * Z, SIZE * Z);
+
+        const s = state.shapes[shape];
+        if (s.kind === "poly") {
+          s.pts.forEach(([x, y], i) => {
+            const px = toPx(state.hot.x + x * s.scale),
+              py = toPx(state.hot.y + y * s.scale);
+            const outside =
+              px < toPx(0) ||
+              py < toPx(0) ||
+              px > toPx(SIZE) ||
+              py > toPx(SIZE);
+            g.beginPath();
+            g.arc(px, py, 5, 0, Math.PI * 2);
+            g.fillStyle = i === 0 ? tok("--color-patina") : tok("--color-surface");
+            g.strokeStyle = outside ? tok("--color-rust") : tok("--color-patina");
+            g.lineWidth = 1.5;
+            g.fill();
+            g.stroke();
+          });
+        }
+      }
+
+      editor.addEventListener("pointerdown", (e) => {
+        const s = state.shapes[shape];
+        if (s.kind !== "poly") return;
+        const r = editor.getBoundingClientRect();
+        const mx = toUnits(e.clientX - r.left),
+          my = toUnits(e.clientY - r.top);
+        let best = -1,
+          bestD = 1.4;
+        s.pts.forEach(([x, y], i) => {
+          const d = Math.hypot(
+            state.hot.x + x * s.scale - mx,
+            state.hot.y + y * s.scale - my,
+          );
+          if (d < bestD) {
+            bestD = d;
+            best = i;
+          }
+        });
+        if (best < 0) return;
+        if (e.shiftKey && s.pts.length > 3) {
+          // shift-click removes a point
+          s.pts.splice(best, 1);
+          commit();
+          return;
+        }
+        drag = best;
+        editor.setPointerCapture(e.pointerId);
+      });
+      editor.addEventListener("pointermove", (e) => {
+        if (drag === null) return;
+        const r = editor.getBoundingClientRect();
+        const s = state.shapes[shape];
+        s.pts[drag] = [
+          Math.round(
+            ((toUnits(e.clientX - r.left) - state.hot.x) / s.scale) * 10,
+          ) / 10,
+          Math.round(
+            ((toUnits(e.clientY - r.top) - state.hot.y) / s.scale) * 10,
+          ) / 10,
+        ];
+        commit();
+      });
+      editor.addEventListener("pointerup", () => {
+        drag = null;
+      });
+
+      // ---------------------------------------------------------------- controls
+
+      function control(label, key, obj, min, max, step) {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `<label>${label}</label>`;
+        const input = document.createElement("input");
+        Object.assign(input, {
+          type: "range",
+          min,
+          max,
+          step,
+          value: obj[key],
+        });
+        const val = document.createElement("span");
+        val.className = "val";
+        val.textContent = obj[key];
+        input.oninput = () => {
+          obj[key] = +input.value;
+          val.textContent = input.value;
+          commit();
+        };
+        row.append(input, val);
+        return row;
+      }
+
+      // Ranges per field name rather than per shape, so a new shape that reuses a
+      // field gets sensible controls without another branch here.
+      const RANGES = {
+        scale: [0.3, 1.6, 0.01],
+        r: [3, 15, 0.1],
+        w: [0.4, 6, 0.1],
+        h: [6, 30, 0.5],
+        gap: [0, 8, 0.1],
+        len: [3, 15, 0.1],
+        head: [1.5, 8, 0.1],
+        size: [3, 15, 0.1],
+        angle: [-90, 90, 5],
+        sweep: [60, 350, 5],
+        zoom: [0.2, 2, 0.05],
+      };
+      const LABELS = {
+        scale: "Scale",
+        r: "Radius",
+        w: "Thickness",
+        h: "Height",
+        gap: "Gap",
+        len: "Length",
+        head: "Head size",
+        size: "Size",
+        angle: "Angle",
+        sweep: "Sweep",
+        zoom: "Zoom",
+      };
+      const HINTS = {
+        poly: "Drag a handle to move it. Shift-click a handle to delete it. The teal handle is the tip and sits on the pointer.",
+        ring: "Centred on the pointer.",
+        beam: "Two bars rather than one, so the beam keeps the split-halves look.",
+        cross:
+          "The centre gap is deliberate: it keeps whatever you are aiming at visible.",
+        dbl: "One generator draws all four resize cursors. They differ only by angle.",
+        quad: "Four heads from one centre.",
+        tri: "Centred on the pointer.",
+        no: "A ring with a slash. Windows shows this wherever a drop is refused.",
+        spinner:
+          "An open arc, because a closed ring looks identical at every angle and would not read as spinning.",
+      };
+
+      function renderShapeControls() {
+        const host = document.getElementById("shapeControls");
+        host.innerHTML = "";
+        const s = state.shapes[shape];
+        document.getElementById("editorHint").textContent = HINTS[s.kind] ?? "";
+        for (const key of Object.keys(s)) {
+          if (key === "kind" || key === "pts") continue;
+          const range = RANGES[key];
+          if (!range) continue;
+          host.append(
+            control(LABELS[key] ?? key, key, s, range[0], range[1], range[2]),
+          );
+        }
+      }
+
+      function renderShapeTabs() {
+        const host = document.querySelector(".shapetabs");
+        host.innerHTML = "";
+        for (const name of Object.keys(state.shapes)) {
+          const b = document.createElement("button");
+          b.dataset.shape = name;
+          b.textContent = name;
+          b.setAttribute("aria-selected", String(name === shape));
+          b.onclick = () => {
+            shape = name;
+            renderShapeTabs();
+            renderShapeControls();
+            drawEditor();
+          };
+          host.append(b);
+        }
+      }
+
+      function renderTransitions() {
+        const body = document.getElementById("transitions");
+        body.innerHTML = "";
+        for (const tr of state.transitions) {
+          const row = document.createElement("tr");
+          const opts = (sel) =>
+            ["arrow", "ring", "beam"]
+              .map(
+                (s) =>
+                  `<option value="${s}"${s === sel ? " selected" : ""}>${s}</option>`,
+              )
+              .join("");
+          row.innerHTML = `<td><code>${tr.role}</code></td>
+      <td><select data-k="from">${opts(tr.from)}</select></td>
+      <td><select data-k="to">${opts(tr.to)}</select></td>
+      <td><code>${tr.name}.${state.frames > 1 ? "ani" : "cur"}</code></td>`;
+          row.querySelectorAll("select").forEach((sel) => {
+            sel.onchange = () => {
+              tr[sel.dataset.k] = sel.value;
+              commit();
+            };
+          });
+          body.append(row);
+        }
+      }
+
+      const BANDS = [
+        ["dark", "#06090c"],
+        ["mid", "#7b7b7b"],
+        ["light", "#f0f0f0"],
+      ];
+      let previewFrames = [];
+
+      function renderPreviews() {
+        const host = document.getElementById("previews");
+        host.innerHTML = "";
+        previewFrames = state.transitions.map((tr) => ({
+          tr,
+          frames: framesFor(tr),
+        }));
+        for (const { tr } of previewFrames) {
+          for (const [name, bg] of BANDS) {
+            const band = document.createElement("div");
+            band.className = "band";
+            band.style.background = bg;
+            band.innerHTML = `<span class="name" style="color:${bg === "#f0f0f0" ? "#333" : "#ccc"}">${tr.role} ${name}</span>`;
+            const strip = document.createElement("div");
+            strip.className = "strip";
+            const big = document.createElement("canvas");
+            big.width = big.height = SIZE;
+            big.style.width = big.style.height = SIZE * 8 + "px";
+            const one = document.createElement("canvas");
+            one.width = one.height = SIZE;
+            strip.append(big, one);
+            band.append(strip);
+            host.append(band);
+            band.dataset.role = tr.role;
+          }
+        }
+      }
+
+      let tick = 0;
+      setInterval(() => {
+        tick++;
+        const n = state.frames;
+        // Hold on the last frame for a beat, the way the installed cursor does.
+        const i = Math.min(n - 1, tick % (n + 6));
+        document.querySelectorAll(".band").forEach((band) => {
+          const entry = previewFrames.find(
+            (p) => p.tr.role === band.dataset.role,
+          );
+          if (!entry) return;
+          band.querySelectorAll("canvas").forEach((c) => {
+            const g = c.getContext("2d");
+            g.clearRect(0, 0, SIZE, SIZE);
+            g.drawImage(entry.frames[i], 0, 0);
+          });
+        });
+      }, 60);
+
+      // Size drives the editor zoom rather than being independent of it, so a 64px
+      // cursor does not render an editor too large for the panel.
+      function syncSize() {
+        SIZE = state.size;
+        Z = Math.max(5, Math.round(400 / (SIZE + PAD * 2)));
+        state.hot.x = Math.min(Math.max(0, state.hot.x), SIZE);
+        state.hot.y = Math.min(Math.max(0, state.hot.y), SIZE);
+      }
+
+      function commit() {
+        syncSize();
+        save();
+        drawEditor();
+        renderShapeTabs();
+        renderTransitions();
+        renderPreviews();
+      }
+
+      // ---------------------------------------------------------------- build
+
+      function status(msg, kind = "") {
+        const el = document.getElementById("status");
+        el.textContent = msg;
+        el.className = kind;
+      }
+
+      async function post(url, body) {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body ?? {}),
+        });
+        return res.json();
+      }
+
+      function b64(canvas) {
+        const d = canvas.getContext("2d").getImageData(0, 0, SIZE, SIZE).data;
+        let s = "";
+        for (let i = 0; i < d.length; i++) s += String.fromCharCode(d[i]);
+        return btoa(s);
+      }
+
+      document.getElementById("install").onclick = async () => {
+        try {
+          status("building…");
+          const jiffies = Math.max(1, Math.round(state.frameMs / 16.67));
+          const cursors = state.transitions.map((tr) => {
+            const frames = framesFor(tr);
+            const rates = frames.map(() => jiffies);
+            // A morph plays once and stops on its final shape. A spinner must keep
+            // going: holding the last frame of a busy cursor would look exactly like
+            // a hung machine, which is the one thing it must never look like.
+            if (tr.mode !== "spin") rates[rates.length - 1] = HOLD_JIFFIES;
+            return {
+              role: tr.role,
+              name: tr.name,
+              size: SIZE,
+              hotX: Math.round(state.hot.x),
+              hotY: Math.round(state.hot.y),
+              frames: frames.map(b64),
+              rates,
+            };
+          });
+          const built = await post("/api/cursor/build", { cursors });
+          if (!built.ok) throw new Error(built.error);
+          status("installing…");
+          const done = await post("/api/cursor/install", {
+            written: built.written,
+          });
+          if (!done.ok) throw new Error(done.error);
+          status(`installed ${done.installed.join(", ")}`, "good");
+        } catch (err) {
+          status(String(err.message ?? err), "bad");
+        }
+      };
+
+      document.getElementById("restore").onclick = async () => {
+        try {
+          status("restoring…");
+          const r = await post("/api/cursor/restore");
+          status(
+            r.ok ? "Windows cursors restored" : String(r.error),
+            r.ok ? "good" : "bad",
+          );
+        } catch (err) {
+          status(String(err.message ?? err), "bad");
+        }
+      };
+
+      // ---------------------------------------------------------------- actions tab
+
+      function esc(v) {
+        return String(v ?? "").replace(
+          /[&<>"']/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+        );
+      }
+
+      function spineState(kind, text) {
+        document.getElementById("spineState").innerHTML =
+          `<span class="led ${kind}"></span>${esc(text)}`;
+      }
+
+      async function loadActions() {
+        const host = document.getElementById("actionsBody");
+        try {
+          const r = await (await fetch("/api/spine/config")).json();
+          const count = r.config?.actions?.length ?? 0;
+          spineState("ok", `Running on port ${location.port} // ${count} action${count === 1 ? "" : "s"}`);
+          const actions = r.config?.actions ?? [];
+          if (!actions.length) {
+            host.innerHTML = `<div class="empty">No actions yet. Bind one with a Spell in Holodex,
+        or add it to the spine's config file.</div>`;
+            return;
+          }
+          host.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Action</th><th>Kind</th><th></th></tr></thead><tbody></tbody></table></div>`;
+          const body = host.querySelector("tbody");
+          for (const a of actions) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${esc(a.name)}<br><code>${esc(a.id)}</code></td><td><code>${esc(a.kind)}</code></td><td></td>`;
+            const btn = document.createElement("button");
+            btn.className = "act";
+            btn.textContent = "Run";
+            btn.onclick = async () => {
+              btn.disabled = true;
+              btn.textContent = "Running";
+              const res = await post("/api/spine/run", { actionId: a.id });
+              const ok = res.result?.ok;
+              btn.textContent = ok ? "Done" : "Failed";
+              if (!ok) status(`${a.name} failed: ${res.result?.error ?? res.error ?? "no reason given"}`, "bad");
+              loadRecent();
+              setTimeout(() => {
+                btn.textContent = "Run";
+                btn.disabled = false;
+              }, 1600);
+            };
+            tr.lastElementChild.append(btn);
+            body.append(tr);
+          }
+        } catch (err) {
+          spineState("bad", "Not answering");
+          host.innerHTML = `<div class="empty">The input spine did not answer: ${esc(err)}</div>`;
+        }
+      }
+
+      async function loadRecent() {
+        const host = document.getElementById("recentBody");
+        try {
+          const r = await (await fetch("/api/spine/recent")).json();
+          const events = r.events ?? [];
+          if (!events.length) {
+            host.innerHTML = `<div class="empty">Nothing yet</div>`;
+            return;
+          }
+          host.innerHTML = `<table><thead><tr><th>When</th><th>Input</th><th>Ran</th></tr></thead><tbody>${events
+            .map((e) => {
+              const led = !e.matched ? "" : e.ok === false ? "bad" : "ok";
+              const ran = !e.matched ? "No binding" : e.ok === false ? `${e.actionId} failed` : e.actionId;
+              return `<tr><td class="mono">${esc(new Date(e.at).toLocaleTimeString())}</td><td><code>${esc(e.trigger?.kind)}</code> ${esc(e.trigger?.match)}</td><td><span class="led ${led}"></span>${esc(ran)}</td></tr>`;
+            })
+            .join("")}</tbody></table>`;
+        } catch (err) {
+          host.innerHTML = `<div class="empty">Could not read the live inputs: ${esc(err)}</div>`;
+        }
+      }
+
+      // The feed refreshes while the Actions tab is open and stops when you leave it.
+      let recentTimer = 0;
+      function watchRecent(on) {
+        clearInterval(recentTimer);
+        recentTimer = on ? setInterval(loadRecent, 2000) : 0;
+        if (on) loadRecent();
+      }
+
+      // ---------------------------------------------------------------- wiring
+
+      document.querySelectorAll("nav button").forEach((b) => {
+        b.onclick = () => {
+          document
+            .querySelectorAll("nav button")
+            .forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+          document
+            .querySelectorAll("main")
+            .forEach(
+              (m) =>
+                (m.dataset.active = String(m.id === `tab-${b.dataset.tab}`)),
+            );
+          if (b.dataset.tab === "actions") loadActions();
+          watchRecent(b.dataset.tab === "actions");
+        };
+      });
+
+      for (const [id, key] of [
+        ["ink", "ink"],
+        ["rim", "rim"],
+      ]) {
+        const el = document.getElementById(id);
+        el.value = state[key];
+        document.getElementById(id + "V").textContent = state[key];
+        el.oninput = () => {
+          state[key] = el.value;
+          document.getElementById(id + "V").textContent = el.value;
+          commit();
+        };
+      }
+      for (const [id, key, fmt] of [
+        ["inkW", "inkW", (v) => v],
+        ["rimW", "rimW", (v) => v],
+        ["frames", "frames", (v) => v],
+        ["frameMs", "frameMs", (v) => v + "ms"],
+      ]) {
+        const el = document.getElementById(id);
+        el.value = state[key];
+        document.getElementById(id + "V").textContent = fmt(state[key]);
+        el.oninput = () => {
+          state[key] = +el.value;
+          document.getElementById(id + "V").textContent = fmt(el.value);
+          commit();
+        };
+      }
+
+      // Canvas controls. Size changing rescales the hotspot proportionally, because
+      // a hotspot pinned at 16,16 is centred at 32px and off-centre at 64px, and
+      // silently moving the pointer under someone is a nasty surprise.
+      const sizeSel = document.getElementById("size");
+      sizeSel.value = String(state.size);
+      document.getElementById("sizeV").textContent = state.size + "px";
+      sizeSel.onchange = () => {
+        const next = +sizeSel.value,
+          ratio = next / state.size;
+        state.hot.x = Math.round(state.hot.x * ratio);
+        state.hot.y = Math.round(state.hot.y * ratio);
+        state.size = next;
+        document.getElementById("sizeV").textContent = next + "px";
+        syncHotRanges();
+        commit();
+      };
+
+      function syncHotRanges() {
+        for (const [id, key] of [
+          ["hotX", "x"],
+          ["hotY", "y"],
+        ]) {
+          const el = document.getElementById(id);
+          el.max = String(state.size);
+          el.value = state.hot[key];
+          document.getElementById(id + "V").textContent = state.hot[key];
+        }
+      }
+      for (const [id, key] of [
+        ["hotX", "x"],
+        ["hotY", "y"],
+      ]) {
+        const el = document.getElementById(id);
+        el.oninput = () => {
+          state.hot[key] = +el.value;
+          document.getElementById(id + "V").textContent = el.value;
+          commit();
+        };
+      }
+      syncHotRanges();
+
+      // Shadow.
+      const shOn = document.getElementById("shOn");
+      shOn.checked = state.shadow.on;
+      document.getElementById("shOnV").textContent = state.shadow.on
+        ? "on"
+        : "off";
+      shOn.onchange = () => {
+        state.shadow.on = shOn.checked;
+        document.getElementById("shOnV").textContent = shOn.checked
+          ? "on"
+          : "off";
+        commit();
+      };
+      for (const [id, key] of [
+        ["shBlur", "blur"],
+        ["shDy", "dy"],
+        ["shAlpha", "alpha"],
+      ]) {
+        const el = document.getElementById(id);
+        el.value = state.shadow[key];
+        document.getElementById(id + "V").textContent = state.shadow[key];
+        el.oninput = () => {
+          state.shadow[key] = +el.value;
+          document.getElementById(id + "V").textContent = el.value;
+          commit();
+        };
+      }
+
+      const easingSel = document.getElementById("easing");
+      easingSel.value = state.easing;
+      easingSel.onchange = () => {
+        state.easing = easingSel.value;
+        commit();
+      };
+
+      // ---------------------------------------------------------------- profiles
+      // Saved on the server rather than in localStorage, so a profile survives
+      // clearing site data and can be read by anything else that wants it.
+
+      async function refreshProfiles(select) {
+        try {
+          const r = await (await fetch("/api/cursor/profiles")).json();
+          const list = document.getElementById("profileList");
+          list.innerHTML =
+            `<option value="">(unsaved)</option>` +
+            (r.profiles ?? [])
+              .map((p) => `<option value="${p}">${p}</option>`)
+              .join("");
+          if (select) list.value = select;
+        } catch {}
+      }
+
+      document.getElementById("profileList").onchange = async (e) => {
+        const name = e.target.value;
+        if (!name) return;
+        try {
+          const r = await post("/api/cursor/profile/load", { name });
+          if (!r.ok) throw new Error(r.error);
+          Object.assign(state, r.design);
+          location.reload(); // simplest way to re-seed every control from state
+        } catch (err) {
+          status(String(err.message ?? err), "bad");
+        }
+      };
+
+      document.getElementById("profileSave").onclick = async () => {
+        const name = prompt("Save this design as:");
+        if (!name) return;
+        const r = await post("/api/cursor/profile/save", {
+          name,
+          design: state,
+        });
+        if (r.ok) {
+          await refreshProfiles(r.name);
+          status(`saved profile "${r.name}"`, "good");
+        } else status(String(r.error), "bad");
+      };
+
+      document.getElementById("profileDelete").onclick = async () => {
+        const name = document.getElementById("profileList").value;
+        if (!name || !confirm(`Delete profile "${name}"?`)) return;
+        const r = await post("/api/cursor/profile/delete", { name });
+        if (r.ok) {
+          await refreshProfiles();
+          status(`deleted "${name}"`);
+        } else status(String(r.error), "bad");
+      };
+
+      // ---------------------------------------------------------------- generate
+
+      document.getElementById("genGo").onclick = async () => {
+        const promptInput = document.getElementById("genPrompt");
+        const button = document.getElementById("genGo");
+        const reply = document.getElementById("genReply");
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+        status("asking the agent…");
+        button.disabled = true;
+        try {
+          const selected = state.shapes[shape];
+          const shapeParameters = { ...selected };
+          delete shapeParameters.src;
+          const r = await post("/api/cursor/generate", {
+            prompt,
+            imageDataUrl: layerFor(shape).toDataURL("image/png"),
+            context: {
+              selectedShape: shape,
+              cursorSize: SIZE,
+              hotspot: state.hot,
+              shapeParameters,
+            },
+          });
+          if (!r.ok) throw new Error(r.error);
+          reply.textContent =
+            r.message || "The agent returned a design change without a note.";
+          reply.hidden = false;
+          // Merge rather than replace. A brief usually describes one or two cursors,
+          // and wiping the roles it did not mention would leave most of the set blank.
+          Object.assign(state.shapes, r.design.shapes);
+          for (const t of r.design.transitions ?? []) {
+            const existing = state.transitions.find((x) => x.role === t.role);
+            if (existing) Object.assign(existing, t);
+            else state.transitions.push(t);
+          }
+          for (const s of Object.values(state.shapes))
+            if (s.kind === "bitmap") loadBitmap(s.src);
+          const changed = Object.keys(r.design.shapes).length;
+          if (changed > 0) {
+            renderShapeTabs();
+            renderShapeControls();
+            commit();
+            status(`updated ${changed} shape(s)`, "good");
+          } else {
+            status("agent answered", "good");
+          }
+        } catch (err) {
+          reply.textContent = String(err.message ?? err);
+          reply.hidden = false;
+          status(String(err.message ?? err), "bad");
+        } finally {
+          button.disabled = false;
+        }
+      };
+
+      document
+        .getElementById("genPrompt")
+        .addEventListener("keydown", (event) => {
+          if (event.key === "Enter") document.getElementById("genGo").click();
+        });
+
+      // Tracing runs entirely here. The image is drawn into a canvas at the cursor
+      // size, which is exactly the resampling the cursor file needs, and the result
+      // becomes an ordinary shape that can be morphed and previewed like any other.
+      document.getElementById("genImage").onchange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = c.height = SIZE * SS;
+            const g = c.getContext("2d");
+            g.imageSmoothingQuality = "high";
+            const scale = Math.min(
+              c.width / img.naturalWidth,
+              c.height / img.naturalHeight,
+            );
+            const w = img.naturalWidth * scale,
+              h = img.naturalHeight * scale;
+            g.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+            const name = "traced";
+            state.shapes[name] = {
+              kind: "bitmap",
+              src: c.toDataURL("image/png"),
+              zoom: 1,
+            };
+            loadBitmap(state.shapes[name].src);
+            shape = name;
+            renderShapeTabs();
+            renderShapeControls();
+            commit();
+            status(`traced ${file.name} into shape "${name}"`, "good");
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      };
+
+      for (const s of Object.values(state.shapes))
+        if (s.kind === "bitmap") loadBitmap(s.src);
+
+      refreshProfiles();
+      renderShapeTabs();
+      renderShapeControls();
+      commit();
+      status(`ready · ${SIZE}px · hotspot ${state.hot.x},${state.hot.y}`);
+    </script>
+  </body>
+</html>

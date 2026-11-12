@@ -24,13 +24,13 @@ internal static class SurfaceCapture
         ("toast-success", "Cast: Quick Cast", "Quick Cast ran. Wiz drafted the Spell on Nemotron.", "SPELL // CAST", ToastTone.Success),
         ("toast-warning", "Ritual not cast", "No Spell is bound to this slot, so nothing was cast. Pick one for the slot and cast again.", "SPELL // PERFORM", ToastTone.Warning),
         ("toast-error", "Not answered", "Nebius Token Factory did not answer within 24 seconds, so nothing was cast. Cast again.", "SPELL // CAST", ToastTone.Error),
-        ("toast-cursor-profile", "Cursor profile", "Active Input Studio profile: Precision", "MX MASTER 4", ToastTone.Info),
+        ("toast-cursor-profile", "Cursor profile", "Active cursor profile: Precision", "MX MASTER 4", ToastTone.Info),
         ("toast-vr-mode", "VR mode", "Air Link detected. Native cursor hidden, wand enlarged.", "HOLODEX // VR", ToastTone.Info),
         ("toast-gateway", "Gateway unavailable", "No Ark API on this PC, so the HUD asks Nemotron directly through Token Factory. Wand and ring still work.", "NEMOTRON // TOKEN FACTORY", ToastTone.Info),
         ("toast-ghosttrailer", "GhostTrailer on", "Streaming the ribbon. F16 stops it.", "GHOSTTRAILER // F16", ToastTone.Info),
         ("toast-cursor-shown", "Windows cursor shown", "Native cursor restored. Ctrl+Alt+C hides it again.", "HOLODEX // CURSOR", ToastTone.Info),
         ("toast-intake", "Intake submitted", "Handoff saved to your Holodex library. Seal sha256:3f9a1c07b2de.", "AINBOX // POD EDEN", ToastTone.Success),
-        ("toast-crafted", "Ritual crafted", "Ritual drafted in Wiz. Bind it to a ring slot in Input Studio.", "WIZ // 4GE BENCH", ToastTone.Success),
+        ("toast-crafted", "Ritual crafted", "Ritual drafted in Wiz. It is in the Wiz thread.", "WIZ // SPELLS", ToastTone.Success),
     };
 
     public static IReadOnlyList<string> CaptureAll(string dir, PhosphorTrayMenu trayMenu, params (string Name, Form Form)[] widgets)
@@ -55,6 +55,19 @@ internal static class SurfaceCapture
         // Toasts: every entry the toast catalog keeps or integrates, built by the real class with the copy the app raises.
         foreach (var t in ToastCatalog)
             Save(PhosphorToast.RenderPreview(t.Title, t.Body, t.Eyebrow, t.Tone), Path.Combine(dir, $"{t.File}.png"), written);
+
+        // The approval dialogs: a command Nemotron wants to run, turning shell actions on, and a Cursor Kit import.
+        using (var approval = new CommandApprovalForm("Get-ChildItem $env:USERPROFILE\\Downloads | Sort-Object Length -Descending | Select-Object -First 5", "Finds the five largest files in Downloads, as you asked."))
+            Save(RenderForm(approval), Path.Combine(dir, "dialog-command-approval.png"), written);
+        using (var shellOn = new CursorModConfirmForm("Turn shell actions on?", "HOLODEX // CURSOR MOD // SHELL ACTIONS",
+            "Cursor Kit buttons will be able to run commands and open programs on this PC.",
+            "Only a caller with this PC's token can run them (the Stream Deck and the AHK bridge read it from your Holodex folder). Every run is logged. Turning them off again deletes the token.",
+            "Turn on"))
+            Save(RenderForm(shellOn), Path.Combine(dir, "dialog-shell-on.png"), written);
+        using (var import = new CursorModConfirmForm("Import 2 commands?", "HOLODEX // CURSOR MOD // IMPORT // CONFIRM EACH COMMAND",
+            "3 actions and 1 binding from studio-kit.json. Actions and bindings with the same id are replaced. It adds these commands:",
+            "Get-Date" + Environment.NewLine + Environment.NewLine + "open C:\\tools\\obs-scene.bat", "Import", mono: true))
+            Save(RenderForm(import), Path.Combine(dir, "dialog-kit-import.png"), written);
 
         foreach (var (name, form) in widgets)
         {

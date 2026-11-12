@@ -2,10 +2,9 @@ namespace Holodex;
 
 /// <summary>
 /// The Mouse Mod Station: everything about the mouse in one Holodex window. Down the left, the mouse in use (it
-/// follows the one you move), its speed and the pointer look. Beside it, Input Studio, the cursor designer and the
-/// button and gesture bindings, which the Input Studio service in Ark (apps/input-studio) serves on the Input Spine
-/// port. That service keeps the parts a page cannot do (writing the .cur/.ani files and the Windows cursor scheme)
-/// and stays the Input Spine that Spells, the Stream Deck and the AHK bridge send to.
+/// follows the one you move), its speed, the pointer look and the Cursor Mod's own controls. Beside it, the cursor
+/// designer and the button and gesture bindings: Input Studio's page, which Holodex now serves itself on the Input
+/// Spine port (ruling 2026-11-10) until its sections are ported to native panels.
 /// </summary>
 internal sealed class MouseModStationForm : ArkPageForm
 {
@@ -54,12 +53,18 @@ internal sealed class MouseModStationForm : ArkPageForm
         }
         var lookLabeled = WidgetChrome.Labeled("Pointer look", _styleRow, 84);
 
+        // The Cursor Mod's own controls, native so they work whether or not the page beside them loads.
+        var cursorMod = new CursorModPanel(ShellGate.Default, KitStore.Default);
+        var cursorModLabeled = WidgetChrome.Labeled("Cursor Mod // shell actions and Cursor Kits", cursorMod, cursorMod.Height);
+
         var note = new ThreadView("MouseModStation.Note") { Dock = DockStyle.Fill, FollowNewest = false };
-        note.Add(ThreadTone.Step, "Design // Input Studio",
+        note.Add(ThreadTone.Step, "Design // Cursor Mod",
             "Shape and animate the cursor, build and install it, and choose what each button and gesture does, on the right.");
 
         // Dock.Top stacks the last added on top, so add bottom to top.
         rail.Controls.Add(note);
+        rail.Controls.Add(WidgetChrome.Spacer(14));
+        rail.Controls.Add(cursorModLabeled);
         rail.Controls.Add(WidgetChrome.Spacer(14));
         rail.Controls.Add(lookLabeled);
         rail.Controls.Add(WidgetChrome.Spacer(14));
@@ -78,10 +83,10 @@ internal sealed class MouseModStationForm : ArkPageForm
     protected override string PageUrl => ArkStationClient.DefaultInputSpineUrl + "/";
 
     protected override (string Service, string Explanation) FailureText =>
-        ("INPUT STUDIO", "The cursor designer is served by the Input Studio service in Ark (apps/input-studio), which the Ark runtime keeps running; start the runtime and try again. Your mouse, speed and pointer look still work from the left.");
+        ("CURSOR MOD", "Holodex serves the cursor designer on 127.0.0.1:8842. If another program holds that port (Input Studio on an Ark PC), Holodex leaves it alone and the page comes from that program; close it and restart Holodex. Your mouse, speed, pointer look and the Cursor Mod controls still work from the left.");
 
-    /// <summary>Offered on an Ark install; on a public install there is no Input Studio service to open.</summary>
-    public static bool Available(ArkStationClient ark) => ark.ArkInstalled;
+    /// <summary>Offered on every install: Holodex serves the cursor designer itself.</summary>
+    public static bool Available(ArkStationClient ark) => true;
 
     public async void Summon(Point cursorPos)
     {
