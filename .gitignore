@@ -25,3 +25,6 @@ docs/hackathon/DEVPOST_ANSWERS.md
 
 # Local test captures (contain private desktop screenshots)
 docs/shots/eden-runs/
+
+# The UI Lab bridge installs its one dependency locally
+node_modules/
