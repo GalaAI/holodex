@@ -1,0 +1,2656 @@
+<title>Holodex UI Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@600;700;800&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* @ark/tokens (origin/main 6d833013): colors, spacing, chassis, typography */
+:root {
+  --color-ground: #050607; 
+  --color-surface: #121212; 
+  --color-surface-2: #161616; 
+  --color-line: #262626; 
+  --color-line-2: #333331; 
+  --color-bone: #dad1b9; 
+  --color-dim: #a6a398; 
+  --color-ghost: #6b6a62; 
+  --color-plate: #ccc4ad; 
+  --color-plate-ink: #232220; 
+  --color-plate-rust: #c24b2a; 
+  --color-ember: #d99a4e; 
+  --color-patina: #79c4b7; 
+  --color-rust: #c25b38; 
+  --color-moss: #8fae8c; 
+  --color-rust-ink: #e08a6a; 
+  --color-coral: #d98a63; 
+  --color-brick: #b14e33; 
+  --color-army: #77785a; 
+  --color-seal: #c9a24b; 
+  --color-cream: #e4d9c0; 
+  --color-accent-ink: #201a12; 
+  --color-iris: #a58fd0; 
+  --ark-emblem-cream: #e4d9c0; 
+  --ark-emblem-globe: #66ffcd; 
+  --ark-emblem-globe-opacity: 0.4;
+  --ark-emblem-tile: #141414; 
+  --ark-emblem-cream-muted: rgba(
+    228,
+    217,
+    192,
+    0.4
+  ); 
+  --ark-emblem-globe-solid: #35725e; 
+  --ark-emblem-chassis-dark: #121212; 
+  --ark-emblem-globe-patina: var(
+    --color-patina
+  ); 
+  --ark-emblem-globe-ember: var(--color-ember);
+  --ark-emblem-globe-rust: var(--color-rust);
+  --color-patina-bright: #8ff2d8;
+  --color-skeleton: #1c1c1b; 
+  --highlight-top: rgba(
+    255,
+    255,
+    255,
+    0.035
+  ); 
+  --line-soft: rgba(
+    218,
+    209,
+    185,
+    0.12
+  ); 
+  --line-strong: rgba(218, 209, 185, 0.24);
+  --bloom-ember:
+    0 0 4px rgba(217, 154, 78, 0.5), 0 0 14px rgba(217, 154, 78, 0.24),
+    0 0 32px rgba(217, 154, 78, 0.1);
+  --bloom-bone:
+    0 0 4px rgba(218, 209, 185, 0.45), 0 0 14px rgba(218, 209, 185, 0.22),
+    0 0 32px rgba(218, 209, 185, 0.09);
+  --bloom-patina:
+    0 0 4px rgba(121, 196, 183, 0.45), 0 0 14px rgba(121, 196, 183, 0.2);
+  --bloom-rust:
+    0 0 4px rgba(194, 91, 56, 0.45), 0 0 12px rgba(194, 91, 56, 0.2);
+  --seam-grad: linear-gradient(
+    90deg,
+    #3a3a36 0 18%,
+    var(--color-bone) 18% 30%,
+    var(--color-plate-rust) 30% 46%,
+    var(--color-moss) 46% 60%,
+    var(--color-patina) 60% 74%,
+    #3a3a36 74% 100%
+  );
+  --surface-page: var(--color-ground);
+  --surface-card: var(--color-surface);
+  --surface-inset: var(--color-surface-2);
+  --text-body: var(--color-bone);
+  --text-secondary: var(--color-dim);
+  --text-label: var(--color-ghost);
+  --border-panel: var(--color-line);
+  --border-control: var(--color-line-2);
+  --accent-primary: var(
+    --color-bone
+  ); 
+  --accent-live: var(--color-patina);
+  --accent-error: var(--color-rust);
+  --accent-ok: var(--color-moss);
+  --rp-accent: var(--color-patina);
+  --rp-accent-ink: var(--color-ground);
+  --rp-grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-zone="operate"] {
+  --rp-accent: var(--color-patina);
+  --rp-accent-ink: var(--color-ground);
+}
+[data-zone="create"] {
+  --rp-accent: var(--color-coral);
+  --rp-accent-ink: var(--color-accent-ink);
+}
+[data-zone="distribute"] {
+  --rp-accent: var(--color-seal);
+  --rp-accent-ink: var(--color-accent-ink);
+}
+:root {
+  --u: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s12: 48px;
+  --radius-widget: 18px; 
+  --radius-btn: 14px; 
+  --radius-tile: 13px; 
+  --radius-badge: 10px; 
+  --radius-inset: 8px; 
+  --radius-menu-closed: 8px; 
+  --radius-menu-open: 12px;
+  --border-hair: 1px; 
+  --focus-ring: 2px; 
+  --focus-offset: 3px; 
+  --led-size: 9px; 
+  --dot-size: 6px; 
+  --z-overlay-top: 2147483647; 
+  --shadow-cast: 0 14px 34px rgba(0, 0, 0, 0.6), 0 3px 10px rgba(0, 0, 0, 0.45);
+  --edge-vignette:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    inset 0 -18px 30px -22px rgba(0, 0, 0, 0.7);
+  --ease-analog: cubic-bezier(0.45, 0.05, 0.35, 1);
+  --dur-bloom: 180ms;
+  --dur-disclosure: 240ms;
+  --dur-disclosure-item: 180ms;
+  --disclosure-stagger-step: 12ms;
+  --disclosure-stagger-cap: 60ms;
+  --ease-disclosure: cubic-bezier(0.2, 0, 0, 1);
+  --aura-falloff: linear-gradient(
+    to right,
+    var(--color-bone) 65%,
+    transparent 90%
+  );
+  --aura-lead: var(--s3);
+  --dur-pulse: 3500ms;
+  --dur-caret: 1100ms;
+  --dur-cadence-dots: 1400ms;
+  --dur-cadence-arc: 1600ms;
+  --dur-loader-sweep: 2200ms;
+  --dur-shuffle: 16800ms;
+  --dur-step: 320ms; 
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.5, 1);
+  --dur-sweep: 3400ms;
+  --dur-seam: 4800ms;
+  --pad-surface: var(--s4); 
+  --pad-control-x: var(--s3); 
+  --pad-chip: var(--u) var(--s3); 
+  --pad-tile: var(--s4); 
+  --gap-inline: var(--s2); 
+  --touch-min: 44px;
+  --ribbon-h: 52px;
+  --rail-w: 236px;
+  --station-rail-width: 155px;
+  --station-rail-collapsed-width: 60px;
+  --station-context-width: 352px;
+  --station-header-height: 60px;
+}
+:root {
+  --panel-edge: var(--color-line-2);
+  --panel-edge-w: 3px;
+  --edge-agent: color-mix(in srgb, var(--color-patina) 78%, transparent);
+  --edge-gate: color-mix(in srgb, var(--color-ember) 80%, transparent);
+  --edge-error: color-mix(in srgb, var(--color-rust) 82%, transparent);
+  --edge-ok: var(--color-moss); 
+  --ph-rgb-agent: 121, 196, 183; 
+  --ph-rgb-gate: 217, 154, 78; 
+  --ph-rgb-error: 194, 91, 56; 
+  --ph-rgb: var(--ph-rgb-agent); 
+  --ph-a: 1; 
+  --ph-s: 0.11; 
+  --ph-x: 3px; 
+  --ph-w: 18px; 
+  --x-mark: color-mix(in srgb, var(--color-bone) 60%, transparent);
+  --x-mark-size: 10px;
+  --x-mark-stroke: 1.5px;
+  --ear-size: 15px;
+  --ear-mask: linear-gradient(
+    225deg,
+    transparent var(--ear-size),
+    black calc(var(--ear-size) + 0.6px)
+  );
+  --hatch-band: 10px;
+  --hatch-gate: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-ember) 22%, transparent) 0 6px,
+    transparent 6px 14px
+  );
+  --hatch-error: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-rust) 24%, transparent) 0 6px,
+    transparent 6px 14px
+  );
+  --hatch-held: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-bone) 7%, transparent) 0 6px,
+    transparent 6px 14px
+  );
+  --numeral-index: 22px;
+  --numeral-ticket: 64px;
+  --numeral-backdrop: 260px;
+  --mark-size: 14px;
+  --mark-inset: 10px;
+  --ruler-step: 12px;
+  --ruler-h: 8px;
+  --ticket-notch: 18px;
+  --ticket-barcode: repeating-linear-gradient(
+    90deg,
+    currentColor 0 2px,
+    transparent 2px 4px,
+    currentColor 4px 5px,
+    transparent 5px 9px,
+    currentColor 9px 12px,
+    transparent 12px 14px,
+    currentColor 14px 15px,
+    transparent 15px 19px
+  );
+  --trace-w: 1.5px;
+  --trace-pad: 9px;
+}
+:root {
+  --font-display:
+    "Archivo Black", "Archivo", ui-sans-serif, sans-serif; 
+  --font-ui:
+    "Inter", ui-sans-serif, sans-serif; 
+  --font-mono:
+    "JetBrains Mono", ui-monospace, monospace; 
+  --font-body:
+    "Space Grotesk", ui-sans-serif, sans-serif; 
+  --font-tooltip-title: "Archivo Black", ui-sans-serif, sans-serif;
+  --font-tooltip-description: "JetBrains Mono", ui-monospace, monospace;
+  --eyebrow-size: 12px;
+  --eyebrow-tracking: 0.12em;
+  --text-size-section: 16px; 
+  --text-size-body: 13px; 
+  --text-size-data: 12px; 
+  --text-size-badge: 10px; 
+  --text-size-btn: 12px; 
+  --text-size-micro: 8px; 
+  --text-size-caption: 11px; 
+  --text-size-lead: 14px; 
+  --text-size-value: 22px; 
+  --text-size-page-title: 30px; 
+  --text-size-metric: clamp(1.7rem, 2.5vw, 2.6rem); 
+}
+/* @ark/ui (origin/main 6d833013), copied unchanged: actions/button, actions/text-link, actions/context-switcher, controls/text-field, controls/search-field, controls/universal-widget, status/led, status/badge, status/lifecycle-tag, surfaces/panel, layout/workspace-frame, data/inspectable-row, data/gala-thread, brand/eyebrow, layout/accordion, layout/page-header, surfaces/aura, surfaces/stage-canvas, surfaces/trace-beam, surfaces/registration-marks, brand/ark-mark, surfaces/edge-photons */
+.rp-btn {
+  min-height: var(--touch-min);
+  padding: 0 var(--pad-control-x);
+  border-radius: var(--radius-btn);
+  border: 1px solid var(--color-line-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: var(--color-surface-2);
+  color: var(--color-bone);
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: var(--text-size-btn);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    box-shadow var(--dur-bloom) var(--ease-analog),
+    border-color var(--dur-bloom) var(--ease-analog),
+    transform 120ms var(--ease-analog);
+}
+.rp-btn:hover {
+  border-color: var(--color-ghost);
+}
+.rp-btn:active {
+  transform: translateY(1px);
+}
+.rp-btn:focus-visible {
+  outline: 2px solid var(--color-patina);
+  outline-offset: 3px;
+}
+.rp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-icon-btn {
+  flex: 0 0 auto;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  padding: 0;
+  border-radius: var(--radius-pill, 999px);
+}
+.rp-icon-btn[data-icon="close"],
+.rp-icon-btn[data-icon="close"]:hover:not(:disabled) {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.rp-icon-btn[data-icon="close"] {
+  color: var(--x-mark);
+  transition: color var(--dur-bloom) var(--ease-analog);
+}
+.rp-icon-btn[data-icon="close"]:hover:not(:disabled),
+.rp-icon-btn[data-icon="close"]:focus-visible {
+  color: var(--color-bone);
+}
+.rp-icon-btn[data-icon="close"]:disabled {
+  visibility: hidden;
+}
+.rp-btn--primary {
+  background: var(--color-bone);
+  border-color: var(--color-bone);
+  color: var(--color-ground);
+}
+.rp-btn--primary:hover {
+  background: color-mix(in srgb, var(--color-bone), white 45%);
+  border-color: color-mix(in srgb, var(--color-bone), white 45%);
+  box-shadow: var(--bloom-bone);
+}
+.rp-btn--danger {
+  background: var(--color-surface-2);
+  border-color: var(--color-rust);
+  color: var(--color-rust);
+}
+.rp-btn--danger:hover {
+  box-shadow: var(--bloom-rust);
+}
+.rp-btn--accent {
+  background: var(--rp-accent);
+  color: var(--rp-accent-ink);
+  border: none;
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--rp-accent) 45%, transparent),
+    0 0 14px color-mix(in srgb, var(--rp-accent) 22%, transparent),
+    0 0 32px color-mix(in srgb, var(--rp-accent) 9%, transparent);
+}
+.rp-btn--accent:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--rp-accent) 55%, transparent),
+    0 0 18px color-mix(in srgb, var(--rp-accent) 30%, transparent),
+    0 6px 18px rgba(0, 0, 0, 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-btn--accent:hover {
+    transform: none;
+  }
+}
+.rp-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-btn);
+  font-weight: 500;
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-patina);
+  cursor: pointer;
+  transition: color var(--dur-bloom) var(--ease-analog);
+}
+.rp-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-thickness: var(--border-hair);
+}
+.rp-link:focus-visible {
+  outline: var(--focus-ring) solid var(--color-patina);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-badge);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-link {
+    transition: none;
+  }
+}
+.rp-context-switcher {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 0;
+  overflow-x: auto;
+  border: 0;
+  background: transparent;
+}
+.rp-context-switcher__item {
+  min-width: max-content;
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-inline);
+  padding: 0 var(--s3);
+  border: 0;
+  background: transparent;
+  color: var(--color-ghost);
+  font-family: var(--font-ui);
+  font-size: var(--text-size-btn);
+  font-weight: 800;
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color var(--dur-bloom) var(--ease-analog),
+    text-shadow var(--dur-bloom) var(--ease-analog);
+}
+.rp-context-switcher__item:hover {
+  color: var(--color-bone);
+}
+.rp-context-switcher__item[data-active] {
+  color: var(--color-bone);
+  text-shadow: var(--bloom-bone);
+}
+.rp-context-switcher__item:focus-visible {
+  outline: thin solid var(--color-patina);
+  outline-offset: var(--u);
+  border-radius: var(--radius-badge);
+}
+.rp-context-switcher__item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-context-switcher__brand-logo {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  object-fit: contain;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-context-switcher__item {
+    transition: none;
+  }
+}
+.rp-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s2);
+  width: 100%;
+  min-width: 0;
+}
+.rp-field__label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--text-size-data);
+  color: var(--color-dim);
+}
+.rp-field__box {
+  display: grid;
+  min-width: 0;
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-btn);
+  background: var(--color-surface-2);
+  transition:
+    border-color var(--dur-bloom) var(--ease-analog),
+    box-shadow var(--dur-bloom) var(--ease-analog);
+}
+.rp-field__box:hover {
+  border-color: var(--color-ghost);
+}
+.rp-field__box:focus-within {
+  border-color: var(--color-patina);
+  box-shadow: var(--bloom-patina);
+}
+.rp-field__input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--touch-min);
+  box-sizing: border-box;
+  padding: var(--s2) var(--s3);
+  border: none;
+  background: transparent;
+  color: var(--color-bone);
+  font: inherit;
+  line-height: 1.4;
+}
+.rp-field__input:focus {
+  outline: none;
+}
+.rp-field__input::placeholder {
+  color: var(--color-ghost);
+}
+.rp-field__input--mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  letter-spacing: 0.02em;
+}
+.rp-field__input--area {
+  resize: vertical;
+  min-height: calc(var(--touch-min) * 2);
+}
+.rp-field__hint {
+  font-family: var(--font-body);
+  font-size: var(--text-size-data);
+  line-height: 1.5;
+  color: var(--color-ghost);
+}
+.rp-field:has(.rp-field__input:disabled) {
+  opacity: 0.4;
+}
+.rp-field__input:disabled {
+  cursor: not-allowed;
+}
+.rp-field--checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: var(--touch-min);
+  cursor: pointer;
+}
+.rp-field__checkbox {
+  width: var(--s4);
+  height: var(--s4);
+  margin: 0;
+  accent-color: var(--color-bone);
+}
+.rp-field__checkbox:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: var(--u);
+}
+.rp-field--checkbox:has(:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-field__box {
+    transition: none;
+  }
+}
+.rp-search {
+  display: grid;
+  gap: var(--s2);
+  min-width: 0;
+}
+.rp-search__entry {
+  position: relative;
+  min-width: 0;
+}
+.rp-search .rp-field__input {
+  padding-inline-end: var(--touch-min);
+}
+.rp-search .rp-field__input::-webkit-search-cancel-button,
+.rp-search .rp-field__input::-webkit-search-decoration {
+  appearance: none;
+}
+.rp-search__clear {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+.rp-search__key {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  color: var(--color-ghost);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  pointer-events: none;
+}
+@media (hover: none) {
+  .rp-search__key {
+    display: none;
+  }
+}
+.rp-search__count {
+  margin: 0;
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+}
+.rp-widget {
+  display: grid;
+  gap: var(--s3);
+  padding: var(--pad-surface);
+  min-width: 0;
+}
+.rp-widget__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--u) var(--s3);
+}
+.rp-widget__title {
+  font-family: var(--font-display);
+  font-size: var(--text-size-section);
+  color: var(--color-bone);
+}
+.rp-widget__meta,
+.rp-widget__state,
+.rp-widget__label,
+.rp-widget__value {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+}
+.rp-widget__meta {
+  color: var(--color-ghost);
+}
+.rp-widget__state {
+  margin-left: auto;
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--color-patina);
+}
+.rp-widget[data-state="pending"] .rp-widget__state {
+  color: var(--color-dim);
+}
+.rp-widget[data-state="saved"] .rp-widget__state {
+  color: var(--color-moss);
+}
+.rp-widget[data-state="detached"] .rp-widget__state {
+  color: var(--color-ghost);
+}
+.rp-widget__rows {
+  display: grid;
+  min-width: 0;
+}
+.rp-widget__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--u) var(--s3);
+  padding: var(--s2) 0;
+  border-top: var(--border-hair) solid var(--color-line);
+  min-width: 0;
+}
+.rp-widget__row > .rp-field,
+.rp-widget__row > .rp-fluid {
+  grid-column: 1 / -1;
+}
+.rp-widget__label {
+  color: var(--color-dim);
+  overflow-wrap: anywhere;
+}
+.rp-widget__value {
+  color: var(--color-bone);
+}
+.rp-widget__row[data-changed] .rp-widget__value {
+  color: var(--color-patina);
+}
+.rp-widget__range {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: var(--touch-min);
+  margin: 0;
+  accent-color: var(--color-patina);
+}
+.rp-widget__swatch {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: var(--touch-min);
+  padding: calc(var(--u) / 2);
+  border: var(--border-hair) solid var(--color-line-2);
+  border-radius: var(--radius-inset);
+  background: var(--color-surface-2);
+}
+.rp-widget__range:focus-visible,
+.rp-widget__swatch:focus-visible {
+  outline: var(--focus-ring) solid var(--color-patina);
+  outline-offset: var(--focus-offset);
+}
+.rp-widget__range:disabled,
+.rp-widget__swatch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-widget__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.rp-led {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-data);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+.rp-led i {
+  width: var(--led-size);
+  height: var(--led-size);
+  border-radius: 50%;
+}
+.rp-led--live i,
+.rp-led--running i {
+  background: var(--color-patina);
+  box-shadow: var(--bloom-patina);
+  animation: rp-pulse var(--dur-pulse) ease-in-out infinite;
+}
+.rp-led--warn i,
+.rp-led--gated i {
+  background: var(--color-ember);
+  box-shadow: var(--bloom-ember);
+}
+.rp-led--err i,
+.rp-led--failed i {
+  background: var(--color-rust);
+  box-shadow: var(--bloom-rust);
+}
+.rp-led--ok i,
+.rp-led--done i {
+  background: var(--color-moss);
+}
+.rp-led--queued i {
+  background: var(--color-ghost);
+}
+.rp-led--idle i {
+  background: var(--color-ghost);
+  opacity: 0.35;
+}
+@keyframes rp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-led--live i,
+  .rp-led--running i {
+    animation: none;
+  }
+}
+.rp-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--radius-badge);
+  padding: var(--pad-chip);
+  border: var(--border-hair) solid var(--color-line-2);
+  color: var(--color-ghost);
+}
+.rp-badge--validated {
+  color: var(--color-patina);
+  border-color: color-mix(in srgb, var(--color-patina) 40%, transparent);
+}
+.rp-badge--proven {
+  color: var(--color-ground);
+  background: var(--color-patina);
+  border-color: var(--color-patina);
+  font-weight: 500;
+}
+.rp-badge--blocked {
+  color: var(--color-rust);
+  border-color: color-mix(in srgb, var(--color-rust) 45%, transparent);
+}
+.rp-badge--idle {
+  opacity: 0.6;
+}
+.rp-badge--running {
+  color: var(--color-patina);
+  border-color: color-mix(in srgb, var(--color-patina) 40%, transparent);
+}
+.rp-badge--gated {
+  color: var(--color-ember);
+  border-color: color-mix(in srgb, var(--color-ember) 40%, transparent);
+}
+.rp-badge--done {
+  color: var(--color-moss);
+  border-color: color-mix(in srgb, var(--color-moss) 40%, transparent);
+}
+.rp-badge--failed {
+  color: var(--color-rust);
+  border-color: color-mix(in srgb, var(--color-rust) 45%, transparent);
+}
+.rp-life {
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: var(--radius-badge);
+  padding: var(--pad-chip);
+  border: var(--border-hair) solid var(--color-line-2);
+  color: var(--color-ghost);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+}
+.rp-life i {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+.rp-life--gated {
+  color: var(--color-ember);
+  border-color: color-mix(in srgb, var(--color-ember) 40%, transparent);
+}
+.rp-life--running {
+  color: var(--color-patina);
+  border-color: color-mix(in srgb, var(--color-patina) 40%, transparent);
+}
+.rp-life--running i {
+  box-shadow: var(--bloom-patina);
+  animation: rp-pulse var(--dur-pulse) var(--ease-analog) infinite;
+}
+.rp-life--failed {
+  color: var(--color-rust);
+  border-color: color-mix(in srgb, var(--color-rust) 45%, transparent);
+}
+.rp-life--done {
+  color: var(--color-moss);
+  border-color: color-mix(in srgb, var(--color-moss) 40%, transparent);
+}
+.rp-life--queued {
+  color: var(--color-ghost);
+  border-color: var(--color-line-2);
+}
+.rp-life--idle {
+  color: var(--color-ghost);
+  border-color: var(--color-line-2);
+}
+.rp-life--idle i {
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-life--running i {
+    animation: none;
+  }
+}
+.rp-panel {
+  position: relative;
+  background: var(--color-surface);
+  border: var(--border-hair) solid var(--color-line);
+  border-radius: var(--radius-widget);
+  box-shadow: var(--shadow-cast);
+}
+.rp-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset var(--panel-edge-w) 0 0 var(--panel-edge),
+    var(--edge-vignette);
+}
+.rp-workspace-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(
+      var(--station-context-width),
+      0.65fr
+    );
+  align-items: start;
+  gap: var(--s3);
+}
+.rp-workspace-frame__canvas,
+.rp-workspace-frame__inspector {
+  min-width: 0;
+}
+.rp-workspace-frame__inspector {
+  display: grid;
+  gap: var(--s2);
+}
+.rp-workspace-frame__canvas {
+  position: relative;
+}
+.rp-workspace-frame__canvas[data-edge] {
+  border-radius: var(--radius-widget);
+  box-shadow: inset var(--panel-edge-w) 0 0 var(--panel-edge);
+}
+.rp-workspace-frame[data-layout="editor"] > .rp-workspace-frame__tools,
+.rp-workspace-frame[data-layout="editor"] > .rp-workspace-frame__inspector {
+  box-shadow: inset var(--panel-edge-w) 0 0 var(--panel-edge);
+}
+.rp-workspace-frame__inspector[hidden] {
+  display: none;
+}
+.rp-workspace-frame[data-layout="editor"] {
+  position: relative;
+  grid-template-columns: var(--station-rail-collapsed-width) minmax(0, 1fr) var(
+      --station-context-width
+    );
+  align-items: stretch;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.rp-workspace-frame[data-layout="editor"][data-inspector-hidden="true"] {
+  grid-template-columns: var(--station-rail-collapsed-width) minmax(0, 1fr);
+}
+.rp-workspace-frame[data-layout="editor"][data-has-tools="false"] {
+  grid-template-columns: minmax(0, 1fr) var(--station-context-width);
+}
+.rp-workspace-frame[data-layout="editor"][data-has-tools="false"][data-inspector-hidden="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.rp-workspace-frame[data-layout="editor"] > * {
+  min-height: 0;
+  min-width: 0;
+}
+.rp-workspace-frame[data-layout="editor"] > .rp-workspace-frame__inspector {
+  gap: 0;
+  overflow: hidden;
+}
+@media (max-width: 55rem) {
+  .rp-workspace-frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rp-workspace-frame[data-layout="editor"] {
+    grid-template-columns: var(--station-rail-collapsed-width) minmax(0, 1fr);
+  }
+  .rp-workspace-frame[data-layout="editor"][data-has-tools="false"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rp-workspace-frame[data-layout="editor"] > .rp-workspace-frame__inspector {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(var(--station-context-width), 88%);
+    z-index: 10;
+    background: var(--color-surface);
+    box-shadow:
+      inset var(--panel-edge-w) 0 0 var(--panel-edge),
+      var(--shadow-cast);
+  }
+}
+.rp-inspectable-row {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: calc(var(--touch-min) + var(--s6));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border: thin solid var(--color-line);
+  border-radius: var(--radius-btn);
+  background: var(--color-surface-2);
+  color: var(--color-bone);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-bloom) var(--ease-analog),
+    box-shadow var(--dur-bloom) var(--ease-analog);
+}
+.rp-inspectable-row:hover {
+  border-color: var(--color-patina);
+  box-shadow: var(--bloom-patina);
+}
+.rp-inspectable-row.rp-aura--behind::before {
+  z-index: -1;
+  border-radius: inherit;
+}
+.rp-inspectable-row:focus-visible {
+  outline: thin solid var(--color-patina);
+  outline-offset: var(--u);
+}
+.rp-inspectable-row:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rp-inspectable-row__leading,
+.rp-inspectable-row__trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+}
+.rp-inspectable-row__body {
+  min-width: 0;
+  display: grid;
+  gap: var(--u);
+}
+.rp-inspectable-row__body strong {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.rp-inspectable-row__body small {
+  overflow: hidden;
+  color: var(--color-dim);
+  font-family: var(--font-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 40rem) {
+  .rp-inspectable-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .rp-inspectable-row__trailing {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-inspectable-row {
+    transition: none;
+  }
+}
+.rp-gala-thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.rp-gala-thread h2 {
+  font: inherit;
+  margin: var(--s2) 0;
+}
+.rp-gala-thread__messages {
+  flex: 1;
+  min-height: var(--s12);
+  max-height: calc(var(--touch-min) * 15);
+  overflow: auto;
+}
+.rp-gala-thread p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-dim);
+}
+.rp-gala-thread article {
+  border-bottom: 1px solid var(--color-line);
+  padding: var(--s2) 0;
+}
+.rp-gala-thread article[data-role="user"] strong {
+  color: var(--color-patina);
+}
+.rp-gala-thread > form {
+  margin-top: auto;
+  flex-shrink: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.rp-gala-thread__attachments {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 50%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.rp-gala-thread textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  background: var(--color-ground);
+  color: var(--color-bone);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-badge);
+  font: inherit;
+  padding: var(--s2);
+}
+.rp-gala-thread__composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
+.rp-gala-thread__activity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.rp-gala-thread[data-variant="dock"] {
+  flex: 0 0 auto;
+  gap: var(--s1);
+}
+.rp-gala-thread[data-variant="dock"] .rp-gala-thread__activity {
+  max-height: min(18dvh, calc(var(--touch-min) * 3));
+}
+.rp-gala-thread__disclosure > summary {
+  cursor: pointer;
+  padding-block: var(--s1);
+  color: var(--color-bone);
+}
+.rp-gala-thread[data-variant="dock"] .rp-gala-thread__feedback {
+  max-height: calc(var(--touch-min) * 2);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.rp-gala-thread[data-variant="dock"] .rp-gala-thread__feedback p {
+  margin: 0;
+}
+.rp-gala-thread[data-variant="dock"] .rp-gala-thread__messages,
+.rp-gala-thread[data-variant="dock"] .rp-gala-thread__attachments {
+  flex: none;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+.rp-gala-thread[data-variant="dock"] > form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--s1);
+}
+.rp-gala-thread[data-variant="dock"] > form > label {
+  grid-column: 1 / -1;
+}
+.rp-gala-thread[data-variant="dock"] textarea {
+  min-height: var(--touch-min);
+  max-height: var(--touch-min);
+  resize: none;
+}
+.rp-eyebrow{font-family:var(--font-mono);font-size:var(--eyebrow-size);letter-spacing:var(--eyebrow-tracking);text-transform:uppercase;color:var(--color-ghost)}
+.rp-accordion {
+  min-width: 0;
+  border-block-start: calc(var(--u) / 4) solid var(--color-line-2);
+}
+.rp-accordion__heading {
+  margin: 0;
+}
+.rp-accordion__trigger {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: var(--s4) 0;
+  padding-inline-start: var(--aura-lead);
+  border: 0;
+  background: transparent;
+  color: var(--color-bone);
+  text-align: left;
+  cursor: pointer;
+}
+.rp-accordion__trigger:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: var(--u);
+}
+.rp-accordion__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.rp-accordion__indicator {
+  flex: 0 0 var(--s4);
+  color: var(--color-patina);
+  font: 500 var(--s4)/1 var(--font-mono);
+}
+.rp-accordion__identity {
+  display: grid;
+  gap: var(--u);
+  min-width: 0;
+  flex: 1;
+}
+.rp-accordion__title {
+  font: 600 var(--text-size-section)/1.4 var(--font-ui);
+}
+.rp-accordion__description {
+  color: var(--color-dim);
+  font: 400 var(--text-size-body)/1.5 var(--font-body);
+}
+.rp-accordion__summary {
+  color: var(--color-dim);
+  font: 400 var(--text-size-data)/1.5 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.rp-accordion[data-compact] > .rp-accordion__heading > .rp-accordion__trigger {
+  flex-wrap: wrap;
+  padding-block: var(--s2);
+}
+.rp-accordion[data-compact] .rp-accordion__identity {
+  flex: 1 1 14rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.rp-accordion[data-compact] .rp-accordion__summary {
+  margin-inline-start: auto;
+}
+.rp-accordion[data-compact] .rp-accordion__title {
+  overflow-wrap: break-word;
+  font: 600 var(--text-size-data)/1.4 var(--font-mono);
+}
+.rp-accordion[data-compact] .rp-accordion__description {
+  overflow-wrap: break-word;
+  font-size: var(--text-size-caption);
+}
+.rp-accordion__trigger > span {
+  position: relative;
+}
+.rp-accordion__body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--dur-disclosure) var(--ease-disclosure),
+    opacity var(--dur-disclosure-item) var(--ease-disclosure),
+    visibility 0s var(--dur-disclosure);
+}
+.rp-accordion[data-open="true"] > .rp-accordion__body {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.rp-accordion__content {
+  display: grid;
+  gap: var(--s4);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding-block-end: 0;
+  transition:
+    padding-block-end var(--dur-disclosure) var(--ease-disclosure),
+    overflow 0s allow-discrete;
+}
+.rp-accordion[data-open="true"] > .rp-accordion__body > .rp-accordion__content {
+  padding-block-end: var(--s4);
+  overflow: visible;
+  transition:
+    padding-block-end var(--dur-disclosure) var(--ease-disclosure),
+    overflow 0s var(--dur-disclosure) allow-discrete;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-accordion__body,
+  .rp-accordion__content {
+    transition: none;
+  }
+}
+.rp-page-head {
+  display: grid;
+  gap: var(--s2);
+  margin-bottom: var(--s6);
+  min-width: 0;
+}
+.rp-page-head__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.rp-page-head__tick {
+  flex: none;
+  width: calc(var(--u) * 3.5);
+  height: calc(var(--u) / 4);
+  background: var(--color-line);
+}
+.rp-page-head__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+}
+.rp-page-head__title {
+  margin: 0;
+  min-width: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: var(--text-size-page-title);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.rp-page-head__lede {
+  max-width: 66ch;
+  margin: 0;
+  color: var(--color-dim);
+  font-family: var(--font-body);
+  font-size: var(--text-size-lead);
+  font-weight: 400;
+  line-height: 1.55;
+}
+.rp-aura,
+.rp-aura--behind::before {
+  background: var(--color-surface-2);
+  box-shadow:
+    inset calc(var(--u) / 2) 0 0 var(--sidelight, var(--color-coral)),
+    inset var(--s3) 0 var(--s4) calc(-1 * var(--s2))
+      color-mix(in srgb, var(--sidelight, var(--color-coral)) 28%, transparent),
+    calc(-1 * var(--u) / 2) 0 var(--s2)
+      color-mix(in srgb, var(--sidelight, var(--color-coral)) 35%, transparent);
+  mask-image: var(--aura-falloff);
+  mask-size: calc(100% + var(--s4) * 2) calc(100% + var(--s4) * 2);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-clip: no-clip;
+  pointer-events: none;
+}
+.rp-aura-host {
+  position: relative;
+  isolation: isolate;
+}
+.rp-aura--fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-badge);
+}
+.rp-aura--behind::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-badge);
+  opacity: 0;
+  transition: opacity var(--dur-disclosure-item) var(--ease-disclosure);
+}
+.rp-aura--behind[data-aura="lit"]::before {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-aura--behind::before {
+    transition: none;
+  }
+}
+.rp-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+  border: calc(var(--u) / 4) solid var(--color-line);
+  border-radius: var(--radius-btn);
+  background-color: var(--color-ground);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-bone) 8%, transparent) calc(var(--u) / 4),
+    transparent calc(var(--u) * 0.375)
+  );
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.rp-panel .rp-stage {
+  background-color: transparent;
+}
+.rp-stage:focus-visible {
+  outline: calc(var(--u) / 2) solid var(--color-patina);
+  outline-offset: calc(var(--u) * 0.75);
+}
+.rp-stage:active {
+  cursor: grabbing;
+}
+.rp-stage__board {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  box-shadow: var(--shadow-cast);
+  border-radius: var(--radius-badge);
+  overflow: hidden;
+  cursor: default;
+}
+.rp-stage__label,
+.rp-stage__readout {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: var(--eyebrow-size);
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--color-ghost);
+  pointer-events: none;
+}
+.rp-stage__label {
+  top: var(--s2);
+  left: calc(var(--s8) + var(--s2));
+}
+.rp-stage__readout {
+  bottom: var(--s2);
+  right: calc(var(--s8) + var(--s2));
+  display: flex;
+  gap: var(--s3);
+  align-items: center;
+}
+.rp-stage__readout b {
+  font-weight: 400;
+  color: var(--color-dim);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-stage__board {
+    transition: none;
+  }
+}
+.rp-stage[data-inspect],
+.rp-stage[data-inspect] .rp-stage__board {
+  cursor: crosshair;
+}
+.rp-stage[data-inspect] [data-stage-interactive] {
+  pointer-events: none;
+}
+.rp-stage__target {
+  color: var(--sidelight, var(--color-coral));
+}
+@property --rp-trace-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.rp-trace-beam {
+  --rp-trace-tone: var(--sidelight, var(--color-coral));
+  --rp-trace-dim: color-mix(in srgb, var(--rp-trace-tone) 15%, transparent);
+  --rp-trace-hot: color-mix(
+    in srgb,
+    var(--rp-trace-tone) 35%,
+    var(--color-cream)
+  );
+  position: absolute;
+  z-index: 1;
+  box-sizing: content-box;
+  margin: calc(var(--u) * -0.75);
+  padding: calc(var(--u) * 0.75);
+  border-radius: var(--radius-inset);
+  background: color-mix(in srgb, var(--rp-trace-tone) 6%, transparent);
+  background-clip: content-box;
+  pointer-events: none;
+}
+.rp-trace-beam__ring {
+  position: absolute;
+  inset: 0;
+  padding: calc(var(--u) * 0.375);
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--rp-trace-angle),
+    var(--rp-trace-dim),
+    var(--rp-trace-dim) 70%,
+    var(--rp-trace-tone) 86%,
+    var(--rp-trace-hot) 90%,
+    var(--rp-trace-dim) 94%
+  );
+  mask:
+    linear-gradient(var(--color-ground) 0 0) content-box,
+    linear-gradient(var(--color-ground) 0 0);
+  mask-composite: exclude;
+  animation: rp-trace-orbit var(--dur-loader-sweep) linear infinite;
+}
+.rp-trace-beam[data-state="picked"] .rp-trace-beam__ring {
+  padding: 0;
+  border: var(--border-hair) dashed
+    color-mix(in srgb, var(--rp-trace-tone) 85%, transparent);
+  background: none;
+  mask: none;
+  animation: none;
+}
+.rp-trace-beam__tag {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + var(--u));
+  max-width: max(100%, calc(var(--s12) * 5));
+  padding: calc(var(--u) * 0.75) var(--s2);
+  overflow: hidden;
+  border: var(--border-hair) solid var(--rp-trace-tone);
+  border-radius: var(--radius-inset);
+  background: var(--color-ground);
+  color: var(--rp-trace-hot);
+  font-family: var(--font-mono);
+  font-size: var(--text-size-badge);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+@keyframes rp-trace-orbit {
+  to {
+    --rp-trace-angle: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-trace-beam__ring {
+    padding: 0;
+    border: var(--border-hair) solid var(--rp-trace-tone);
+    background: none;
+    mask: none;
+    animation: none;
+  }
+}
+.rp-marks {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.rp-marks__mark {
+  position: absolute;
+  width: var(--mark-size);
+  height: var(--mark-size);
+}
+.rp-marks__mark::before,
+.rp-marks__mark::after {
+  content: "";
+  position: absolute;
+  background: var(--color-ghost);
+}
+.rp-marks__mark::before {
+  left: 50%;
+  top: 0;
+  width: var(--border-hair);
+  height: 100%;
+}
+.rp-marks__mark::after {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: var(--border-hair);
+}
+.rp-marks__mark[data-at="tl"] {
+  top: var(--mark-inset);
+  left: var(--mark-inset);
+}
+.rp-marks__mark[data-at="tr"] {
+  top: var(--mark-inset);
+  right: var(--mark-inset);
+}
+.rp-marks__mark[data-at="bl"] {
+  bottom: var(--mark-inset);
+  left: var(--mark-inset);
+}
+.rp-marks__mark[data-at="br"] {
+  bottom: var(--mark-inset);
+  right: var(--mark-inset);
+}
+.rp-marks__ruler {
+  position: absolute;
+  left: calc(var(--u) * 10);
+  right: calc(var(--u) * 10);
+  height: var(--ruler-h);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-line-2) 0 var(--border-hair),
+    transparent var(--border-hair) var(--ruler-step)
+  );
+}
+.rp-marks__ruler[data-at="top"] {
+  top: var(--s3);
+}
+.rp-marks__ruler[data-at="bottom"] {
+  bottom: var(--s3);
+}
+.rp-marks__label {
+  position: absolute;
+  top: 50%;
+  font-family: var(--font-mono);
+  font-size: var(--eyebrow-size);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-ghost);
+  white-space: nowrap;
+}
+.rp-marks__label[data-at="start"] {
+  left: var(--s3);
+  transform: translate(-50%, -50%) rotate(-90deg) translateY(50%);
+}
+.rp-marks__label[data-at="end"] {
+  right: var(--s3);
+  transform: translate(50%, -50%) rotate(90deg) translateY(50%);
+}
+.rp-mark {
+  position: relative;
+  width: var(--ark-mark-size, calc(var(--u) * 7.5));
+  height: var(--ark-mark-size, calc(var(--u) * 7.5));
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: currentColor;
+}
+.rp-mark svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  stroke: none;
+}
+.rp-mark__cube {
+  fill: var(--ark-emblem-cream);
+}
+.rp-mark__globe {
+  fill: var(--ark-emblem-globe);
+  fill-opacity: var(--ark-emblem-globe-opacity, 0.4);
+  transition: fill-opacity var(--dur-disclosure) var(--ease-analog);
+}
+.rp-mark[data-variant="cream"] .rp-mark__globe {
+  fill: var(--ark-emblem-cream);
+}
+.rp-mark[data-variant="mono"] .rp-mark__cube,
+.rp-mark[data-variant="mono"] .rp-mark__globe {
+  fill: currentColor;
+}
+.rp-mark[data-state="active"] .rp-mark__globe {
+  fill-opacity: 0.68;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-mark__globe {
+    transition: none;
+  }
+}
+[data-edge="agent"] {
+  --panel-edge: var(--edge-agent);
+  --ph-rgb: var(--ph-rgb-agent);
+}
+[data-edge="gate"] {
+  --panel-edge: var(--edge-gate);
+  --ph-rgb: var(--ph-rgb-gate);
+}
+[data-edge="error"] {
+  --panel-edge: var(--edge-error);
+  --ph-rgb: var(--ph-rgb-error);
+}
+[data-edge="ok"] {
+  --panel-edge: var(--edge-ok);
+  --ph-a: 0;
+}
+:where([data-photons]) {
+  position: relative;
+}
+:where([data-photons])::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--ph-x);
+  width: var(--ph-w);
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--ph-rgb), calc(var(--ph-s) * var(--ph-a))),
+    transparent 75%
+  );
+}
+.ph-cv {
+  position: absolute;
+  top: 0;
+  left: var(--ph-x);
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  display: block;
+}
+.rp-menu__item[data-highlighted]::before,
+.rp-accordion__trigger:not(:disabled):hover::before,
+.rp-accordion__trigger:focus-visible::before,
+.rp-accordion[data-open="true"]
+  > .rp-accordion__heading
+  > .rp-accordion__trigger::before {
+  opacity: 1;
+}
+.rp-menu__item .rp-ripple {
+  mask-image: var(--aura-falloff);
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rp-disclosure-item-in {
+    from {
+      opacity: 0;
+      transform: translateY(calc(-1 * var(--s2)));
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .rp-fluid__option,
+  .rp-fluid__rule {
+    animation: rp-disclosure-item-in var(--dur-disclosure-item)
+      var(--ease-disclosure) backwards;
+    animation-delay: min(
+      calc(var(--disclosure-index, 0) * var(--disclosure-stagger-step)),
+      var(--disclosure-stagger-cap)
+    );
+  }
+}
+/* Bandit (SH-02, Phosphor Lite), preview copy of the @ryozan/ui tokens from the Shell Inventory page */
+:root[data-shell="bandit"]{--color-ground:#0a0c12;--color-surface:#12151d;--color-surface-2:#181c26;--color-line:#232937;--color-line-2:#303849;--color-bone:#ebe5d6;--color-dim:#a9adba;--color-ghost:#737a8c;--color-patina:#93cf8a;--color-ember:#e2a74c;--color-rust:#d4553b;--color-moss:#93ad8c;--color-coral:#d9573c;--color-seal:#c9a24b;--color-cream:#ebe5d6;--rp-accent:var(--color-coral);--rp-accent-ink:#0a0c12;--panel-edge:#303849;--beam-rgb:147,207,138;--font-display:"Space Grotesk","Inter",ui-sans-serif,sans-serif;--radius-widget:10px;--shadow-cast:0 6px 18px rgba(0,0,0,.45);--bloom-patina:none;--bloom-bone:none;--bloom-ember:none;--bloom-rust:none}
+</style>
+<style>
+/* Holodex UI Lab layout. Surfaces, controls and states are the @ark/ui parts above, copied unchanged;
+   this block only arranges them, mirrors apps/web-console/app/interface-lab, and every value resolves to a token. */
+:root { color-scheme: dark; }
+html, body { height: 100%; }
+body { background: var(--color-ground); color: var(--text-body); font-family: var(--font-ui); font-size: var(--text-size-body); }
+* { box-sizing: border-box; }
+body { padding-block: var(--s3); padding-left: max(var(--s4), env(safe-area-inset-left, 0px)); padding-right: max(var(--s4), env(safe-area-inset-right, 0px)); }
+.lab { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); min-width: 0; padding: var(--pad-surface); padding-inline-start: calc(var(--pad-surface) + var(--panel-edge-w)); }
+.lab-header, .lab-actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s3); min-width: 0; }
+.lab-header { justify-content: space-between; }
+.lab-actions { align-items: center; }
+.lab .lab-frame { height: max(calc(var(--s12) * 11), calc(100dvh - var(--s12) * 4)); }
+.lab-canvas { display: grid; grid-template-rows: minmax(60%, 1fr) auto; gap: var(--s3); height: 100%; min-height: 0; padding-right: var(--s3); }
+.lab-stage { min-height: 0; }
+[hidden]:not([hidden=until-found i]) { display: none !important; }
+/* Stage surface: one token step above color-ground, with the viewport vignette. The dot grid lives on the board only. */
+.lab-stage .rp-stage { background-color: var(--color-surface); background-image: none; }
+.lab-stage .rp-stage::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-radius: inherit; background: radial-gradient(ellipse at center, transparent 20%, color-mix(in srgb, var(--color-ground) 30%, transparent) 60%, color-mix(in srgb, var(--color-ground) 72%, transparent) 100%); box-shadow: var(--edge-vignette); }
+.lab-stage .rp-stage__board { background-color: var(--color-ground); background-image: radial-gradient(color-mix(in srgb, var(--color-bone) 16%, transparent) var(--grid-dot, calc(var(--u) / 4)), transparent calc(var(--grid-dot, calc(var(--u) / 4)) * 1.5)); background-size: var(--grid-pitch, calc(var(--u) * 5.5)) var(--grid-pitch, calc(var(--u) * 5.5)); }
+.lab-stage .rp-trace-beam, .lab-stage .rp-stage__label, .lab-stage .rp-stage__readout, .lab-stage .rp-marks { z-index: 2; }
+.lab-page { position: absolute; box-shadow: var(--shadow-cast); border-radius: var(--radius-widget); }
+.lab-hud { position: absolute; z-index: 3; top: var(--s2); right: calc(var(--s8) + var(--s2)); }
+.lab-empty { display: grid; align-content: center; justify-items: start; gap: var(--s3); height: 100%; padding: var(--s6); max-width: calc(var(--s12) * 12); cursor: default; }
+.lab-side { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--s3); height: 100%; min-height: 0; padding: var(--s3); padding-inline-start: var(--s4); }
+.lab-sidehead { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-width: 0; }
+.lab-column { display: grid; align-content: start; gap: var(--s3); min-height: 0; min-width: 0; overflow-y: auto; }
+#side-thread { display: flex; flex-direction: column; }
+#side-thread > .rp-gala-thread, #thread-more { flex: 0 0 auto; }
+.lab-facts { display: grid; gap: var(--s2); min-width: 0; }
+.lab-heading { margin: 0; color: var(--text-body); font-family: var(--font-display); font-size: var(--text-size-section); overflow-wrap: anywhere; }
+.lab-note { margin: 0; color: var(--color-dim); font-family: var(--font-body); font-size: var(--text-size-body); line-height: 1.5; overflow-wrap: anywhere; }
+.lab-list { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--u) var(--s3); margin: 0; font-family: var(--font-mono); font-size: var(--text-size-data); }
+.lab-list dt { color: var(--color-ghost); }
+.lab-list dd { margin: 0; color: var(--color-bone); overflow-wrap: anywhere; }
+.lab-count { color: var(--color-ghost); font-family: var(--font-mono); font-size: var(--text-size-caption); }
+.lab-swatch { display: block; width: var(--s3); height: var(--s3); border: var(--border-hair) solid var(--color-line-2); border-radius: calc(var(--u) * 0.75); }
+.lab-tweaks { display: grid; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.lab-tweaks li { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); color: var(--color-dim); font-family: var(--font-mono); font-size: var(--text-size-data); overflow-wrap: anywhere; }
+.lab-tweaks b { color: var(--color-patina); font-weight: 400; }
+.lab-tile { position: absolute; overflow: hidden; border-radius: var(--radius-inset); background: var(--color-surface); }
+.lab-tile[data-dim] { opacity: 0.3; }
+.lab-render { display: block; width: 100%; height: 100%; user-select: none; }
+.lab-source { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); min-width: 0; }
+.lab-cards { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.lab-brief { margin: 0; color: var(--color-dim); font-family: var(--font-mono); font-size: var(--text-size-caption); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Window head, the way a Holodex window wears it: ArkMark, a mono eyebrow, and the title in the UI face. */
+.lab-title { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
+.lab-titletext { display: grid; gap: var(--u); min-width: 0; }
+.lab-h1 { margin: 0; color: var(--color-bone); font: 800 var(--text-size-section)/1.2 var(--font-ui); overflow-wrap: anywhere; }
+.lab-inventory { display: grid; gap: var(--s6); min-width: 0; }
+.lab-row { display: grid; gap: var(--s2); min-width: 0; }
+.lab-row > .rp-eyebrow { margin: 0; font-weight: 400; }
+.lab-shelf { display: flex; flex-wrap: wrap; gap: var(--s4); min-width: 0; }
+/* The blueprint that rolls between a folder and the stage. */
+.lab-roll { position: fixed; z-index: 50; pointer-events: none; border: var(--border-hair) solid var(--color-line); border-radius: var(--radius-btn); background-color: var(--color-ground); background-image: radial-gradient(color-mix(in srgb, var(--color-bone) 16%, transparent) calc(var(--u) / 4), transparent calc(var(--u) * 0.375)); background-size: calc(var(--u) * 5.5) calc(var(--u) * 5.5); box-shadow: inset var(--panel-edge-w) 0 0 var(--edge-agent), var(--shadow-cast); transition: left var(--dur-bloom) var(--ease-analog), top var(--dur-bloom) var(--ease-analog), width var(--dur-bloom) var(--ease-analog), height var(--dur-bloom) var(--ease-analog), opacity var(--dur-disclosure) var(--ease-analog); }
+
+/* FolderPocket (CP-36, Concept), built to its Shell Inventory entry: folder-tab back with a token contour field, sheets,
+   and a smoked-glass front on a bottom hinge with the LW-01 edge and a bone rim. Geometry is the entry's own
+   (340 by 272, radius 22, 30px fan at 8deg, 16deg lean); every colour is a token. States here: entering, rest, hover,
+   focus, more, and open as the edge turning patina before the roll. */
+.fp-slot { --fp-s: 0.62; width: calc(340px * var(--fp-s)); height: calc(336px * var(--fp-s)); flex: none; }
+.fp { --px: 0; --py: 0; --ease: var(--ease-analog); --spring: var(--ease-spring, cubic-bezier(.34, 1.36, .5, 1)); --hinge: 0deg; --edge: var(--color-line-2); --glow: 0; position: relative; width: 340px; height: 336px; transform: scale(var(--fp-s)); transform-origin: 0 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+.fp[data-hover] { --hinge: -16deg; }
+.fp[data-open] { --edge: color-mix(in srgb, var(--color-patina) 85%, transparent); --glow: 1; }
+.fp-stage { position: absolute; left: 0; top: 64px; width: 340px; height: 272px; }
+.fp-folder { position: absolute; inset: 0; }
+.fp-tilt { position: absolute; inset: 0; transform: perspective(1400px) rotateX(calc(var(--py) * -3deg)) rotateY(calc(var(--px) * 4deg)); transition: transform .9s var(--ease); }
+.fp-shadow { position: absolute; left: 18px; right: 18px; bottom: -8px; height: 60px; border-radius: 40px; background: color-mix(in srgb, black 70%, transparent); filter: blur(22px); transform: translateX(calc(var(--px) * -8px)); transition: transform .9s var(--ease), opacity .9s var(--ease); }
+.fp-back { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(180deg, var(--color-skeleton), var(--color-surface)); transform-origin: 50% 100%; }
+.fp-art { position: absolute; left: -12px; top: -12px; width: 364px; height: 296px; transform: translate(calc(var(--px) * -7px), calc(var(--py) * -6px)); transition: transform 1.1s var(--ease), opacity 1.2s var(--ease); opacity: 0; }
+.fp-art[data-ready] { opacity: 1; }
+.fp-back-eb { position: absolute; right: 22px; top: 12px; font: 500 10px var(--font-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--color-ghost); }
+.fp-rim { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; fill: none; }
+.fp-back-rim { width: 340px; height: 272px; transform-origin: 50% 100%; }
+.fp-back-rim path { stroke: var(--color-line-2); stroke-width: 1; }
+.fp-files { position: absolute; inset: 0; z-index: 5; pointer-events: none; clip-path: inset(-400px -400px 10px -400px); }
+.fp-sh { box-sizing: border-box; position: absolute; left: 92px; top: 78px; width: 156px; height: 204px; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, var(--color-skeleton), var(--color-surface-2)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-bone) 8%, transparent), 0 0 0 1px var(--color-line-2), 0 20px 40px color-mix(in srgb, black 50%, transparent); transform-origin: 50% 100%; transform: translate(var(--rx), var(--ry)) rotate(var(--rr)) scale(var(--ts)); transition: transform .62s var(--spring) var(--dl, 0ms), translate .9s var(--ease), opacity .9s var(--ease); }
+.fp[data-hover] .fp-sh { transform: translate(var(--hx), var(--hy)) rotate(var(--hr)) scale(var(--ts)); }
+.fp-sh.art { background: var(--color-ground); }
+.fp-sh.art::before { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 90% at 22% 70%, color-mix(in srgb, var(--color-patina) 42%, transparent), transparent 62%), radial-gradient(60% 80% at 82% 30%, color-mix(in srgb, var(--color-ember) 34%, transparent), transparent 60%); }
+.fp-sh.more { background: var(--color-surface); border: 1px dashed var(--color-ghost); display: grid; place-items: center; }
+.fp-big { font: 900 34px var(--font-display); color: var(--color-bone); }
+.fp-hd { position: absolute; left: 14px; right: 14px; top: 11px; z-index: 1; display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.fp-nm { overflow: hidden; text-overflow: ellipsis; font: 600 12px var(--font-mono); letter-spacing: .04em; color: var(--color-bone); }
+.fp-mt { font: 500 9.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--color-ghost); }
+.fp-sh.art .fp-mt { color: var(--color-dim); }
+.fp-sh.more .fp-nm { color: var(--color-patina); }
+.fp-ln { position: absolute; left: 14px; right: 14px; top: 44px; display: flex; flex-direction: column; gap: 9px; }
+.fp-ln i { display: block; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--color-bone) 7%, transparent); }
+.fp-ln i:first-child { height: 9px; margin-bottom: 4px; background: color-mix(in srgb, var(--color-bone) 13%, transparent); }
+.fp-front { position: absolute; left: 0; top: 74px; width: 340px; height: 198px; z-index: 10; color: var(--color-bone); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); transform-origin: 50% 100%; transform: perspective(760px) rotateX(var(--hinge)); transition: transform .8s var(--spring), translate 1s var(--ease), opacity .5s var(--ease); }
+.fp-tint { position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 20%, transparent) 0%, color-mix(in srgb, var(--color-surface) 66%, transparent) 46%, color-mix(in srgb, var(--color-ground) 95%, transparent) 100%); }
+.fp-edge { position: absolute; left: 0; top: 0; bottom: 0; width: var(--panel-edge-w); background: var(--edge); transition: background .18s var(--ease); box-shadow: 0 0 calc(var(--glow) * 12px) color-mix(in srgb, var(--color-patina) calc(var(--glow) * 50%), transparent); }
+.fp-wash { position: absolute; left: 0; top: 0; bottom: 0; width: 60px; background: linear-gradient(90deg, color-mix(in srgb, var(--color-patina) 16%, transparent), transparent); opacity: var(--glow); transition: opacity .3s var(--ease); }
+.fp-spec { position: absolute; inset: 0; background: radial-gradient(260px 200px at calc(50% + var(--px) * 46%) calc(30% + var(--py) * 40%), color-mix(in srgb, var(--color-cream) 55%, transparent), transparent 70%); mix-blend-mode: screen; opacity: .13; pointer-events: none; }
+.fp-front-rim { width: 340px; height: 198px; opacity: .5; }
+.fp-front-rim path { stroke-width: 2.2; transition: stroke-width .3s var(--ease); }
+.fp-hit { all: unset; position: absolute; inset: 0; z-index: 1; cursor: pointer; }
+.fp-front:has(.fp-hit:focus-visible) .fp-front-rim { opacity: 1; color: var(--color-patina); }
+.fp-front:has(.fp-hit:focus-visible) .fp-front-rim path { stroke-width: 3; }
+.fp-lbl { position: absolute; left: 28px; right: 20px; bottom: 30px; z-index: 2; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.fp-ttl { font: 900 24px/1.05 var(--font-display); letter-spacing: -.01em; color: var(--color-bone); overflow-wrap: anywhere; }
+.fp-meta { font: 500 12px var(--font-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--color-dim); }
+.fp:not([data-entered]) .fp-back, .fp:not([data-entered]) .fp-back-rim { translate: 0 22px; opacity: 0; }
+.fp:not([data-entered]) .fp-sh { translate: 0 -140px; opacity: 0; }
+.fp:not([data-entered]) .fp-front { translate: 0 46px; opacity: 0; }
+.fp:not([data-entered]) .fp-shadow { opacity: 0; }
+.fp-back, .fp-back-rim { transition: translate 1s var(--ease) calc(var(--fp-i) * 60ms), opacity .5s var(--ease) calc(var(--fp-i) * 60ms); }
+.fp[data-entered] .fp-front { transition-delay: 0s, calc(.3s + var(--fp-i) * 60ms), calc(var(--fp-i) * 60ms); }
+@media (prefers-reduced-motion: reduce) { .fp *, .fp *::before, .fp *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation: none !important; } .fp-tilt { transform: none; } .lab-roll { display: none; } }
+@media (max-width: 55rem) { .lab-canvas { padding-right: 0; } .fp-slot { --fp-s: 0.46; } .lab-hud { right: var(--s2); } }
+</style>
+
+<section class="rp-panel lab" id="lab" aria-label="UI Lab">
+  <div class="lab-header">
+    <div class="lab-title"><span class="rp-mark" role="img" aria-label="Ark Omnitek" data-state="active"><svg aria-hidden="true" viewBox="0 0 2000 2000"><g class="rp-mark__cube"><path d="M915.1 40.6A169.85 169.85 0 0 1 1084.9 40.6L1788.4 446.8A169.85 169.85 0 0 1 1873.3 593.9L1873.3 1406.1A169.85 169.85 0 0 1 1788.4 1553.2L1084.9 1959.4A169.85 169.85 0 0 1 915.1 1959.4L211.6 1553.2A169.85 169.85 0 0 1 126.7 1406.1L126.7 593.9A169.85 169.85 0 0 1 211.6 446.8L915.1 40.6ZM260.5 531.4A72.15 72.15 0 0 0 224.4 593.9L224.4 1406.1A72.15 72.15 0 0 0 260.5 1468.6L963.9 1874.8A72.15 72.15 0 0 0 1036.1 1874.8L1739.5 1468.6A72.15 72.15 0 0 0 1775.6 1406.1L1775.6 593.9A72.15 72.15 0 0 0 1739.5 531.4L1036.1 125.2A72.15 72.15 0 0 0 963.9 125.2L260.5 531.4Z"/><path d="M167.31 575.66L340.04 675.38A48.85 48.85 0 0 0 388.89 590.77L216.16 491.04A48.85 48.85 0 0 0 167.31 575.66Z"/><path d="M1783.84 491.04L1611.11 590.77A48.85 48.85 0 0 0 1659.96 675.38L1832.69 575.66A48.85 48.85 0 0 0 1783.84 491.04Z"/><path d="M1048.85 1933.3L1048.85 1733.85A48.85 48.85 0 0 0 951.15 1733.85L951.15 1933.3A48.85 48.85 0 0 0 1048.85 1933.3Z"/></g><path class="rp-mark__globe" d="M1554.08 839.08L1559.88 860.68L1566.38 890.18L1571.28 919.38L1574.78 949.48L1576.58 979.58L1576.98 1000.28L1576.18 1030.48L1573.78 1060.58L1569.88 1089.98L1564.38 1119.68L1557.38 1149.08L1550.88 1171.38L1542.08 1197.58L1530.98 1225.68L1518.48 1253.18L1504.78 1279.48L1489.48 1305.48L1478.18 1322.88L1460.98 1346.98L1442.18 1370.68L1422.18 1393.28L1400.98 1414.88L1385.88 1428.98L1362.88 1448.58L1338.88 1466.98L1314.48 1483.78L1296.98 1494.68L1270.68 1509.58L1243.58 1522.98L1215.88 1535.08L1187.58 1545.58L1159.28 1554.58L1139.28 1559.88L1109.78 1566.38L1080.58 1571.28L1050.48 1574.78L1020.38 1576.58L999.68 1576.98L969.48 1576.18L939.38 1573.78L909.98 1569.88L880.28 1564.38L850.88 1557.38L821.88 1548.78L802.38 1542.08L774.28 1530.98L746.78 1518.48L720.48 1504.78L694.48 1489.48L669.28 1472.78L652.48 1460.68L628.88 1441.78L606.28 1421.78L585.08 1400.98L570.98 1385.88L551.38 1362.88L533.38 1339.38L516.18 1314.48L505.28 1296.98L490.38 1270.68L476.98 1243.58L465.08 1216.38L454.48 1188.08L445.38 1159.28L437.78 1130.08L433.58 1109.78L428.68 1080.58L425.18 1050.48L423.38 1020.38L423.08 990.18L424.38 959.98L426.18 939.38L430.08 909.98L435.58 880.28L442.58 850.88L449.08 828.58L457.88 802.38L468.98 774.28L481.48 746.78L495.18 720.48L505.58 702.58L521.78 677.08L539.28 652.48L558.18 628.88L577.78 606.68L598.98 585.08L621.28 564.68L637.08 551.38L661.08 532.98L685.48 516.18L702.98 505.28L729.28 490.38L756.38 476.98L783.58 465.08L811.88 454.48L840.68 445.38L869.88 437.78L890.18 433.58L919.98 428.58L949.98 425.18L979.58 423.38L1009.78 423.08L1039.98 424.38L1060.58 426.18L1090.48 430.08L1119.68 435.58L1149.08 442.58L1178.08 451.18L1206.48 461.18L1225.68 468.98L1253.18 481.48L1279.48 495.18L1297.38 505.58L1322.88 521.78L1347.48 539.28L1370.68 557.78L1393.28 577.78L1414.88 598.98L1435.28 621.28L1448.58 637.08L1466.58 660.58L1483.78 685.48L1494.68 702.98L1509.58 729.28L1522.78 755.88L1534.88 783.58L1545.48 811.88ZM805.28 555.38L794.38 571.98L786.08 586.88L778.28 602.98L770.98 620.38L764.38 638.78L758.38 658.38L752.98 678.98L748.28 700.48L744.38 722.98L739.38 762.18L737.38 786.58L736.18 811.68L735.98 860.18L777.68 848.38L817.68 835.28L858.18 820.48L898.78 804.08L938.98 786.38L978.38 767.38L1016.38 747.58L1056.48 724.68L1022.38 690.08L992.08 662.28L961.88 637.28L926.08 611.18L896.98 592.88L879.98 583.48L863.38 575.28L836.78 564.38L821.68 559.48ZM676.38 873.88L675.78 846.38L675.98 819.08L678.08 774.08L682.68 730.28L689.48 688.78L698.48 649.78L707.48 619.58L720.58 585.28L734.28 556.48L718.38 566.38L696.08 581.68L674.58 598.18L660.78 609.78L647.38 621.88L628.08 640.88L609.78 660.78L592.58 681.68L576.48 703.48L561.58 725.98L547.78 749.38L539.38 765.28L527.68 789.68L517.28 814.68L508.28 840.18L504.38 854.88L504.38 860.08L505.88 864.48L509.08 868.28L514.68 872.28L521.58 875.58L530.78 878.58L542.28 881.18L552.18 882.58L579.48 884.18L606.98 883.18L637.78 880.08ZM488.28 926.18L484.98 954.88L483.28 981.98L482.98 999.98L484.28 1036.08L487.98 1071.98L494.28 1107.48L500.58 1133.78L505.58 1151.18L511.18 1168.28L520.58 1193.68L526.38 1207.28L530.38 1212.88L535.68 1217.68L543.48 1222.58L551.08 1226.08L560.38 1229.28L571.08 1232.08L583.28 1234.38L611.78 1237.18L645.18 1237.28L676.38 1235.38L710.28 1231.38L749.78 1224.88L739.28 1196.98L726.98 1160.38L715.78 1123.08L705.98 1085.18L697.48 1046.88L690.28 1008.58L684.58 970.08L680.48 934.08L651.28 938.78L622.18 942.18L594.58 943.88L568.88 943.98L544.88 942.18L523.58 938.58L503.48 932.88ZM739.48 921.28L740.88 934.88L746.58 980.28L754.38 1025.88L762.18 1062.18L771.18 1098.18L784.18 1142.38L795.88 1176.88L809.18 1211.98L866.08 1196.68L925.58 1177.78L986.18 1155.88L1038.18 1134.88L1089.68 1112.18L1148.28 1083.78L1204.48 1053.78L1256.98 1022.98L1240.78 989.58L1223.68 957.18L1205.38 924.98L1185.98 893.28L1165.68 862.08L1144.38 831.68L1122.28 802.18L1096.78 770.38L1057.88 793.18L1012.08 817.68L970.98 837.68L922.18 859.28L872.68 879.08L830.18 894.38L781.48 909.78ZM1280.88 1078.68L1249.78 1097.08L1217.48 1115.18L1158.38 1145.78L1097.18 1174.68L1034.58 1201.28L980.78 1221.88L935.88 1237.58L883.08 1254.18L833.78 1267.68L848.68 1296.88L864.78 1325.48L881.68 1352.48L899.08 1377.58L916.98 1400.68L935.18 1421.78L953.68 1440.58L972.18 1457.08L1015.18 1445.78L1054.78 1433.58L1095.08 1419.68L1135.78 1403.98L1182.88 1383.98L1235.58 1358.98L1285.88 1332.38L1330.58 1305.98L1330.18 1283.58L1327.98 1257.68L1324.28 1230.38L1318.78 1201.88L1311.68 1172.28L1302.98 1141.68L1292.68 1110.48ZM1318.38 1382.88L1282.58 1402.38L1248.78 1419.38L1214.38 1435.58L1172.38 1453.88L1136.98 1467.98L1108.58 1478.58L1073.48 1490.58L1044.68 1499.68L1057.38 1503.38L1073.88 1506.38L1089.68 1507.18L1104.98 1505.98L1125.08 1501.58L1151.18 1494.38L1176.78 1485.78L1201.98 1475.88L1226.58 1464.68L1242.68 1456.48L1266.28 1443.18L1284.88 1431.18L1294.28 1422.88L1302.88 1412.68L1310.48 1400.48ZM1388.78 1339.88L1388.68 1340.88L1390.68 1338.58ZM1389.08 1266.18L1407.98 1251.78L1428.68 1234.58L1443.38 1221.18L1459.28 1204.98L1472.38 1189.78L1482.48 1175.78L1489.58 1163.28L1494.58 1150.38L1503.68 1116.28L1510.58 1080.88L1514.18 1053.98L1516.68 1017.98L1516.68 981.98L1514.98 954.88L1510.58 919.08L1504.98 889.18L1491.48 907.38L1475.98 925.68L1458.18 944.58L1437.98 963.88L1416.18 982.98L1386.48 1006.88L1360.38 1026.28L1332.28 1045.78L1343.08 1073.48L1352.28 1099.08L1362.78 1132.18L1369.78 1157.18L1377.48 1189.08L1382.18 1213.08L1386.78 1243.38ZM1307.68 989.88L1319.08 982.08L1343.88 963.88L1366.78 945.98L1397.58 919.48L1411.28 906.58L1427.48 889.88L1447.58 866.18L1455.58 855.08L1464.08 841.28L1468.98 831.78L1473.38 820.48L1475.58 810.98L1476.08 803.38L1475.38 797.58L1469.08 783.88L1457.38 761.08L1448.88 746.28L1435.08 724.58L1425.28 710.48L1404.08 683.48L1386.88 664.28L1374.78 651.88L1349.28 628.48L1322.08 606.88L1291.48 586.08L1284.18 602.28L1272.98 620.78L1259.08 639.28L1242.48 657.98L1223.48 676.88L1202.08 695.88L1178.38 714.88L1147.38 737.48L1169.78 765.58L1193.08 796.58L1215.28 828.38L1236.68 861.08L1257.08 894.48L1276.28 928.28L1294.18 962.38ZM907.78 518.58L891.28 522.18L920.48 537.18L946.38 552.78L972.58 570.38L998.98 590.18L1025.18 611.58L1051.18 634.78L1076.98 659.58L1107.88 691.88L1132.58 674.28L1155.08 656.78L1175.28 639.58L1195.98 619.78L1212.78 601.18L1225.28 584.18L1233.48 569.48L1237.78 556.78L1215.48 546.88L1198.98 540.48L1173.88 531.78L1156.78 526.78L1130.88 520.28L1113.48 516.78L1078.08 511.38L1051.28 508.88L1033.38 507.98L1006.38 507.78L988.38 508.38L961.38 510.38L943.38 512.48ZM772.88 1464.38L783.18 1468.68L793.48 1471.58L809.38 1474.18L824.28 1475.38L840.98 1475.68L859.38 1475.08L899.28 1471.08L880.88 1450.98L865.38 1432.28L850.48 1412.88L831.58 1385.58L817.58 1363.48L800.08 1333.18L787.28 1308.98L773.88 1281.38L749.28 1285.98L718.38 1290.88L688.78 1294.38L660.88 1296.68L634.18 1297.58L614.78 1297.28L596.58 1296.28L574.58 1293.68L592.58 1318.28L615.78 1345.88L640.88 1371.88L660.78 1390.18L681.68 1407.38L710.88 1428.58L741.48 1447.68Z"/></svg></span><div class="lab-titletext"><span class="rp-eyebrow" id="eyebrow">ARKSTATION // UI LAB</span><h1 class="lab-h1" id="title">Inventory</h1></div></div>
+    <div class="lab-actions" id="actions"></div>
+  </div>
+
+  <div class="lab-inventory" id="inventory"></div>
+
+  <section class="rp-workspace-frame lab-frame" id="frame" hidden data-layout="editor" data-has-tools="false" data-inspector-hidden="false">
+    <div class="rp-workspace-frame__canvas">
+      <div class="lab-canvas">
+        <div class="lab-stage" id="stagehost"></div>
+        <div class="lab-source" id="source" role="status"></div>
+      </div>
+    </div>
+    <aside class="rp-workspace-frame__inspector" id="inspector" aria-label="Smith thread, inspector and layers">
+      <div class="lab-side">
+        <div class="lab-sidehead"><div id="sideswitch"></div><button type="button" class="rp-btn rp-icon-btn" data-icon="close" id="side-close" aria-label="Close the inspector" title="Close the inspector"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg></button></div>
+        <div class="lab-column" id="side-thread">
+          <div class="rp-gala-thread" data-variant="panel">
+            <header><span class="rp-eyebrow">Smith</span><h2 id="t-title">Smith thread</h2></header>
+            <div class="rp-gala-thread__activity"><div class="rp-gala-thread__messages" id="msgs" role="log" aria-label="Smith conversation" aria-live="polite"></div></div>
+            <div class="rp-gala-thread__feedback" id="feedback"></div>
+            <form id="composer">
+              <label for="ask">Message Smith</label>
+              <textarea id="ask" maxlength="12000" rows="3" placeholder="Say what should change. The surface, the picked element and your pending tweaks go with it."></textarea>
+              <div class="rp-gala-thread__composer-actions">
+                <button type="button" class="rp-btn" id="mission">Run as mission</button>
+                <button type="submit" class="rp-btn" id="send" aria-label="Send">Send</button>
+              </div>
+            </form>
+          </div>
+          <div id="thread-more"></div>
+        </div>
+        <div class="lab-column" id="side-inspect" hidden></div>
+        <div class="lab-column" id="side-layers" hidden></div>
+      </div>
+    </aside>
+  </section>
+</section>
+
+<script>
+const SIZES = {"ainbox-captured": [680, 754], "ainbox-drag": [680, 294], "ainbox-review": [680, 788], "ainbox-stack": [680, 788], "ainbox": [680, 294], "cursor-morph-sheet": [880, 160], "dialog-command-approval": [620, 330], "dialog-kit-import": [660, 440], "dialog-shell-on": [660, 330], "holodex-ainbox": [560, 696], "holodex-codex-entry": [560, 696], "holodex-codex": [560, 696], "holodex-conversation": [560, 696], "holodex-first-steps": [560, 696], "holodex-grimx": [560, 696], "holodex-mods": [560, 696], "holodex": [560, 696], "hud-answer": [560, 676], "hud-asking": [560, 489], "hud-failed": [560, 550], "hud": [560, 344], "kit-ai-approvals": [560, 563], "kit-ai-components": [560, 788], "menu-grab-from-the-screen": [399, 171], "menu-models": [399, 483], "menu-mouse-speed": [399, 291], "menu-pointer-look": [399, 201], "menu-pointer-shape": [399, 267], "menu-pointer-size": [399, 171], "menu-pointer-tilt": [399, 171], "menu-settings": [399, 453], "menu-signed-in": [399, 141], "menu-spell-orb": [399, 357], "menu-spells-you-draw": [399, 267], "menu-tray-grab-from-the-screen": [455, 275], "menu-tray-models": [455, 587], "menu-tray-mouse-speed": [455, 395], "menu-tray-pointer-look": [455, 305], "menu-tray-pointer-shape": [455, 371], "menu-tray-pointer-size": [455, 275], "menu-tray-pointer-tilt": [455, 275], "menu-tray-settings": [455, 557], "menu-tray-signed-in": [455, 245], "menu-tray-spell-orb": [455, 461], "menu-tray-spells-you-draw": [455, 371], "menu-tray-vr-headset": [455, 490], "menu-tray-your-mouse": [455, 251], "menu-tray": [455, 530], "menu-vr-headset": [399, 386], "menu-your-mouse": [399, 147], "menu": [399, 426], "pc-setup": [680, 760], "snip-answer": [760, 640], "snip": [760, 640], "station-live": [984, 680], "station": [1044, 788], "toast-crafted": [400, 110], "toast-cursor-profile": [400, 94], "toast-cursor-shown": [400, 94], "toast-error": [400, 110], "toast-gateway": [400, 127], "toast-ghosttrailer": [400, 94], "toast-info": [400, 110], "toast-intake": [400, 110], "toast-success": [400, 94], "toast-vr-mode": [400, 110], "toast-warning": [400, 110], "tutorial": [540, 300], "vault-catalog": [720, 680], "vault": [720, 442], "wiz-agent": [620, 644], "wiz": [620, 494]};
+const TOKENS = [{"name": "color-ground", "value": "#050607", "file": "colors.css", "note": "matte field / page background"}, {"name": "color-surface", "value": "#121212", "file": "colors.css", "note": "panels"}, {"name": "color-surface-2", "value": "#161616", "file": "colors.css", "note": "inset cells"}, {"name": "color-line", "value": "#262626", "file": "colors.css", "note": "panel borders"}, {"name": "color-line-2", "value": "#333331", "file": "colors.css", "note": "dividers, controls"}, {"name": "color-bone", "value": "#dad1b9", "file": "colors.css", "note": "primary text \u2014 dimmed again per operator 2026-09-02, was #EAE1C9, before that #EFE9DB"}, {"name": "color-dim", "value": "#a6a398", "file": "colors.css", "note": "secondary text"}, {"name": "color-ghost", "value": "#6b6a62", "file": "colors.css", "note": "labels, tertiary"}, {"name": "color-plate", "value": "#ccc4ad", "file": "colors.css", "note": "cream print surface \u2014 the one light object; re-split from bone per operator 2026-09-02, was #EAE1C9"}, {"name": "color-plate-ink", "value": "#232220", "file": "colors.css", "note": "ink on plate"}, {"name": "color-plate-rust", "value": "#c24b2a", "file": "colors.css", "note": "accent on cream plate"}, {"name": "color-ember", "value": "#d99a4e", "file": "colors.css", "note": "warning \u00b7 gates (warm) \u2014 never primary buttons"}, {"name": "color-patina", "value": "#79c4b7", "file": "colors.css", "note": "live \u00b7 focus \u00b7 agent edge (cool)"}, {"name": "color-rust", "value": "#c25b38", "file": "colors.css", "note": "error \u00b7 interrupt"}, {"name": "color-moss", "value": "#8fae8c", "file": "colors.css", "note": "ok \u00b7 unlit by law"}, {"name": "color-rust-ink", "value": "#e08a6a", "file": "colors.css", "note": "light rust text on dark panels: stopped, failed, removed lines (added 2026-10-27)"}, {"name": "color-coral", "value": "#d98a63", "file": "colors.css", "note": "warm primary accent \u00b7 CREATE energy"}, {"name": "color-brick", "value": "#b14e33", "file": "colors.css", "note": "deep vermilion \u00b7 headers, seals"}, {"name": "color-army", "value": "#77785a", "file": "colors.css", "note": "muted olive \u00b7 calm warm tile"}, {"name": "color-seal", "value": "#c9a24b", "file": "colors.css", "note": "aged gold \u00b7 stamps, crests, DISTRIBUTE"}, {"name": "color-cream", "value": "#e4d9c0", "file": "colors.css", "note": "warm paper \u00b7 text on warm fills"}, {"name": "color-accent-ink", "value": "#201a12", "file": "colors.css", "note": "ink on warm fills"}, {"name": "ark-emblem-cream", "value": "#e4d9c0", "file": "colors.css", "note": "cube outline, stubs, cream globe variant"}, {"name": "ark-emblem-globe", "value": "#66ffcd", "file": "colors.css", "note": "primary green globe"}, {"name": "ark-emblem-globe-opacity", "value": "0.4", "file": "colors.css", "note": ""}, {"name": "ark-emblem-tile", "value": "#141414", "file": "colors.css", "note": "icon tile ground, used on light backgrounds"}, {"name": "ark-emblem-globe-solid", "value": "#35725e", "file": "colors.css", "note": "green at 0.4 flattened on the tile, for outputs without opacity"}, {"name": "ark-emblem-chassis-dark", "value": "#121212", "file": "colors.css", "note": "cube chassis on light-toned surfaces; the chassis is never a color"}, {"name": "color-patina-bright", "value": "#8ff2d8", "file": "colors.css", "note": ""}, {"name": "color-skeleton", "value": "#1c1c1b", "file": "colors.css", "note": "skeleton loader bars, between line and ground (added 2026-10-27)"}, {"name": "u", "value": "4px", "file": "spacing.css", "note": ""}, {"name": "s2", "value": "8px", "file": "spacing.css", "note": ""}, {"name": "s3", "value": "12px", "file": "spacing.css", "note": ""}, {"name": "s4", "value": "16px", "file": "spacing.css", "note": ""}, {"name": "s5", "value": "20px", "file": "spacing.css", "note": ""}, {"name": "s6", "value": "24px", "file": "spacing.css", "note": ""}, {"name": "s8", "value": "32px", "file": "spacing.css", "note": ""}, {"name": "s12", "value": "48px", "file": "spacing.css", "note": ""}, {"name": "radius-widget", "value": "18px", "file": "spacing.css", "note": "panels, plates"}, {"name": "radius-btn", "value": "14px", "file": "spacing.css", "note": "controls"}, {"name": "radius-tile", "value": "13px", "file": "spacing.css", "note": "warm accent tiles"}, {"name": "radius-badge", "value": "10px", "file": "spacing.css", "note": "badges, triage tags"}, {"name": "radius-inset", "value": "8px", "file": "spacing.css", "note": "media and canvas corners inside a panel (added 2026-10-27)"}, {"name": "radius-menu-closed", "value": "8px", "file": "spacing.css", "note": "FluidSelect trigger at rest; morphs to --radius-menu-open (operator morph, restored 2026-10-27)"}, {"name": "radius-menu-open", "value": "12px", "file": "spacing.css", "note": ""}, {"name": "border-hair", "value": "1px", "file": "spacing.css", "note": "every hairline border"}, {"name": "focus-ring", "value": "2px", "file": "spacing.css", "note": "focus outline width"}, {"name": "focus-offset", "value": "3px", "file": "spacing.css", "note": "focus outline offset"}, {"name": "led-size", "value": "9px", "file": "spacing.css", "note": "Led light"}, {"name": "dot-size", "value": "6px", "file": "spacing.css", "note": "lifecycle and step dots"}, {"name": "z-overlay-top", "value": "2147483647", "file": "spacing.css", "note": "the one topmost overlay layer (scroll affordance)"}, {"name": "dur-bloom", "value": "480ms", "file": "spacing.css", "note": ""}, {"name": "dur-disclosure", "value": "240ms", "file": "spacing.css", "note": ""}, {"name": "dur-disclosure-item", "value": "180ms", "file": "spacing.css", "note": ""}, {"name": "disclosure-stagger-step", "value": "12ms", "file": "spacing.css", "note": ""}, {"name": "disclosure-stagger-cap", "value": "60ms", "file": "spacing.css", "note": ""}, {"name": "dur-pulse", "value": "3500ms", "file": "spacing.css", "note": ""}, {"name": "dur-caret", "value": "1100ms", "file": "spacing.css", "note": ""}, {"name": "dur-cadence-dots", "value": "1400ms", "file": "spacing.css", "note": ""}, {"name": "dur-cadence-arc", "value": "1600ms", "file": "spacing.css", "note": ""}, {"name": "dur-loader-sweep", "value": "2200ms", "file": "spacing.css", "note": ""}, {"name": "dur-shuffle", "value": "16800ms", "file": "spacing.css", "note": ""}, {"name": "dur-step", "value": "320ms", "file": "spacing.css", "note": "step reveal in packs"}, {"name": "dur-sweep", "value": "3400ms", "file": "spacing.css", "note": ""}, {"name": "dur-seam", "value": "4800ms", "file": "spacing.css", "note": ""}, {"name": "touch-min", "value": "44px", "file": "spacing.css", "note": ""}, {"name": "ribbon-h", "value": "52px", "file": "spacing.css", "note": ""}, {"name": "rail-w", "value": "236px", "file": "spacing.css", "note": ""}, {"name": "station-rail-width", "value": "155px", "file": "spacing.css", "note": ""}, {"name": "station-rail-collapsed-width", "value": "60px", "file": "spacing.css", "note": ""}, {"name": "station-context-width", "value": "352px", "file": "spacing.css", "note": ""}, {"name": "station-header-height", "value": "60px", "file": "spacing.css", "note": ""}, {"name": "eyebrow-size", "value": "12px", "file": "typography.css", "note": ""}, {"name": "eyebrow-tracking", "value": "0.12em", "file": "typography.css", "note": ""}, {"name": "text-size-section", "value": "16px", "file": "typography.css", "note": "compact section headings"}, {"name": "text-size-body", "value": "13px", "file": "typography.css", "note": "operational descriptions"}, {"name": "text-size-data", "value": "12px", "file": "typography.css", "note": "mono telemetry / LED labels"}, {"name": "text-size-badge", "value": "10px", "file": "typography.css", "note": "lifecycle badges, triage tags"}, {"name": "text-size-btn", "value": "12px", "file": "typography.css", "note": "button label (uppercase, 0.16em)"}, {"name": "text-size-micro", "value": "8px", "file": "typography.css", "note": "accent tile labels"}, {"name": "text-size-caption", "value": "11px", "file": "typography.css", "note": "card meta and hints"}, {"name": "text-size-lead", "value": "14px", "file": "typography.css", "note": "card titles in agent cards"}, {"name": "text-size-value", "value": "22px", "file": "typography.css", "note": "accent tile values"}];
+const TUNABLE = ["dur-disclosure","dur-disclosure-item","dur-bloom","holodex-tip-dwell","holodex-tip-gap","holodex-tip-shift","holodex-tip-from-scale","holodex-select-radius-closed","holodex-select-radius-open","holodex-select-gap","holodex-select-row","holodex-select-chevron","holodex-select-stagger","holodex-turn-shift","holodex-reduced-motion","color-coral"];
+const REPO = "GalaAI/holodex";
+const HM = "Hivemind";
+
+const SURF_GROUPS = [
+  ["Drawer", k => k.startsWith("holodex")], ["HUD", k => k.startsWith("hud")], ["Wiz", k => k.startsWith("wiz")],
+  ["AInbox", k => k.startsWith("ainbox")], ["Vault", k => k.startsWith("vault")], ["Lasso and picker", k => k.startsWith("snip")],
+  ["Mouse Mod Station", k => k.startsWith("station") || k === "cursor-morph-sheet"], ["PC setup", k => k === "pc-setup"],
+  ["Dialogs and tour", k => k.startsWith("dialog") || k === "tutorial"], ["Card kit", k => k.startsWith("kit-")],
+  ["Toasts", k => k.startsWith("toast-")], ["Right-click menu", k => k.startsWith("menu") && !k.startsWith("menu-tray")], ["Tray menu", k => k.startsWith("menu-tray")],
+];
+const ALL = Object.keys(SIZES);
+const surfaceGroup = k => (SURF_GROUPS.find(([, f]) => f(k)) || ["Other"])[0];
+const has = (...pre) => k => pre.some(p => k.startsWith(p));
+
+// Components and effects, each with the tokens it is built from and the renders that show it.
+const COMPONENTS = [
+  { id: "button", name: "Button", cls: "PhosphorButton", tokens: ["radius-btn","touch-min","text-size-btn","color-bone","color-line-2","border-hair"], on: has("holodex","hud","wiz","vault","dialog","tutorial","station","ainbox","kit-","pc-setup","snip") },
+  { id: "card", name: "Card", cls: "ThreadView card", tokens: ["radius-tile","color-surface-2","color-line","s3","text-size-body","color-patina","color-coral"], on: has("holodex","kit-","wiz","vault-catalog","hud-","ainbox-review","station") },
+  { id: "chip", name: "Model chip", cls: "ModelChip / SuggestionChip", tokens: ["radius-inset","text-size-data","color-dim","color-ember"], on: has("hud","wiz","snip") },
+  { id: "field", name: "Composer field", cls: "PromptTextBox / PhosphorField", tokens: ["radius-tile","color-surface-2","color-line-2","text-size-body","color-ghost"], on: has("hud","wiz","vault","ainbox","snip","holodex-grimx") },
+  { id: "rail", name: "Rail", cls: "RailButton / RailMark", tokens: ["color-surface","color-line","radius-btn","touch-min"], on: has("holodex","station") },
+  { id: "led", name: "LED row", cls: "LedRow", tokens: ["led-size","dot-size","text-size-data","color-patina","color-ember","color-ghost"], on: has("holodex","hud","ainbox","station","snip","wiz") },
+  { id: "toast", name: "Toast", cls: "PhosphorToast", tokens: ["radius-widget","color-surface","eyebrow-size","eyebrow-tracking","text-size-body"], on: has("toast-") },
+  { id: "menu", name: "Tray menu", cls: "TrayPage", tokens: ["radius-menu-open","text-size-body","text-size-data","color-dim","color-patina"], on: has("menu") },
+  { id: "select", name: "Fluid select", cls: "PhosphorFluidSelect", tokens: ["holodex-select-radius-closed","holodex-select-radius-open","holodex-select-gap","holodex-select-row","holodex-select-chevron","holodex-select-stagger","color-coral"], on: has("hud","wiz") },
+  { id: "dialog", name: "Approval dialog", cls: "CommandApprovalForm / CursorModConfirmForm", tokens: ["radius-widget","color-surface","color-line-2","text-size-body"], on: has("dialog") },
+  { id: "tip", name: "Tooltip", cls: "PhosphorTips", tokens: ["holodex-tip-dwell","holodex-tip-gap","holodex-tip-shift","holodex-tip-from-scale"], on: has("tutorial") },
+  { id: "window", name: "Window frame", cls: "WidgetChrome", tokens: ["radius-widget","color-surface","color-line-2","eyebrow-size","eyebrow-tracking","s3"], on: () => true },
+];
+const EFFECTS = [
+  { id: "aura", name: "Highlight Aura", note: "The coral glow that glides between rows and marks the active choice.", tokens: ["color-coral","holodex-select-stagger"], on: has("hud","wiz","station","holodex") },
+  { id: "sidelight", name: "Sidelight edge", note: "The 3 px patina or coral edge on windows and cards that says live or create.", tokens: ["color-patina","color-coral","color-ember"], on: has("holodex","wiz","kit-","toast-","tutorial","snip") },
+  { id: "bloom", name: "Bloom", note: "How a window opens (SurfaceMotion.Present).", tokens: ["dur-bloom"], on: () => true },
+  { id: "disclosure", name: "Disclosure", note: "How rows enter: the beat, each item, and the stagger.", tokens: ["dur-disclosure","dur-disclosure-item","disclosure-stagger-step","disclosure-stagger-cap"], on: has("menu","hud","wiz") },
+  { id: "cadence", name: "Cadence and pulse", note: "Waiting dots, arcs, caret and loader sweep.", tokens: ["dur-cadence-dots","dur-cadence-arc","dur-caret","dur-pulse","dur-loader-sweep"], on: has("hud-asking","kit-ai-components","holodex-grimx") },
+  { id: "turn", name: "Tray page turn", note: "The slide between tray menu pages.", tokens: ["holodex-turn-shift","dur-step"], on: has("menu") },
+  { id: "focus", name: "Focus ring", note: "Keyboard focus on every control.", tokens: ["focus-ring","focus-offset","color-patina"], on: () => true },
+  { id: "motion", name: "Reduced motion", note: "Holodex's own reduced-motion switch.", tokens: ["holodex-reduced-motion"], on: () => true },
+];
+// Audit findings tied to renders (from docs/UI_AUDIT.md, run 42855962149).
+const FINDINGS = {
+  "holodex": [["D1","defect","Escape did not close the drawer. Fixed in #17."],["A1","ask","Devpost judges line in the first step."]],
+  "holodex-mods": [["D2","defect","Profile panel covered the Mods list. Fixed in #18."]],
+  "holodex-grimx": [["D3","defect","Profile panel covered the Spells composer. Fixed in #18."]],
+  "holodex-codex": [["D4","defect","POINT AT UI (CTRL+ALT+E) filled its button. Fixed in #18."]],
+  "tutorial": [["D5","defect","Cramped action button; “your  Mouse”. Fixed in #18."]],
+  "hud": [["D6","defect","Hint cut to ENTER… Fixed in #18."]],
+  "station-live": [["D7","defect","Page heading said INPUT STUDIO. Fixed in #19."],["A3","ask","The Cursor Mod page keeps Input Studio's look."]],
+  "toast-crafted": [["D8","defect","Stale Input Studio copy. Fixed in #19."]],
+  "toast-cursor-profile": [["D8","defect","Stale Input Studio copy. Fixed in #19."]],
+  "menu-signed-in": [["A2","ask","Shows the raw railway.app host."]],
+  "menu-models": [["A5","ask","Raw model ids in mixed case."]],
+  "snip": [["P1","polish","Inspector card runs past its outline."]],
+  "station": [["P2","polish","SPEED 10 OF 20 above its label."],["C3","gap","WebView pane is black offscreen."]],
+  "kit-ai-approvals": [["P3","polish","First SKIP is wider."]],
+  "wiz-agent": [["P4","polish","Scrolled list cuts a card with no fade."]],
+  "pc-setup": [["C1","gap","Drawn before any scan."]],
+};
+const FLOWS = [
+  ["edit", "Edit Holodex code", true], ["build", "Release build", true], ["tests", "Cursor Mod tests", true],
+  ["renders", "UI renders before and after", true], ["audit", "Update docs/UI_AUDIT.md", false], ["graft", "Ship with SolaTree (solatree:graft)", true],
+];
+
+const INV = {"pages": 72, "elements": 1065, "maps": 45};
+// Projects the lab lists, each on the row of its Atlas blueprint deliverable (blueprintDeliverableSchema in
+// packages/lexicon/src/veritas-canon.ts). Only Holodex publishes renders today.
+const BLUEPRINT_ROWS = [["desktop-app", "Desktop App"], ["web-app", "Web App"], ["api-service", "API Service"], ["custom", "Custom"]];
+const PROJECTS = [
+  { id: "holodex", name: "Holodex", row: "desktop-app", type: "Desktop App", repo: "GalaAI/holodex", shell: "phosphor", renders: true, known: "the Hivemind mission repos (GalaAI/holodex)" },
+  { id: "bttco", name: "BTTCO", row: "web-app", type: "Web App", repo: "GalaAI/BTTCO", shell: "phosphor", shellNote: "Vagabond, kept in BTTCO's own repo", known: "the Hivemind mission repos and the Railway project BTTCO" },
+  { id: "ryozan", name: "Ryozan", row: "web-app", type: "Web App", repo: "GalaAI/ryozan", shell: "bandit", known: "the Railway projects ryozan and ryozan-test-studio" },
+  { id: "console", name: "ArkStation Console", row: "web-app", type: "Web App", repo: "GalaAI/ark", shell: "phosphor", known: "apps/web-console in GalaAI/ark and the Railway project ark" },
+  { id: "portal", name: "Hivemind Portal", row: "web-app", type: "Web App", repo: "GalaAI/ark", shell: "phosphor", known: "apps/hivemind-portal in GalaAI/ark and the Railway project hivemind-public" },
+  { id: "hivemind", name: "Hivemind", row: "api-service", type: "API Service", repo: "GalaAI/hivemind", shell: "phosphor", known: "the Hivemind mission repos (GalaAI/hivemind) and the Railway project Hivemind" },
+  { id: "galax", name: "GalaX", row: "custom", type: "Custom", repo: null, shell: "phosphor", known: "the Railway project GalaX; its blueprint type is not recorded" },
+];
+const proj = () => PROJECTS.find(p => p.id === S.project) || PROJECTS[0];
+const hasRenders = () => !!proj().renders;
+const repoName = () => proj().repo || "the project's own repository";
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const MAPS = new Set(["ainbox-captured", "ainbox-drag", "ainbox-review", "ainbox-stack", "ainbox", "dialog-command-approval", "dialog-kit-import", "dialog-shell-on", "holodex-ainbox", "holodex-codex-entry", "holodex-codex", "holodex-conversation", "holodex-first-steps", "holodex-grimx", "holodex-mods", "holodex", "hud-answer", "hud-asking", "hud-failed", "hud", "kit-ai-approvals", "kit-ai-components", "menu-grab-from-the-screen", "menu-models", "menu-mouse-speed", "menu-pointer-look", "menu-pointer-shape", "menu-pointer-size", "menu-pointer-tilt", "menu-settings", "menu-signed-in", "menu-spell-orb", "menu-spells-you-draw", "menu-vr-headset", "menu-your-mouse", "menu", "pc-setup", "snip-answer", "snip", "station", "tutorial", "vault-catalog", "vault", "wiz-agent", "wiz"]);
+const RUN = "43071856814";
+const HX = "host:holodex";
+const AGENT = { claude: "Smith", metis: "Metis", iris: "Iris" };
+const agentLabel = id => AGENT[id] || id || "Agent";
+
+const TOK = Object.fromEntries(TOKENS.map(t => [t.name, t]));
+for (const n of TUNABLE) if (!TOK[n]) TOK[n] = { name: n, value: "", file: "PhosphorTheme (Holodex-local)", note: "Holodex-local metric" };
+const tunable = new Set(TUNABLE);
+const HEXRE = /^#[0-9a-f]{6}$/i, NUMBER = /^(-?\d*\.?\d+)(px|ms|em|rem|s)?$/;
+const isColor = v => HEXRE.test(v || "");
+const kindOf = n => n.startsWith("color-") || n.startsWith("ark-emblem") ? "color" : /^(dur-|disclosure-)/.test(n) || /tip-dwell|stagger|reduced-motion/.test(n) ? "motion" : n.startsWith("text-") || n.startsWith("eyebrow") ? "type" : "metric";
+const TOKEN_KINDS = [["color", "Colour"], ["motion", "Motion"], ["metric", "Metrics"], ["type", "Type"]];
+
+// Browser storage keeps conveniences only: pending tweaks, the focused surface, and which Hivemind session this thread is.
+const store = { get(k, d) { try { const v = localStorage.getItem("uilab:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem("uilab:" + k, JSON.stringify(v)); } catch {} } };
+const S = { view: "inventory", project: null, side: "thread", layer: null, focus: store.get("focus", "holodex"), tweaks: store.get("tweaks", {}), elTweaks: store.get("elTweaks", {}), pick: null, q: "", open: { surfaces: true }, missions: store.get("missions", []), mission: null, sessionId: store.get("sessionId", null), thread: store.get("thread", null), source: "published" };
+if (!SIZES[S.focus]) S.focus = ALL[0];
+const save = () => { store.set("tweaks", S.tweaks); store.set("elTweaks", S.elTweaks); store.set("focus", S.focus); store.set("missions", S.missions); store.set("sessionId", S.sessionId); store.set("thread", S.thread); };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = id => document.getElementById(id);
+const uuid = () => crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+const tokVal = n => TOK[n]?.value ?? "";
+const narrow = () => matchMedia("(max-width: 55rem)").matches;
+
+/* ---------- Shell parts as static markup (same structure and class names as @ark/ui) ---------- */
+const badge = (text, state) => `<span class="rp-badge${state ? " rp-badge--" + state : ""}">${esc(text)}</span>`;
+const life = (state, text) => `<span class="rp-life rp-life--${state}"><i aria-hidden="true"></i>${esc(text || state)}</span>`;
+const led = (state, text) => `<span class="rp-led rp-led--${state}"><i aria-hidden="true"></i>${esc(text)}</span>`;
+const btn = (label, attrs = "", variant = "") => `<button type="button" class="rp-btn${variant ? " rp-btn--" + variant : ""}" ${attrs}>${esc(label)}</button>`;
+const switcher = (label, items, value, attr) => `<div class="rp-context-switcher" role="group" aria-label="${esc(label)}">${items.map(([id, text, off]) => `<button type="button" class="rp-context-switcher__item" ${id === value ? 'data-active="true"' : ""} aria-pressed="${id === value}" ${off ? "disabled" : ""} data-${attr}="${id}"><span>${esc(text)}</span></button>`).join("")}</div>`;
+const row = ({ title, desc, leading, trailing, selected, attrs }) => `<button type="button" class="rp-inspectable-row rp-aura--behind" ${selected ? 'data-selected="true" data-aura="lit" aria-current="true"' : ""} ${attrs || ""}><span class="rp-inspectable-row__leading" ${leading ? "" : 'aria-hidden="true"'}>${leading || ""}</span><span class="rp-inspectable-row__body"><strong>${esc(title)}</strong>${desc ? `<small>${esc(desc)}</small>` : ""}</span>${trailing ? `<span class="rp-inspectable-row__trailing">${trailing}</span>` : ""}</button>`;
+const accordion = (id, title, summary, content) => { const open = !!S.open[id]; return `<section class="rp-accordion" data-open="${open}" data-compact="true"><h3 class="rp-accordion__heading"><button type="button" id="acc-${id}-trigger" class="rp-accordion__trigger rp-aura--behind" aria-expanded="${open}" aria-controls="acc-${id}-body" data-acc="${id}"><span class="rp-accordion__indicator" aria-hidden="true">${open ? "−" : "+"}</span><span class="rp-accordion__identity"><span class="rp-accordion__title">${esc(title)}</span></span>${summary != null ? `<span class="rp-accordion__summary">${esc(summary)}</span>` : ""}</button></h3><section id="acc-${id}-body" class="rp-accordion__body" aria-labelledby="acc-${id}-trigger" aria-hidden="${!open}" ${open ? "" : "inert"}><div class="rp-accordion__content">${content}</div></section></section>`; };
+const textField = (label, value, attrs, hint) => `<label class="rp-field"><span class="rp-field__label">${esc(label)}</span><span class="rp-field__box"><input class="rp-field__input rp-field__input--mono" type="text" value="${esc(value)}" ${attrs}></span>${hint ? `<span class="rp-field__hint">${esc(hint)}</span>` : ""}</label>`;
+const link = url => `<a class="rp-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(url.replace("https://github.com/", ""))}</a>`;
+const note = t => `<p class="lab-note">${esc(t)}</p>`;
+
+/* ---------- layers ---------- */
+function layerTokens(l) { return l ? l.kind === "token" ? [l.id] : (l.kind === "component" ? COMPONENTS : EFFECTS).find(x => x.id === l.id)?.tokens || [] : []; }
+function layerSurfaces(l) { if (!l || l.kind === "token") return null; const x = (l.kind === "component" ? COMPONENTS : EFFECTS).find(y => y.id === l.id); return x ? new Set(ALL.filter(x.on)) : null; }
+const layerName = l => l.kind === "token" ? l.id : (l.kind === "component" ? COMPONENTS : EFFECTS).find(x => x.id === l.id)?.name || l.id;
+function renderLayers() {
+  if (!hasRenders()) { $("side-layers").innerHTML = note(`${proj().name} has no renders yet, so there are no surfaces, components or tokens to list.`); return; }
+  const words = S.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = t => words.every(w => t.toLowerCase().includes(w));
+  const sel = (kind, id) => S.layer?.kind === kind && S.layer.id === id;
+  const layerRow = (kind, id, title, count, leading) => row({ title, leading, trailing: kind === "token" && id in S.tweaks ? badge("changed", "queued") : count != null ? `<span class="lab-count">${count}</span>` : "", selected: sel(kind, id), attrs: `data-layer="${kind}:${esc(id)}"` });
+  const surf = ALL.filter(shown), comps = COMPONENTS.filter(c => shown(c.name + " " + c.cls)), effs = EFFECTS.filter(e => shown(e.name));
+  let html = accordion("surfaces", "Surfaces", surf.length, surf.map(k => row({ title: k, desc: `${SIZES[k][0]} x ${SIZES[k][1]}`, trailing: MAPS.has(k) ? "" : `<span class="lab-count">no map</span>`, selected: S.view === "focus" && S.focus === k, attrs: `data-focus="${k}"` })).join("") || note("No surface matches."));
+  html += accordion("components", "Components", comps.length, comps.map(c => layerRow("component", c.id, c.name, ALL.filter(c.on).length)).join("") || note("No component matches."));
+  html += accordion("effects", "Effects", effs.length, effs.map(e => layerRow("effect", e.id, e.name, ALL.filter(e.on).length)).join("") || note("No effect matches."));
+  for (const [kind, label] of TOKEN_KINDS) {
+    const items = Object.keys(TOK).filter(n => kindOf(n) === kind && shown(n));
+    if (items.length) html += accordion("tokens-" + kind, "Tokens: " + label, items.length, items.map(n => layerRow("token", n, n, tunable.has(n) ? "live" : null, isColor(tokVal(n)) ? `<span class="lab-swatch" style="background:var(--${esc(n)})"></span>` : "")).join(""));
+  }
+  const keep = document.activeElement?.id === "q";
+  $("side-layers").innerHTML = `<div class="rp-search"><div class="rp-search__entry"><label class="rp-field"><span class="rp-field__label">Find a surface, component, effect or token</span><span class="rp-field__box"><input class="rp-field__input" type="search" id="q" value="${esc(S.q)}" autocomplete="off" spellcheck="false"></span></label></div></div>` + html;
+  if (keep) { const q = $("q"); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+
+/* ---------- live app (host:holodex) ---------- */
+// The local MCP server "holodex" answers only inside the Claude desktop app, for the artifact's owner, while Holodex runs with its developer pipe.
+const live = { state: "checking", msg: "", applied: {}, pending: {}, timer: null, busy: false, elProps: {}, note: "" };
+function holodexErr(e) {
+  const c = e?.code;
+  if (c === "server_not_connected") return "The holodex server is not connected in this Claude app.";
+  if (c === "not_in_manifest") return "Holodex is turned off for this page. Allow it from the artifact's Permissions menu.";
+  if (c === "approval_required") return "The Claude app needs your approval for the holodex server.";
+  if (c === "cancelled") return "You declined that change in the Claude app, so nothing was applied.";
+  if (c === "blocked_by_policy") return "Your organization's policy blocks the holodex server.";
+  if (c === "server_unavailable") return "Holodex did not answer in time.";
+  if (c === "tool_error") return String(e.message || "Holodex refused the call.").slice(0, 240);
+  return `The holodex call failed (${c || "error"}).`;
+}
+function renderSource() {
+  if (!hasRenders()) { $("source").innerHTML = led("idle", "No render source") + note(`${proj().name} is known from ${proj().known}.`); return; }
+  const on = live.state === "on";
+  const text = on ? "Live: Holodex on this PC" : live.state === "checking" ? "Checking for Holodex" : live.state === "connecting" ? "Connecting to Holodex" : "Published renders";
+  const detail = on ? live.note : live.state === "error" ? live.msg : live.state === "off" ? `The live app answers only in the Claude desktop app with the holodex server connected. These are the renders of UI renders run ${RUN}.` : "";
+  $("source").innerHTML = led(on ? "live" : live.state === "error" ? "warn" : "idle", text) + (detail ? note(detail) : "") +
+    (on ? switcher("Render source", [["live", "Live"], ["published", "Published"]], S.source, "src") + (S.view === "focus" && S.source === "live" ? btn("Render again", 'id="rerender"') : "") : live.state === "error" ? btn("Connect", 'id="live-go"') : "");
+}
+async function liveConnect() {
+  if (!mcp) return;
+  live.state = "connecting"; renderSource();
+  try {
+    await mcp.callTool(HX, "list_surfaces", {}, { cache: false });
+    live.state = "on"; S.source = "live";
+    try { applyTuning((await mcp.callTool(HX, "tune_get", {}, { cache: false })).payload); } catch {}
+  } catch (e) { live.state = "error"; live.msg = holodexErr(e); S.source = "published"; }
+  renderSource(); showView(); if (S.view === "focus") renderStage(); renderInspect();
+}
+function applyTuning(t) {
+  if (!t || typeof t !== "object") return;
+  for (const [n, v] of Object.entries(t)) {
+    if (!v || typeof v !== "object") continue;
+    tunable.add(n);
+    if (!TOK[n]) TOK[n] = { name: n, value: String(v.value ?? ""), file: "PhosphorTheme (Holodex-local)", note: "Holodex-local metric" };
+    else if (!TOK[n].value && !v.tuned) TOK[n].value = String(v.value ?? "");
+    if (v.tuned) live.applied[n] = String(v.value ?? "");
+  }
+}
+function queueLive(n, v) { if (live.state !== "on" || !tunable.has(n)) return; live.pending[n] = v; clearTimeout(live.timer); live.timer = setTimeout(flushLive, 450); }
+async function flushLive() {
+  if (live.busy) { live.timer = setTimeout(flushLive, 300); return; }
+  const values = live.pending; live.pending = {};
+  if (!Object.keys(values).length) return;
+  live.busy = true;
+  try {
+    const p = (await mcp.callTool(HX, "tune_set", { values })).payload || {};
+    const refused = Array.isArray(p.refused) ? p.refused.filter(Boolean) : [];
+    for (const [n, v] of Object.entries(values)) { if (refused.includes(n)) continue; if (v === null) delete live.applied[n]; else live.applied[n] = String(v); }
+    if (p.tuning) applyTuning(p.tuning);
+    live.note = refused.length ? `Holodex refused ${refused.join(", ")}. Those stay code changes.` : "Applied to the running app.";
+    if (S.view === "focus" && S.source === "live") await loadFocus(true);
+  } catch (e) { live.note = holodexErr(e); }
+  live.busy = false; renderSource(); renderPending();
+}
+async function liveReset() {
+  try { const r = await mcp.callTool(HX, "tune_reset", {}); live.applied = {}; applyTuning(r.payload); live.note = "Live tuning cleared. Every token is back at its shipped value in the app."; if (S.view === "focus" && S.source === "live") await loadFocus(true); }
+  catch (e) { live.note = holodexErr(e); }
+  renderSource(); renderPending();
+}
+
+/* ---------- StageCanvas (CP-24) with inspect mode and TraceBeam (FX-10) ---------- */
+// Same behaviour as @ark/ui StageCanvas: wheel pans, Shift+wheel zooms at the cursor, drag pans, double-click fits,
+// arrows, +, - and 0 from focus, and in inspect mode [ ] step through the elements and Enter picks.
+function makeStage(host, { width, height, label, readout, elements, pickedId, onPick, fill, inspect = true }) {
+  host.innerHTML = `<section class="rp-stage" aria-label="${esc(label)} stage" aria-roledescription="pannable canvas" data-inspect="" tabindex="0"><div class="rp-stage__board" style="width:${width}px;height:${height}px"></div><div class="rp-marks" aria-hidden="true"><i class="rp-marks__mark" data-at="tl"></i><i class="rp-marks__mark" data-at="tr"></i><i class="rp-marks__mark" data-at="bl"></i><i class="rp-marks__mark" data-at="br"></i></div><span class="rp-stage__label">${esc(label)}</span><span class="rp-stage__readout" aria-live="polite"><span class="rp-stage__text"></span><span class="rp-stage__target">Inspect</span><b></b></span><button type="button" class="rp-btn lab-hud" id="hud-back" aria-label="Return to inventory, the previous page">Return to inventory</button></section>`;
+  const el = host.firstElementChild, board = el.querySelector(".rp-stage__board"), marks = el.querySelector(".rp-marks");
+  const st = { el, board, elements: elements || [], picked: pickedId || null, hover: null, view: { x: 0, y: 0, zoom: 1 }, readout: readout || "" };
+  fill(board);
+  const beam = (e, state) => { const v = st.view, s = document.createElement("span"); s.className = "rp-trace-beam"; s.setAttribute("aria-hidden", "true"); s.dataset.state = state; s.style.cssText = `left:${v.x + e.x * v.zoom}px;top:${v.y + e.y * v.zoom}px;width:${Math.max(0, e.w * v.zoom)}px;height:${Math.max(0, e.h * v.zoom)}px`; s.innerHTML = `<span class="rp-trace-beam__ring"></span>${state === "hover" ? `<span class="rp-trace-beam__tag">${esc(e.name)}</span>` : ""}`; return s; };
+  const draw = () => {
+    const v = st.view;
+    // The dot grid belongs to the board, so it stops at the board's edges. Its pitch is kept readable on screen at any zoom.
+    let pitch = 22 * v.zoom; while (pitch < 16) pitch *= 2; while (pitch > 44) pitch /= 2; board.style.setProperty("--grid-pitch", pitch / v.zoom + "px"); board.style.setProperty("--grid-dot", 1 / v.zoom + "px");
+    board.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`;
+    el.querySelectorAll(".rp-trace-beam").forEach(b => b.remove());
+    const pk = st.elements.find(e => e.id === st.picked), hv = st.elements.find(e => e.id === st.hover);
+    if (pk) el.insertBefore(beam(pk, "picked"), marks);
+    if (hv && hv.id !== pk?.id) el.insertBefore(beam(hv, "hover"), marks);
+    el.querySelector(".rp-stage__text").textContent = st.readout;
+    el.querySelector(".rp-stage__target").textContent = (hv || pk)?.name || "Inspect";
+    el.querySelector("b").textContent = `${Math.round(v.zoom * 100)}%`;
+  };
+  // Camera bounds: zoom-out stops at fit-to-board, and no pan, wheel or key can carry the view past the board's edges.
+  const box = () => { const b = el.getBoundingClientRect(); return { w: b.width, h: b.height, m: Math.min(48, b.width / 12) }; };
+  const fitZoom = () => { const b = box(); return Math.max(0.01, Math.min((b.w - b.m * 2) / width, (b.h - b.m * 2) / height, 1)); };
+  const clampView = v => { const b = box(); if (!b.w) return v; const zoom = Math.min(4, Math.max(fitZoom(), v.zoom)); const axis = (pos, size, vp) => size + b.m * 2 <= vp ? (vp - size) / 2 : Math.min(b.m, Math.max(vp - size - b.m, pos)); return { zoom, x: axis(v.x, width * zoom, b.w), y: axis(v.y, height * zoom, b.h) }; };
+  const setView = v => { st.view = clampView(v); draw(); };
+  const fit = () => { const b = box(); if (!b.w) return; const zoom = fitZoom(); setView({ zoom, x: (b.w - width * zoom) / 2, y: (b.h - height * zoom) / 2 }); };
+  const zoomAt = (pt, next) => { const z = Math.min(4, Math.max(fitZoom(), next)), r = z / st.view.zoom; setView({ zoom: z, x: pt.x - (pt.x - st.view.x) * r, y: pt.y - (pt.y - st.view.y) * r }); };
+  const under = ev => { const b = el.getBoundingClientRect(), x = (ev.clientX - b.left - st.view.x) / st.view.zoom, y = (ev.clientY - b.top - st.view.y) / st.view.zoom; let best = null; for (const e of st.elements) { if (x < e.x || y < e.y || x > e.x + e.w || y > e.y + e.h) continue; const d = (e.depth ?? 0) - (best?.depth ?? 0); if (!best || d > 0 || d === 0 && e.w * e.h < best.w * best.h) best = e; } return best; };
+  const under0 = under; const setHover = e => { if (!inspect) return; const id = e?.id ?? null; if (id !== st.hover) { st.hover = id; draw(); } };
+  let drag = null;
+  el.addEventListener("wheel", ev => { ev.preventDefault(); const b = el.getBoundingClientRect(); if (ev.shiftKey || ev.ctrlKey) zoomAt({ x: ev.clientX - b.left, y: ev.clientY - b.top }, st.view.zoom * Math.exp(-(ev.deltaY || ev.deltaX) * 0.0015)); else setView({ ...st.view, x: st.view.x - ev.deltaX, y: st.view.y - ev.deltaY }); }, { passive: false });
+  el.addEventListener("pointerdown", ev => { if (ev.target.closest(".lab-hud, [data-stage-interactive]")) return; drag = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, travel: 0 }; try { el.setPointerCapture(ev.pointerId); } catch {} });
+  el.addEventListener("pointermove", ev => { if (!drag || drag.id !== ev.pointerId) { setHover(under(ev)); return; } const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y; drag = { ...drag, x: ev.clientX, y: ev.clientY, travel: drag.travel + Math.abs(dx) + Math.abs(dy) }; setView({ ...st.view, x: st.view.x + dx, y: st.view.y + dy }); });
+  const end = ev => { const a = drag; if (a?.id !== ev.pointerId) return; drag = null; if (inspect && ev.type === "pointerup" && ev.button === 0 && a.travel <= 4) { const t = under(ev); if (t) onPick(t); } };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  el.addEventListener("pointerleave", () => { if (!drag) setHover(null); });
+  el.addEventListener("contextmenu", ev => ev.preventDefault());
+  el.addEventListener("dblclick", () => { if (!st.hover) fit(); });
+  el.addEventListener("keydown", ev => {
+    if (ev.target !== el) return;
+    const b = el.getBoundingClientRect(), c = { x: b.width / 2, y: b.height / 2 }, k = ev.key, n = st.elements.length;
+    const pan = { ArrowLeft: [48, 0], ArrowRight: [-48, 0], ArrowUp: [0, 48], ArrowDown: [0, -48] }[k];
+    if (n && (k === "[" || k === "]")) { const at = st.elements.findIndex(e => e.id === st.hover), d = k === "]" ? 1 : -1; st.hover = st.elements[at < 0 ? (d > 0 ? 0 : n - 1) : (at + d + n) % n].id; draw(); }
+    else if (k === "Enter" && st.hover) { const h = st.elements.find(e => e.id === st.hover); if (h) onPick(h); }
+    else if (k === "0") fit();
+    else if (pan) setView({ ...st.view, x: st.view.x + pan[0], y: st.view.y + pan[1] });
+    else if (k === "+" || k === "=") zoomAt(c, st.view.zoom * 1.25);
+    else if (k === "-") zoomAt(c, st.view.zoom / 1.25);
+    else return;
+    ev.preventDefault();
+  });
+  st.fit = fit; st.draw = draw;
+  st.set = patch => { Object.assign(st, patch); if (patch.view) st.view = clampView(patch.view); draw(); };
+  fit();
+  return st;
+}
+
+/* ---------- stage: board and focus ---------- */
+let stage = null;
+// The base bitmap for the focused surface, its element map, and where both came from.
+const base = { key: null, src: null, img: null, w: 0, h: 0, map: null, mapState: "none", at: null, err: "", px: null };
+const mapCache = {};
+const curEls = () => base.key === S.focus && base.map ? base.map.elements || [] : [];
+const elById = id => curEls().find(e => e.id === id) || null;
+const elName = e => e.name || String(e.id).split("/").pop() || e.type;
+function boardLayout(rowW = 3200) {
+  const gap = 64, tiles = []; let x = gap, y = gap, rowH = 0, width = 0;
+  for (const k of ALL) { const [w, h] = SIZES[k]; if (x > gap && x + w + gap > rowW) { x = gap; y += rowH + gap; rowH = 0; } tiles.push({ id: k, name: k, x, y, w, h }); x += w + gap; rowH = Math.max(rowH, h); width = Math.max(width, x); }
+  return { width, height: y + rowH + gap, tiles };
+}
+// The board opens at a readable size: rows are as wide as the stage shows at 22%, and the rest pans. 0 or a double-click fits it all.
+const BOARD_ZOOM = 0.22;
+function boardFor(host) { const w = host.getBoundingClientRect().width || 1000; return boardLayout(Math.max(1200, Math.round(w / BOARD_ZOOM))); }
+function renderStage() {
+  renderActions();
+  if (S.view === "inventory") return;
+  if (!hasRenders()) return mountEmptyBoard();
+  if (S.view === "board") {
+    const b = boardFor($("stagehost")), hits = layerSurfaces(S.layer);
+    stage = makeStage($("stagehost"), { width: b.width, height: b.height, label: "Board", readout: hits ? `${hits.size} of ${ALL.length} use it` : `${INV.pages} pages // ${INV.elements} elements // ${COMPONENTS.length} components`, elements: b.tiles, onPick: t => goFocus(t.id),
+      fill: board => { board.innerHTML = b.tiles.map(t => `<div class="lab-tile" ${hits && !hits.has(t.id) ? "data-dim" : ""} style="left:${t.x}px;top:${t.y}px;width:${t.w}px;height:${t.h}px"><img class="lab-render" src="r/${t.id}.png" alt="${esc(t.id)} render" width="${t.w}" height="${t.h}" draggable="false" loading="lazy"></div>`).join(""); } });
+    const sw = stage.el.getBoundingClientRect().width, z = Math.min(1, sw / b.width);
+    stage.set({ view: { zoom: z, x: (sw - b.width * z) / 2, y: 0 } });
+    renderSource(); return;
+  }
+  const want = live.state === "on" && S.source === "live" ? "live" : "published";
+  if (base.key !== S.focus || base.src !== want || !base.img) { mountFocus(); loadFocus(); } else mountFocus();
+  renderSource();
+}
+// A project with no renders gets an honest empty board, the smallest its empty inventory implies.
+function mountEmptyBoard() {
+  const P = proj(), r = $("stagehost").getBoundingClientRect(), m = Math.min(48, r.width / 12);
+  const w = Math.max(240, Math.round(r.width - m * 2)), h = Math.max(200, Math.round(r.height - m * 2));
+  stage = makeStage($("stagehost"), { width: w, height: h, label: P.name, readout: "0 pages // 0 elements // 0 components", elements: [], onPick() {}, inspect: false,
+    fill: board => { board.innerHTML = `<div class="lab-empty" data-stage-interactive>${led("idle", "No renders yet")}<h2 class="lab-heading">${esc(P.name)} has no board</h2>${note(`The UI Lab knows ${P.name} from ${P.known}, but nothing renders its pages here.`)}${note("To add a source, give the project a render job that writes one <page>.png and one <page>.json element map per page, the way Holodex's UI renders workflow does, then publish those files beside this lab.")}<div class="lab-actions">${btn("Ask Smith for a source", 'id="ask-source"')}</div></div>`; } });
+  stage.el.removeAttribute("data-inspect"); stage.el.querySelector(".rp-stage__target").textContent = "";
+  renderSource();
+}
+// A focused page sits on its own board with a gutter, so the board's dot grid shows around it.
+const FOCUS_PAD = 64;
+function mountFocus() {
+  const w = base.key === S.focus && base.w ? base.w : SIZES[S.focus][0], h = base.key === S.focus && base.h ? base.h : SIZES[S.focus][1], P = FOCUS_PAD;
+  stage = makeStage($("stagehost"), { width: w + P * 2, height: h + P * 2, label: S.focus, readout: focusReadout(), elements: curEls().map(e => ({ id: e.id, name: elName(e), x: e.x + P, y: e.y + P, w: e.w, h: e.h, depth: e.depth })), pickedId: S.pick, onPick: e => setPick(e.id),
+    fill: board => { board.innerHTML = `<canvas id="cv" class="lab-render lab-page" style="left:${P}px;top:${P}px;width:${w}px;height:${h}px" width="${w}" height="${h}" aria-label="${esc(S.focus)} render"></canvas>`; } });
+  paint();
+}
+function focusReadout() {
+  if (base.key !== S.focus || !base.img) return "Loading";
+  return `${base.src === "live" ? "Live" : "Published"}${base.mapState === "ok" ? "" : " // No map"}`;
+}
+let loadSeq = 0;
+async function loadFocus(force) {
+  const k = S.focus, seq = ++loadSeq;
+  const want = live.state === "on" && S.source === "live" ? "live" : "published";
+  if (!force) { base.img = null; base.map = null; }
+  base.key = k; base.src = want; base.err = "";
+  let src, map = null, mapState = "none", w = SIZES[k]?.[0], h = SIZES[k]?.[1], err = "";
+  if (want === "live") {
+    try {
+      const r = await mcp.callTool(HX, "render_surface", { name: k }, { cache: false });
+      const im = (r.content || []).find(b => b.type === "image" && typeof b.data === "string");
+      if (!im) throw { code: "tool_error", message: "Holodex returned no image for this surface." };
+      src = `data:${/^image\/[a-z+.-]+$/.test(im.mimeType || "") ? im.mimeType : "image/png"};base64,${im.data}`;
+      const p = r.payload && typeof r.payload === "object" ? r.payload : {};
+      if (p.width > 0 && p.height > 0) { w = p.width; h = p.height; }
+      if (p.map && Array.isArray(p.map.elements)) { map = p.map; mapState = "ok"; } else mapState = "painted";
+    } catch (e) { err = holodexErr(e) + " Showing the published render."; }
+  }
+  if (!src) {
+    src = `r/${k}.png`; w = SIZES[k]?.[0]; h = SIZES[k]?.[1];
+    if (MAPS.has(k)) { try { map = mapCache[k] || (mapCache[k] = await (await fetch(`r/${k}.json`)).json()); mapState = Array.isArray(map?.elements) ? "ok" : "none"; if (mapState !== "ok") map = null; } catch { map = null; mapState = "none"; } }
+  }
+  const img = new Image();
+  await new Promise(res => { img.onload = res; img.onerror = res; img.src = src; });
+  if (seq !== loadSeq || !img.naturalWidth) return;
+  Object.assign(base, { img, w: w || img.naturalWidth, h: h || img.naturalHeight, map, mapState, at: new Date(), err, px: null });
+  if (err) { base.src = "published"; live.note = err; }
+  if (S.pick && !elById(S.pick)) S.pick = null;
+  if (S.view === "focus" && S.focus === k) mountFocus();
+  renderSource(); renderInspect();
+  if (S.pick && live.state === "on" && base.src === "live") readElement(S.pick);
+}
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const toHex = a => "#" + a.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+function recolour(px, w, maps, rect) {
+  const TOL = 46, rows = px.length / 4 / w, x0 = rect ? Math.max(0, rect.x) : 0, y0 = rect ? Math.max(0, rect.y) : 0, x1 = rect ? Math.min(w, rect.x + rect.w) : w, y1 = rect ? Math.min(rows, rect.y + rect.h) : rows;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = (y * w + x) * 4, r = px[i], g = px[i + 1], b = px[i + 2];
+    let best = null, bd = TOL;
+    for (const m of maps) { const d = Math.abs(r - m.a[0]) + Math.abs(g - m.a[1]) + Math.abs(b - m.a[2]); if (d < bd) { bd = d; best = m; } }
+    if (!best) continue;
+    const k = 1 - bd / TOL; px[i] = r + best.d[0] * k; px[i + 1] = g + best.d[1] * k; px[i + 2] = b + best.d[2] * k;
+  }
+}
+const cmap = (a, b) => { a = hex(a); b = hex(b); return { a, d: [b[0] - a[0], b[1] - a[1], b[2] - a[2]] }; };
+// Colour preview: pixels near a tweaked colour move by that change, fading with distance. Tokens already applied in the
+// running app are skipped on a live render, because the app painted them itself.
+function paint() {
+  const cv = $("cv"); if (!cv || !base.img || base.key !== S.focus) return;
+  const { w, h } = base, g = cv.getContext("2d", { willReadFrequently: true });
+  g.clearRect(0, 0, w, h); g.drawImage(base.img, 0, 0, w, h);
+  if (!base.px) { try { base.px = g.getImageData(0, 0, w, h); } catch { base.px = null; } }
+  if (!base.px) return;
+  const maps = Object.keys(S.tweaks).filter(n => isColor(tokVal(n)) && isColor(S.tweaks[n]) && S.tweaks[n].toLowerCase() !== tokVal(n).toLowerCase() && !(base.src === "live" && live.applied[n] === S.tweaks[n])).map(n => cmap(tokVal(n), S.tweaks[n]));
+  const elc = Object.entries(S.elTweaks).filter(([key]) => key.startsWith(S.focus + "|")).map(([key, t]) => [elById(key.slice(S.focus.length + 1)), t]).filter(([e]) => e);
+  if (!maps.length && !elc.some(([, t]) => t.fill || t.ink)) return;
+  const img = new ImageData(new Uint8ClampedArray(base.px.data), w, h);
+  if (maps.length) recolour(img.data, w, maps);
+  for (const [e, t] of elc) { const m = ["fill", "ink"].filter(p => t[p] && isColor(t[p].old) && isColor(t[p].new)).map(p => cmap(t[p].old, t[p].new)); if (m.length) recolour(img.data, w, m, e); }
+  g.putImageData(img, 0, 0);
+}
+function setPick(id) {
+  S.pick = id && elById(id) ? id : null;
+  if (S.pick) { S.layer = null; setSide("inspect"); }
+  stage?.set({ picked: S.pick }); renderInspect(); renderLayers();
+  if (S.pick && live.state === "on" && base.src === "live") readElement(S.pick);
+}
+async function readElement(id) {
+  const key = `${S.focus}|${id}`;
+  try { const r = await mcp.callTool(HX, "element", { surface: S.focus, id }, { cache: false }); if (r.payload && typeof r.payload === "object") { live.elProps[key] = r.payload; if (S.pick === id) renderInspect(); } } catch {}
+}
+// Without the live app, a control's colours are read off the render: the commonest colour in its box is the fill, the commonest one far from it is the ink.
+function sampleColors(e) {
+  if (!base.px) return { fill: "", ink: "" };
+  const d = base.px.data, w = base.w, bins = new Map();
+  const x0 = Math.max(0, e.x), y0 = Math.max(0, e.y), x1 = Math.min(base.w, e.x + e.w), y1 = Math.min(base.h, e.y + e.h);
+  const step = Math.max(1, Math.floor(Math.sqrt((x1 - x0) * (y1 - y0) / 6000)));
+  for (let y = y0; y < y1; y += step) for (let x = x0; x < x1; x += step) { const i = (y * w + x) * 4, key = (d[i] >> 3) << 10 | (d[i + 1] >> 3) << 5 | d[i + 2] >> 3; const b = bins.get(key) || [0, 0, 0, 0]; b[0]++; b[1] += d[i]; b[2] += d[i + 1]; b[3] += d[i + 2]; bins.set(key, b); }
+  const list = [...bins.values()].sort((a, b) => b[0] - a[0]).map(b => ({ n: b[0], c: [b[1] / b[0], b[2] / b[0], b[3] / b[0]] }));
+  if (!list.length) return { fill: "", ink: "" };
+  const bg = list[0]; let fg = null, score = 0;
+  for (const b of list.slice(1)) { const dist = Math.abs(b.c[0] - bg.c[0]) + Math.abs(b.c[1] - bg.c[1]) + Math.abs(b.c[2] - bg.c[2]); if (dist < 90) continue; if (b.n * dist > score) { score = b.n * dist; fg = b; } }
+  return { fill: toHex(bg.c), ink: fg ? toHex(fg.c) : "" };
+}
+
+/* ---------- inspect: one UniversalWidget (CP-25) built from the picked thing's spec ---------- */
+function tokenControl(name) {
+  const cur = tokVal(name).trim();
+  if (HEXRE.test(cur)) return { id: name, label: name, type: "color", value: cur };
+  const m = NUMBER.exec(cur);
+  if (m) { const b = Number(m[1]), unit = m[2] || "", min = unit === "ms" ? Math.min(120, b) : 0, reach = unit === "ms" ? 1000 : unit === "em" || unit === "rem" ? 1 : 64; if (b >= min) return { id: name, label: name, type: "slider", min, max: Math.max(b * 3, reach), step: unit === "ms" ? 10 : Number.isInteger(b) ? 1 : 0.01, value: b, unit }; }
+  return { id: name, label: name, type: "text", value: cur };
+}
+let spec = null;
+function buildSpec() {
+  const e = S.view === "focus" && S.pick ? elById(S.pick) : null;
+  if (e) {
+    const lp = live.elProps[`${S.focus}|${e.id}`] || null, smp = sampleColors(e);
+    const fill = isColor(lp?.backColor) ? lp.backColor.toLowerCase() : smp.fill, ink = isColor(lp?.foreColor) ? lp.foreColor.toLowerCase() : smp.ink;
+    const own = [];
+    if (e.text) own.push({ id: "el-text", label: "Text", type: "text", value: String(e.text) });
+    own.push({ id: "el-w", label: "Width", type: "slider", min: 0, max: Math.max(base.w, e.w), step: 1, value: e.w, unit: "px" }, { id: "el-h", label: "Height", type: "slider", min: 0, max: Math.max(base.h, e.h), step: 1, value: e.h, unit: "px" });
+    if (fill) own.push({ id: "el-fill", label: "Fill", type: "color", value: fill });
+    if (ink) own.push({ id: "el-ink", label: "Ink", type: "color", value: ink });
+    return { title: elName(e).slice(0, 32), component: e.component, element: e, controls: [...own, ...(e.tokens || []).filter(n => TOK[n]).map(tokenControl)] };
+  }
+  if (S.layer) { const toks = layerTokens(S.layer).filter(n => TOK[n]); if (toks.length) return { title: layerName(S.layer).slice(0, 32), component: { token: "Token", component: "Component", effect: "Effect" }[S.layer.kind], controls: toks.map(tokenControl) }; }
+  return null;
+}
+const elKey = () => `${S.focus}|${S.pick}`;
+function widgetValue(c) {
+  if (c.id.startsWith("el-")) { const t = S.elTweaks[elKey()]?.[c.id.slice(3)]; return t ? (c.type === "slider" ? Number(t.new) : t.new) : c.value; }
+  const t = S.tweaks[c.id]; if (t === undefined) return c.value;
+  if (c.type === "slider") { const m = NUMBER.exec(t); return m ? Number(m[1]) : c.value; }
+  return t;
+}
+const valueText = (c, v) => c.type === "slider" ? `${v}${c.unit ?? ""}` : String(v);
+function renderInspect() {
+  const e = S.view === "focus" && S.pick ? elById(S.pick) : null;
+  spec = hasRenders() ? buildSpec() : null;
+  let html = "";
+  if (!hasRenders()) { $("side-inspect").innerHTML = note(`${proj().name} has no renders yet, so there is nothing to pick or tune.`); return; }
+  if (e) {
+    const lp = live.elProps[elKey()] || null;
+    const txt = v => typeof v === "string" ? v : JSON.stringify(v);
+    html += `<div class="lab-facts"><h3 class="lab-heading">${esc(elName(e))}</h3><dl class="lab-list"><dt>Type</dt><dd>${esc(e.type)}</dd><dt>Component</dt><dd>${esc(e.component)}</dd><dt>Box</dt><dd>${e.w} x ${e.h} at ${e.x}, ${e.y}</dd>${lp?.font ? `<dt>Font</dt><dd>${esc(txt(lp.font))}</dd>` : ""}${lp?.padding ? `<dt>Padding</dt><dd>${esc(txt(lp.padding))}</dd>` : ""}<dt>Source</dt><dd>${lp ? "the running app" : "element map, colours sampled"}</dd></dl></div>`;
+  } else if (S.layer) {
+    const hits = layerSurfaces(S.layer);
+    html += `<div class="lab-facts"><h3 class="lab-heading">${esc(layerName(S.layer))}</h3>${note(S.layer.kind === "token" ? (TOK[S.layer.id]?.note || TOK[S.layer.id]?.file || "Holodex token.") : `${S.layer.kind === "component" ? "Component" : "Effect"} on ${hits ? hits.size : 0} of ${ALL.length} surfaces. The board dims the rest.`)}</div>`;
+  } else html += note(S.view === "focus" ? (base.mapState === "ok" ? "Pick a control on the surface, or a component, effect or token under Layers, to get its controls." : (base.mapState === "painted" ? "This surface is painted, not built from controls, so it has no element map." : "No element map for this render yet.") + " Pick a component, effect or token under Layers to get its controls.") : "Focus a surface and pick a control on it, or pick a component, effect or token under Layers, to get its controls.");
+  if (spec) {
+    const st = live.state === "on" && spec.controls.some(c => tunable.has(c.id)) ? "live" : "pending";
+    html += `<div class="rp-panel rp-widget" data-state="${st}" role="group" aria-labelledby="w-title"><header class="rp-widget__head"><span class="rp-widget__title" id="w-title">${esc(spec.title)}</span>${spec.component ? `<span class="rp-widget__meta">${esc(spec.component)}</span>` : ""}<span class="rp-widget__state">${st === "live" ? "Live" : "Pending"}</span></header><div class="rp-widget__rows">${spec.controls.map(c => {
+      const v = widgetValue(c), ch = v !== c.value, id = "w-" + c.id;
+      if (c.type === "text") return `<div class="rp-widget__row" data-row="${esc(c.id)}" ${ch ? 'data-changed=""' : ""}>${textField(c.label, v, `data-w="${esc(c.id)}"`)}</div>`;
+      return `<div class="rp-widget__row" data-row="${esc(c.id)}" ${ch ? 'data-changed=""' : ""}><label class="rp-widget__label" for="${esc(id)}">${esc(c.label)}</label><output class="rp-widget__value" for="${esc(id)}">${esc(valueText(c, v))}</output>${c.type === "slider" ? `<input class="rp-widget__range" id="${esc(id)}" type="range" min="${c.min}" max="${c.max}" step="${c.step ?? 1}" value="${Number(v)}" data-w="${esc(c.id)}">` : `<input class="rp-widget__swatch" id="${esc(id)}" type="color" value="${esc(HEXRE.test(String(v)) ? v : c.value)}" data-w="${esc(c.id)}">`}</div>`;
+    }).join("")}</div><footer class="rp-widget__foot">${btn("Reset", 'id="w-reset"')}${btn("Promote to a PR", 'id="promote"')}</footer></div>`;
+  } else if (e) html += note("The element map lists no tokens for this control.");
+  const f = S.view === "focus" ? FINDINGS[S.focus] || [] : [];
+  if (f.length) html += accordion("findings", "Audit findings", f.length, `<dl class="lab-list">${f.map(([id, , t]) => `<dt>${esc(id)}</dt><dd>${esc(t)}</dd>`).join("")}</dl>`);
+  $("side-inspect").innerHTML = html + `<div class="lab-facts" id="pending"></div>`;
+  renderPending();
+}
+function renderPending() {
+  const host = $("pending"); if (!host) return;
+  const toks = Object.entries(S.tweaks), els = Object.entries(S.elTweaks).flatMap(([key, t]) => Object.entries(t).map(([p, v]) => [key, p, v]));
+  const total = toks.length + els.length;
+  host.innerHTML = `<h3 class="lab-heading">Pending tweaks: ${total}</h3>` + (total ? `<ul class="lab-tweaks">${toks.map(([n, v]) => `<li><span>${esc(n)}: ${esc(tokVal(n) || "(unset)")} to <b>${esc(v)}</b>${live.applied[n] === v ? " (live)" : ""}</span>${btn("Undo", `data-undo="${esc(n)}"`)}</li>`).join("")}${els.map(([key, p, v]) => `<li><span>${esc(key.split("|")[1].split("/").pop())} ${esc(p)}: ${esc(v.old === "" ? "(none)" : v.old)} to <b>${esc(v.new)}</b></span>${btn("Undo", `data-elundo="${esc(key)}" data-p="${esc(p)}"`)}</li>`).join("")}</ul>` : note(live.state === "on" ? "None. Live tokens change the running app as you edit; everything else is held here until Smith ships it." : "None. A tweak is held here and written nowhere until Smith ships it.")) +
+    `<div class="lab-actions">${btn("Clear all", `id="clear" ${total ? "" : "disabled"}`)}${live.state === "on" ? btn("Reset live tuning", 'id="livereset"') : ""}</div>`;
+  const reset = $("w-reset"); if (reset && spec) reset.disabled = !spec.controls.some(c => widgetValue(c) !== c.value);
+}
+function widgetInput(id, raw) {
+  const c = spec?.controls.find(x => x.id === id); if (!c) return;
+  const v = c.type === "slider" ? Number(raw) : String(raw);
+  if (id.startsWith("el-")) {
+    const p = id.slice(3), key = elKey(), t = S.elTweaks[key] || {};
+    if (v === c.value) delete t[p]; else t[p] = { old: String(c.value), new: String(v) };
+    if (Object.keys(t).length) S.elTweaks[key] = t; else delete S.elTweaks[key];
+  } else {
+    const text = valueText(c, v).trim();
+    if (v === c.value || !text) { delete S.tweaks[id]; queueLive(id, null); } else { S.tweaks[id] = text; queueLive(id, text); }
+  }
+  save();
+  const r = document.querySelector(`[data-row="${CSS.escape(id)}"]`);
+  if (r) { r.toggleAttribute("data-changed", widgetValue(c) !== c.value); const o = r.querySelector("output"); if (o) o.textContent = valueText(c, widgetValue(c)); }
+  paint(); renderPending();
+}
+
+/* ---------- Smith thread (GalaThread, panel variant) ---------- */
+const preamble = () => `You are Smith (registry id claude), conducting this ${proj().name} UI Lab thread for Justin.
+Delegate by layer. UI/UX and frontend work goes to Metis (4GE Interface stage). Live-app bridge and gateway work (tools/holodex-mcp, the control pipe, the host MCP server) goes to Iris (middleware). Metis and Iris are draft-only: they propose drafts, you build and ship.
+Build in ${repoName()} (Hivemind missions accept any repo Justin can push to, ark PR #1818). Ship as a draft PR labelled solatree:graft with SolaTree.
+In each reply say who did what (Smith, Metis, Iris) and give the PR link once there is one. Use no em or en dashes.`;
+const flowOn = id => store.get("flow-" + id, FLOWS.find(f => f[0] === id)[2]);
+function brief(ask, first, limit = 7800) {
+  const e = S.pick ? elById(S.pick) : null;
+  const tw = Object.entries(S.tweaks).map(([n, v]) => `- ${n}: ${tokVal(n) || "(unset)"} -> ${v} (${tunable.has(n) ? (live.applied[n] === v ? "live, applied in the running app" : "live, tunable") : "code"}; ${TOK[n]?.file || "PhosphorTheme"})`);
+  const et = Object.entries(S.elTweaks).flatMap(([key, t]) => Object.entries(t).map(([p, v]) => `- ${key.replace("|", " // ")} ${p}: ${v.old === "" ? "(none)" : v.old} -> ${v.new} (code)`));
+  const f = (FINDINGS[S.focus] || []).map(x => `- ${x[0]} ${x[2]}`);
+  const steps = [
+    flowOn("edit") && (hasRenders() ? `Edit: work in ${repoName()} on a new branch from master. Holodex is .NET 10 WinForms; tokens live in PhosphorTokens.cs and PhosphorTheme.cs, components in PhosphorKit.cs, PhosphorComposer.cs and the *Form.cs files.` : `Edit: work in ${repoName()} on a new branch from its default branch.`),
+    flowOn("build") && hasRenders() && "Build: dotnet build Holodex.csproj -c Release (on Linux add -p:EnableWindowsTargeting=true). 0 errors, 0 new warnings.",
+    flowOn("tests") && hasRenders() && "Tests: dotnet test tests/Holodex.Tests with the CI filter (Windows CI runs them).",
+    flowOn("renders") && hasRenders() && "Renders: the UI renders workflow runs on the PR; compare the ui-renders artifact for this surface before and after and say what changed.",
+    flowOn("audit") && hasRenders() && "Audit doc: update docs/UI_AUDIT.md for any finding this closes.",
+    flowOn("graft") && "Ship with SolaTree: open a draft PR labelled solatree:graft. No em or en dashes in copy, commits or the PR.",
+  ].filter(Boolean).map((s, i) => `${i + 1}. ${s}`);
+  const P = proj(); if (!hasRenders()) { const txt = [first ? preamble() + "\n" : "", `Request: ${ask}`, `Project: ${P.name} (${P.type}), repo ${repoName()}. It has no renders in the UI Lab yet.`, steps.length ? `Dev flows ticked:\n${steps.join("\n")}` : "", "Report the branch and the PR link."].filter(Boolean).join("\n"); return txt.slice(0, limit); }
+  const size = base.key === S.focus && base.w ? `${base.w} x ${base.h} px` : `${SIZES[S.focus][0]} x ${SIZES[S.focus][1]} px`;
+  const parts = [
+    first ? preamble() + "\n" : "",
+    `Request: ${ask}`,
+    `Surface: ${S.focus} (${surfaceGroup(S.focus)}), ${size}, ${base.src === "live" && base.key === S.focus ? "seen live from the running app" : `seen as the published render of UI renders run ${RUN}`}.`,
+    e ? `Picked element: ${e.id} // type ${e.type} // component ${e.component} // bounds x ${e.x}, y ${e.y}, w ${e.w}, h ${e.h}${e.text ? ` // text "${String(e.text).slice(0, 120)}"` : ""} // tokens ${(e.tokens || []).join(", ") || "none"}` : S.layer ? `Layer: ${S.layer.kind} ${layerName(S.layer)} (tokens: ${layerTokens(S.layer).join(", ")})` : "",
+    tw.length ? `Pending token tweaks:\n${tw.join("\n")}` : "Pending token tweaks: none",
+    et.length ? `Pending element tweaks:\n${et.join("\n")}` : "",
+    f.length ? `Audit findings on this surface:\n${f.join("\n")}` : "Audit findings on this surface: none",
+    steps.length ? `Dev flows ticked:\n${steps.join("\n")}` : "Dev flows ticked: none (talk it through only)",
+    "Report the branch, the PR link, the build and test result, and the render comparison.",
+  ].filter(Boolean).join("\n");
+  return parts.length > limit ? parts.slice(0, limit - 60) + "\n[brief cut to fit the message limit]" : parts;
+}
+let mcp = null, hm = "checking", polling = null, pollLeft = 0, sending = false, fb = { status: "", error: "" };
+function errText(e) {
+  const c = e?.code, m = String(e?.message || "");
+  if (c === "server_not_connected") return "Hivemind is not connected for you. Add it in claude.ai Settings, Connectors.";
+  if (c === "needs_reauth") return "Hivemind needs signing in again. Reconnect it in claude.ai Settings, Connectors.";
+  if (c === "not_in_manifest" || c === "consent_required") return "Hivemind is turned off for this page. Allow it from the artifact's Permissions menu, then send again.";
+  if (c === "approval_required") return "This needs your approval. Send again and allow the Hivemind call.";
+  if (c === "blocked_by_policy") return "Your organization's policy blocks this Hivemind tool.";
+  if (c === "server_unavailable" || c === "upstream_error") return "Hivemind did not answer in time. It may still have gone through: refresh the session before sending again.";
+  if (c === "tool_error") return /workspaceRepository|enum/i.test(m) ? `Hivemind refused ${repoName()} as the mission repo. This Hivemind may not have the any-repo change yet; send it as a thread message for now. ${m.slice(0, 200)}` : `Hivemind refused it: ${m.slice(0, 300)}`;
+  return `The call failed (${c || "error"}): ${m.slice(0, 200)}`;
+}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Hivemind answers {ok, data, audit}. The session id is looked up by name, never guessed from the first id in the reply.
+function findSessionId(p) { const d = p?.data ?? p ?? {}; for (const c of [d.sessionId, d.session?.id, d.session?.sessionId, p?.sessionId, d.message?.sessionId, d.ask?.sessionId]) if (typeof c === "string" && UUID.test(c)) return c; return null; }
+const sessionOf = p => p?.data?.session || p?.session || null;
+const prLinks = t => [...new Set(String(t || "").match(/https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/g) || [])];
+const lifeState = s => /complete|succe|deliver|done/i.test(s) ? "done" : /fail|error|cancel|refus|timeout/i.test(s) ? "failed" : /run|start|progress|work/i.test(s) ? "running" : /queue|pend|sent|accept/i.test(s) ? "queued" : "idle";
+const missionState = m => String(m.status?.data?.execution?.status || m.status?.data?.status || m.status?.status || m.receipt?.data?.execution?.status || m.receipt?.data?.status || m.receipt?.status || "sent");
+function setFeedback(status, error) { fb = { status: status || "", error: error || "" }; $("feedback").innerHTML = (fb.status ? `<p role="status">${esc(fb.status)}</p>` : "") + (fb.error ? `<p role="alert">${esc(fb.error)}</p>` : ""); }
+function renderThread() {
+  const s = S.thread;
+  $("t-title").textContent = s?.title || "Smith thread";
+  if (s?.messages?.length) {
+    const rec = Object.fromEntries((s.receipts || []).map(r => [r.executionId, r]));
+    $("msgs").innerHTML = s.messages.map(m => {
+      const user = m.role === "user", agent = m.role === "agent", text = String(m.content || "");
+      const shown = user && text.includes("\nSurface: ") ? (text.match(/Request: ([\s\S]*?)\nSurface: /)?.[1] || text) : agent ? `${agentLabel(m.agentId)}: ${text}` : text;
+      const r = m.executionId ? rec[m.executionId] : null, prs = prLinks(text + " " + (r?.result || ""));
+      const cards = (r ? life(lifeState(r.status || ""), r.status || "receipt") : "") + prs.map(link).join("");
+      return `<article data-role="${user ? "user" : agent ? "assistant" : "status"}"><strong>${user ? "You" : agent ? "Smith" : "Mission status"}</strong><p>${esc(shown)}</p>${cards ? `<div class="lab-cards">${cards}</div>` : ""}</article>`;
+    }).join("");
+    $("msgs").scrollTop = $("msgs").scrollHeight;
+  } else $("msgs").innerHTML = `<p>Nothing sent yet. Smith hands UI work to Metis and bridge work to Iris, then builds what they draft and ships it with SolaTree.</p>`;
+  const waiting = !!polling || sending;
+  $("ask").disabled = sending; $("send").disabled = sending; $("send").textContent = sending ? "Working" : "Send"; $("send").setAttribute("aria-label", sending ? "Working" : "Send");
+  $("mission").disabled = sending;
+  if (waiting && !fb.error && !sending) setFeedback("Smith is working", "");
+  renderThreadMore();
+}
+function renderThreadMore() {
+  const s = S.thread, sel = S.missions[S.mission];
+  const flows = FLOWS.filter(f => flowOn(f[0])).length;
+  let html = accordion("brief", "Brief and dev flows", `${flows} of ${FLOWS.length} flows`, FLOWS.map(([id, label]) => `<label class="rp-field rp-field--checkbox"><input class="rp-field__checkbox" type="checkbox" id="flow-${id}" ${flowOn(id) ? "checked" : ""}><span class="rp-field__label">${esc(label)}</span></label>`).join("") + `<p class="lab-brief" id="briefview">${esc(S.open.brief ? brief($("ask").value.trim() || "(your message)", !S.sessionId) : "")}</p>`);
+  html += accordion("session", "Session", hm === "ok" ? (s ? s.status || "open" : "none yet") : hm === "checking" ? "checking" : "Hivemind unavailable", `<dl class="lab-list"><dt>Hivemind</dt><dd>${hm === "ok" ? "connected, asks on first send" : hm === "checking" ? "checking" : hm === "none" ? "not available in this view" : "not connected for you"}</dd><dt>Session</dt><dd>${esc(S.sessionId || "opens with your first message")}</dd></dl><div class="lab-actions">${btn("Refresh", `id="t-refresh" ${mcp && S.sessionId ? "" : "disabled"}`)}${btn("New thread", `id="t-new" ${S.sessionId || s ? "" : "disabled"}`)}${btn("Add note", `id="postnote" title="Adds your draft to the session without giving Smith a turn" ${mcp && S.sessionId ? "" : "disabled"}`)}</div>`);
+  if (S.missions.length) html += accordion("missions", "Missions", S.missions.length, S.missions.map((m, i) => row({ title: m.ask.slice(0, 60), desc: `${m.surface} // ${String(m.at).slice(0, 16).replace("T", " ")}`, trailing: life(lifeState(missionState(m)), missionState(m).slice(0, 16)), selected: S.mission === i, attrs: `data-mission="${i}"` })).join("") +
+    (sel ? `<div class="lab-facts"><dl class="lab-list"><dt>Execution</dt><dd>${esc(sel.id || "none came back")}</dd>${prLinks(JSON.stringify([sel.status, sel.deliver])).map(l => `<dt>PR</dt><dd>${link(l)}</dd>`).join("")}${sel.approvalUrl ? `<dt>Approval</dt><dd><a class="rp-link" href="${esc(sel.approvalUrl)}" target="_blank" rel="noopener">Open the approval</a></dd>` : ""}</dl>${sel.msg ? note(sel.msg) : ""}${textField("Approval id", sel.approvalId || "", `id="mapprove" data-mapprove="${S.mission}"`, "From the Hivemind portal, after you approve the delivery.")}<div class="lab-actions">${btn("Read status", `data-mcall="status" ${sel.id ? "" : "disabled"}`)}${btn("Deliver PR", `data-mcall="deliver" ${sel.id ? "" : "disabled"}`)}${btn("Cancel", `data-mcall="cancel" ${sel.id ? "" : "disabled"}`)}</div></div>` : ""));
+  $("thread-more").innerHTML = html;
+}
+async function refreshThread(quiet) {
+  if (!mcp || !S.sessionId) return;
+  try {
+    const s = sessionOf((await mcp.callTool(HM, "read_session", { sessionId: S.sessionId }, { cache: false })).payload);
+    if (s) { S.thread = { id: s.id, title: s.title, status: s.status, messages: (s.messages || []).slice(-40).map(m => ({ id: m.id, role: m.role, agentId: m.agentId, content: String(m.content || "").slice(0, 9000), createdAt: m.createdAt, executionId: m.executionId })), receipts: (s.receipts || []).slice(-40).map(x => ({ executionId: x.executionId, status: x.status, result: String(x.result || "").slice(0, 2000) })) }; save(); }
+    if (!quiet) setFeedback("", "");
+  } catch (e) { stopPoll(); if (!quiet) setFeedback("", errText(e)); }
+  renderThread();
+}
+function stopPoll() { clearInterval(polling); polling = null; }
+function startPoll() {
+  stopPoll(); pollLeft = 36;
+  polling = setInterval(async () => {
+    if (document.hidden) return;
+    const s = S.thread, last = s?.messages?.[s.messages.length - 1];
+    if (--pollLeft <= 0 || (last && last.role === "agent" && s.status !== "running") || /fail/i.test(s?.status || "")) { stopPoll(); setFeedback(/fail/i.test(s?.status || "") ? "" : s?.status === "paused" ? "Paused for you: reply to continue" : "", /fail/i.test(s?.status || "") ? "Hivemind marks this session as failed. Start a new thread or run it as a mission." : ""); renderThread(); return; }
+    await refreshThread(true);
+  }, 10000);
+}
+// GalaThread contract: a draft needs at least 3 non-space characters, a failed send keeps the draft, and nothing is marked sent that was not.
+function draft() { const t = $("ask").value.trim(); if (t.length < 3) { setFeedback("", "Write the message first."); $("ask").focus(); return ""; } return t; }
+async function send() {
+  const ask = draft(); if (!ask || sending) return;
+  const first = !S.sessionId;
+  if (!mcp) { S.open.brief = true; renderThreadMore(); return setFeedback("", "Hivemind is not reachable from this view, so nothing was sent. The brief is under Brief and dev flows."); }
+  const input = { agentId: "claude", content: brief(ask, first), submissionId: uuid() };
+  const title = `${proj().name} UI Lab // ${hasRenders() ? S.focus : "project"} // ${input.submissionId.slice(0, 8)}`;
+  if (first) input.title = title; else input.sessionId = S.sessionId;
+  sending = true; setFeedback("Sending to Smith", ""); renderThread();
+  try {
+    const r = await mcp.callTool(HM, "ask_agent", input);
+    let id = S.sessionId || findSessionId(r.payload);
+    if (!id) { try { id = ((await mcp.callTool(HM, "list_sessions", {}, { cache: false })).payload?.data?.sessions || []).find(x => x.title === title)?.id || null; } catch {} }
+    if ($("ask").value.trim() === ask) $("ask").value = "";
+    sending = false;
+    if (id) { S.sessionId = id; save(); setFeedback("", ""); await refreshThread(true); const last = S.thread?.messages?.[S.thread.messages.length - 1]; if (!last || last.role !== "agent") startPoll(); }
+    else setFeedback("", "Hivemind took the message but did not say which session it opened. Read the reply in the Hivemind portal.");
+  } catch (e) { sending = false; setFeedback("", errText(e)); }
+  renderThread();
+}
+async function postNote() {
+  const ask = draft(); if (!ask || !mcp || !S.sessionId) return;
+  try { await mcp.callTool(HM, "post_session_message", { sessionId: S.sessionId, submissionId: uuid(), content: brief(ask, false) }); $("ask").value = ""; setFeedback("Note added. Smith reads it on the next turn.", ""); await refreshThread(true); }
+  catch (e) { setFeedback("", errText(e)); }
+}
+async function runMission() {
+  const ask = draft(); if (!ask) return;
+  if (!mcp) return setFeedback("", "Hivemind is not reachable from this view, so no mission was sent.");
+  const input = { objective: brief(ask, true, 19500), targetAgentId: "claude", executionMode: "execute", submissionId: uuid(), taskScope: `${proj().id}-ui-lab-${hasRenders() ? S.focus : "project"}`.slice(0, 160), timeoutSeconds: 1800 };
+  if (proj().repo) input.workspaceRepository = proj().repo;
+  sending = true; setFeedback("Sending the mission", ""); renderThread();
+  try {
+    const p = (await mcp.callTool(HM, "dispatch_agent_mission", input)).payload || {}, d = p.data || p;
+    const id = [d.executionId, d.execution?.executionId, d.execution?.id, d.receipt?.executionId, d.mission?.executionId].find(x => typeof x === "string" && UUID.test(x)) || null;
+    S.missions.push({ id, ask, surface: S.focus, mode: "execute", at: new Date().toISOString(), receipt: p }); S.mission = S.missions.length - 1; S.open.missions = true;
+    save(); $("ask").value = ""; setFeedback(id ? "Mission sent to Smith. Its receipt is under Missions." : "", id ? "" : "Mission sent, but no execution id came back.");
+  } catch (e) { setFeedback("", errText(e)); }
+  sending = false; renderThread();
+}
+async function missionCall(tool) {
+  const m = S.missions[S.mission]; if (!mcp || !m?.id) return;
+  try {
+    if (tool === "status") { m.status = (await mcp.callTool(HM, "agent_mission_status", { executionId: m.id }, { cache: false })).payload; m.msg = "Status read."; }
+    if (tool === "deliver") { const input = { executionId: m.id, graft: true }; if (m.approvalId) input.approvalId = m.approvalId; const p = (await mcp.callTool(HM, "deliver_mission_branch", input)).payload; m.deliver = p; const l = JSON.stringify(p).match(/https:\/\/[^"\s\\]+/); m.approvalUrl = !m.approvalId && l ? l[0] : ""; m.msg = m.approvalId ? "Delivery started. Read status for the PR link." : "Approve the delivery in the Hivemind portal, paste the approval id, then deliver again."; }
+    if (tool === "cancel") { m.status = (await mcp.callTool(HM, "cancel_agent_mission", { executionId: m.id })).payload; m.msg = "Cancel sent."; }
+  } catch (e) { m.msg = errText(e); }
+  save(); renderThreadMore();
+}
+
+/* ---------- inventory: FolderPocket (CP-36, Concept) per project, on blueprint rows ---------- */
+const FP = { back: "M0 56A22 22 0 0 1 22 34L146 34C170 34 172 0 198 0L318 0A22 22 0 0 1 340 22L340 250A22 22 0 0 1 318 272L22 272A22 22 0 0 1 0 250Z", front: "M0 22A22 22 0 0 1 22 0L118 0C144 0 146 32 172 32L318 32A22 22 0 0 1 340 54L340 176A22 22 0 0 1 318 198L22 198A22 22 0 0 1 0 176Z" };
+const tokRgba = (name, a) => { const v = getComputedStyle(document.documentElement).getPropertyValue("--" + name).trim(); const m = /^#([0-9a-f]{6})$/i.exec(v); if (!m) return "transparent"; const n = parseInt(m[1], 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; };
+function fpRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+// Back panel art: the token contour field of the spec (patina and bone lines, a faint ember corner).
+function fpArt(c, seed) {
+  const g = c.getContext("2d"), w = c.width, h = c.height, r = fpRng(seed), ph = [];
+  for (let i = 0; i < 6; i++) ph.push([r() * 6.28, 0.6 + r() * 1.8, 0.4 + r() * 1.4, r() * 6.28]);
+  const f = (x, y) => { let v = 0; for (let i = 0; i < ph.length; i++) { const p = ph[i]; v += Math.sin(x / w * p[1] * 6.28 + p[0] + Math.cos(y / h * p[2] * 6.28 + p[3]) * 1.4) / (i + 1); } return v; };
+  g.fillStyle = tokRgba("color-surface", 1); g.fillRect(0, 0, w, h);
+  const wash = (cx, cy, rad, col) => { const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rad); gr.addColorStop(0, col); gr.addColorStop(1, "transparent"); g.fillStyle = gr; g.fillRect(0, 0, w, h); };
+  wash(w * 0.78, h * 0.12, w * 0.7, tokRgba("color-patina", 0.18)); wash(w * 0.15, h * 0.95, w * 0.6, tokRgba("color-ember", 0.12));
+  for (let lv = 0; lv < 18; lv++) { const k = -1.6 + lv * (3.2 / 18); g.beginPath(); for (let x = 0; x <= w; x += 4) for (let y = 0; y <= h; y += 4) { const a = f(x, y) - k, b = f(x + 4, y) - k; if ((a < 0) !== (b < 0)) { g.moveTo(x, y); g.lineTo(x + 4, y + 1); } } g.strokeStyle = lv % 4 === 0 ? tokRgba("color-patina", 0.3) : tokRgba("color-bone", 0.07); g.lineWidth = 1; g.stroke(); }
+  c.setAttribute("data-ready", "");
+}
+function projectSheets(P) {
+  if (!P.renders) return [];
+  const groups = SURF_GROUPS.map(([n]) => [n, ALL.filter(k => surfaceGroup(k) === n).length]).filter(g => g[1]);
+  // More state: six or more files show four and a +N more sheet.
+  return groups.length > 5 ? [{ more: groups.length - 4 }, ...groups.slice(0, 4).map(([n, c], i) => ({ n, m: `${c} pages`, art: i === 3 }))] : groups.map(([n, c], i) => ({ n, m: `${c} pages`, art: i === groups.length - 1 }));
+}
+function folder(P, i) {
+  const sheets = projectSheets(P), k = sheets.length;
+  const meta = P.renders ? `${INV.pages} pages // ${INV.elements} elements` : "No renders yet";
+  return `<div class="fp-slot"><div class="fp" data-project="${P.id}" style="--fp-i:${i}">
+    <div class="fp-stage"><div class="fp-tilt"><div class="fp-folder"><div class="fp-shadow" aria-hidden="true"></div>
+      <div class="fp-back" aria-hidden="true" style="clip-path:path('${FP.back}')"><canvas class="fp-art" width="364" height="296"></canvas><span class="fp-back-eb">${esc(P.type)}</span></div>
+      <svg class="fp-rim fp-back-rim" viewBox="0 0 340 272" aria-hidden="true"><path d="${FP.back}"/></svg>
+      <div class="fp-front" style="clip-path:path('${FP.front}')"><div class="fp-tint" aria-hidden="true"></div><div class="fp-wash" aria-hidden="true"></div><div class="fp-edge" aria-hidden="true"></div><div class="fp-spec" aria-hidden="true"></div>
+        <svg class="fp-rim fp-front-rim" viewBox="0 0 340 198" aria-hidden="true"><defs><linearGradient id="fp-rim-${P.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".8"/><stop offset=".35" stop-color="currentColor" stop-opacity=".25"/><stop offset="1" stop-color="currentColor" stop-opacity=".08"/></linearGradient></defs><path d="${FP.front}" stroke="url(#fp-rim-${P.id})"/></svg>
+        <button type="button" class="fp-hit" data-open-project="${P.id}" aria-label="Open ${esc(P.name)}, ${esc(P.type)}, ${esc(meta)}"></button>
+        <div class="fp-lbl"><span class="fp-ttl">${esc(P.name)}</span><span class="fp-meta">${esc(meta)}</span></div></div></div>
+      <div class="fp-files" aria-hidden="true">${sheets.map((it, v) => { const depth = k - 1 - v, off = v - (k - 1) / 2, j = fpRng(v * 97 + i * 13 + 5), jx = (j() - 0.5) * 8, jr = (j() - 0.5) * 3;
+        return `<span class="fp-sh${it.more ? " more" : it.art ? " art" : ""}" style="z-index:${v + 10};--dl:${depth * 30}ms;--rx:${(off * 3 + jx).toFixed(1)}px;--ry:${(-depth * 5 + 18).toFixed(1)}px;--rr:${(off * 3 + jr).toFixed(2)}deg;--hx:${(off * 30 + jx).toFixed(1)}px;--hy:${(-depth * 10 - 34).toFixed(1)}px;--hr:${(off * 8 + jr).toFixed(2)}deg;--ts:${(1 - Math.abs(off) * 0.03).toFixed(3)}">${it.more ? `<span class="fp-hd"><span class="fp-nm">More</span><span class="fp-mt">groups</span></span><span class="fp-big">+${it.more}</span>` : `${it.art ? "" : '<span class="fp-ln"><i style="width:86%"></i><i style="width:92%"></i><i style="width:64%"></i><i style="width:88%"></i><i style="width:42%"></i></span>'}<span class="fp-hd"><span class="fp-nm">${esc(it.n)}</span><span class="fp-mt">${esc(it.m)}</span></span>`}</span>`; }).join("")}</div>
+    </div></div></div></div>`;
+}
+function renderInventory() {
+  let i = 0;
+  $("inventory").innerHTML = BLUEPRINT_ROWS.map(([id, label]) => { const list = PROJECTS.filter(p => p.row === id); return list.length ? `<section class="lab-row" aria-label="${esc(label)}"><h2 class="rp-eyebrow">${esc(label)} // ${list.length}</h2><div class="lab-shelf">${list.map(p => folder(p, i++)).join("")}</div></section>` : ""; }).join("") +
+    note("Each folder is one project, shelved by its Atlas blueprint type. Holodex is the only project with renders today; the others open to an empty board.");
+  paintFolders();
+  requestAnimationFrame(() => document.querySelectorAll(".fp").forEach(f => f.setAttribute("data-entered", "")));
+}
+function paintFolders() { document.querySelectorAll(".fp").forEach((f, i) => fpArt(f.querySelector(".fp-art"), 7 + i * 31)); }
+// Pointer parallax: the folder tilts a little and a specular follows the cursor across the glass. Off under reduced motion.
+document.addEventListener("pointermove", ev => {
+  const f = ev.target.closest?.(".fp"); if (!f || reduced() || ev.pointerType !== "mouse") return;
+  const r = f.getBoundingClientRect(); f.style.setProperty("--px", ((ev.clientX - r.left) / r.width * 2 - 1).toFixed(3)); f.style.setProperty("--py", ((ev.clientY - r.top) / r.height * 2 - 1).toFixed(3));
+});
+document.addEventListener("pointerover", ev => { const f = ev.target.closest?.(".fp-front"); if (f) f.closest(".fp").setAttribute("data-hover", ""); });
+document.addEventListener("pointerout", ev => { const f = ev.target.closest?.(".fp-front"); if (f && !f.contains(ev.relatedTarget)) { const fp = f.closest(".fp"); fp.removeAttribute("data-hover"); fp.style.setProperty("--px", 0); fp.style.setProperty("--py", 0); } });
+document.addEventListener("focusin", ev => { if (ev.target.classList?.contains("fp-hit")) ev.target.closest(".fp").setAttribute("data-hover", ""); });
+document.addEventListener("focusout", ev => { if (ev.target.classList?.contains("fp-hit")) ev.target.closest(".fp").removeAttribute("data-hover"); });
+
+/* ---------- project open and return: the blueprint rolls between the folder and the StageCanvas ---------- */
+const rectOf = el => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; };
+function roll(from, to, done) {
+  if (reduced() || !from.width || !to.width) return done();
+  const g = document.createElement("div"); g.className = "lab-roll"; g.setAttribute("aria-hidden", "true");
+  const put = r => { g.style.left = r.left + "px"; g.style.top = r.top + "px"; g.style.width = r.width + "px"; g.style.height = r.height + "px"; };
+  put(from); document.body.appendChild(g);
+  let ended = false; const end = () => { if (ended) return; ended = true; g.style.opacity = "0"; setTimeout(() => g.remove(), 260); done(); };
+  requestAnimationFrame(() => requestAnimationFrame(() => { put(to); }));
+  g.addEventListener("transitionend", ev => { if (ev.propertyName === "width" || ev.propertyName === "height") end(); });
+  setTimeout(end, 800);
+}
+function showView() {
+  const inv = S.view === "inventory", P = proj();
+  $("inventory").hidden = !inv; $("frame").hidden = inv;
+  $("eyebrow").textContent = inv ? "ARKSTATION // UI LAB" : `${P.name.toUpperCase()} // UI LAB`;
+  $("title").textContent = inv ? "Inventory" : P.name;
+  $("lab").toggleAttribute("data-photons", !inv && live.state === "on" && hasRenders());
+  if (!inv && live.state === "on" && hasRenders()) $("lab").dataset.edge = "agent"; else delete $("lab").dataset.edge;
+  renderActions();
+}
+function setShell(id) { document.documentElement.dataset.shell = id; S.shell = id; renderActions(); if (S.view === "inventory") paintFolders(); }
+function openProject(id) {
+  const fp = document.querySelector(`.fp[data-project="${id}"]`), from = fp ? rectOf(fp.querySelector(".fp-stage")) : { width: 0 };
+  S.project = id; S.view = "board"; S.pick = null; S.layer = null;
+  setShell(proj().shell);
+  if (!hasRenders() && S.side !== "thread") S.side = "thread";
+  showView();
+  if (narrow()) { $("frame").dataset.inspectorHidden = "true"; $("inspector").hidden = true; } else { $("frame").dataset.inspectorHidden = "false"; $("inspector").hidden = false; }
+  setSide(S.side); renderStage(); renderInspect(); renderLayers(); renderThread();
+  roll(from, rectOf($("stagehost")), () => stage?.el.focus({ preventScroll: true }));
+}
+function returnToInventory() {
+  const from = rectOf($("stagehost")), id = S.project;
+  S.view = "inventory"; showView(); renderInventory();
+  const fp = document.querySelector(`.fp[data-project="${id}"]`);
+  roll(from, fp ? rectOf(fp.querySelector(".fp-stage")) : { width: 0 }, () => fp?.querySelector(".fp-hit").focus({ preventScroll: true }));
+}
+
+/* ---------- wiring ---------- */
+function renderActions() {
+  const inv = S.view === "inventory", hidden = $("frame").dataset.inspectorHidden === "true";
+  // Each Shell part on the page follows the picked Shell: Phosphor (ArkStation) or Bandit, Ryozan's Phosphor Lite.
+  $("actions").innerHTML = switcher("Shell", [["phosphor", "Phosphor"], ["bandit", "Bandit"]], S.shell || "phosphor", "shell") +
+    (inv ? "" : switcher("Lab view", [["board", "Board"], ["focus", "Focus", !hasRenders()]], S.view, "view") + (S.view === "focus" ? btn("Previous", 'data-step="-1"') + btn("Next", 'data-step="1"') : "") + btn(hidden ? "Open inspector" : "Hide inspector", `id="side-toggle" aria-expanded="${!hidden}" aria-controls="inspector"`));
+}
+function setInspector(show) { $("frame").dataset.inspectorHidden = String(!show); $("inspector").hidden = !show; renderActions(); requestAnimationFrame(() => stage?.set({ view: stage.view })); }
+function setSide(side) {
+  S.side = side;
+  $("sideswitch").innerHTML = switcher("Inspector view", [["thread", "Thread"], ["inspect", "Inspect"], ["layers", "Layers"]], side, "side");
+  for (const k of ["thread", "inspect", "layers"]) $("side-" + k).hidden = k !== side;
+  if ($("inspector").hidden && !narrow()) setInspector(true);
+}
+function goFocus(k) { if (k !== S.focus) S.pick = null; S.focus = k; S.view = "focus"; save(); renderStage(); renderInspect(); renderLayers(); }
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (d.acc) { const open = !S.open[d.acc]; S.open[d.acc] = open; const sec = t.closest(".rp-accordion"), body = $(`acc-${d.acc}-body`); sec.dataset.open = String(open); t.setAttribute("aria-expanded", String(open)); t.querySelector(".rp-accordion__indicator").textContent = open ? "−" : "+"; body.setAttribute("aria-hidden", String(!open)); body.toggleAttribute("inert", !open); if (d.acc === "brief" && open) $("briefview").textContent = brief($("ask").value.trim() || "(your message)", !S.sessionId); return; }
+  if (d.openProject) return openProject(d.openProject);
+  if (d.shell) return setShell(d.shell);
+  if (t.id === "hud-back") return returnToInventory();
+  if (t.id === "ask-source") { $("ask").value = `Set up a UI render source for ${proj().name}: a job that writes one <page>.png and one <page>.json element map per page, in the shape Holodex's UI renders workflow writes, so the UI Lab can show its board.`; setSide("thread"); if ($("inspector").hidden) setInspector(true); $("ask").focus(); return; }
+  if (d.view) { if (d.view === S.view) return; S.view = d.view; renderStage(); renderInspect(); renderLayers(); return; }
+  if (d.side) return setSide(d.side);
+  if (d.src) { S.source = d.src; renderStage(); return; }
+  if (d.focus) { goFocus(d.focus); if (narrow()) setInspector(false); return; }
+  if (d.layer) { const [kind, ...rest] = d.layer.split(":"), id = rest.join(":"); S.layer = S.layer?.kind === kind && S.layer.id === id ? null : { kind, id }; S.pick = null; stage?.set({ picked: null }); if (S.view === "board") renderStage(); renderLayers(); renderInspect(); if (S.layer) setSide("inspect"); return; }
+  if (d.step) { const i = ALL.indexOf(S.focus); return goFocus(ALL[(i + Number(d.step) + ALL.length) % ALL.length]); }
+  if (d.undo) { delete S.tweaks[d.undo]; queueLive(d.undo, null); save(); paint(); renderInspect(); renderLayers(); return; }
+  if (d.elundo) { const x = S.elTweaks[d.elundo]; if (x) { delete x[d.p]; if (!Object.keys(x).length) delete S.elTweaks[d.elundo]; } save(); paint(); renderInspect(); return; }
+  if (d.mission) { S.mission = S.mission === +d.mission ? null : +d.mission; return renderThreadMore(); }
+  if (d.mcall) return missionCall(d.mcall);
+  if (t.id === "side-toggle") return setInspector($("inspector").hidden);
+  if (t.id === "side-close") return setInspector(false);
+  if (t.id === "live-go") return liveConnect();
+  if (t.id === "rerender") return loadFocus(true);
+  if (t.id === "livereset") return liveReset();
+  if (t.id === "clear") { for (const n of Object.keys(S.tweaks)) queueLive(n, null); S.tweaks = {}; S.elTweaks = {}; save(); paint(); renderInspect(); renderLayers(); return; }
+  if (t.id === "w-reset" && spec) { for (const c of spec.controls) { if (c.id.startsWith("el-")) { const x = S.elTweaks[elKey()]; if (x) { delete x[c.id.slice(3)]; if (!Object.keys(x).length) delete S.elTweaks[elKey()]; } } else if (c.id in S.tweaks) { delete S.tweaks[c.id]; queueLive(c.id, null); } } save(); paint(); renderInspect(); renderLayers(); return; }
+  if (t.id === "promote") { $("ask").value = "Promote these pending tweaks into Holodex: write each token value into the tokens it names, apply the element edits to the named controls, keep the token names, and show the before and after renders of every surface that changes."; setSide("thread"); $("ask").focus(); return; }
+  if (t.id === "postnote") return postNote();
+  if (t.id === "mission") return runMission();
+  if (t.id === "t-refresh") return refreshThread();
+  if (t.id === "t-new") { stopPoll(); S.sessionId = null; S.thread = null; save(); setFeedback("New thread. Your next message opens a fresh room with Smith.", ""); renderThread(); }
+});
+$("composer").addEventListener("submit", e => { e.preventDefault(); send(); });
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "q") { S.q = t.value; if (S.q) for (const k of ["surfaces", "components", "effects", "tokens-color", "tokens-motion", "tokens-metric", "tokens-type"]) S.open[k] = true; return renderLayers(); }
+  if (t.dataset.w && t.type !== "text") return widgetInput(t.dataset.w, t.value);
+  if (t.dataset.mapprove) { const m = S.missions[+t.dataset.mapprove]; if (m) { m.approvalId = UUID.test(t.value.trim()) ? t.value.trim() : ""; save(); } }
+  if (t.id === "ask" && S.open.brief && $("briefview")) $("briefview").textContent = brief(t.value.trim() || "(your message)", !S.sessionId);
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.w && t.type === "text") return widgetInput(t.dataset.w, t.value);
+  if (t.id?.startsWith("flow-")) { store.set(t.id, t.checked); const sum = $("acc-brief-trigger")?.querySelector(".rp-accordion__summary"); if (sum) sum.textContent = `${FLOWS.filter(f => flowOn(f[0])).length} of ${FLOWS.length} flows`; if ($("briefview")) $("briefview").textContent = brief($("ask").value.trim() || "(your message)", !S.sessionId); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && e.target.id === "ask") { e.preventDefault(); send(); }
+  if (e.key === "Escape" && S.pick && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) setPick(null);
+});
+window.addEventListener("resize", () => { if (S.view !== "inventory") stage?.set({ view: stage.view }); });
+if (narrow()) { $("frame").dataset.inspectorHidden = "true"; $("inspector").hidden = true; }
+setShell("phosphor"); showView(); renderInventory(); renderThread();
+
+(async () => {
+  try { mcp = window.claude?.use ? await window.claude.use("mcp") : null; } catch { mcp = null; }
+  if (!mcp) { hm = "none"; live.state = "off"; renderSource(); renderThread(); return; }
+  let servers = [];
+  try { servers = (await mcp.listTools()).servers || []; } catch {}
+  const s = servers.find(x => x.server === HM);
+  hm = s && s.authStatus !== "needs_reauth" ? "ok" : "missing";
+  renderThread();
+  // A host server is listed only inside the Claude app. When it is, try it once; the app asks the owner the first time.
+  if (servers.some(x => x.server === HX)) await liveConnect(); else { live.state = "off"; renderSource(); }
+})();
+</script>

@@ -28,3 +28,6 @@ docs/shots/eden-runs/
 
 # The UI Lab bridge installs its one dependency locally
 node_modules/
+
+# The UI Lab keeps its built page in the repo
+!tools/ui-lab/dist/
