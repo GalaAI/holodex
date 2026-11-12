@@ -885,11 +885,17 @@ public sealed partial class HolodexLiteDrawerForm : Form
         SwitchTab(TabOrder[((at < 0 ? 0 : at) + step + TabOrder.Length) % TabOrder.Length]);
     }
 
-    /// <summary>Ctrl+1 to Ctrl+5 open a tab; Ctrl+Tab and Ctrl+PageDown step down the rail, with Shift or PageUp up it.</summary>
+    /// <summary>
+    /// Escape closes the drawer, as it closes every other surface. Ctrl+1 to Ctrl+5 open a tab; Ctrl+Tab and
+    /// Ctrl+PageDown step down the rail, with Shift or PageUp up it.
+    /// </summary>
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
         switch (keyData)
         {
+            case Keys.Escape:
+                SurfaceMotion.Dismiss(this);
+                return true;
             case Keys.Control | Keys.Tab:
             case Keys.Control | Keys.PageDown:
                 StepTab(1);
